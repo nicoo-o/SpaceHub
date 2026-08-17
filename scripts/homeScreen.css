@@ -1,0 +1,147 @@
+﻿/* Please use the CSS commented below to customize the order of SpaceHub custom home sections */
+
+/*
+[data-custom-section-id="watchlist"] {
+    order: 60 !important;
+}
+
+[data-custom-section-id="popular-tv-networks"] {
+    order: 61 !important;
+}
+
+[data-custom-section-id="new-movies"] {
+    order: 30 !important;
+}
+
+[data-custom-section-id="new-episodes"] {
+    order: 31 !important;
+}
+*/
+
+.sections.homeSectionsContainer {
+    display: flex;
+    flex-direction: column;
+}
+
+.homeSectionsContainer > .section0 {
+    order: 1;
+}
+.homeSectionsContainer > .section1 {
+    order: 2;
+}
+.homeSectionsContainer > .section2 {
+    order: 3;
+}
+.homeSectionsContainer > .section3 {
+    order: 4;
+}
+.homeSectionsContainer > .section4 {
+    order: 5;
+}
+.homeSectionsContainer > .section5 {
+    order: 6;
+}
+.homeSectionsContainer > .section6 {
+    order: 7;
+}
+.homeSectionsContainer > .section7 {
+    order: 8;
+}
+.homeSectionsContainer > .section8 {
+    order: 9;
+}
+.homeSectionsContainer > .section9 {
+    order: 10;
+}
+.homeSectionsContainer > .section10 {
+    order: 11;
+}
+
+/* Halloween theme */
+.home-screen.halloween-theme.with-background #reactRoot:has(.libraryPage:not(.hide) .pageTabContent.is-active[data-index="0"])>.backgroundContainer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: -25%;
+    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(https://ranaldsgift.github.io/SpaceHub/pages/images/halloween.jpg);
+    background-position: 0px -250px;
+    background-size: auto 102%;
+}
+
+/* Christmas theme */
+.home-screen.christmas-theme.with-background #reactRoot:has(.libraryPage:not(.hide) .pageTabContent.is-active[data-index="0"])>.backgroundContainer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0%;
+    background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.85)), url('../pages/images/christmas.jpg');
+    background-position: center;
+    background-size: cover;
+}
+
+.snowverlay {
+    display: none;
+}
+
+.home-screen.christmas-theme .snowverlay {
+    display: block;
+}
+
+.home-screen h2.sectionTitle {
+    margin-bottom: .35em;
+    margin-top: 0;
+}
+
+div#discovery-loading-indicator:not(.show)::before {
+    content: 'Loading...';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: translateY(-50%);
+    visibility: visible;
+    text-align: center;
+    opacity: 1;
+}
+
+#indexPage[data-discovery-ready] div#discovery-loading-indicator:not(.show)::before {
+    content: 'Discover More';
+}
+
+div#discovery-loading-indicator:not(.show)::after {
+    content: '\E313';
+    font-family: 'Material Icons';
+    position: absolute;
+    top: calc(50% + 0.4em);
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    font-size: 1.5em;
+    color: #ffffff;
+    visibility: visible;
+    opacity: 1;
+}
+
+.libraryPage:has(.load-more-discovery-btn) div#discovery-loading-indicator {
+    opacity: 0;
+}
+
+#indexPage[data-discovery-ready]:not([data-infinite-scroll='true']) div#discovery-loading-indicator {
+    display: none;
+}
+
+#indexPage:not([data-discovery-ready]) div#discovery-loading-indicator:not(.show)::after {
+    content: '';
+}
+
+/* Ensure Editor's Choice Banner appears at top of home screen if enabled */
+.editorsChoiceContainer {
+    order: 1 !important;
+}
+.spotlight-section {
+    width: calc(100% - (2 * max(env(safe-area-inset-left),3.3%)));
+}
