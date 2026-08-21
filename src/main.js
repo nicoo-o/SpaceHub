@@ -129,6 +129,14 @@ async function boot() {
     window.SpaceHub.player = new VideoPlayer();
     window.SpaceHub.audio = new AudioPlayer();
 
+    // 2ter. Initialiser le mode TV si présent
+    if (window.SpaceHub?.tvMode && window.SpaceHub.core?.settings?.get('tv.autoActivate')) {
+        window.SpaceHub.tvMode.enable();
+    }
+
+    // 2quater. Intégration Native Desktop (Electron Shortcuts & Discord RPC)
+    setupElectronIntegration();
+
     // 3. Vérifier la session existante
     const authenticated = await auth.init();
 
@@ -143,6 +151,52 @@ async function boot() {
         mountApp();
     } else {
         mountLogin();
+    }
+}
+
+function setupElectronIntegration() {
+    if (!window.electronAPI) return;
+
+    window.electronAPI.onMediaCommand((cmd) => {
+        if (cmd === 'toggle') {
+            if (window.SpaceHub?.audio) window.SpaceHub.audio.toggle();
+        } else if (cmd === 'next') {
+            if (window.SpaceHub?.audio) window.SpaceHub.audio.next();
+        } else if (cmd === 'prev') {
+            if (window.SpaceHub?.audio) window.SpaceHub.audio.previous();
+        } else if (cmd === 'stop') {
+            window.SpaceHub?.audio?.stop?.();
+            window.SpaceHub?.player?.close?.();
+        }
+    });
+
+    const eb = window.SpaceHub?.core?.eventBus;
+    if (eb) {
+        eb.on('player:played', (item) => {
+            window.electronAPI.updateDiscordPresence({
+                details: item?.Name || 'Vidéo',
+                state: item?.SeriesName ? `${item.SeriesName} - S${item.ParentIndexNumber || 1}E${item.IndexNumber || 1}` : 'Regarde un film',
+                largeImageKey: 'spacehub_logo',
+                largeImageText: 'SpaceHub'
+            });
+        });
+
+        eb.on('player:stopped', () => {
+            window.electronAPI.updateDiscordPresence({
+                details: 'Parcourt sa médiathèque',
+                state: 'SpaceHub Media Center',
+                largeImageKey: 'spacehub_logo'
+            });
+        });
+
+        eb.on('audio:changed', (state) => {
+            window.electronAPI.updateDiscordPresence({
+                details: state.item?.Name || 'Musique',
+                state: `Écoute ${state.item?.Artists?.join(', ') || 'un album'}`,
+                largeImageKey: 'spacehub_logo',
+                largeImageText: 'SpaceHub Audio'
+            });
+        });
     }
 }
 

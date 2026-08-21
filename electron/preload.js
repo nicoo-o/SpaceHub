@@ -18,6 +18,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
         clear: () => ipcRenderer.invoke('secure-storage:clear')
     },
 
+    // Discord Rich Presence
+    updateDiscordPresence: (activity) => ipcRenderer.invoke('discord:set-activity', activity),
+    clearDiscordPresence: () => ipcRenderer.invoke('discord:clear-activity'),
+
+    // Touches multimédias & Commandes distantes
+    onMediaCommand: (callback) => ipcRenderer.on('media-command', (event, cmd) => callback(cmd)),
+
     // Informations système
     getAppVersion: () => ipcRenderer.invoke('get-app-version'),
     getPlatform: () => ipcRenderer.invoke('get-platform'),

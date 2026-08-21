@@ -71,6 +71,7 @@ import { RecommendedWidget, TrendsWidget } from '../ui/widgets/DiscoveryWidgets.
 
 import RecommendationService from './Discovery/RecommendationService.js';
 import FamilyService from './Family/FamilyService.js';
+import TVMode from '../ui/tv/TVMode.js';
 
 // ─── Namespace global ────────────────────────────────────────────────────────
 
@@ -262,6 +263,9 @@ async function init() {
 
     const marketplace = new ExtensionMarketplace(SpaceHub.sdk);
     SpaceHub.core.marketplace = marketplace;
+
+    // 6septies. TV Mode (10-foot UI)
+    SpaceHub.tvMode = new TVMode(eventBus, settings);
 
     // 7. ApiClient + JellyfinClient
     const api = new ApiClient();
