@@ -43,6 +43,11 @@ import AmbilightEngine from '../core/ambilight/AmbilightEngine.js';
 import CinemaModeService from '../core/domotics/CinemaModeService.js';
 import AccessibilityManager from '../core/accessibility/AccessibilityManager.js';
 import RewindService from '../core/analytics/RewindService.js';
+import CinematicIntroEngine from '../core/intro/CinematicIntroEngine.js';
+import WorkerThreadPool from '../core/perf/WorkerThreadPool.js';
+import MultiTierCache from '../core/perf/MultiTierCache.js';
+import NetworkQualityGuardian from '../core/perf/NetworkQualityGuardian.js';
+import ProCodeThemeEditor from '../ui/themes/ProCodeThemeEditor.js';
 
 const APP_EL_ID    = 'app';
 const SPLASH_EL_ID = 'sh-splash-loader';
@@ -199,6 +204,20 @@ async function boot() {
     // 2bis++++++++. Brancher SpaceHub Rewind (Horizon 16)
     window.SpaceHub.rewind = new RewindService();
 
+    // 2bis+++++++++. Brancher Hyper-Performance Engines (Horizon 6++)
+    window.SpaceHub.perf = {
+        workers: new WorkerThreadPool(),
+        cache: new MultiTierCache(),
+        networkGuardian: new NetworkQualityGuardian()
+    };
+
+    // 2bis++++++++++. Brancher Pro Theme Studio & Custom CSS (Horizon 8++)
+    window.SpaceHub.themePro = new ProCodeThemeEditor();
+    const savedCustomCSS = localStorage.getItem('sh_custom_css');
+    if (savedCustomCSS) {
+        window.SpaceHub.themePro.applyCSS(savedCustomCSS);
+    }
+
     // 2ter. Brancher les lecteurs
     window.SpaceHub.player = new VideoPlayer();
     window.SpaceHub.audio = new AudioPlayer();
@@ -219,6 +238,10 @@ async function boot() {
     }
 
     hideSplash();
+
+    // Lancer l'Intro Cinématique Style Netflix (Horizon 17)
+    const introEngine = new CinematicIntroEngine();
+    await introEngine.play();
 
     // 4. Router simple : login ou app
     if (authenticated) {
