@@ -14,41 +14,41 @@
    ═══════════════════════════════════════════════════════════════ */
 :root {
 
-    /* ─── Couleurs de base ────────────────────────────────────── */
-    --sh-color-primary:          #7c6aff;   /* Violet SpaceHub */
-    --sh-color-primary-hover:    #9a8bff;
-    --sh-color-primary-active:   #5d4ee8;
-    --sh-color-primary-rgb:      124, 106, 255;
+    /* ─── Couleurs de base — Monochromique Jellyfin (KefinTweaks) ─ */
+    --sh-color-primary:          #ffffff;   /* Pure Blanc Accent */
+    --sh-color-primary-hover:    #e0e0ea;
+    --sh-color-primary-active:   #cccccc;
+    --sh-color-primary-rgb:      255, 255, 255;
 
-    --sh-color-secondary:        #00c9a7;   /* Teal accent */
-    --sh-color-secondary-hover:  #00e8c1;
-    --sh-color-secondary-rgb:    0, 201, 167;
+    --sh-color-secondary:        #9e9eb4;   /* Argenté / Silver */
+    --sh-color-secondary-hover:  #ffffff;
+    --sh-color-secondary-rgb:    158, 158, 180;
 
     --sh-color-danger:           #ff5c7a;
     --sh-color-warning:          #ffb830;
     --sh-color-success:          #3ddc84;
-    --sh-color-info:             #4fc3f7;
+    --sh-color-info:             #ffffff;
 
-    /* ─── Surfaces & fonds ───────────────────────────────────── */
-    --sh-bg-base:                #101014;   /* Fond principal */
-    --sh-bg-surface:             #18181f;   /* Cards, panels */
-    --sh-bg-surface-2:           #22222e;   /* Nested surfaces */
-    --sh-bg-surface-3:           #2e2e3d;   /* Hover states */
-    --sh-bg-overlay:             rgba(0, 0, 0, 0.72); /* Backdrop modal */
-    --sh-bg-glass:               rgba(24, 24, 31, 0.82);
-    --sh-bg-glass-blur:          blur(14px) saturate(1.6);
+    /* ─── Surfaces & fonds OLED profonds ────────────────────────── */
+    --sh-bg-base:                #050505;   /* Fond noir absolu */
+    --sh-bg-surface:             #0e0e12;   /* Cards, panels */
+    --sh-bg-surface-2:           #15151c;   /* Nested surfaces */
+    --sh-bg-surface-3:           #1f1f28;   /* Hover states */
+    --sh-bg-overlay:             rgba(0, 0, 0, 0.85); /* Backdrop modal */
+    --sh-bg-glass:               rgba(12, 12, 16, 0.88);
+    --sh-bg-glass-blur:          blur(20px) saturate(1.8);
 
     /* ─── Texte ──────────────────────────────────────────────── */
-    --sh-text-primary:           #f0f0f8;
-    --sh-text-secondary:         #9898b8;
-    --sh-text-muted:             #5c5c7a;
-    --sh-text-on-primary:        #ffffff;
-    --sh-text-on-dark:           rgba(255, 255, 255, 0.87);
+    --sh-text-primary:           #ffffff;
+    --sh-text-secondary:         #a6a6b8;
+    --sh-text-muted:             #606075;
+    --sh-text-on-primary:        #050505;
+    --sh-text-on-dark:           rgba(255, 255, 255, 0.95);
 
     /* ─── Bordures ───────────────────────────────────────────── */
     --sh-border-color:           rgba(255, 255, 255, 0.08);
-    --sh-border-color-hover:     rgba(255, 255, 255, 0.18);
-    --sh-border-color-focus:     var(--sh-color-primary);
+    --sh-border-color-hover:     rgba(255, 255, 255, 0.25);
+    --sh-border-color-focus:     #ffffff;
     --sh-border-width:           1px;
     --sh-border-width-thick:     2px;
 

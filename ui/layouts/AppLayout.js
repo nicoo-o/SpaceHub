@@ -64,14 +64,9 @@ class AppLayout {
 
         container.innerHTML = `
             <div class="sh-app-shell">
-                <!-- Header / Barre de navigation épurée -->
+                <!-- Header / Barre de navigation épurée Monochromique -->
                 <header class="sh-app-header">
                     <div class="sh-app-header__left">
-                        <button class="sh-btn sh-btn--ghost sh-btn-hamburger" id="sh-btn-mobile-menu" title="Menu des Hubs">
-                            <span>☰</span>
-                            <span class="sh-hamburger-txt">Hubs</span>
-                        </button>
-
                         <div class="sh-app-logo" data-navigate="dashboard">
                             <span class="sh-app-logo__icon">🚀</span>
                             <span class="sh-app-logo__text">SpaceHub</span>
@@ -553,35 +548,9 @@ class AppLayout {
     font-size: var(--sh-text-xl, 24px);
     font-weight: 800;
     letter-spacing: -0.5px;
-    background: linear-gradient(135deg, #fff, var(--sh-color-primary, #7c6aff));
+    background: linear-gradient(135deg, #fff, var(--sh-color-primary, #ffffff));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-}
-
-.sh-btn-hamburger {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 14px;
-    border-radius: var(--sh-radius-sm, 8px);
-    background: rgba(124, 106, 255, 0.12);
-    border: 1px solid rgba(124, 106, 255, 0.3);
-    color: #ffffff;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.sh-btn-hamburger:hover {
-    background: var(--sh-color-primary, #7c6aff);
-    box-shadow: 0 0 16px rgba(124, 106, 255, 0.4);
-}
-
-@media (min-width: 992px) {
-    .sh-app-shell {
-        padding-left: 68px;
-        transition: padding-left 0.3s ease;
-    }
 }
 
 .sh-app-nav {

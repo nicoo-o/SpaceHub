@@ -27,6 +27,11 @@ class AppSidebarDrawer {
     }
 
     render(container) {
+        // Zone de déclenchement invisible sur le bord gauche de l'écran (20px)
+        const triggerZone = document.createElement('div');
+        triggerZone.className = 'sh-sidebar-trigger-zone';
+        triggerZone.id = 'sh-sidebar-trigger-zone';
+
         this._drawerEl = document.createElement('aside');
         this._drawerEl.className = 'sh-glass-sidebar';
         this._drawerEl.id = 'sh-glass-sidebar';
@@ -39,7 +44,7 @@ class AppSidebarDrawer {
                     <span class="sh-sidebar-logo-text">Space<span>Hub</span></span>
                 </div>
 
-                <div class="sh-sidebar-scroll-area">
+                <div class="sh-sidebar-scroll-area sh-scrollbar">
                     <!-- HUB 1 : DIVERTISSEMENT -->
                     <div class="sh-sidebar-section">
                         <div class="sh-sidebar-section-title">DIVERTISSEMENT</div>
@@ -131,18 +136,28 @@ class AppSidebarDrawer {
             </div>
         `;
 
-        // Backdrop mobile
+        // Backdrop
         this._backdropEl = document.createElement('div');
         this._backdropEl.className = 'sh-sidebar-backdrop';
         this._backdropEl.addEventListener('click', () => this.closeMobile());
 
+        container.appendChild(triggerZone);
         container.appendChild(this._drawerEl);
         container.appendChild(this._backdropEl);
 
-        this._bindEvents();
+        this._bindEvents(triggerZone);
     }
 
-    _bindEvents() {
+    _bindEvents(triggerZone) {
+        // Déclenchement automatique au survol du bord gauche de l'écran
+        triggerZone?.addEventListener('mouseenter', () => {
+            this._drawerEl.classList.add('sh-sidebar-revealed');
+        });
+
+        this._drawerEl.addEventListener('mouseleave', () => {
+            this._drawerEl.classList.remove('sh-sidebar-revealed');
+        });
+
         this._drawerEl.querySelectorAll('.sh-sidebar-item, .sh-sidebar-brand').forEach(btn => {
             btn.addEventListener('click', () => {
                 const nav = btn.dataset.nav;
@@ -150,6 +165,7 @@ class AppSidebarDrawer {
                     this._drawerEl.querySelectorAll('.sh-sidebar-item').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     this._router.navigate(nav);
+                    this._drawerEl.classList.remove('sh-sidebar-revealed');
                     this.closeMobile();
                 }
             });
@@ -165,6 +181,7 @@ class AppSidebarDrawer {
     closeMobile() {
         this._isOpenMobile = false;
         this._drawerEl.classList.remove('open-mobile');
+        this._drawerEl.classList.remove('sh-sidebar-revealed');
         this._backdropEl.classList.remove('active');
     }
 
@@ -180,33 +197,43 @@ class AppSidebarDrawer {
         const style = document.createElement('style');
         style.id = 'sh-sidebar-styles';
         style.textContent = `
-/* Floating Glass Sidebar (Desktop Hover-Expandable) */
+/* Zone de détection invisible sur le bord gauche de l'écran (18px) */
+.sh-sidebar-trigger-zone {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 18px;
+    z-index: 99998;
+    background: transparent;
+}
+
+/* Barre latérale Monochromique 100% masquée par défaut */
 .sh-glass-sidebar {
     position: fixed;
     top: 0;
     left: 0;
     bottom: 0;
-    width: 68px; /* État réduit sur PC */
-    background: rgba(10, 10, 15, 0.75);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    width: 280px;
+    background: rgba(8, 8, 12, 0.92);
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
     border-right: 1px solid rgba(255, 255, 255, 0.08);
-    z-index: 10000;
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
-    overflow: hidden;
-    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+    z-index: 99999;
+    transform: translateX(-100%);
+    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+    box-shadow: none;
 }
 
-/* Extension fluide au survol de la souris sur PC */
-@media (min-width: 992px) {
-    .sh-glass-sidebar:hover {
-        width: 270px; /* État étendu */
-        box-shadow: 10px 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(124, 106, 255, 0.15);
-    }
+/* Glisse en douceur à l'écran dès que la souris entre dans la zone ou sur la sidebar */
+.sh-glass-sidebar.sh-sidebar-revealed,
+.sh-glass-sidebar:hover {
+    transform: translateX(0);
+    box-shadow: 20px 0 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 255, 255, 0.05);
 }
 
 .sh-sidebar-inner {
-    width: 270px;
+    width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -216,7 +243,7 @@ class AppSidebarDrawer {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 20px 18px;
+    padding: 24px 22px;
     cursor: pointer;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     flex-shrink: 0;
@@ -224,50 +251,39 @@ class AppSidebarDrawer {
 
 .sh-sidebar-logo-icon {
     font-size: 24px;
-    filter: drop-shadow(0 0 10px rgba(124, 106, 255, 0.8));
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.5));
 }
 
 .sh-sidebar-logo-text {
-    font-size: 18px;
+    font-size: 19px;
     font-weight: 900;
     letter-spacing: 2px;
-    color: #fff;
+    color: #ffffff;
     white-space: nowrap;
-    opacity: 0;
-    transition: opacity 0.2s ease 0.1s;
-}
-
-.sh-glass-sidebar:hover .sh-sidebar-logo-text {
-    opacity: 1;
 }
 
 .sh-sidebar-logo-text span {
-    color: var(--sh-color-primary, #7c6aff);
+    color: var(--sh-color-primary, #ffffff);
+    opacity: 0.85;
 }
 
 .sh-sidebar-scroll-area {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 16px 10px;
+    padding: 20px 14px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 22px;
 }
 
 .sh-sidebar-section-title {
     font-size: 10px;
     font-weight: 800;
-    letter-spacing: 1.5px;
+    letter-spacing: 1.8px;
     color: rgba(255, 255, 255, 0.35);
-    padding: 0 10px 6px 10px;
+    padding: 0 12px 6px 12px;
     white-space: nowrap;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.sh-glass-sidebar:hover .sh-sidebar-section-title {
-    opacity: 1;
 }
 
 .sh-sidebar-nav {
@@ -280,15 +296,15 @@ class AppSidebarDrawer {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 10px 14px;
+    padding: 11px 14px;
     border-radius: 10px;
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
     color: rgba(255, 255, 255, 0.7);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.18s ease;
     width: 100%;
     text-align: left;
     white-space: nowrap;
@@ -296,57 +312,47 @@ class AppSidebarDrawer {
 
 .sh-sidebar-item:hover {
     background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
     color: #ffffff;
-    transform: translateX(3px);
+    transform: translateX(4px);
 }
 
 .sh-sidebar-item.active {
-    background: var(--sh-color-primary, #7c6aff);
-    color: #ffffff;
-    box-shadow: 0 4px 16px rgba(124, 106, 255, 0.4);
+    background: #ffffff;
+    color: #050505;
+    font-weight: 800;
+    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.25);
+    border-color: #ffffff;
 }
 
 .sh-sb-icon {
     font-size: 18px;
-    min-width: 22px;
+    min-width: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .sh-sb-label {
-    opacity: 0;
-    transition: opacity 0.2s ease;
+    flex: 1;
 }
 
-.sh-glass-sidebar:hover .sh-sb-label {
-    opacity: 1;
-}
-
-/* Version Mobile (GSM) et TV */
+/* Mobile & Tablettes */
 @media (max-width: 991px) {
-    .sh-glass-sidebar {
-        transform: translateX(-100%);
-        width: 280px;
-    }
     .sh-glass-sidebar.open-mobile {
         transform: translateX(0);
-    }
-    .sh-sidebar-logo-text, .sh-sidebar-section-title, .sh-sb-label {
-        opacity: 1 !important;
     }
     .sh-sidebar-backdrop {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(4px);
-        z-index: 9999;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(6px);
+        z-index: 99990;
         display: none;
     }
     .sh-sidebar-backdrop.active {
         display: block;
     }
-}
         `;
         document.head.appendChild(style);
     }
