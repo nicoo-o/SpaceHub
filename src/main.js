@@ -38,6 +38,9 @@ import StorageInspector from '../jellyfin/admin/StorageInspector.js';
 import OfflineDownloadManager from '../jellyfin/offline/OfflineDownloadManager.js';
 import OfflineSyncReconnector from '../jellyfin/offline/OfflineSyncReconnector.js';
 import LiveTvService from '../jellyfin/livetv/LiveTvService.js';
+import HomeAssistantService from '../integrations/homeassistant/HomeAssistantService.js';
+import AmbilightEngine from '../core/ambilight/AmbilightEngine.js';
+import CinemaModeService from '../core/domotics/CinemaModeService.js';
 
 const APP_EL_ID    = 'app';
 const SPLASH_EL_ID = 'sh-splash-loader';
@@ -174,6 +177,19 @@ async function boot() {
 
     // 2bis+++++. Brancher Live TV & DVR (Horizon 10)
     window.SpaceHub.livetv = new LiveTvService();
+
+    // 2bis++++++. Brancher Domotique Cinéma & Ambilight (Horizon 14)
+    const haService = new HomeAssistantService();
+    const ambilight = new AmbilightEngine();
+    ambilight.attachHomeAssistant(haService);
+    const cinemaMode = new CinemaModeService();
+    cinemaMode.attach(haService, ambilight);
+
+    window.SpaceHub.domotics = {
+        ha: haService,
+        ambilight: ambilight,
+        cinema: cinemaMode
+    };
 
     // 2ter. Brancher les lecteurs
     window.SpaceHub.player = new VideoPlayer();

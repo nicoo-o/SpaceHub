@@ -26,6 +26,7 @@ const NAV_ITEMS = [
     { id: 'history',     path: '/history',     label: '🕰️ Historique' },
     { id: 'extensions',  path: '/extensions',  label: '🧩 Extensions' },
     { id: 'admin',       path: '/admin',       label: '🛡️ Admin' },
+    { id: 'domotics',    path: '/domotics',    label: '💡 Domotique' },
 ];
 
 class AppLayout {
@@ -453,6 +454,9 @@ class AppLayout {
                         break;
                     case 'servarr':
                         ViewClass = (await import('../views/ServarrProView.js')).default;
+                        break;
+                    case 'domotics':
+                        ViewClass = (await import('../views/DomoticsView.js')).default;
                         break;
                     default:
                         throw new Error(`Vue inconnue : ${navId}`);
