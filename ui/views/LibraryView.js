@@ -143,6 +143,7 @@ class LibraryView {
                         <button class="sh-btn sh-btn--primary" id="btn-play-movie">▶ Lancer le film</button>
                         <button class="sh-btn sh-btn--ghost" id="btn-trailer-movie" style="border:1px solid var(--sh-border-color);">🎬 Bande-annonce</button>
                         <button class="sh-btn sh-btn--ghost" id="btn-syncplay-movie" style="border:1px solid var(--sh-border-color);">🍿 Regarder ensemble</button>
+                        <button class="sh-btn sh-btn--ghost" id="btn-download-movie" style="border:1px solid var(--sh-border-color);">📥 Télécharger</button>
                     </div>
                     <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--sh-text-secondary); margin-bottom:12px;">
                         ${movie.ProductionYear ? `<span>📅 ${movie.ProductionYear}</span>` : ''}
@@ -172,6 +173,10 @@ class LibraryView {
         modal._el.querySelector('#btn-syncplay-movie')?.addEventListener('click', () => {
             modal.close();
             window.SpaceHub?.syncPlay?.openSyncPlayModal(movie);
+        });
+
+        modal._el.querySelector('#btn-download-movie')?.addEventListener('click', () => {
+            window.SpaceHub?.offline?.downloadItem(movie);
         });
 
         // Charger les similaires en tâche de fond
@@ -263,7 +268,10 @@ class LibraryView {
                                 <span class="sh-badge" style="background:var(--sh-bg-surface-3); font-weight:700; font-size:11px;">S${ep.ParentIndexNumber || 1}E${ep.IndexNumber || 1}</span>
                                 <span class="sh-truncate" style="font-weight:500; font-size:14px;">${ep.Name}</span>
                             </div>
-                            <button class="sh-btn sh-btn--primary sh-btn--sm sh-play-ep-btn" data-id="${ep.Id}">▶ Lire</button>
+                            <div style="display:flex; gap:6px;">
+                                <button class="sh-btn sh-btn--ghost sh-btn--sm sh-dl-ep-btn" data-id="${ep.Id}" title="Télécharger pour visionnage hors-ligne">📥</button>
+                                <button class="sh-btn sh-btn--primary sh-btn--sm sh-play-ep-btn" data-id="${ep.Id}">▶ Lire</button>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
@@ -275,6 +283,19 @@ class LibraryView {
                     if (ep) {
                         modal.close();
                         window.SpaceHub?.player?.play(ep);
+                    }
+                });
+            });
+
+            listEl.querySelectorAll('.sh-dl-ep-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const ep = episodes.find(e => e.Id === btn.dataset.id);
+                    if (ep) {
+                        window.SpaceHub?.offline?.downloadItem({
+                            ...ep,
+                            SeriesName: series.Name
+                        });
                     }
                 });
             });

@@ -60,6 +60,13 @@ class VideoPlayer {
         this._trickplay.loadTrickplay(item);
         this._introSkipper.loadTimestamps(item, item.Chapters || []);
 
+        // Cas de lecture d'un média hors-ligne stocké localement
+        if (item._isOffline && item._blobUrl) {
+            this._video.src = item._blobUrl;
+            this._video.play().catch(e => this._log.warn('Auto-play hors-ligne empêché:', e));
+            return;
+        }
+
         // URL de flux vidéo optimisée (Direct Stream / Direct Play prioritaire)
         const optimizedParams = this._optimizer.getOptimizedStreamParams(item, startPositionSeconds);
         const streamUrl = `${serverUrl}/Videos/${item.Id}/master.m3u8?${optimizedParams}&Tag=${item.Etag || ''}&api_key=${token}`;
