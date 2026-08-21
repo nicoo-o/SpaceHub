@@ -10,6 +10,8 @@
 'use strict';
 
 import Logger from '../../../core/Logger.js';
+import LyricsService from './LyricsService.js';
+import AudioDSPService from './AudioDSPService.js';
 
 class AudioPlayer {
     constructor() {
@@ -21,6 +23,8 @@ class AudioPlayer {
         this._vinylElement = null;
         this._vinylRotation = 0;
         this._rotationInterval = null;
+        this._lyrics = new LyricsService();
+        this._dsp = new AudioDSPService();
 
         this._initListeners();
         this._injectStyles();
@@ -54,6 +58,9 @@ class AudioPlayer {
 
         const serverUrl = this._auth.getServerUrl();
         const token = this._auth.getToken();
+
+        // Raccorder l'égaliseur Web Audio DSP
+        this._dsp.attachAudio(this._audio);
 
         // Flux audio direct
         this._audio.src = `${serverUrl}/Audio/${item.Id}/stream?static=true&api_key=${token}`;
@@ -129,6 +136,8 @@ class AudioPlayer {
                 </div>
             </div>
             <div class="sh-audio-controls">
+                <button class="sh-audio-btn sh-audio-btn-lyrics" id="sh-audio-btn-lyrics" title="Paroles Synchronisées (Karaoké)">🎤</button>
+                <button class="sh-audio-btn sh-audio-btn-eq" id="sh-audio-btn-eq" title="Égaliseur 10 Bandes (Hi-Fi)">🎛️</button>
                 <button class="sh-audio-btn sh-audio-btn-prev" title="Précédent">⏮</button>
                 <button class="sh-audio-btn sh-audio-btn-play" id="sh-audio-btn-play" title="Play/Pause">▶</button>
                 <button class="sh-audio-btn sh-audio-btn-next" title="Suivant">⏭</button>
@@ -151,10 +160,23 @@ class AudioPlayer {
         const playBtn = document.getElementById('sh-audio-btn-play');
         const prevBtn = this._uiElement.querySelector('.sh-audio-btn-prev');
         const nextBtn = this._uiElement.querySelector('.sh-audio-btn-next');
+        const lyricsBtn = document.getElementById('sh-audio-btn-lyrics');
+        const eqBtn = document.getElementById('sh-audio-btn-eq');
 
-        playBtn.addEventListener('click', () => this.toggle());
-        prevBtn.addEventListener('click', () => this.previous());
-        nextBtn.addEventListener('click', () => this.next());
+        playBtn?.addEventListener('click', () => this.toggle());
+        prevBtn?.addEventListener('click', () => this.previous());
+        nextBtn?.addEventListener('click', () => this.next());
+
+        lyricsBtn?.addEventListener('click', () => {
+            const currentItem = this._queue[this._currentIndex];
+            if (currentItem) {
+                this._lyrics.openLyricsModal(currentItem, this);
+            }
+        });
+
+        eqBtn?.addEventListener('click', () => {
+            this._dsp.openEqualizerModal();
+        });
 
         // Progress bar click
         const progressBar = this._uiElement.querySelector('.sh-audio-progress-bar');
