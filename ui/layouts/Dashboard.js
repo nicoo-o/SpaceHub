@@ -20,6 +20,7 @@
 'use strict';
 
 import Logger from '../../core/Logger.js';
+import HeroSpotlightComponent from '../components/HeroSpotlightComponent.js';
 
 class Dashboard {
     /**
@@ -136,22 +137,21 @@ class Dashboard {
 
         this._container.className = 'sh-dashboard sh-scrollbar';
         this._container.innerHTML = `
-            <header class="sh-dashboard__header">
-                <div class="sh-dashboard__titles">
-                    <h1 class="sh-dashboard__title">Tableau de bord</h1>
-                    <p class="sh-dashboard__subtitle">Bienvenue sur SpaceHub Media Center</p>
-                </div>
-                <div class="sh-dashboard__actions">
-                    <button class="sh-btn sh-btn--ghost sh-dashboard__btn-refresh" title="Actualiser le dashboard">🔄 Actualiser</button>
-                    <button class="sh-btn sh-btn--ghost sh-dashboard__btn-customize" title="Personnaliser">⚙️ Personnaliser</button>
-                </div>
-            </header>
+            <!-- Grand Hero Spotlight Immersif (Style Apple TV / Netflix) -->
+            <div id="sh-dashboard-hero-container"></div>
+
             <div class="sh-dashboard__grid" id="${this.containerId}-grid"></div>
         `;
 
-        // Événements d'en-tête
-        this._container.querySelector('.sh-dashboard__btn-refresh')?.addEventListener('click', () => this.refreshAll());
-        this._container.querySelector('.sh-dashboard__btn-customize')?.addEventListener('click', () => this._openCustomizeModal());
+        // Charger et afficher le Hero Spotlight
+        const heroEl = this._container.querySelector('#sh-dashboard-hero-container');
+        if (heroEl) {
+            const hero = new HeroSpotlightComponent();
+            const featured = await hero.fetchFeaturedItem();
+            if (featured) {
+                hero.render(heroEl, featured);
+            }
+        }
 
         await this._loadLayout();
     }
@@ -159,14 +159,8 @@ class Dashboard {
     /**
      * Charge l'agencement sauvegardé ou applique l'agencement par défaut.
      */
-    /**
-     * Agencement par défaut du dashboard — utilisé à la fois par _loadLayout()
-     * (premier affichage) et _openCustomizeModal() (pour que les cases à cocher
-     * reflètent l'état réel affiché, même avant toute sauvegarde explicite).
-     */
     _getDefaultLayout() {
         return [
-            { widgetType: 'quick-actions', colSpan: 12 },
             { widgetType: 'continue-watching', colSpan: 12 },
             { widgetType: 'latest-additions', colSpan: 12 },
         ];

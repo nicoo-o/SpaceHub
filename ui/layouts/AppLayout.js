@@ -10,25 +10,14 @@
 
 import Logger from '../../core/Logger.js';
 import Router from '../../core/Router.js';
+import AppSidebarDrawer from '../components/AppSidebarDrawer.js';
 
-// Navigation principale : id interne, chemin de route, libellé affiché.
-// Le "path" pilote le hash de l'URL (#/downloads, etc.) — voir core/Router.js.
-const NAV_ITEMS = [
+// Navigation principale ultra-épurée (Style Apple TV / Netflix)
+const PRIMARY_NAV_ITEMS = [
     { id: 'dashboard',   path: '/',            label: '🏠 Accueil' },
-    { id: 'library',     path: '/library',     label: '📚 Bibliothèques' },
-    { id: 'downloads',   path: '/downloads',   label: '📥 Downloads' },
-    { id: 'calendar',    path: '/calendar',    label: '📅 Calendar' },
-    { id: 'servarr',     path: '/servarr',     label: '⚙️ Servarr Pro' },
-    { id: 'management',  path: '/management',  label: '🔧 Management' },
-    { id: 'livetv',      path: '/livetv',      label: '📺 Live TV' },
+    { id: 'library',     path: '/library',     label: '🎬 Films & Séries' },
+    { id: 'livetv',      path: '/livetv',      label: '📺 Direct & TV' },
     { id: 'watchlist',   path: '/watchlist',   label: '📋 Ma Liste' },
-    { id: 'photos',      path: '/photos',      label: '🖼️ Photos' },
-    { id: 'history',     path: '/history',     label: '🕰️ Historique' },
-    { id: 'extensions',  path: '/extensions',  label: '🧩 Extensions' },
-    { id: 'admin',       path: '/admin',       label: '🛡️ Admin' },
-    { id: 'domotics',    path: '/domotics',    label: '💡 Domotique' },
-    { id: 'accessibility', path: '/accessibility', label: '♿ Accessibilité' },
-    { id: 'rewind',      path: '/rewind',      label: '✨ Rewind' },
 ];
 
 class AppLayout {
@@ -37,6 +26,7 @@ class AppLayout {
         this._currentNavId = 'dashboard';
         this._router = new Router();
         this._views = {}; // Cache pour les instances de vues lazy-loadées
+        this._sidebar = null;
 
         // Exposé pour que les vues (ex: les onglets de ManagementView) puissent
         // naviguer sans avoir à remonter jusqu'à l'instance AppLayout.
@@ -55,15 +45,21 @@ class AppLayout {
 
         container.innerHTML = `
             <div class="sh-app-shell">
-                <!-- Header / Barre de navigation -->
+                <!-- Header / Barre de navigation épurée -->
                 <header class="sh-app-header">
                     <div class="sh-app-header__left">
+                        <button class="sh-btn sh-btn--ghost sh-btn-hamburger" id="sh-btn-mobile-menu" title="Menu des Hubs">
+                            <span>☰</span>
+                            <span class="sh-hamburger-txt">Hubs</span>
+                        </button>
+
                         <div class="sh-app-logo" data-navigate="dashboard">
                             <span class="sh-app-logo__icon">🚀</span>
                             <span class="sh-app-logo__text">SpaceHub</span>
                         </div>
+
                         <nav class="sh-app-nav">
-                            ${NAV_ITEMS.map(item => `
+                            ${PRIMARY_NAV_ITEMS.map(item => `
                                 <button class="sh-app-nav__link ${this._currentNavId === item.id ? 'active' : ''}" data-nav-id="${item.id}" data-path="${item.path}">
                                     ${item.label}
                                 </button>
@@ -124,6 +120,10 @@ class AppLayout {
                 <div id="sh-mini-player-container"></div>
             </div>
         `;
+
+        // Monter la Sidebar Flottante (Hover PC / Tiroir Mobile & TV)
+        this._sidebar = new AppSidebarDrawer(this._router);
+        this._sidebar.render(container);
 
         this._bindHeaderEvents(container);
         this._setupRoutes();
@@ -197,6 +197,11 @@ class AppLayout {
     }
 
     _bindHeaderEvents(container) {
+        // Bouton Hamburger Mobile & Hubs
+        container.querySelector('#sh-btn-mobile-menu')?.addEventListener('click', () => {
+            this._sidebar?.toggleMobile();
+        });
+
         // Navigation logo et liens
         container.querySelector('[data-navigate="dashboard"]')?.addEventListener('click', () => this._router.navigate('/'));
 
@@ -406,10 +411,13 @@ class AppLayout {
         const container = document.querySelector('#sh-main-view-container');
         if (!container) return;
 
-        // Mise à jour de l'état actif des onglets
+        // Mise à jour de l'état actif des onglets du haut et de la sidebar
         document.querySelectorAll('.sh-app-nav__link').forEach(link => {
             link.classList.toggle('active', link.dataset.navId === navId);
         });
+
+        const activePath = subpath ? `/${navId}/${subpath}` : (navId === 'dashboard' ? '/' : `/${navId}`);
+        this._sidebar?.setActiveNav(activePath);
 
         container.innerHTML = '';
 
@@ -529,6 +537,32 @@ class AppLayout {
     background: linear-gradient(135deg, #fff, var(--sh-color-primary, #7c6aff));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+}
+
+.sh-btn-hamburger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: var(--sh-radius-sm, 8px);
+    background: rgba(124, 106, 255, 0.12);
+    border: 1px solid rgba(124, 106, 255, 0.3);
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sh-btn-hamburger:hover {
+    background: var(--sh-color-primary, #7c6aff);
+    box-shadow: 0 0 16px rgba(124, 106, 255, 0.4);
+}
+
+@media (min-width: 992px) {
+    .sh-app-shell {
+        padding-left: 68px;
+        transition: padding-left 0.3s ease;
+    }
 }
 
 .sh-app-nav {
