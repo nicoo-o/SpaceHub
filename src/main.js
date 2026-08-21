@@ -37,6 +37,7 @@ import ServerTaskController from '../jellyfin/admin/ServerTaskController.js';
 import StorageInspector from '../jellyfin/admin/StorageInspector.js';
 import OfflineDownloadManager from '../jellyfin/offline/OfflineDownloadManager.js';
 import OfflineSyncReconnector from '../jellyfin/offline/OfflineSyncReconnector.js';
+import LiveTvService from '../jellyfin/livetv/LiveTvService.js';
 
 const APP_EL_ID    = 'app';
 const SPLASH_EL_ID = 'sh-splash-loader';
@@ -170,6 +171,9 @@ async function boot() {
     // 2bis++++. Brancher Mode Hors-Ligne & Téléchargements (Horizon 9)
     window.SpaceHub.offline = new OfflineDownloadManager(window.SpaceHub.core?.eventBus);
     window.SpaceHub.offlineSync = new OfflineSyncReconnector(window.SpaceHub.core?.eventBus);
+
+    // 2bis+++++. Brancher Live TV & DVR (Horizon 10)
+    window.SpaceHub.livetv = new LiveTvService();
 
     // 2ter. Brancher les lecteurs
     window.SpaceHub.player = new VideoPlayer();
