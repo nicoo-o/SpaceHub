@@ -31,6 +31,7 @@ import FederatedSearch from '../jellyfin/search/FederatedSearch.js';
 import DataSyncService from '../core/sync/DataSyncService.js';
 import TrailerService from '../jellyfin/trailers/TrailerService.js';
 import NaturalSearchEngine from '../jellyfin/search/NaturalSearchEngine.js';
+import SyncPlayManager from '../jellyfin/syncplay/SyncPlayManager.js';
 
 const APP_EL_ID    = 'app';
 const SPLASH_EL_ID = 'sh-splash-loader';
@@ -150,6 +151,9 @@ async function boot() {
     // 2bis+. Brancher Trailers & Recherche en Langage Naturel (Horizon 4)
     window.SpaceHub.trailerService = new TrailerService();
     window.SpaceHub.naturalSearch = new NaturalSearchEngine();
+
+    // 2bis++. Brancher Jellyfin SyncPlay / Watch Party (Horizon 5)
+    window.SpaceHub.syncPlay = new SyncPlayManager(window.SpaceHub.core?.eventBus);
 
     // 2ter. Brancher les lecteurs
     window.SpaceHub.player = new VideoPlayer();

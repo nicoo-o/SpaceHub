@@ -142,6 +142,7 @@ class LibraryView {
                     <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
                         <button class="sh-btn sh-btn--primary" id="btn-play-movie">▶ Lancer le film</button>
                         <button class="sh-btn sh-btn--ghost" id="btn-trailer-movie" style="border:1px solid var(--sh-border-color);">🎬 Bande-annonce</button>
+                        <button class="sh-btn sh-btn--ghost" id="btn-syncplay-movie" style="border:1px solid var(--sh-border-color);">🍿 Regarder ensemble</button>
                     </div>
                     <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--sh-text-secondary); margin-bottom:12px;">
                         ${movie.ProductionYear ? `<span>📅 ${movie.ProductionYear}</span>` : ''}
@@ -166,6 +167,11 @@ class LibraryView {
         modal._el.querySelector('#btn-trailer-movie')?.addEventListener('click', () => {
             modal.close();
             window.SpaceHub?.trailerService?.openTrailer(movie);
+        });
+
+        modal._el.querySelector('#btn-syncplay-movie')?.addEventListener('click', () => {
+            modal.close();
+            window.SpaceHub?.syncPlay?.openSyncPlayModal(movie);
         });
 
         // Charger les similaires en tâche de fond
@@ -215,8 +221,9 @@ class LibraryView {
                 <div class="sh-series-modal">
                     <div class="sh-series-modal__header">
                         <p>${series.Overview || 'Aucun résumé disponible.'}</p>
-                        <div style="margin-top:12px;">
+                        <div style="margin-top:12px; display:flex; gap:8px;">
                             <button class="sh-btn sh-btn--ghost" id="btn-trailer-series" style="border:1px solid var(--sh-border-color);">🎬 Bande-annonce</button>
+                            <button class="sh-btn sh-btn--ghost" id="btn-syncplay-series" style="border:1px solid var(--sh-border-color);">🍿 Watch Party</button>
                         </div>
                     </div>
                     <h3 style="margin:var(--sh-space-4,16px) 0 var(--sh-space-2,8px);">Épisodes</h3>
@@ -232,6 +239,11 @@ class LibraryView {
         modal._el.querySelector('#btn-trailer-series')?.addEventListener('click', () => {
             modal.close();
             window.SpaceHub?.trailerService?.openTrailer(series);
+        });
+
+        modal._el.querySelector('#btn-syncplay-series')?.addEventListener('click', () => {
+            modal.close();
+            window.SpaceHub?.syncPlay?.openSyncPlayModal(series);
         });
 
         try {

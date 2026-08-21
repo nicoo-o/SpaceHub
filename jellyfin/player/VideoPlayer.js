@@ -11,6 +11,9 @@
 
 import Hls from 'hls.js';
 import Logger from '../../core/Logger.js';
+import TrickplayService from './TrickplayService.js';
+import IntroSkipperService from './IntroSkipperService.js';
+import DirectPlayOptimizer from './DirectPlayOptimizer.js';
 
 class VideoPlayer {
     constructor() {
@@ -21,7 +24,14 @@ class VideoPlayer {
         this._currentItem = null;
         this._progressInterval = null;
         this._subOffset = 0; // en secondes
+        this._trickplay = new TrickplayService();
+        this._introSkipper = new IntroSkipperService();
+        this._optimizer = new DirectPlayOptimizer();
         this._injectStyles();
+    }
+
+    get videoElement() {
+        return this._video;
     }
 
     get _auth() {
@@ -46,8 +56,13 @@ class VideoPlayer {
         const token = this._auth.getToken();
         const startPositionSeconds = (startPositionTicks || item.UserData?.PlaybackPositionTicks || 0) / 10000000;
 
-        // URL de flux vidéo Jellyfin (HLS Master Playlist)
-        const streamUrl = `${serverUrl}/Videos/${item.Id}/master.m3u8?DeviceId=spacehub-web&MediaSourceId=${item.Id}&VideoCodec=h264,hevc,vp9&AudioCodec=aac,mp3,opus&TranscodingMaxAudioChannels=2&RequireAvc=false&Tag=${item.Etag || ''}&StartTimeTicks=${Math.round(startPositionSeconds * 10000000)}&api_key=${token}`;
+        // Charger Trickplay et marqueurs d'intro
+        this._trickplay.loadTrickplay(item);
+        this._introSkipper.loadTimestamps(item, item.Chapters || []);
+
+        // URL de flux vidéo optimisée (Direct Stream / Direct Play prioritaire)
+        const optimizedParams = this._optimizer.getOptimizedStreamParams(item, startPositionSeconds);
+        const streamUrl = `${serverUrl}/Videos/${item.Id}/master.m3u8?${optimizedParams}&Tag=${item.Etag || ''}&api_key=${token}`;
 
         if (Hls.isSupported()) {
             if (this._hls) this._hls.destroy();
@@ -120,6 +135,8 @@ class VideoPlayer {
                                 <input type="range" class="sh-player__volume-slider" min="0" max="1" step="0.1" value="1">
                             </div>
                             <div class="sh-player__actions-right">
+                                <button class="sh-player__btn sh-player__btn-syncplay" title="Watch Party / SyncPlay">🍿</button>
+                                <button class="sh-player__btn sh-player__btn-nightmode" title="Normalisation Audio / Mode Nuit">🌙</button>
                                 <button class="sh-player__btn sh-player__btn-trailer" title="Bande-annonce">🎬</button>
                                 <button class="sh-player__btn sh-player__btn-cast" title="Chromecast" style="display:none;">📺</button>
                                 <button class="sh-player__btn sh-player__btn-offset" title="Décalage sous-titres">⏱️</button>
@@ -212,11 +229,21 @@ class VideoPlayer {
         ui.querySelector('.sh-player__btn-quality').addEventListener('click', () => toggleMenu('.sh-player__menu--quality'));
         ui.querySelector('.sh-player__btn-offset').addEventListener('click', () => toggleMenu('.sh-player__menu--offset'));
 
+        // SyncPlay Watch Party
+        ui.querySelector('.sh-player__btn-syncplay')?.addEventListener('click', () => {
+            window.SpaceHub?.syncPlay?.openSyncPlayModal(this._currentItem);
+        });
+
+        // Mode Nuit / Normalisation Audio
+        ui.querySelector('.sh-player__btn-nightmode')?.addEventListener('click', () => {
+            this._optimizer.setAudioNormalization(this._video, true);
+            window.SpaceHub?.ui?.components?.toaster?.info('Normalisation audio activée (Mode Nuit)');
+        });
+
         // Bande-annonce
         ui.querySelector('.sh-player__btn-trailer').addEventListener('click', () => {
             if (!this._currentItem) return;
-            const term = encodeURIComponent(`${this._currentItem.Name} ${this._currentItem.ProductionYear || ''} trailer`);
-            window.open(`https://www.youtube.com/results?search_query=${term}`, '_blank');
+            window.SpaceHub?.trailerService?.openTrailer(this._currentItem);
         });
 
         // Offset UI
@@ -248,16 +275,32 @@ class VideoPlayer {
             const rect = progressContainer.getBoundingClientRect();
             const pos = (e.clientX - rect.left) / rect.width;
             this._video.currentTime = pos * this._video.duration;
+            window.SpaceHub?.syncPlay?.notifySeek(this._video.currentTime);
         });
 
-        this._video.addEventListener('timeupdate', () => this._updateProgress());
+        // Attacher le scrubbing Trickplay (Jellyfin 10.9+)
+        const totalDuration = (this._currentItem?.RunTimeTicks || 0) / 10000000;
+        this._trickplay.attachScrubbing(progressContainer, totalDuration);
+
+        this._video.addEventListener('timeupdate', () => {
+            this._updateProgress();
+            this._introSkipper.update(this._video.currentTime, this._video);
+        });
+
         this._video.addEventListener('play', () => {
             ui.querySelector('.sh-player__toggle-play').textContent = '⏸';
             this._ui.classList.add('sh-player--playing');
+            window.SpaceHub?.syncPlay?.notifyPlay();
         });
+
         this._video.addEventListener('pause', () => {
             ui.querySelector('.sh-player__toggle-play').textContent = '▶';
             this._ui.classList.remove('sh-player--playing');
+            window.SpaceHub?.syncPlay?.notifyPause();
+        });
+
+        this._video.addEventListener('seeked', () => {
+            window.SpaceHub?.syncPlay?.notifySeek(this._video.currentTime);
         });
 
         // Auto-hide UI logic
@@ -517,6 +560,9 @@ class VideoPlayer {
         }
 
         document.removeEventListener('keydown', this._keyHandler);
+
+        this._trickplay?.destroy();
+        this._introSkipper?.destroy();
 
         this._el?.remove();
         this._el = null;
