@@ -12,7 +12,26 @@ import Logger from '../../core/Logger.js';
 import Router from '../../core/Router.js';
 import AppSidebarDrawer from '../components/AppSidebarDrawer.js';
 
-// Navigation principale ultra-épurée (Style Apple TV / Netflix)
+// Routes complètes enregistrées dans le routeur SpaceHub
+const ALL_NAV_ROUTES = [
+    { id: 'dashboard',   path: '/' },
+    { id: 'library',     path: '/library' },
+    { id: 'downloads',   path: '/downloads' },
+    { id: 'calendar',    path: '/calendar' },
+    { id: 'servarr',     path: '/servarr' },
+    { id: 'management',  path: '/management' },
+    { id: 'livetv',      path: '/livetv' },
+    { id: 'watchlist',   path: '/watchlist' },
+    { id: 'photos',      path: '/photos' },
+    { id: 'history',     path: '/history' },
+    { id: 'extensions',  path: '/extensions' },
+    { id: 'admin',       path: '/admin' },
+    { id: 'domotics',    path: '/domotics' },
+    { id: 'accessibility', path: '/accessibility' },
+    { id: 'rewind',      path: '/rewind' },
+];
+
+// Navigation principale ultra-épurée affichée en haut (Style Apple TV / Netflix)
 const PRIMARY_NAV_ITEMS = [
     { id: 'dashboard',   path: '/',            label: '🏠 Accueil' },
     { id: 'library',     path: '/library',     label: '🎬 Films & Séries' },
@@ -394,7 +413,7 @@ class AppLayout {
      * rendu réel à _renderView().
      */
     _setupRoutes() {
-        for (const item of NAV_ITEMS) {
+        for (const item of ALL_NAV_ROUTES) {
             this._router.register(item.path, (subpath) => {
                 this._currentNavId = item.id;
                 this._renderView(item.id, subpath);

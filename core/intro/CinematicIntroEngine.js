@@ -53,10 +53,6 @@ class CinematicIntroEngine {
             this._createDOM();
             this._startStarfield();
 
-            if (this._settings.sound) {
-                this._playCosmicSound();
-            }
-
             const finish = () => {
                 if (this._isFinished) return;
                 this._isFinished = true;
@@ -73,6 +69,18 @@ class CinematicIntroEngine {
                     resolve();
                 }
             };
+
+            // Déclenche le son uniquement au premier geste utilisateur
+            // pour respecter la politique autoplay des navigateurs modernes.
+            if (this._settings.sound) {
+                const soundOnGesture = () => {
+                    this._overlayEl?.removeEventListener('click', soundOnGesture);
+                    window.removeEventListener('keydown', soundOnGesture);
+                    this._playCosmicSound();
+                };
+                this._overlayEl.addEventListener('click', soundOnGesture, { once: true });
+                window.addEventListener('keydown', soundOnGesture, { once: true });
+            }
 
             // Écouteurs pour passer l'intro (Skip)
             this._overlayEl.addEventListener('click', finish);
