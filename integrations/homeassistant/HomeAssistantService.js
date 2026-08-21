@@ -21,20 +21,20 @@ class HomeAssistantService {
         this._entityCache = new Map();
         this._listeners = new Map();
 
-        this._init();
+        this._reconfigure();
+
+        // Enregistre le listener UNE SEULE FOIS dans le constructeur
+        window.SpaceHub?.core?.eventBus?.on('settings:changed', (e) => {
+            if (e.key.startsWith('homeassistant.') || e.key === '*') {
+                this._reconfigure();
+            }
+        });
     }
 
-    _init() {
+    _reconfigure() {
         const s = window.SpaceHub?.core?.settings;
         this._baseUrl = s?.get('homeassistant.url', '');
         this._token = s?.get('homeassistant.token', '');
-
-        window.SpaceHub?.core?.eventBus?.on('settings:changed', (e) => {
-            if (e.key.startsWith('homeassistant.') || e.key === '*') {
-                this._baseUrl = s?.get('homeassistant.url', '');
-                this._token = s?.get('homeassistant.token', '');
-            }
-        });
     }
 
     get _headers() {

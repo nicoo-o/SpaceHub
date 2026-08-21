@@ -134,8 +134,21 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   UTILITAIRES GLOBAUX
+   FOND & ATMOSPHÈRE COSMIQUE AURORA
    ═══════════════════════════════════════════════════════════════ */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #0b0b10;
+    background-image: 
+        radial-gradient(circle at 10% 15%, rgba(124, 106, 255, 0.14) 0%, transparent 45%),
+        radial-gradient(circle at 90% 25%, rgba(0, 201, 167, 0.10) 0%, transparent 45%),
+        radial-gradient(circle at 50% 85%, rgba(255, 92, 122, 0.08) 0%, transparent 50%);
+    background-attachment: fixed;
+    color: var(--sh-text-primary);
+    font-family: var(--sh-font-family);
+    -webkit-font-smoothing: antialiased;
+}
 
 /* Scrollbar SpaceHub */
 .sh-scrollbar {
@@ -166,8 +179,20 @@
 
 /* Animations réutilisables */
 @keyframes sh-fadeIn    { from { opacity: 0; }                         to { opacity: 1; } }
-@keyframes sh-fadeInUp  { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes sh-fadeInUp  { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes sh-scaleIn   { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
 @keyframes sh-slideInRight { from { transform: translateX(110%); }     to { transform: translateX(0); } }
 @keyframes sh-pulse     { 0%, 100% { opacity: 1; }                     50% { opacity: 0.5; } }
 @keyframes sh-spin      { to { transform: rotate(360deg); } }
+
+/* Micro-interactions cartes & widgets */
+.sh-card, .sh-dashboard__item {
+    animation: sh-fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.sh-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 0 24px rgba(124, 106, 255, 0.2);
+    border-color: rgba(124, 106, 255, 0.4);
+}

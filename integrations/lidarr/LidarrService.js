@@ -15,24 +15,26 @@ class LidarrService {
         this._log = new Logger('LidarrService');
         this.api = null;
 
-        this._init();
+        this._reconfigure();
+
+        // Enregistre le listener UNE SEULE FOIS dans le constructeur
+        window.SpaceHub?.core?.eventBus?.on('settings:changed', (e) => {
+            if (e.key.startsWith('lidarr.') || (e.key === '*' && (e.value?.['lidarr.url'] || e.value?.['lidarr.apiKey']))) {
+                this._reconfigure();
+            }
+        });
     }
 
-    _init() {
+    _reconfigure() {
         const s = window.SpaceHub?.core?.settings;
-        const url = s.get('lidarr.url', 'http://localhost:8686');
-        const key = s.get('lidarr.apiKey', '');
+        const url = s?.get('lidarr.url', 'http://localhost:8686');
+        const key = s?.get('lidarr.apiKey', '');
 
         if (url && key) {
             this.api = new LidarrApi(url, key);
+        } else {
+            this.api = null;
         }
-
-        window.SpaceHub?.core?.eventBus?.on('settings:changed', (e) => {
-            // Réagir aux changements individuels ou globaux (batch)
-            if (e.key.startsWith('lidarr.') || (e.key === '*' && (e.value['lidarr.url'] || e.value['lidarr.apiKey']))) {
-                this._init();
-            }
-        });
     }
 
     async getUpcomingAlbums(days = 14) {

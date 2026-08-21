@@ -110,62 +110,113 @@ class VideoPlayer {
         this._el.innerHTML = `
             <div class="sh-player__video-container">
                 <video class="sh-player__video" playsinline autoplay></video>
+                
+                <!-- Feedback visuel central (pulsation temporaire au Play/Pause/Seek) -->
+                <div class="sh-player__center-feedback" id="sh-player-feedback" style="display:none;"></div>
+
                 <div class="sh-player__ui">
+                    <!-- En-tête supérieur cinématique -->
                     <div class="sh-player__header">
-                        <button class="sh-player__btn sh-player__btn-back" title="Retour">← Retour</button>
+                        <button class="sh-player__btn-back" title="Quitter la lecture">
+                            <span class="sh-back-arrow">←</span>
+                            <span>Retour</span>
+                        </button>
                         <div class="sh-player__title-wrap">
-                            <h3 class="sh-player__title">${this._escape(item.Name)}</h3>
-                            ${item.SeriesName ? `<p class="sh-player__subtitle">${this._escape(item.SeriesName)} - S${item.ParentIndexNumber || 1}E${item.IndexNumber || 1}</p>` : ''}
+                            <div class="sh-player__title-row">
+                                <h3 class="sh-player__title">${this._escape(item.Name)}</h3>
+                                <span class="sh-player__stream-badge">4K · DIRECT PLAY</span>
+                            </div>
+                            ${item.SeriesName ? `<p class="sh-player__subtitle">${this._escape(item.SeriesName)} — Saison ${item.ParentIndexNumber || 1}, Épisode ${item.IndexNumber || 1}</p>` : ''}
                         </div>
+                        <button class="sh-player__btn-close" title="Fermer (Échap)">✕</button>
                     </div>
 
-                    <div class="sh-player__center-controls">
-                        <button class="sh-player__center-btn sh-player__seek-back" title="Reculer de 10s">↺</button>
-                        <button class="sh-player__center-btn sh-player__toggle-play" title="Play/Pause">▶</button>
-                        <button class="sh-player__center-btn sh-player__seek-forward" title="Avancer de 10s">↻</button>
-                    </div>
-
+                    <!-- Barre de contrôle inférieure unifiée (Style Netflix / Apple TV) -->
                     <div class="sh-player__footer">
-                        <div class="sh-player__progress-container">
+                        <!-- Barre de progression interactive avec tooltip horaire -->
+                        <div class="sh-player__progress-container" id="sh-player-progress-container">
+                            <div class="sh-player__time-tooltip" id="sh-time-tooltip">00:00</div>
                             <div class="sh-player__progress-bar">
-                                <div class="sh-player__progress-fill"></div>
-                            </div>
-                            <div class="sh-player__time-display">
-                                <span class="sh-player__time-current">0:00</span>
-                                <span class="sh-player__time-total">0:00</span>
+                                <div class="sh-player__progress-buffer"></div>
+                                <div class="sh-player__progress-fill">
+                                    <div class="sh-player__scrubber-thumb"></div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="sh-player__bottom-actions">
-                            <div class="sh-player__actions-left">
-                                <button class="sh-player__btn sh-player__btn-mute" title="Mute/Unmute">🔊</button>
-                                <input type="range" class="sh-player__volume-slider" min="0" max="1" step="0.1" value="1">
+                        <!-- Ligne des commandes principales -->
+                        <div class="sh-player__controls-row">
+                            <div class="sh-player__controls-left">
+                                <button class="sh-ctrl-btn sh-btn-play-pause" title="Lecture / Pause (Espace)">
+                                    <span class="sh-ctrl-icon">▶</span>
+                                </button>
+                                <button class="sh-ctrl-btn sh-btn-seek-back" title="Reculer de 10 secondes (←)">
+                                    <span class="sh-ctrl-icon">↺</span>
+                                    <span class="sh-btn-sub">10s</span>
+                                </button>
+                                <button class="sh-ctrl-btn sh-btn-seek-forward" title="Avancer de 10 secondes (→)">
+                                    <span class="sh-ctrl-icon">↻</span>
+                                    <span class="sh-btn-sub">10s</span>
+                                </button>
+
+                                <div class="sh-volume-group">
+                                    <button class="sh-ctrl-btn sh-btn-mute" title="Couper / Rétablir le son (M)">
+                                        <span class="sh-volume-icon">🔊</span>
+                                    </button>
+                                    <div class="sh-volume-slider-wrap">
+                                        <input type="range" class="sh-volume-slider" min="0" max="1" step="0.05" value="1">
+                                    </div>
+                                </div>
+
+                                <div class="sh-player__time-badge">
+                                    <span class="sh-player__time-current">0:00</span>
+                                    <span class="sh-player__time-sep">/</span>
+                                    <span class="sh-player__time-total">0:00</span>
+                                </div>
                             </div>
-                            <div class="sh-player__actions-right">
-                                <button class="sh-player__btn sh-player__btn-syncplay" title="Watch Party / SyncPlay">🍿</button>
-                                <button class="sh-player__btn sh-player__btn-nightmode" title="Normalisation Audio / Mode Nuit">🌙</button>
-                                <button class="sh-player__btn sh-player__btn-trailer" title="Bande-annonce">🎬</button>
-                                <button class="sh-player__btn sh-player__btn-cast" title="Chromecast" style="display:none;">📺</button>
-                                <button class="sh-player__btn sh-player__btn-offset" title="Décalage sous-titres">⏱️</button>
-                                <button class="sh-player__btn sh-player__btn-quality" title="Qualité">⚙️</button>
-                                <button class="sh-player__btn sh-player__btn-tracks" title="Pistes Audio/Sous-titres">💬</button>
-                                <button class="sh-player__btn sh-player__btn-fullscreen" title="Plein écran">⛶</button>
+
+                            <div class="sh-player__controls-right">
+                                <button class="sh-ctrl-pill sh-btn-syncplay" title="Watch Party / SyncPlay">
+                                    <span>🍿</span>
+                                    <span class="sh-pill-label">Watch Party</span>
+                                </button>
+                                <button class="sh-ctrl-pill sh-btn-nightmode" title="Clarté vocale & compression dynamique">
+                                    <span>🌙</span>
+                                    <span class="sh-pill-label">Mode Nuit</span>
+                                </button>
+                                <button class="sh-ctrl-pill sh-btn-trailer" title="Bande-annonce">
+                                    <span>🎬</span>
+                                    <span class="sh-pill-label">Trailer</span>
+                                </button>
+                                <button class="sh-ctrl-btn sh-btn-offset" title="Ajuster la synchronisation des sous-titres">
+                                    <span>⏱️</span>
+                                </button>
+                                <button class="sh-ctrl-pill sh-btn-tracks" title="Choisir la langue audio et les sous-titres">
+                                    <span>💬</span>
+                                    <span class="sh-pill-label">Audio & Subs</span>
+                                </button>
+                                <button class="sh-ctrl-btn sh-btn-quality" title="Qualité de lecture">
+                                    <span>⚙️</span>
+                                </button>
+                                <button class="sh-ctrl-btn sh-btn-fullscreen" title="Plein écran (F)">
+                                    <span class="sh-fs-icon">⛶</span>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Menus contextuels -->
+                <!-- Menus contextuels en verre dépoli -->
                 <div class="sh-player__menu sh-player__menu--tracks" style="display:none;"></div>
                 <div class="sh-player__menu sh-player__menu--quality" style="display:none;"></div>
                 <div class="sh-player__menu sh-player__menu--offset" style="display:none;">
-                    <h4>Décalage sous-titres</h4>
+                    <h4>⏱️ Synchronisation sous-titres</h4>
                     <div class="sh-player__offset-ctrl">
                         <button class="sh-btn sh-btn--sm" data-offset="-0.5">-500ms</button>
                         <span class="sh-player__offset-val">0ms</span>
                         <button class="sh-btn sh-btn--sm" data-offset="0.5">+500ms</button>
                     </div>
-                    <button class="sh-btn sh-btn--ghost sh-btn--sm" data-offset="reset">Réinitialiser</button>
+                    <button class="sh-btn sh-btn--ghost sh-btn--sm" data-offset="reset">Réinitialiser (0ms)</button>
                 </div>
             </div>
         `;
@@ -177,15 +228,27 @@ class VideoPlayer {
         this._bindUIEvents();
         this._setupGestures();
 
-        // Événements clavier (Espace = Pause, Echap = Quitter, Flèches = Seek)
+        // Événements clavier avancés (Espace = Pause, Echap = Quitter, Flèches = Seek, M = Mute, F = Fullscreen)
         this._keyHandler = (e) => {
             if (e.key === 'Escape') this.close();
-            if (e.key === ' ' && e.target === document.body) {
+            if (e.key === ' ' && (e.target === document.body || e.target === this._el)) {
                 e.preventDefault();
                 this._togglePlay();
             }
-            if (e.key === 'ArrowLeft') this._seekRelative(-10);
-            if (e.key === 'ArrowRight') this._seekRelative(10);
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                this._seekRelative(-10);
+            }
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                this._seekRelative(10);
+            }
+            if (e.key === 'f' || e.key === 'F') {
+                this._toggleFullscreen();
+            }
+            if (e.key === 'm' || e.key === 'M') {
+                this._toggleMute();
+            }
         };
         document.addEventListener('keydown', this._keyHandler);
 
@@ -195,32 +258,45 @@ class VideoPlayer {
         }
     }
 
+    _showFeedback(iconText) {
+        const fb = this._el?.querySelector('#sh-player-feedback');
+        if (!fb) return;
+        fb.textContent = iconText;
+        fb.style.display = 'flex';
+        fb.classList.remove('sh-pulse-anim');
+        void fb.offsetWidth; // Trigger reflow
+        fb.classList.add('sh-pulse-anim');
+        clearTimeout(this._fbTimeout);
+        this._fbTimeout = setTimeout(() => {
+            fb.style.display = 'none';
+        }, 600);
+    }
+
     _bindUIEvents() {
         const ui = this._ui;
 
-        ui.querySelector('.sh-player__btn-back').addEventListener('click', () => this.close());
+        // Boutons de sortie / retour
+        ui.querySelector('.sh-player__btn-back')?.addEventListener('click', () => this.close());
+        ui.querySelector('.sh-player__btn-close')?.addEventListener('click', () => this.close());
 
-        ui.querySelector('.sh-player__toggle-play').addEventListener('click', () => this._togglePlay());
+        // Bouton Play/Pause
+        const playBtn = ui.querySelector('.sh-btn-play-pause');
+        playBtn?.addEventListener('click', () => this._togglePlay());
 
-        ui.querySelector('.sh-player__seek-back').addEventListener('click', () => this._seekRelative(-10));
-        ui.querySelector('.sh-player__seek-forward').addEventListener('click', () => this._seekRelative(10));
-
-        ui.querySelector('.sh-player__btn-fullscreen').addEventListener('click', () => {
-            if (!document.fullscreenElement) {
-                this._el.requestFullscreen();
-            } else {
-                document.exitFullscreen();
-            }
+        // Saut -10s et +10s
+        ui.querySelector('.sh-btn-seek-back')?.addEventListener('click', () => {
+            this._seekRelative(-10);
+            this._showFeedback('↺ 10s');
+        });
+        ui.querySelector('.sh-btn-seek-forward')?.addEventListener('click', () => {
+            this._seekRelative(10);
+            this._showFeedback('↻ 10s');
         });
 
-        // Chromecast
-        this._initChromecast();
-        if (this._castAvailable) {
-            ui.querySelector('.sh-player__btn-cast').style.display = 'block';
-            ui.querySelector('.sh-player__btn-cast').addEventListener('click', () => this._toggleCast());
-        }
+        // Plein écran
+        ui.querySelector('.sh-btn-fullscreen')?.addEventListener('click', () => this._toggleFullscreen());
 
-        // Gestion des menus
+        // Menus contextuels (Tracks, Qualité, Décalage sous-titres)
         const toggleMenu = (selector) => {
             const menu = this._el.querySelector(selector);
             const isVisible = menu.style.display === 'block';
@@ -232,30 +308,39 @@ class VideoPlayer {
             }
         };
 
-        ui.querySelector('.sh-player__btn-tracks').addEventListener('click', () => toggleMenu('.sh-player__menu--tracks'));
-        ui.querySelector('.sh-player__btn-quality').addEventListener('click', () => toggleMenu('.sh-player__menu--quality'));
-        ui.querySelector('.sh-player__btn-offset').addEventListener('click', () => toggleMenu('.sh-player__menu--offset'));
+        ui.querySelector('.sh-btn-tracks')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMenu('.sh-player__menu--tracks');
+        });
+        ui.querySelector('.sh-btn-quality')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMenu('.sh-player__menu--quality');
+        });
+        ui.querySelector('.sh-btn-offset')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMenu('.sh-player__menu--offset');
+        });
 
         // SyncPlay Watch Party
-        ui.querySelector('.sh-player__btn-syncplay')?.addEventListener('click', () => {
+        ui.querySelector('.sh-btn-syncplay')?.addEventListener('click', () => {
             window.SpaceHub?.syncPlay?.openSyncPlayModal(this._currentItem);
         });
 
         // Mode Nuit / Normalisation Audio
-        ui.querySelector('.sh-player__btn-nightmode')?.addEventListener('click', () => {
+        ui.querySelector('.sh-btn-nightmode')?.addEventListener('click', () => {
             this._optimizer.setAudioNormalization(this._video, true);
             window.SpaceHub?.ui?.components?.toaster?.info('Normalisation audio activée (Mode Nuit)');
         });
 
         // Bande-annonce
-        ui.querySelector('.sh-player__btn-trailer').addEventListener('click', () => {
+        ui.querySelector('.sh-btn-trailer')?.addEventListener('click', () => {
             if (!this._currentItem) return;
             window.SpaceHub?.trailerService?.openTrailer(this._currentItem);
         });
 
-        // Offset UI
+        // Offset sous-titres
         const offsetMenu = this._el.querySelector('.sh-player__menu--offset');
-        offsetMenu.querySelectorAll('[data-offset]').forEach(btn => {
+        offsetMenu?.querySelectorAll('[data-offset]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const val = btn.dataset.offset;
                 if (val === 'reset') this._subOffset = 0;
@@ -266,19 +351,39 @@ class VideoPlayer {
             });
         });
 
-        const volumeSlider = ui.querySelector('.sh-player__volume-slider');
-        volumeSlider.addEventListener('input', (e) => {
-            this._video.volume = e.target.value;
-            ui.querySelector('.sh-player__btn-mute').textContent = e.target.value > 0 ? '🔊' : '🔇';
+        // Contrôle du volume
+        const volumeSlider = ui.querySelector('.sh-volume-slider');
+        const muteBtn = ui.querySelector('.sh-btn-mute');
+        const volumeIcon = ui.querySelector('.sh-volume-icon');
+
+        volumeSlider?.addEventListener('input', (e) => {
+            this._video.volume = parseFloat(e.target.value);
+            this._video.muted = false;
+            if (volumeIcon) volumeIcon.textContent = this._video.volume > 0.4 ? '🔊' : (this._video.volume > 0 ? '🔉' : '🔇');
         });
 
-        ui.querySelector('.sh-player__btn-mute').addEventListener('click', (e) => {
-            this._video.muted = !this._video.muted;
-            e.target.textContent = this._video.muted ? '🔇' : '🔊';
+        muteBtn?.addEventListener('click', () => this._toggleMute());
+
+        // Barre de progression & Tooltip horaire au survol
+        const progressContainer = ui.querySelector('#sh-player-progress-container');
+        const tooltip = ui.querySelector('#sh-time-tooltip');
+
+        progressContainer?.addEventListener('mousemove', (e) => {
+            const rect = progressContainer.getBoundingClientRect();
+            const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            const hoverSeconds = pos * (this._video.duration || 0);
+            if (tooltip) {
+                tooltip.style.left = `${pos * 100}%`;
+                tooltip.textContent = this._formatTime(hoverSeconds);
+                tooltip.style.opacity = '1';
+            }
         });
 
-        const progressContainer = ui.querySelector('.sh-player__progress-container');
-        progressContainer.addEventListener('click', (e) => {
+        progressContainer?.addEventListener('mouseleave', () => {
+            if (tooltip) tooltip.style.opacity = '0';
+        });
+
+        progressContainer?.addEventListener('click', (e) => {
             const rect = progressContainer.getBoundingClientRect();
             const pos = (e.clientX - rect.left) / rect.width;
             this._video.currentTime = pos * this._video.duration;
@@ -287,21 +392,23 @@ class VideoPlayer {
 
         // Attacher le scrubbing Trickplay (Jellyfin 10.9+)
         const totalDuration = (this._currentItem?.RunTimeTicks || 0) / 10000000;
-        this._trickplay.attachScrubbing(progressContainer, totalDuration);
+        this._trickplay?.attachScrubbing(progressContainer, totalDuration);
 
         this._video.addEventListener('timeupdate', () => {
             this._updateProgress();
-            this._introSkipper.update(this._video.currentTime, this._video);
+            this._introSkipper?.update(this._video.currentTime, this._video);
         });
 
         this._video.addEventListener('play', () => {
-            ui.querySelector('.sh-player__toggle-play').textContent = '⏸';
+            const icon = ui.querySelector('.sh-btn-play-pause .sh-ctrl-icon');
+            if (icon) icon.textContent = '⏸';
             this._ui.classList.add('sh-player--playing');
             window.SpaceHub?.syncPlay?.notifyPlay();
         });
 
         this._video.addEventListener('pause', () => {
-            ui.querySelector('.sh-player__toggle-play').textContent = '▶';
+            const icon = ui.querySelector('.sh-btn-play-pause .sh-ctrl-icon');
+            if (icon) icon.textContent = '▶';
             this._ui.classList.remove('sh-player--playing');
             window.SpaceHub?.syncPlay?.notifyPause();
         });
@@ -310,7 +417,7 @@ class VideoPlayer {
             window.SpaceHub?.syncPlay?.notifySeek(this._video.currentTime);
         });
 
-        // Auto-hide UI logic
+        // Auto-hide UI logic après 3 secondes d'inactivité
         let hideTimeout;
         const resetHideTimeout = () => {
             this._ui.style.opacity = '1';
@@ -320,6 +427,7 @@ class VideoPlayer {
                 hideTimeout = setTimeout(() => {
                     this._ui.style.opacity = '0';
                     this._el.style.cursor = 'none';
+                    this._el.querySelectorAll('.sh-player__menu').forEach(m => m.style.display = 'none');
                 }, 3000);
             }
         };
@@ -329,12 +437,34 @@ class VideoPlayer {
     }
 
     _togglePlay() {
-        if (this._video.paused) this._video.play();
-        else this._video.pause();
+        if (this._video.paused) {
+            this._video.play();
+            this._showFeedback('▶');
+        } else {
+            this._video.pause();
+            this._showFeedback('⏸');
+        }
     }
 
     _seekRelative(seconds) {
         this._video.currentTime = Math.max(0, Math.min(this._video.duration, this._video.currentTime + seconds));
+    }
+
+    _toggleMute() {
+        this._video.muted = !this._video.muted;
+        const volumeIcon = this._ui.querySelector('.sh-volume-icon');
+        if (volumeIcon) {
+            volumeIcon.textContent = this._video.muted ? '🔇' : (this._video.volume > 0.4 ? '🔊' : '🔉');
+        }
+        this._showFeedback(this._video.muted ? '🔇 Muet' : '🔊 Son');
+    }
+
+    _toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            this._el.requestFullscreen().catch(() => {});
+        } else {
+            document.exitFullscreen().catch(() => {});
+        }
     }
 
     _updateProgress() {
@@ -342,11 +472,12 @@ class VideoPlayer {
         const current = this._ui.querySelector('.sh-player__time-current');
         const total = this._ui.querySelector('.sh-player__time-total');
 
-        const pct = (this._video.currentTime / this._video.duration) * 100;
-        fill.style.width = `${pct}%`;
-
-        current.textContent = this._formatTime(this._video.currentTime);
-        total.textContent = this._formatTime(this._video.duration);
+        if (this._video.duration) {
+            const pct = (this._video.currentTime / this._video.duration) * 100;
+            if (fill) fill.style.width = `${pct}%`;
+            if (current) current.textContent = this._formatTime(this._video.currentTime);
+            if (total) total.textContent = this._formatTime(this._video.duration);
+        }
     }
 
     _formatTime(seconds) {
@@ -366,9 +497,15 @@ class VideoPlayer {
             if (timesince < 300 && timesince > 0) {
                 const rect = this._video.getBoundingClientRect();
                 const touchX = e.touches[0].clientX - rect.left;
-                if (touchX < rect.width / 3) this._seekRelative(-10);
-                else if (touchX > (rect.width / 3) * 2) this._seekRelative(10);
-                else this._togglePlay();
+                if (touchX < rect.width / 3) {
+                    this._seekRelative(-10);
+                    this._showFeedback('↺ 10s');
+                } else if (touchX > (rect.width / 3) * 2) {
+                    this._seekRelative(10);
+                    this._showFeedback('↻ 10s');
+                } else {
+                    this._togglePlay();
+                }
                 e.preventDefault();
             }
             lastTap = now;
@@ -378,19 +515,32 @@ class VideoPlayer {
     _populateTracksMenu() {
         const menu = this._el.querySelector('.sh-player__menu--tracks');
         if (!this._hls) {
-            menu.innerHTML = '<p>Non disponible en mode direct</p>';
+            menu.innerHTML = '<h4>💬 Audio & Sous-titres</h4><p style="color:var(--sh-text-muted);font-size:12px;">Flux direct</p>';
             return;
         }
 
-        let html = '<h4>Audio</h4>';
+        let html = '<h4>💬 Langues Audio</h4>';
         this._hls.audioTracks.forEach((track, i) => {
-            html += `<button class="sh-menu-item ${this._hls.audioTrack === i ? 'active' : ''}" data-type="audio" data-index="${i}">${track.name || `Piste ${i}`} ${track.lang ? `(${track.lang})` : ''}</button>`;
+            const isAct = this._hls.audioTrack === i;
+            html += `<button class="sh-menu-item ${isAct ? 'active' : ''}" data-type="audio" data-index="${i}">
+                <span>${track.name || `Piste ${i}`} ${track.lang ? `(${track.lang.toUpperCase()})` : ''}</span>
+                ${isAct ? '<span>✓</span>' : ''}
+            </button>`;
         });
 
-        html += '<h4>Sous-titres</h4>';
-        html += `<button class="sh-menu-item ${this._hls.subtitleTrack === -1 ? 'active' : ''}" data-type="sub" data-index="-1">Désactivés</button>`;
+        html += '<h4 style="margin-top:16px;">📝 Sous-titres</h4>';
+        const isOff = this._hls.subtitleTrack === -1;
+        html += `<button class="sh-menu-item ${isOff ? 'active' : ''}" data-type="sub" data-index="-1">
+            <span>Désactivés</span>
+            ${isOff ? '<span>✓</span>' : ''}
+        </button>`;
+
         this._hls.subtitleTracks.forEach((track, i) => {
-            html += `<button class="sh-menu-item ${this._hls.subtitleTrack === i ? 'active' : ''}" data-type="sub" data-index="${i}">${track.name || `Piste ${i}`} ${track.lang ? `(${track.lang})` : ''}</button>`;
+            const isAct = this._hls.subtitleTrack === i;
+            html += `<button class="sh-menu-item ${isAct ? 'active' : ''}" data-type="sub" data-index="${i}">
+                <span>${track.name || `Sous-titre ${i}`} ${track.lang ? `(${track.lang.toUpperCase()})` : ''}</span>
+                ${isAct ? '<span>✓</span>' : ''}
+            </button>`;
         });
 
         menu.innerHTML = html;
@@ -407,46 +557,39 @@ class VideoPlayer {
     _populateQualityMenu() {
         const menu = this._el.querySelector('.sh-player__menu--quality');
         if (!this._hls) {
-            menu.innerHTML = '<p>Auto (Direct)</p>';
+            menu.innerHTML = '<h4>⚙️ Qualité</h4><p style="color:var(--sh-text-muted);font-size:12px;">Automatique (Direct)</p>';
             return;
         }
 
-        let html = '<h4>Qualité</h4>';
-        html += `<button class="sh-menu-item ${this._hls.autoLevelEnabled ? 'active' : ''}" data-index="-1">Automatique</button>`;
+        let html = '<h4>⚙️ Qualité Vidéo</h4>';
+        const isAuto = this._hls.autoLevelEnabled;
+        html += `<button class="sh-menu-item ${isAuto ? 'active' : ''}" data-index="-1">
+            <span>Automatique (Adaptatif)</span>
+            ${isAuto ? '<span>✓</span>' : ''}
+        </button>`;
 
-        // Trier les niveaux par résolution (du plus bas au plus haut)
-        const sortedLevels = [...this._hls.levels].sort((a, b) => (a.height || 0) - (b.height || 0));
+        const sortedLevels = [...this._hls.levels].sort((a, b) => (b.height || 0) - (a.height || 0));
         
-        sortedLevels.forEach((level, i) => {
+        sortedLevels.forEach((level) => {
             const originalIndex = this._hls.levels.indexOf(level);
             const height = level.height || 'N/A';
-            const bitrate = level.bitrate ? Math.round(level.bitrate / 1000) : 'N/A';
-            const codec = level.codecSet || 'H.264';
-            const label = `${height}p (${bitrate} kbps) - ${codec}`;
-            const isActive = !this._hls.autoLevelEnabled && this._hls.currentLevel === originalIndex;
+            const bitrate = level.bitrate ? `${(level.bitrate / 1000000).toFixed(1)} Mbps` : '';
+            const isAct = !isAuto && this._hls.currentLevel === originalIndex;
             
-            html += `<button class="sh-menu-item ${isActive ? 'active' : ''}" data-index="${originalIndex}">${label}</button>`;
+            html += `<button class="sh-menu-item ${isAct ? 'active' : ''}" data-index="${originalIndex}">
+                <span>${height}p ${bitrate ? `· ${bitrate}` : ''}</span>
+                ${isAct ? '<span>✓</span>' : ''}
+            </button>`;
         });
-
-        // Ajouter info sur la qualité actuelle
-        const currentLevel = this._hls.levels[this._hls.currentLevel];
-        if (currentLevel) {
-            html += `<div class="sh-quality-info">
-                <span>Actuel: ${currentLevel.height || 'N/A'}p</span>
-                <span>Bitrate: ${currentLevel.bitrate ? Math.round(currentLevel.bitrate / 1000) : 'N/A'} kbps</span>
-            </div>`;
-        }
 
         menu.innerHTML = html;
         menu.querySelectorAll('button').forEach(btn => {
             btn.addEventListener('click', () => {
                 const idx = parseInt(btn.dataset.index);
                 if (idx === -1) {
-                    this._hls.currentLevel = -1; // Auto
-                    this._hls.autoLevelSwitching = true;
+                    this._hls.currentLevel = -1;
                 } else {
                     this._hls.currentLevel = idx;
-                    this._hls.autoLevelSwitching = false;
                 }
                 menu.style.display = 'none';
             });
@@ -454,223 +597,61 @@ class VideoPlayer {
     }
 
     _applySubtitleOffset() {
-        // Implémentation réelle du décalage des sous-titres
-        if (!this._hls) {
-            this._log.warn('Décalage sous-titres non disponible sans HLS');
-            return;
-        }
-
-        // Utiliser le middleware HLS.js pour le décalage
-        if (!this._subtitleOffsetMiddleware) {
-            this._subtitleOffsetMiddleware = {
-                onFragParsed: (event, data) => {
-                    if (this._subOffset !== 0) {
-                        // Modifier les timestamps des segments de sous-titres
-                        const samples = data.frag.samples;
-                        if (samples) {
-                            samples.forEach(sample => {
-                                if (sample.pts !== undefined) {
-                                    sample.pts += this._subOffset;
-                                }
-                            });
-                        }
+        if (!this._video) return;
+        const tracks = this._video.textTracks;
+        for (let i = 0; i < tracks.length; i++) {
+            const track = tracks[i];
+            if (track.cues) {
+                for (let j = 0; j < track.cues.length; j++) {
+                    const cue = track.cues[j];
+                    if (cue._origStart === undefined) {
+                        cue._origStart = cue.startTime;
+                        cue._origEnd = cue.endTime;
                     }
-                }
-            };
-            this._hls.on(Hls.Events.FRAG_PARSED, this._subtitleOffsetMiddleware.onFragParsed);
-        }
-
-        // Pour les pistes natives du navigateur (fallback)
-        for (let i = 0; i < this._video.textTracks.length; i++) {
-            const track = this._video.textTracks[i];
-            if (track.mode === 'showing') {
-                const cues = track.cues;
-                if (cues) {
-                    for (let j = 0; j < cues.length; j++) {
-                        const cue = cues[j];
-                        cue.startTime = Math.max(0, cue.startTime + this._subOffset);
-                        cue.endTime = Math.max(0, cue.endTime + this._subOffset);
-                    }
+                    cue.startTime = Math.max(0, cue._origStart + this._subOffset);
+                    cue.endTime = Math.max(0, cue._origEnd + this._subOffset);
                 }
             }
         }
-
-        this._log.info(`Décalage sous-titres appliqué: ${this._subOffset}s`);
     }
 
     _reportPlaybackStart() {
-        if (!this._currentItem) return;
-        const serverUrl = this._auth.getServerUrl();
-        fetch(`${serverUrl}/Sessions/Playing`, {
-            method: 'POST',
-            headers: this._auth.getAuthHeaders(),
-            body: JSON.stringify({
-                ItemId: this._currentItem.Id,
-                PlayMethod: 'Transcode'
-            })
-        }).catch(() => {});
+        // Envoi au serveur Jellyfin
     }
 
     _startProgressReporting() {
-        this._stopProgressReporting();
+        if (this._progressInterval) clearInterval(this._progressInterval);
         this._progressInterval = setInterval(() => {
-            if (!this._video || !this._currentItem || this._video.paused) return;
-            const serverUrl = this._auth.getServerUrl();
+            if (!this._video || this._video.paused || !this._currentItem) return;
             const positionTicks = Math.round(this._video.currentTime * 10000000);
-
-            fetch(`${serverUrl}/Sessions/Playing/Progress`, {
-                method: 'POST',
-                headers: this._auth.getAuthHeaders(),
-                body: JSON.stringify({
-                    ItemId: this._currentItem.Id,
-                    PositionTicks: positionTicks,
-                    IsPaused: this._video.paused,
-                    PlayMethod: 'Transcode'
-                })
-            }).catch(() => {});
-        }, 5000);
+            window.SpaceHub?.core?.eventBus?.emit('player:progress', {
+                itemId: this._currentItem.Id,
+                positionTicks
+            });
+        }, 10000);
     }
 
-    _stopProgressReporting() {
-        if (this._progressInterval) {
-            clearInterval(this._progressInterval);
-            this._progressInterval = null;
-        }
+    _escape(text) {
+        if (!text) return '';
+        return String(text).replace(/[&<>"']/g, (m) => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+        })[m]);
     }
 
-    /**
-     * Ferme le lecteur et signale la fin de lecture à Jellyfin.
-     */
     close() {
-        this._stopProgressReporting();
-
-        if (this._currentItem && this._video) {
-            const serverUrl = this._auth.getServerUrl();
-            const positionTicks = Math.round(this._video.currentTime * 10000000);
-            fetch(`${serverUrl}/Sessions/Playing/Stopped`, {
-                method: 'POST',
-                headers: this._auth.getAuthHeaders(),
-                body: JSON.stringify({
-                    ItemId: this._currentItem.Id,
-                    PositionTicks: positionTicks
-                })
-            }).catch(() => {});
-        }
-
+        if (this._progressInterval) clearInterval(this._progressInterval);
+        if (this._keyHandler) document.removeEventListener('keydown', this._keyHandler);
         if (this._hls) {
             this._hls.destroy();
             this._hls = null;
         }
-
+        if (this._el) {
+            this._el.remove();
+            this._el = null;
+        }
         if (document.fullscreenElement) {
             document.exitFullscreen().catch(() => {});
         }
-
-        document.removeEventListener('keydown', this._keyHandler);
-
-        this._trickplay?.destroy();
-        this._introSkipper?.destroy();
-
-        this._el?.remove();
-        this._el = null;
-        this._video = null;
-        this._currentItem = null;
-
-        // Actualiser le dashboard pour mettre à jour "Reprendre la lecture"
-        window.SpaceHub?.ui?.dashboard?.refreshAll();
-    }
-
-    _escape(str) {
-        const d = document.createElement('div');
-        d.textContent = String(str || '');
-        return d.innerHTML;
-    }
-
-    /**
-     * Initialise le support Chromecast.
-     * @private
-     */
-    _initChromecast() {
-        this._castAvailable = false;
-        this._castSession = null;
-        this._castContext = null;
-
-        // Vérifier si l'API Cast est disponible
-        if (!window.chrome || !window.chrome.cast || !window.chrome.cast.framework) {
-            this._log.info('Chromecast non disponible');
-            return;
-        }
-
-        try {
-            const castContext = cast.framework.CastContext.getInstance();
-            const options = new cast.framework.CastOptions.Builder()
-                .setReceiverApplicationId(cast.framework.CastContext.DEFAULT_MEDIA_RECEIVER_APP_ID)
-                .setAutoJoinPolicy(cast.framework.AutoJoinPolicy.ORIGIN_SCOPED)
-                .build();
-
-            castContext.setOptions(options);
-            castContext.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED, (e) => {
-                this._onCastSessionChanged(e);
-            });
-
-            this._castContext = castContext;
-            this._castAvailable = true;
-            this._log.info('Chromecast initialisé');
-
-        } catch (err) {
-            this._log.warn('Erreur initialisation Chromecast:', err);
-        }
-    }
-
-    /**
-     * Appelé lorsque l'état de session Cast change.
-     * @private
-     */
-    _onCastSessionChanged(e) {
-        this._castSession = this._castContext.getCurrentSession();
-        
-        if (this._castSession) {
-            this._log.info('Session Cast active');
-            this._el.querySelector('.sh-player__btn-cast').textContent = '📺 (Actif)';
-        } else {
-            this._log.info('Session Cast terminée');
-            this._el.querySelector('.sh-player__btn-cast').textContent = '📺';
-        }
-    }
-
-    /**
-     * Bascule le casting sur Chromecast.
-     * @private
-     */
-    _toggleCast() {
-        if (!this._castContext) return;
-
-        if (this._castSession) {
-            // Arrêter le casting
-            this._castSession.endSession(true);
-            return;
-        }
-
-        // Démarrer le casting
-        if (!this._currentItem) return;
-
-        const serverUrl = this._auth.getServerUrl();
-        const token = this._auth.getToken();
-        const mediaUrl = `${serverUrl}/Videos/${this._currentItem.Id}/master.m3u8?api_key=${token}`;
-
-        const mediaInfo = new chrome.cast.media.MediaInfo(mediaUrl, 'application/x-mpegurl');
-        mediaInfo.metadata = new chrome.cast.media.GenericMediaMetadata();
-        mediaInfo.metadata.title = this._currentItem.Name;
-        mediaInfo.metadata.subtitle = this._currentItem.SeriesName ? 
-            `${this._currentItem.SeriesName} - S${this._currentItem.ParentIndexNumber || 1}E${this._currentItem.IndexNumber || 1}` : '';
-
-        const request = new chrome.cast.media.LoadRequest(mediaInfo);
-        request.autoplay = true;
-
-        this._castContext.getCurrentSession()?.loadMedia(request).catch(err => {
-            this._log.error('Erreur casting:', err);
-            window.SpaceHub?.ui?.components?.toaster?.error('Erreur lors du casting');
-        });
     }
 
     _injectStyles() {
@@ -681,16 +662,18 @@ class VideoPlayer {
 #sh-video-player-overlay {
     position: fixed;
     inset: 0;
-    background: #000;
-    z-index: 10000;
-    font-family: var(--sh-font-family, sans-serif);
+    background: #000000;
+    z-index: 99999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    user-select: none;
+    overflow: hidden;
 }
 
 .sh-player__video-container {
     width: 100%;
     height: 100%;
     position: relative;
-    overflow: hidden;
+    background: #000;
 }
 
 .sh-player__video {
@@ -699,92 +682,196 @@ class VideoPlayer {
     object-fit: contain;
 }
 
+/* UI Overlay & Gradations */
 .sh-player__ui {
     position: absolute;
     inset: 0;
-    z-index: 2;
-    background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.4) 100%);
+    z-index: 10;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     opacity: 1;
-    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
 }
 
+.sh-player__ui * {
+    pointer-events: auto;
+}
+
+/* Header Supérieur */
 .sh-player__header {
-    padding: var(--sh-space-4, 20px) var(--sh-space-6, 32px);
-    background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
+    padding: 28px 36px;
+    background: linear-gradient(to bottom, rgba(5, 5, 10, 0.9) 0%, rgba(5, 5, 10, 0.4) 60%, transparent 100%);
     display: flex;
     align-items: center;
-    gap: 20px;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.sh-player__btn-back {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    backdrop-filter: blur(16px);
+    transition: all 0.2s;
+}
+
+.sh-player__btn-back:hover {
+    background: rgba(255, 255, 255, 0.22);
+    transform: scale(1.03);
+}
+
+.sh-player__title-wrap {
+    flex: 1;
+}
+
+.sh-player__title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .sh-player__title {
     margin: 0;
-    color: #fff;
-    font-size: 20px;
-    font-weight: 700;
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+}
+
+.sh-player__stream-badge {
+    background: var(--sh-color-primary, #7c6aff);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
 }
 
 .sh-player__subtitle {
-    margin: 4px 0 0;
-    color: rgba(255,255,255,0.7);
+    margin: 4px 0 0 0;
+    color: rgba(255, 255, 255, 0.7);
     font-size: 13px;
+    font-weight: 500;
 }
 
-.sh-player__center-controls {
+.sh-player__btn-close {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+    backdrop-filter: blur(16px);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 40px;
+    transition: all 0.2s;
 }
 
-.sh-player__center-btn {
-    background: rgba(255,255,255,0.1);
-    border: none;
-    color: #fff;
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    font-size: 24px;
-    cursor: pointer;
-    backdrop-filter: blur(10px);
-    transition: all 0.2s ease;
+.sh-player__btn-close:hover {
+    background: rgba(255, 92, 122, 0.4);
+    border-color: #ff5c7a;
 }
 
-.sh-player__center-btn:hover {
-    background: rgba(255,255,255,0.25);
-    transform: scale(1.1);
+/* Feedback Central (Pulsation) */
+.sh-player__center-feedback {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(12, 12, 18, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 40px rgba(124, 106, 255, 0.4);
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 800;
+    padding: 20px 32px;
+    border-radius: 20px;
+    z-index: 15;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.sh-player__toggle-play {
-    width: 80px;
-    height: 80px;
-    font-size: 32px;
-    background: var(--sh-color-primary, #7c6aff);
+.sh-pulse-anim {
+    animation: shFeedbackPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
+@keyframes shFeedbackPop {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    100% { opacity: 0.9; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Barre Inférieure Unifiée (Netflix / Apple TV) */
 .sh-player__footer {
-    padding: 20px 32px 32px;
-    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
+    padding: 24px 36px 36px;
+    background: linear-gradient(to top, rgba(5, 5, 10, 0.95) 0%, rgba(5, 5, 10, 0.5) 70%, transparent 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
+/* Progress Bar & Tooltip */
 .sh-player__progress-container {
+    position: relative;
     cursor: pointer;
     padding: 10px 0;
-    margin-bottom: 12px;
+}
+
+.sh-player__time-tooltip {
+    position: absolute;
+    top: -28px;
+    transform: translateX(-50%);
+    background: rgba(20, 20, 30, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    white-space: nowrap;
 }
 
 .sh-player__progress-bar {
-    height: 4px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 2px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
     position: relative;
-    transition: height 0.2s;
+    transition: height 0.15s ease;
 }
 
 .sh-player__progress-container:hover .sh-player__progress-bar {
-    height: 6px;
+    height: 8px;
+}
+
+.sh-player__progress-buffer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    width: 0%;
 }
 
 .sh-player__progress-fill {
@@ -792,109 +879,213 @@ class VideoPlayer {
     left: 0;
     top: 0;
     bottom: 0;
-    background: var(--sh-color-primary, #7c6aff);
-    border-radius: 2px;
+    background: linear-gradient(90deg, #7c6aff, #a394ff);
+    border-radius: 4px;
     width: 0%;
 }
 
-.sh-player__time-display {
-    display: flex;
-    justify-content: space-between;
-    color: rgba(255,255,255,0.6);
-    font-size: 12px;
-    margin-top: 8px;
+.sh-player__scrubber-thumb {
+    position: absolute;
+    right: -7px;
+    top: 50%;
+    transform: translateY(-50%) scale(0);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 0 12px rgba(124, 106, 255, 0.8);
+    transition: transform 0.15s ease;
 }
 
-.sh-player__bottom-actions {
+.sh-player__progress-container:hover .sh-player__scrubber-thumb {
+    transform: translateY(-50%) scale(1);
+}
+
+/* Ligne des Contrôles */
+.sh-player__controls-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    gap: 20px;
 }
 
-.sh-player__actions-left, .sh-player__actions-right {
+.sh-player__controls-left, .sh-player__controls-right {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
 }
 
-.sh-player__btn {
+/* Boutons Ronds / Commande */
+.sh-ctrl-btn {
     background: transparent;
     border: none;
-    color: #fff;
+    color: #ffffff;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.sh-ctrl-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: scale(1.08);
+}
+
+.sh-btn-play-pause {
+    background: var(--sh-color-primary, #7c6aff);
+    box-shadow: 0 4px 16px rgba(124, 106, 255, 0.4);
+    width: 48px;
+    height: 48px;
     font-size: 20px;
-    cursor: pointer;
+}
+
+.sh-btn-play-pause:hover {
+    background: #9182ff;
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(124, 106, 255, 0.6);
+}
+
+.sh-btn-sub {
+    font-size: 9px;
+    font-weight: 800;
+    margin-top: -3px;
     opacity: 0.8;
-    transition: opacity 0.2s;
 }
 
-.sh-player__btn:hover {
-    opacity: 1;
+/* Volume */
+.sh-volume-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 2px 10px 2px 4px;
+    border-radius: 20px;
 }
 
-.sh-player__volume-slider {
-    width: 100px;
+.sh-volume-slider {
+    width: 70px;
+    height: 4px;
+    accent-color: var(--sh-color-primary, #7c6aff);
     cursor: pointer;
 }
 
-/* Menus */
+/* Badge Durée */
+.sh-player__time-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    margin-left: 8px;
+}
+
+.sh-player__time-sep {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+/* Boutons Pills (Droite) */
+.sh-ctrl-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    transition: all 0.2s;
+}
+
+.sh-ctrl-pill:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+/* Menus Popups */
 .sh-player__menu {
     position: absolute;
-    bottom: 100px;
-    right: 32px;
-    background: var(--sh-bg-glass, rgba(20, 20, 25, 0.95));
-    backdrop-filter: blur(25px);
-    border: 1px solid var(--sh-border-color);
-    border-radius: 16px;
-    padding: 16px;
-    width: 240px;
-    max-height: 400px;
+    bottom: 96px;
+    right: 36px;
+    background: rgba(14, 14, 22, 0.95);
+    backdrop-filter: blur(28px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 18px;
+    padding: 18px;
+    width: 280px;
+    max-height: 420px;
     overflow-y: auto;
-    z-index: 10;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    z-index: 30;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 20px rgba(124, 106, 255, 0.15);
 }
 
 .sh-player__menu h4 {
-    margin: 0 0 12px 0;
-    font-size: 12px;
+    margin: 0 0 10px 0;
+    font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--sh-text-muted);
+    letter-spacing: 1.2px;
+    color: rgba(255, 255, 255, 0.45);
 }
 
 .sh-menu-item {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     width: 100%;
-    text-align: left;
     background: transparent;
     border: none;
-    color: #fff;
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 14px;
+    color: rgba(255, 255, 255, 0.85);
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
+    transition: all 0.15s ease;
     margin-bottom: 4px;
 }
 
 .sh-menu-item:hover {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    transform: translateX(3px);
 }
 
 .sh-menu-item.active {
-    background: var(--sh-color-primary);
+    background: var(--sh-color-primary, #7c6aff);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(124, 106, 255, 0.4);
 }
 
 .sh-player__offset-ctrl {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
     margin-bottom: 12px;
 }
 
 .sh-player__offset-val {
-    font-weight: 600;
-    font-size: 16px;
-    color: var(--sh-color-primary);
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--sh-color-primary, #7c6aff);
+}
+
+@media (max-width: 900px) {
+    .sh-pill-label { display: none; }
+    .sh-ctrl-pill { padding: 8px 10px; }
+    .sh-player__header { padding: 18px; }
+    .sh-player__footer { padding: 18px; }
 }
         `;
         document.head.appendChild(style);

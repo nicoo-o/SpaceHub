@@ -14,23 +14,28 @@ class ImmichService {
     constructor() {
         this._log = new Logger('ImmichService');
         this.api = null;
-        this._init();
+        this._configured = false;
+        this._reconfigure();
+
+        // Enregistre le listener UNE SEULE FOIS dans le constructeur
+        // (jamais dans _reconfigure, pour éviter la fuite de handlers)
+        window.SpaceHub?.core?.eventBus?.on('settings:changed', (e) => {
+            if (e.key.startsWith('immich.') || (e.key === '*' && (e.value?.['immich.url'] || e.value?.['immich.apiKey']))) {
+                this._reconfigure();
+            }
+        });
     }
 
-    _init() {
+    _reconfigure() {
         const s = window.SpaceHub?.core?.settings;
         const url = s?.get('immich.url', '');
         const key = s?.get('immich.apiKey', '');
 
         if (url && key) {
             this.api = new ImmichApi(url, key);
+        } else {
+            this.api = null;
         }
-
-        window.SpaceHub?.core?.eventBus?.on('settings:changed', (e) => {
-            if (e.key.startsWith('immich.') || (e.key === '*' && (e.value['immich.url'] || e.value['immich.apiKey']))) {
-                this._init();
-            }
-        });
     }
 
     /**

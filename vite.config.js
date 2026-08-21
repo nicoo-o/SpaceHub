@@ -59,7 +59,7 @@ function spaceHubDevProxyPlugin() {
                 // ce qui corrompait silencieusement le corps (d'où des "identifiants
                 // invalides" alors que les identifiants tapés étaient corrects).
 
-                const proxyReq = client.request(target, { method: req.method, headers, timeout: 10000 }, (proxyRes) => {
+                const proxyReq = client.request(target, { method: req.method, headers, timeout: 25000 }, (proxyRes) => {
                     console.log(`[spacehub-dev-proxy] ← ${proxyRes.statusCode} ${target.href}`);
                     res.writeHead(proxyRes.statusCode || 502, {
                         ...proxyRes.headers,
@@ -69,11 +69,13 @@ function spaceHubDevProxyPlugin() {
                 });
 
                 proxyReq.on('timeout', () => {
-                    console.error(`[spacehub-dev-proxy] TIMEOUT (10s) vers ${target.href} — le serveur cible ne répond pas.`);
+                    console.error(`[spacehub-dev-proxy] TIMEOUT (25s) vers ${target.href} — le serveur cible ne répond pas.`);
                     proxyReq.destroy();
                     if (!res.headersSent) {
                         res.statusCode = 504;
-                        res.end('Proxy timeout: target did not respond within 10s');
+                        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+                        res.setHeader('Access-Control-Allow-Origin', '*');
+                        res.end(`Délai dépassé (25s) : le service cible à l'adresse ${target.href} ne répond pas. Vérifiez que l'application est démarrée.`);
                     }
                 });
 
@@ -83,7 +85,15 @@ function spaceHubDevProxyPlugin() {
                     console.error(`[spacehub-dev-proxy] Erreur réseau vers ${target.href}: ${err.code || err.message}`);
                     if (!res.headersSent) {
                         res.statusCode = 502;
-                        res.end('Proxy error: ' + err.message);
+                        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+                        res.setHeader('Access-Control-Allow-Origin', '*');
+                        let userMsg = `Erreur proxy (${err.code || err.message}) vers ${target.href}`;
+                        if (err.code === 'ECONNREFUSED') {
+                            userMsg = `Connexion refusée : aucun service n'écoute sur ${target.host}. Vérifiez que le service (ex: Bazarr sur le port 6767, Jellyseerr sur 5055) est bien allumé.`;
+                        } else if (err.code === 'ENOTFOUND') {
+                            userMsg = `Adresse introuvable : ${target.hostname}. Vérifiez l'adresse IP saisie.`;
+                        }
+                        res.end(userMsg);
                     }
                 });
 
