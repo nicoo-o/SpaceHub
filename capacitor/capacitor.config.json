@@ -1,0 +1,42 @@
+{
+  "appId": "com.spacehub.app",
+  "appName": "SpaceHub",
+  "webDir": "../dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "launchAutoHide": true,
+      "backgroundColor": "#1a1a1a",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "iosSplashStyle": "default",
+      "iosSplashImageName": "splash"
+    },
+    "StatusBar": {
+      "style": "dark"
+    },
+    "Keyboard": {
+      "resize": "body"
+    },
+    "SecureStorage": {
+      "android": {
+        "keychainAccessibility": "afterFirstUnlock"
+      },
+      "ios": {
+        "keychainAccessible": "afterFirstUnlock"
+      }
+    }
+  },
+  "android": {
+    "buildOptions": {
+      "keystorePath": "spacehub.keystore",
+      "keystorePassword": "YOUR_PASSWORD",
+      "keystoreAlias": "spacehub",
+      "keystoreAliasPassword": "YOUR_PASSWORD"
+    }
+  }
+}

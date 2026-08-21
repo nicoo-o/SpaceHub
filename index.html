@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr" data-sh-theme="spacehub-dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#101014" />
+    <meta name="description" content="SpaceHub — Client Web Unifié pour Jellyfin et la suite Servarr" />
+    <title>SpaceHub — Media Center</title>
+
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Design Tokens -->
+    <link rel="stylesheet" href="/ui/design-system/tokens.css" />
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--sh-bg-base, #101014);
+            color: var(--sh-text-primary, #f0f0f8);
+            font-family: var(--sh-font-family, 'Inter', sans-serif);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* App Loading Splash Screen */
+        #sh-splash-loader {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--sh-bg-base, #101014);
+            z-index: 9999;
+            transition: opacity 0.4s ease;
+        }
+
+        .sh-splash-title {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, var(--sh-color-primary, #7c6aff));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        .sh-splash-spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(255,255,255,0.08);
+            border-top-color: var(--sh-color-primary, #7c6aff);
+            border-radius: 50%;
+            animation: sh-spin 0.8s linear infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="sh-splash-loader">
+        <h1 class="sh-splash-title">SpaceHub</h1>
+        <div class="sh-splash-spinner"></div>
+    </div>
+
+    <div id="app"></div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
