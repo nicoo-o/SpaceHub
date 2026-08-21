@@ -29,6 +29,8 @@ import AudioPlayer  from '../jellyfin/player/audio/AudioPlayer.js';
 import ServerManager from '../jellyfin/server/ServerManager.js';
 import FederatedSearch from '../jellyfin/search/FederatedSearch.js';
 import DataSyncService from '../core/sync/DataSyncService.js';
+import TrailerService from '../jellyfin/trailers/TrailerService.js';
+import NaturalSearchEngine from '../jellyfin/search/NaturalSearchEngine.js';
 
 const APP_EL_ID    = 'app';
 const SPLASH_EL_ID = 'sh-splash-loader';
@@ -144,6 +146,10 @@ async function boot() {
     window.SpaceHub.serverManager = serverManager;
     window.SpaceHub.federatedSearch = new FederatedSearch(serverManager);
     window.SpaceHub.core.sync = new DataSyncService(window.SpaceHub.core?.eventBus, window.SpaceHub.core?.settings);
+
+    // 2bis+. Brancher Trailers & Recherche en Langage Naturel (Horizon 4)
+    window.SpaceHub.trailerService = new TrailerService();
+    window.SpaceHub.naturalSearch = new NaturalSearchEngine();
 
     // 2ter. Brancher les lecteurs
     window.SpaceHub.player = new VideoPlayer();

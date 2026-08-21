@@ -112,13 +112,94 @@ class LibraryView {
 
     async _handleItemClick(item) {
         if (item.Type === 'Series') {
-            // Afficher les saisons / épisodes
             this._openSeriesModal(item);
-        } else if (item.Type === 'Movie' || item.Type === 'Episode' || item.Type === 'Video') {
-            // Lancer la lecture
+        } else if (item.Type === 'Movie') {
+            this._openMovieModal(item);
+        } else if (item.Type === 'Episode' || item.Type === 'Video') {
             window.SpaceHub?.player?.play(item);
         } else {
             window.SpaceHub?.player?.play(item);
+        }
+    }
+
+    async _openMovieModal(movie) {
+        const Modal = window.SpaceHub?.ui?.components?.Modal;
+        if (!Modal) return;
+
+        const serverUrl = window.SpaceHub?.auth?.getServerUrl();
+        const backdropTag = movie.BackdropImageTags?.[0] || movie.ImageTags?.Backdrop;
+        const backdropUrl = backdropTag
+            ? `${serverUrl}/Items/${movie.Id}/Images/Backdrop?tag=${backdropTag}&maxWidth=800`
+            : '';
+
+        const modal = new Modal({
+            id: `movie-${movie.Id}`,
+            title: movie.Name,
+            size: 'xl',
+            content: `
+                <div class="sh-movie-modal">
+                    ${backdropUrl ? `<img src="${backdropUrl}" alt="" style="width:100%; border-radius:var(--sh-radius-md,12px); margin-bottom:16px; object-fit:cover; max-height:360px;"/>` : ''}
+                    <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+                        <button class="sh-btn sh-btn--primary" id="btn-play-movie">▶ Lancer le film</button>
+                        <button class="sh-btn sh-btn--ghost" id="btn-trailer-movie" style="border:1px solid var(--sh-border-color);">🎬 Bande-annonce</button>
+                    </div>
+                    <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--sh-text-secondary); margin-bottom:12px;">
+                        ${movie.ProductionYear ? `<span>📅 ${movie.ProductionYear}</span>` : ''}
+                        ${movie.CommunityRating ? `<span>⭐ ${movie.CommunityRating.toFixed(1)}</span>` : ''}
+                        ${movie.OfficialRating ? `<span>🏷️ ${movie.OfficialRating}</span>` : ''}
+                        ${movie.RunTimeTicks ? `<span>⏱️ ${Math.round(movie.RunTimeTicks / 600000000)} min</span>` : ''}
+                    </div>
+                    ${movie.Genres?.length ? `<div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">${movie.Genres.map(g => `<span class="sh-badge" style="background:var(--sh-bg-surface-3); font-size:11px;">${g}</span>`).join('')}</div>` : ''}
+                    <p style="color:var(--sh-text-secondary); font-size:14px; line-height:1.6;">${movie.Overview || 'Aucun résumé disponible.'}</p>
+                    <div id="movie-similar-section"></div>
+                </div>
+            `
+        });
+
+        modal.open();
+
+        modal._el.querySelector('#btn-play-movie')?.addEventListener('click', () => {
+            modal.close();
+            window.SpaceHub?.player?.play(movie);
+        });
+
+        modal._el.querySelector('#btn-trailer-movie')?.addEventListener('click', () => {
+            modal.close();
+            window.SpaceHub?.trailerService?.openTrailer(movie);
+        });
+
+        // Charger les similaires en tâche de fond
+        this._loadSimilarSection(modal._el.querySelector('#movie-similar-section'), movie);
+    }
+
+    async _loadSimilarSection(container, item) {
+        if (!container) return;
+        const reco = window.SpaceHub?.core?.discovery;
+        if (!reco) return;
+
+        try {
+            const similar = await reco.getSimilar(item, 6);
+            if (!similar || similar.length === 0) return;
+
+            const serverUrl = window.SpaceHub?.auth?.getServerUrl();
+            container.innerHTML = `
+                <hr style="border:none; border-top:1px solid var(--sh-border-color); margin:20px 0;"/>
+                <h4 style="margin-bottom:12px;">🎯 Vous pourriez aussi aimer</h4>
+                <div style="display:flex; gap:12px; overflow-x:auto; padding-bottom:8px;">
+                    ${similar.map(s => {
+                        const imgTag = s.ImageTags?.Primary;
+                        const imgUrl = imgTag ? `${serverUrl}/Items/${s.Id}/Images/Primary?tag=${imgTag}&maxHeight=200` : '';
+                        return `
+                            <div style="flex:0 0 120px; text-align:center; cursor:pointer;" class="sh-similar-item" data-id="${s.Id}">
+                                ${imgUrl ? `<img src="${imgUrl}" alt="${s.Name}" style="width:120px; height:180px; object-fit:cover; border-radius:8px;"/>` : `<div style="width:120px; height:180px; background:var(--sh-bg-surface-3); border-radius:8px; display:flex; align-items:center; justify-content:center;">🎬</div>`}
+                                <p style="font-size:11px; margin-top:6px; color:var(--sh-text-primary);" class="sh-truncate">${s.Name}</p>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        } catch (err) {
+            // Silent fail — section is optional
         }
     }
 
@@ -134,6 +215,9 @@ class LibraryView {
                 <div class="sh-series-modal">
                     <div class="sh-series-modal__header">
                         <p>${series.Overview || 'Aucun résumé disponible.'}</p>
+                        <div style="margin-top:12px;">
+                            <button class="sh-btn sh-btn--ghost" id="btn-trailer-series" style="border:1px solid var(--sh-border-color);">🎬 Bande-annonce</button>
+                        </div>
                     </div>
                     <h3 style="margin:var(--sh-space-4,16px) 0 var(--sh-space-2,8px);">Épisodes</h3>
                     <div class="sh-series-episodes-list" id="series-episodes-list">
@@ -144,6 +228,11 @@ class LibraryView {
         });
 
         modal.open();
+
+        modal._el.querySelector('#btn-trailer-series')?.addEventListener('click', () => {
+            modal.close();
+            window.SpaceHub?.trailerService?.openTrailer(series);
+        });
 
         try {
             const episodes = await this._api.getEpisodes(series.Id);
