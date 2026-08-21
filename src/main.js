@@ -26,6 +26,9 @@ import LoginView    from '../ui/views/LoginView.js';
 import AppLayout    from '../ui/layouts/AppLayout.js';
 import VideoPlayer  from '../jellyfin/player/VideoPlayer.js';
 import AudioPlayer  from '../jellyfin/player/audio/AudioPlayer.js';
+import ServerManager from '../jellyfin/server/ServerManager.js';
+import FederatedSearch from '../jellyfin/search/FederatedSearch.js';
+import DataSyncService from '../core/sync/DataSyncService.js';
 
 const APP_EL_ID    = 'app';
 const SPLASH_EL_ID = 'sh-splash-loader';
@@ -104,7 +107,18 @@ function mountLogin() {
     }
     const login = new LoginView(() => {
         // Connexion réussie : bascule les réglages sur l'utilisateur
-        window.SpaceHub.core.settings.setUserId(window.SpaceHub.auth.getUserId());
+        const userId = window.SpaceHub.auth.getUserId();
+        window.SpaceHub.core.settings.setUserId(userId);
+
+        // Enregistrer automatiquement le serveur dans ServerManager
+        window.SpaceHub.serverManager?.addServer({
+            name: new URL(window.SpaceHub.auth.getServerUrl()).hostname,
+            url: window.SpaceHub.auth.getServerUrl(),
+            username: window.SpaceHub.auth.getUser()?.Name,
+            userId: userId,
+            token: window.SpaceHub.auth.getToken()
+        });
+
         // On remonte l'app complète
         mountApp();
     });
@@ -121,20 +135,26 @@ async function boot() {
         return;
     }
 
-    // 2. Brancher l'AuthManager standalone (absent du namespace par défaut)
+    // 2. Brancher l'AuthManager standalone
     const auth = new AuthManager();
     window.SpaceHub.auth = auth;
 
-    // 2bis. Brancher les lecteurs
+    // 2bis. Brancher Multi-Server, Sync, et Recherche Fédérée
+    const serverManager = new ServerManager(window.SpaceHub.core?.eventBus, auth);
+    window.SpaceHub.serverManager = serverManager;
+    window.SpaceHub.federatedSearch = new FederatedSearch(serverManager);
+    window.SpaceHub.core.sync = new DataSyncService(window.SpaceHub.core?.eventBus, window.SpaceHub.core?.settings);
+
+    // 2ter. Brancher les lecteurs
     window.SpaceHub.player = new VideoPlayer();
     window.SpaceHub.audio = new AudioPlayer();
 
-    // 2ter. Initialiser le mode TV si présent
+    // 2quater. Initialiser le mode TV si présent
     if (window.SpaceHub?.tvMode && window.SpaceHub.core?.settings?.get('tv.autoActivate')) {
         window.SpaceHub.tvMode.enable();
     }
 
-    // 2quater. Intégration Native Desktop (Electron Shortcuts & Discord RPC)
+    // 2quinquies. Intégration Native Desktop (Electron Shortcuts & Discord RPC)
     setupElectronIntegration();
 
     // 3. Vérifier la session existante

@@ -81,7 +81,7 @@ class AppLayout {
                             ⚙️
                         </button>
 
-                        <!-- Menu Utilisateur -->
+                        <!-- Menu Utilisateur & Multi-Serveurs -->
                         <div class="sh-user-menu-wrapper">
                             <button class="sh-user-avatar-btn" id="sh-user-menu-btn" title="${user?.Name || 'Utilisateur'}">
                                 <span>👤</span>
@@ -93,6 +93,17 @@ class AppLayout {
                                     <span class="sh-user-server sh-truncate">${serverUrl}</span>
                                 </div>
                                 <hr style="border:none; border-top:1px solid var(--sh-border-color); margin:8px 0;"/>
+                                <div class="sh-servers-section">
+                                    <div style="font-size:11px; font-weight:600; color:var(--sh-text-muted); margin-bottom:6px;">SERVEURS JELLYFIN</div>
+                                    <div id="sh-server-list-container"></div>
+                                    <button class="sh-user-dropdown__item" id="sh-btn-add-server" style="color:var(--sh-color-primary); font-weight:600;">
+                                        ➕ Ajouter un serveur
+                                    </button>
+                                </div>
+                                <hr style="border:none; border-top:1px solid var(--sh-border-color); margin:8px 0;"/>
+                                <button class="sh-user-dropdown__item" id="sh-btn-sync-export" style="color:var(--sh-text-primary);">
+                                    💾 Exporter la sauvegarde
+                                </button>
                                 <button class="sh-user-dropdown__item" id="sh-btn-logout">
                                     🚪 Déconnexion
                                 </button>
@@ -211,16 +222,159 @@ class AppLayout {
 
         userBtn?.addEventListener('click', (e) => {
             e.stopPropagation();
-            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            const isOpen = dropdown.style.display !== 'none';
+            if (!isOpen) {
+                this._renderServerList(dropdown);
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.style.display = 'none';
+            }
         });
 
         document.addEventListener('click', () => {
             if (dropdown) dropdown.style.display = 'none';
         });
 
+        // Exporter sauvegarde
+        container.querySelector('#sh-btn-sync-export')?.addEventListener('click', () => {
+            window.SpaceHub?.core?.sync?.exportToFile();
+            window.SpaceHub?.ui?.components?.toaster?.success('Sauvegarde téléchargée !');
+        });
+
+        // Ajouter un serveur
+        container.querySelector('#sh-btn-add-server')?.addEventListener('click', () => {
+            dropdown.style.display = 'none';
+            this._openAddServerModal();
+        });
+
         // Déconnexion
         container.querySelector('#sh-btn-logout')?.addEventListener('click', () => {
             this._auth?.logout();
+        });
+    }
+
+    _renderServerList(dropdown) {
+        const container = dropdown.querySelector('#sh-server-list-container');
+        if (!container) return;
+
+        const serverManager = window.SpaceHub?.serverManager;
+        const servers = serverManager?.getServers() || [];
+        const activeServer = serverManager?.getActiveServer();
+
+        if (servers.length === 0) {
+            container.innerHTML = `<div style="font-size:12px; color:var(--sh-text-muted); padding:4px 0;">1 serveur actif</div>`;
+            return;
+        }
+
+        container.innerHTML = servers.map(s => {
+            const isActive = activeServer?.id === s.id;
+            return `
+                <div class="sh-server-row ${isActive ? 'active' : ''}" data-server-id="${s.id}" style="display:flex; justify-content:space-between; align-items:center; padding:6px 8px; border-radius:6px; margin-bottom:4px; cursor:pointer; background:${isActive ? 'rgba(124,106,255,0.15)' : 'transparent'};">
+                    <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                        <span style="font-size:8px; color:${s.isOnline !== false ? '#2ecc71' : '#e74c3c'};">●</span>
+                        <span style="font-size:12px; font-weight:${isActive ? '700' : '500'}; color:var(--sh-text-primary);" class="sh-truncate">${s.name || s.url}</span>
+                    </div>
+                    ${isActive ? '<span style="font-size:10px; color:var(--sh-color-primary);">Actif</span>' : ''}
+                </div>
+            `;
+        }).join('');
+
+        container.querySelectorAll('.sh-server-row').forEach(row => {
+            row.addEventListener('click', async () => {
+                const sId = row.dataset.serverId;
+                dropdown.style.display = 'none';
+                await serverManager?.switchServer(sId);
+                window.location.reload();
+            });
+        });
+    }
+
+    _openAddServerModal() {
+        const Modal = window.SpaceHub?.ui?.components?.Modal;
+        if (!Modal) return;
+
+        const modal = new Modal({
+            id: 'add-server-modal',
+            title: '➕ Ajouter un Serveur Jellyfin',
+            size: 'md',
+            content: `
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:600; color:var(--sh-text-secondary);">Nom du serveur (ex: Maison, VPS)</label>
+                        <input type="text" class="sh-input" id="add-srv-name" placeholder="Mon Jellyfin" style="width:100%; margin-top:4px;"/>
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:600; color:var(--sh-text-secondary);">URL du serveur</label>
+                        <input type="url" class="sh-input" id="add-srv-url" placeholder="http://192.168.1.100:8096" style="width:100%; margin-top:4px;"/>
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:600; color:var(--sh-text-secondary);">Nom d'utilisateur</label>
+                        <input type="text" class="sh-input" id="add-srv-user" placeholder="Identifiant" style="width:100%; margin-top:4px;"/>
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:600; color:var(--sh-text-secondary);">Mot de passe</label>
+                        <input type="password" class="sh-input" id="add-srv-pass" placeholder="Mot de passe" style="width:100%; margin-top:4px;"/>
+                    </div>
+                    <div id="add-srv-error" style="color:var(--sh-color-danger); font-size:12px; display:none;"></div>
+                </div>
+            `,
+            footer: `
+                <button class="sh-btn sh-btn--ghost" data-action="close">Annuler</button>
+                <button class="sh-btn sh-btn--primary" id="btn-confirm-add-server">Connecter & Enregistrer</button>
+            `
+        });
+
+        modal.open();
+
+        modal._el.querySelector('[data-action="close"]')?.addEventListener('click', () => modal.close());
+
+        modal._el.querySelector('#btn-confirm-add-server')?.addEventListener('click', async (e) => {
+            const name = modal._el.querySelector('#add-srv-name')?.value?.trim();
+            const url = modal._el.querySelector('#add-srv-url')?.value?.trim();
+            const user = modal._el.querySelector('#add-srv-user')?.value?.trim();
+            const pass = modal._el.querySelector('#add-srv-pass')?.value || '';
+            const errorEl = modal._el.querySelector('#add-srv-error');
+
+            if (!url || !user) {
+                errorEl.textContent = 'Veuillez renseigner l\'URL et l\'identifiant.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            e.target.disabled = true;
+            e.target.textContent = 'Connexion...';
+
+            try {
+                const res = await fetch(`${url.replace(/\/$/, '')}/Users/AuthenticateByName`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-Emby-Authorization': `MediaBrowser Client="SpaceHub Web", Device="Web Browser", DeviceId="spacehub-web", Version="1.0.0"`
+                    },
+                    body: JSON.stringify({ Username: user, Pw: pass })
+                });
+
+                if (!res.ok) throw new Error('Identifiants ou URL invalides.');
+
+                const data = await res.json();
+                window.SpaceHub?.serverManager?.addServer({
+                    name: name || user,
+                    url: url,
+                    username: user,
+                    userId: data.User.Id,
+                    token: data.AccessToken
+                });
+
+                window.SpaceHub?.ui?.components?.toaster?.success(`Serveur "${name || user}" connecté !`);
+                modal.close();
+                window.location.reload();
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.style.display = 'block';
+                e.target.disabled = false;
+                e.target.textContent = 'Connecter & Enregistrer';
+            }
         });
     }
 
