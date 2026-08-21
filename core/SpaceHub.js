@@ -72,6 +72,7 @@ import { RecommendedWidget, TrendsWidget } from '../ui/widgets/DiscoveryWidgets.
 import RecommendationService from './Discovery/RecommendationService.js';
 import FamilyService from './Family/FamilyService.js';
 import TVMode from '../ui/tv/TVMode.js';
+import UIHookManager from './extensions/UIHookManager.js';
 
 // ─── Namespace global ────────────────────────────────────────────────────────
 
@@ -263,6 +264,9 @@ async function init() {
 
     const marketplace = new ExtensionMarketplace(SpaceHub.sdk);
     SpaceHub.core.marketplace = marketplace;
+
+    const hooks = new UIHookManager();
+    SpaceHub.core.hooks = hooks;
 
     // 6septies. TV Mode (10-foot UI)
     SpaceHub.tvMode = new TVMode(eventBus, settings);
