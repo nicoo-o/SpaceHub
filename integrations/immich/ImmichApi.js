@@ -1,8 +1,9 @@
 /**
- * SpaceHub — Immich API Client
- * Version: 1.0.0
+ * SpaceHub — Immich API Client (Extended)
+ * Version: 2.0.0
  *
- * Client API pour l'intégration Immich (Photos/Vidéos personnelles).
+ * Client API pour l'intégration Immich avec support IA (CLIP),
+ * reconnaissance faciale (People), métadonnées GPS et albums.
  */
 
 'use strict';
@@ -28,7 +29,7 @@ class ImmichApi extends BaseApiClient {
     }
 
     /**
-     * Récupère tous les actifs (photos/vidéos).
+     * Récupère les photos/vidéos avec filtres.
      */
     getAssets(params = {}) {
         const query = new URLSearchParams(params).toString();
@@ -36,10 +37,40 @@ class ImmichApi extends BaseApiClient {
     }
 
     /**
+     * Recherche sémantique IA (CLIP Embeddings) dans les photos.
+     * @param {string} queryText - ex: "coucher de soleil sur la plage", "chien"
+     */
+    searchSmart(queryText) {
+        return this.post('/search/smart', { query: queryText });
+    }
+
+    /**
+     * Récupère la liste des personnes reconnues par l'IA.
+     */
+    getPeople() {
+        return this.get('/people');
+    }
+
+    /**
+     * Récupère les photos d'une personne spécifique.
+     * @param {string} personId
+     */
+    getPersonAssets(personId) {
+        return this.get(`/people/${personId}/assets`);
+    }
+
+    /**
      * Récupère les albums.
      */
     getAlbums() {
         return this.get('/albums');
+    }
+
+    /**
+     * Récupère les marqueurs GPS pour la carte mondiale.
+     */
+    getMapMarkers() {
+        return this.get('/map/markers');
     }
 
     /**
