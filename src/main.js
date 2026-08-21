@@ -32,6 +32,9 @@ import DataSyncService from '../core/sync/DataSyncService.js';
 import TrailerService from '../jellyfin/trailers/TrailerService.js';
 import NaturalSearchEngine from '../jellyfin/search/NaturalSearchEngine.js';
 import SyncPlayManager from '../jellyfin/syncplay/SyncPlayManager.js';
+import LiveStreamMonitor from '../jellyfin/admin/LiveStreamMonitor.js';
+import ServerTaskController from '../jellyfin/admin/ServerTaskController.js';
+import StorageInspector from '../jellyfin/admin/StorageInspector.js';
 
 const APP_EL_ID    = 'app';
 const SPLASH_EL_ID = 'sh-splash-loader';
@@ -154,6 +157,13 @@ async function boot() {
 
     // 2bis++. Brancher Jellyfin SyncPlay / Watch Party (Horizon 5)
     window.SpaceHub.syncPlay = new SyncPlayManager(window.SpaceHub.core?.eventBus);
+
+    // 2bis+++. Brancher Cockpit Admin Suite (Horizon 7)
+    window.SpaceHub.admin = {
+        monitor: new LiveStreamMonitor(),
+        tasks: new ServerTaskController(),
+        storage: new StorageInspector()
+    };
 
     // 2ter. Brancher les lecteurs
     window.SpaceHub.player = new VideoPlayer();

@@ -24,6 +24,7 @@ const NAV_ITEMS = [
     { id: 'photos',      path: '/photos',      label: '🖼️ Photos' },
     { id: 'history',     path: '/history',     label: '🕰️ Historique' },
     { id: 'extensions',  path: '/extensions',  label: '🧩 Extensions' },
+    { id: 'admin',       path: '/admin',       label: '🛡️ Admin' },
 ];
 
 class AppLayout {
@@ -445,6 +446,9 @@ class AppLayout {
                         break;
                     case 'history':
                         ViewClass = (await import('../views/ActivityHistoryView.js')).default;
+                        break;
+                    case 'admin':
+                        ViewClass = (await import('../views/AdminCockpitView.js')).default;
                         break;
                     default:
                         throw new Error(`Vue inconnue : ${navId}`);
