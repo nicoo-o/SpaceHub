@@ -27,6 +27,8 @@ const NAV_ITEMS = [
     { id: 'extensions',  path: '/extensions',  label: '🧩 Extensions' },
     { id: 'admin',       path: '/admin',       label: '🛡️ Admin' },
     { id: 'domotics',    path: '/domotics',    label: '💡 Domotique' },
+    { id: 'accessibility', path: '/accessibility', label: '♿ Accessibilité' },
+    { id: 'rewind',      path: '/rewind',      label: '✨ Rewind' },
 ];
 
 class AppLayout {
@@ -457,6 +459,12 @@ class AppLayout {
                         break;
                     case 'domotics':
                         ViewClass = (await import('../views/DomoticsView.js')).default;
+                        break;
+                    case 'accessibility':
+                        ViewClass = (await import('../views/accessibility/AccessibilityView.js')).default;
+                        break;
+                    case 'rewind':
+                        ViewClass = (await import('../views/rewind/RewindView.js')).default;
                         break;
                     default:
                         throw new Error(`Vue inconnue : ${navId}`);

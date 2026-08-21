@@ -41,6 +41,8 @@ import LiveTvService from '../jellyfin/livetv/LiveTvService.js';
 import HomeAssistantService from '../integrations/homeassistant/HomeAssistantService.js';
 import AmbilightEngine from '../core/ambilight/AmbilightEngine.js';
 import CinemaModeService from '../core/domotics/CinemaModeService.js';
+import AccessibilityManager from '../core/accessibility/AccessibilityManager.js';
+import RewindService from '../core/analytics/RewindService.js';
 
 const APP_EL_ID    = 'app';
 const SPLASH_EL_ID = 'sh-splash-loader';
@@ -190,6 +192,12 @@ async function boot() {
         ambilight: ambilight,
         cinema: cinemaMode
     };
+
+    // 2bis+++++++. Brancher Accessibilité Universelle (Horizon 15)
+    window.SpaceHub.accessibility = new AccessibilityManager();
+
+    // 2bis++++++++. Brancher SpaceHub Rewind (Horizon 16)
+    window.SpaceHub.rewind = new RewindService();
 
     // 2ter. Brancher les lecteurs
     window.SpaceHub.player = new VideoPlayer();
