@@ -18,7 +18,8 @@ const NAV_ITEMS = [
     { id: 'library',     path: '/library',     label: '📚 Bibliothèques' },
     { id: 'downloads',   path: '/downloads',   label: '📥 Downloads' },
     { id: 'calendar',    path: '/calendar',    label: '📅 Calendar' },
-    { id: 'management',  path: '/management',  label: '⚙️ Management' },
+    { id: 'servarr',     path: '/servarr',     label: '⚙️ Servarr Pro' },
+    { id: 'management',  path: '/management',  label: '🔧 Management' },
     { id: 'livetv',      path: '/livetv',      label: '📺 Live TV' },
     { id: 'watchlist',   path: '/watchlist',   label: '📋 Ma Liste' },
     { id: 'photos',      path: '/photos',      label: '🖼️ Photos' },
@@ -449,6 +450,9 @@ class AppLayout {
                         break;
                     case 'admin':
                         ViewClass = (await import('../views/AdminCockpitView.js')).default;
+                        break;
+                    case 'servarr':
+                        ViewClass = (await import('../views/ServarrProView.js')).default;
                         break;
                     default:
                         throw new Error(`Vue inconnue : ${navId}`);
