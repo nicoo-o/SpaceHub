@@ -1,13 +1,14 @@
 /**
  * SpaceHub — CardBuilder (composant)
- * Version: 0.7.0
+ * Version: 0.8.0
  *
  * Constructeur de cartes médias SpaceHub avec :
+ *  - Icônes vectorielles SVG officielles (Rotten Tomatoes Certified Fresh / Fresh / Rotten & IMDb Gold Star)
  *  - Vraies notes Jellyfin (item.CriticRating / item.CommunityRating)
+ *  - Détection d'intention au survol (140ms intent delay) anti-pollution visuelle
+ *  - Capsule verre liquide segmentée avec feedback tactile
  *  - Exclusion totale des notes sur dossiers racines, bibliothèques ou playlists
- *  - Survol instantané garanti par délégation globale : Tomate 🍅 -> Rotten Tomatoes
- *  - Survol instantané garanti par délégation globale : Étoile ★ -> Note & Répartition IMDb
- *  - Animations d'ouverture/fermeture fluides Apple VisionOS
+ *  - Sous-titre enrichi avec Année & Genres cinématographiques
  */
 
 'use strict';
@@ -25,7 +26,26 @@ class CardBuilder {
         this._injectContextMenu();
         this._injectPopovers();
         this._setupGlobalHoverDelegation();
-        this._log.info('Initialisé avec délégation de survol globale.');
+        this._log.info('Initialisé avec icônes vectorielles SVG et détection d intention.');
+    }
+
+    // ─── SVG Icons Officielles ───────────────────────────────────────────────────
+
+    getRtIconSvg(score) {
+        if (score >= 75) {
+            // Certified Fresh
+            return `<svg class="sh-rt-svg" width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#00C05B"/></svg>`;
+        } else if (score >= 60) {
+            // Fresh Tomato
+            return `<svg class="sh-rt-svg" width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#388E3C"/></svg>`;
+        } else {
+            // Rotten Splat
+            return `<svg class="sh-rt-svg" width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 4C8 4 5 7 4 11C3 15 5 19 9 21C13 22 18 20 20 16C22 12 19 8 16 5C14 4 13 4 12 4Z" fill="#78B13F"/></svg>`;
+        }
+    }
+
+    getImdbIconSvg() {
+        return `<svg class="sh-imdb-star-svg" width="13" height="13" viewBox="0 0 24 24" fill="#F5C518"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>`;
     }
 
     // ─── API Publique ────────────────────────────────────────────────────────────
@@ -81,7 +101,7 @@ class CardBuilder {
                 imdbScore = (rtScore / 10).toFixed(1);
             }
 
-            critic = this._getCriticData(title || 'Média', rtScore, imdbScore);
+            critic = this.getCriticData(title || 'Média', rtScore, imdbScore);
             card._criticData = critic; // Attaché directement pour la délégation de survol
         }
 
@@ -117,15 +137,17 @@ class CardBuilder {
                     : ''}
             </div>
 
-            <!-- Dual Score Dark Frosted Glass Capsule (Films, séries, animés uniquement) -->
+            <!-- Dual Score Segmented Glass Capsule (Films, séries, animés uniquement) -->
             ${hasScores && critic ? `
             <div class="sh-card__dual-score" data-rt="${rtScore}">
-                <button class="sh-score-btn sh-score-rt" aria-label="Critiques Rotten Tomatoes" type="button">
-                    <span class="sh-score-emoji">🍅</span> <span>${rtScore}%</span>
+                <button class="sh-score-btn sh-score-rt" aria-label="Critiques Rotten Tomatoes" type="button" title="Consensus et avis Rotten Tomatoes">
+                    ${this.getRtIconSvg(rtScore)}
+                    <span class="sh-score-val">${rtScore}%</span>
                 </button>
                 <span class="sh-score-sep">│</span>
-                <button class="sh-score-btn sh-score-imdb sh-score-imdb--stars" aria-label="Note spectateurs IMDb" type="button">
-                    <span class="sh-star-icon">★</span> <span>${imdbScore}</span>
+                <button class="sh-score-btn sh-score-imdb sh-score-imdb--stars" aria-label="Note spectateurs IMDb" type="button" title="Note et répartition des votes IMDb">
+                    ${this.getImdbIconSvg()}
+                    <span class="sh-score-val">${imdbScore}</span>
                 </button>
             </div>
             ` : ''}
@@ -142,7 +164,7 @@ class CardBuilder {
                 <p class="sh-card__title sh-truncate">${this._escape(title)}</p>
                 <div class="sh-card__meta-line">
                     ${subtitle ? `<span class="sh-card__subtitle">${this._escape(subtitle)}</span>` : ''}
-                    ${remainingMin ? `<span class="sh-card__remaining-time">${remainingMin} min restantes</span>` : ''}
+                    ${remainingMin ? `<span class="sh-card__remaining-time">${remainingMin} min</span>` : ''}
                 </div>
             </div>
         `;
@@ -198,6 +220,7 @@ class CardBuilder {
     _setupGlobalHoverDelegation() {
         if (this._hasGlobalHoverSetup) return;
         this._hasGlobalHoverSetup = true;
+        let intentTimer = null;
 
         document.addEventListener('mouseover', (e) => {
             const rtBtn = e.target.closest('.sh-score-rt');
@@ -207,27 +230,37 @@ class CardBuilder {
             if (popoverEl) {
                 this._isHoveringPopover = true;
                 if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
+                if (intentTimer) clearTimeout(intentTimer);
                 return;
             }
 
             if (rtBtn) {
                 if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
-                const card = rtBtn.closest('.sh-card');
-                const criticData = card?._criticData;
+                const containerEl = rtBtn.closest('.sh-card') || rtBtn.closest('.sh-hero-meta') || rtBtn.closest('.sh-cinema-hero-details') || rtBtn.closest('.sh-saga-movie-card') || rtBtn.closest('.sh-bento-card') || rtBtn.closest('.sh-episode-card');
+                const criticData = containerEl?._criticData || this._currentItemCriticData;
+                
                 if (criticData) {
-                    this._hideIMDbPopover();
-                    this._showRTPopover(rtBtn, criticData);
+                    if (intentTimer) clearTimeout(intentTimer);
+                    // Intent-Based Hover : 140ms d'attente pour éviter les ouvertures intempestives lors du simple balayage
+                    intentTimer = setTimeout(() => {
+                        this._hideIMDbPopover();
+                        this.showRTPopover(rtBtn, criticData);
+                    }, 140);
                 }
                 return;
             }
 
             if (imdbBtn) {
                 if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
-                const card = imdbBtn.closest('.sh-card');
-                const criticData = card?._criticData;
+                const containerEl = imdbBtn.closest('.sh-card') || imdbBtn.closest('.sh-hero-meta') || imdbBtn.closest('.sh-cinema-hero-details') || imdbBtn.closest('.sh-saga-movie-card') || imdbBtn.closest('.sh-bento-card') || imdbBtn.closest('.sh-episode-card');
+                const criticData = containerEl?._criticData || this._currentItemCriticData;
+                
                 if (criticData) {
-                    this._hideRTPopover();
-                    this._showIMDbPopover(imdbBtn, criticData);
+                    if (intentTimer) clearTimeout(intentTimer);
+                    intentTimer = setTimeout(() => {
+                        this._hideRTPopover();
+                        this.showIMDbPopover(imdbBtn, criticData);
+                    }, 140);
                 }
                 return;
             }
@@ -237,6 +270,10 @@ class CardBuilder {
             const rtBtn = e.target.closest('.sh-score-rt');
             const imdbBtn = e.target.closest('.sh-score-imdb');
             const popoverEl = e.target.closest('.sh-global-popover');
+
+            if (rtBtn || imdbBtn) {
+                if (intentTimer) clearTimeout(intentTimer);
+            }
 
             if (rtBtn || imdbBtn || popoverEl) {
                 const related = e.relatedTarget;
@@ -249,14 +286,14 @@ class CardBuilder {
                         this._hideRTPopover();
                         this._hideIMDbPopover();
                     }
-                }, 200);
+                }, 220);
             }
         }, { passive: true });
     }
 
-    _getCriticData(title, rtScore, imdb) {
+    getCriticData(title, rtScore, imdb) {
         const numImdb = parseFloat(imdb) || 8.4;
-        const audience = Math.min(99, Math.max(65, Math.round(rtScore * 0.96 + (Math.sin(title.length) * 3))));
+        const audience = Math.min(99, Math.max(65, Math.round(rtScore * 0.96 + (Math.sin((title || '').length) * 3))));
         const metacritic = Math.min(98, Math.max(52, Math.round(rtScore * 0.91)));
 
         let consensus = '';
@@ -287,8 +324,9 @@ class CardBuilder {
         const negativeVotes = Math.max(1, 100 - positiveVotes - neutralVotes);
 
         return {
+            title,
             rtScore,
-            imdb,
+            imdb: numImdb.toFixed(1),
             audience,
             metacritic,
             consensus,
@@ -344,7 +382,7 @@ class CardBuilder {
 
     _positionPopover(popover, targetEl) {
         const rect = targetEl.getBoundingClientRect();
-        const popoverWidth = 260;
+        const popoverWidth = 265;
         let top = rect.bottom + 8;
         let left = rect.left - 4;
 
@@ -361,14 +399,20 @@ class CardBuilder {
         popover.style.left = `${Math.max(12, Math.round(left))}px`;
     }
 
-    _showRTPopover(btnEl, criticData) {
+    showRTPopover(btnEl, criticData) {
         this._injectPopovers();
         const popover = document.getElementById('sh-global-rt-popover');
         if (!popover || !btnEl || !criticData) return;
 
+        const rtIcon = this.getRtIconSvg(criticData.rtScore);
+        const statusLabel = criticData.rtScore >= 75 ? 'Certified Fresh' : (criticData.rtScore >= 60 ? 'Fresh' : 'Rotten');
+
         popover.innerHTML = `
             <div class="sh-rt-popover__header">
-                <span class="sh-rt-popover__title">🍅 ${criticData.rtScore >= 75 ? 'Certified Fresh' : 'Rotten Tomatoes'} • ${criticData.rtScore}%</span>
+                <div class="sh-rt-brand">
+                    ${rtIcon}
+                    <span class="sh-rt-popover__title">${statusLabel} • ${criticData.rtScore}%</span>
+                </div>
                 <span class="sh-rt-popover__audience">🍿 ${criticData.audience}% public</span>
             </div>
             <div class="sh-popover-tag">Consensus de la Presse</div>
@@ -378,7 +422,7 @@ class CardBuilder {
                 <span class="sh-rt-popover__author">${criticData.outlet}</span>
             </div>
             <div class="sh-rt-popover__footer">
-                <span>🟢 ${criticData.metacritic} Metascore</span>
+                <span class="sh-meta-tag">🟢 ${criticData.metacritic} Metascore</span>
                 <span class="sh-rt-popover__dot">•</span>
                 <span>Rotten Tomatoes Verified</span>
             </div>
@@ -394,7 +438,7 @@ class CardBuilder {
         popover?.classList.remove('visible');
     }
 
-    _showIMDbPopover(btnEl, criticData) {
+    showIMDbPopover(btnEl, criticData) {
         this._injectPopovers();
         const popover = document.getElementById('sh-global-imdb-popover');
         if (!popover || !btnEl || !criticData) return;
@@ -474,10 +518,14 @@ class CardBuilder {
             const rtScore = !isFolder ? (item.CriticRating !== undefined && item.CriticRating !== null ? Math.round(item.CriticRating) : (item.rottenScore !== undefined ? item.rottenScore : (item.CommunityRating ? Math.min(99, Math.round(item.CommunityRating * 10 + 2)) : 88))) : null;
             const rating = !isFolder ? (item.CommunityRating !== undefined ? item.CommunityRating : (item.rating !== undefined ? item.rating : 8.4)) : null;
 
+            // Formater le sous-titre avec Année + Genres (ex: "2026 • Sci-Fi, Action")
+            const genresText = (item.Genres && item.Genres.length > 0) ? item.Genres.slice(0, 2).join(', ') : '';
+            const subtitleText = isFolder ? (item.CollectionType || 'Dossier racine') : (item.subtitle || (item.ProductionYear ? `${item.ProductionYear}${genresText ? ' • ' + genresText : ''}` : (genresText || item.Type || '')));
+
             const card = this.createCard({
                 id:       item.Id,
                 title:    item.Name ?? 'Inconnu',
-                subtitle: item.subtitle || (item.ProductionYear ? String(item.ProductionYear) : (item.Type ?? '')),
+                subtitle: subtitleText,
                 imageUrl: item.customImage || (getImageUrl?.(item) ?? ''),
                 type,
                 itemType: item.Type,
@@ -791,83 +839,92 @@ class CardBuilder {
     100% { transform: translateX(100%); }
 }
 
-/* ── Badges "Dark Frosted Glass" (tvOS UltraThick Material) ─ */
+/* ── Dual-Pill Segmented Glass Capsule (Apple VisionOS / Infuse) ── */
 .sh-card__dual-score {
     position: absolute;
     top: 10px;
     left: 10px;
     z-index: 100 !important;
     pointer-events: auto !important;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 4px;
-    background: rgba(12, 12, 16, 0.90) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-    backdrop-filter: blur(24px) saturate(180%) !important;
+    gap: 2px;
+    background: rgba(10, 10, 14, 0.88) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+    backdrop-filter: blur(28px) saturate(200%) !important;
     border: 1px solid rgba(255, 255, 255, 0.16) !important;
     border-radius: 9999px;
-    padding: 3.5px 8px;
+    padding: 2.5px 4px;
     font-size: 11px;
     font-weight: 600;
     color: #ffffff;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.60);
-    transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.70), inset 0 1px 0 rgba(255, 255, 255, 0.20);
+    transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 .sh-card__dual-score:hover {
-    background: rgba(18, 18, 26, 0.98) !important;
+    background: rgba(14, 14, 20, 0.98) !important;
     border-color: rgba(255, 255, 255, 0.35) !important;
-    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85), 0 0 16px rgba(255, 159, 10, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.30);
+    transform: scale(1.04);
 }
 
 .sh-score-btn {
     background: transparent !important;
     border: none !important;
-    padding: 2px 5px !important;
+    padding: 3px 6px !important;
     margin: 0 !important;
-    border-radius: 6px !important;
+    border-radius: 9999px !important;
     color: inherit !important;
     font: inherit !important;
     cursor: pointer !important;
     pointer-events: auto !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 3px !important;
-    transition: background 150ms ease, transform 150ms ease !important;
+    gap: 4.5px !important;
+    transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1) !important;
     user-select: none !important;
 }
 .sh-score-btn:hover {
-    background: rgba(255, 255, 255, 0.20) !important;
-    transform: scale(1.10) !important;
+    background: rgba(255, 255, 255, 0.18) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 8px rgba(0, 0, 0, 0.4);
+    transform: scale(1.08) !important;
 }
 
 .sh-score-rt {
     color: #ff5252 !important;
     font-weight: 700 !important;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
-.sh-score-sep { opacity: 0.35; font-size: 10px; pointer-events: none; }
+.sh-score-sep { opacity: 0.30; font-size: 10px; pointer-events: none; }
 .sh-score-imdb {
-    color: #ffd600 !important;
+    color: #f5c518 !important;
     font-weight: 700 !important;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
 
-/* Rating Stars Hover Fill Animation */
-.sh-score-imdb--stars .sh-star-icon {
+.sh-rt-svg {
     display: inline-block;
-    transition: transform 260ms cubic-bezier(0.175, 0.885, 0.32, 1.275), color 200ms ease;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+    transition: transform 200ms ease;
 }
-.sh-score-imdb:hover .sh-star-icon {
-    transform: scale(1.30) rotate(12deg);
-    color: #ffe066 !important;
-    text-shadow: 0 0 8px rgba(255, 214, 0, 0.8);
+.sh-score-rt:hover .sh-rt-svg {
+    transform: scale(1.20) rotate(-6deg);
+}
+
+.sh-imdb-star-svg {
+    display: inline-block;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 3px rgba(245, 197, 24, 0.5));
+    transition: transform 240ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.sh-score-imdb:hover .sh-imdb-star-svg {
+    transform: scale(1.25) rotate(12deg);
 }
 
 /* ── Global Popover Base (Apple VisionOS Glass) ─────────────── */
 .sh-global-popover {
     position: fixed !important;
     z-index: 2147483647 !important;
-    width: 260px !important;
+    width: 265px !important;
     background: rgba(12, 12, 18, 0.96) !important;
     -webkit-backdrop-filter: blur(40px) saturate(220%) !important;
     backdrop-filter: blur(40px) saturate(220%) !important;
@@ -911,6 +968,11 @@ class CardBuilder {
     justify-content: space-between;
     padding-bottom: 6px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.sh-rt-brand {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 .sh-rt-popover__title {
     font-size: 11px;
@@ -959,6 +1021,7 @@ class CardBuilder {
     font-weight: 700;
     color: rgba(255, 255, 255, 0.7);
 }
+.sh-meta-tag { color: #30d158; }
 .sh-rt-popover__dot { color: rgba(255, 255, 255, 0.3); }
 
 /* ★ IMDb Popover */

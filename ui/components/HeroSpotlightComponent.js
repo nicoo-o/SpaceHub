@@ -123,7 +123,32 @@ class HeroSpotlightComponent {
                 }
                 if (titleEl) titleEl.innerHTML = buildKineticTitle(item.Name);
                 if (metaEl) {
-                    metaEl.innerHTML = `<span class="sh-hero-meta-item">${item.ProductionYear}</span><span class="sh-hero-badge">4K UHD</span><span class="sh-hero-badge">${item.OfficialRating}</span>`;
+                    const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
+                    const rating = item.CommunityRating ? Number(item.CommunityRating) : null;
+                    const rtScore = item.CriticRating ? Math.round(item.CriticRating) : (rating ? Math.min(99, Math.round(rating * 10 + 2)) : 88);
+                    const imdbScore = rating ? rating.toFixed(1) : (rtScore / 10).toFixed(1);
+                    const rtSvg = cardBuilder?.getRtIconSvg?.(rtScore) || '🍅';
+                    const imdbSvg = cardBuilder?.getImdbIconSvg?.() || '★';
+
+                    const criticData = cardBuilder?.getCriticData?.(item.Name, rtScore, imdbScore);
+                    metaEl._criticData = criticData;
+
+                    metaEl.innerHTML = `
+                        <div class="sh-card__dual-score sh-hero-dual-score" data-rt="${rtScore}">
+                            <button class="sh-score-btn sh-score-rt" aria-label="Critiques Rotten Tomatoes" type="button" title="Consensus Rotten Tomatoes">
+                                ${rtSvg}
+                                <span class="sh-score-val">${rtScore}%</span>
+                            </button>
+                            <span class="sh-score-sep">│</span>
+                            <button class="sh-score-btn sh-score-imdb sh-score-imdb--stars" aria-label="Note spectateurs IMDb" type="button" title="Note IMDb">
+                                ${imdbSvg}
+                                <span class="sh-score-val">${imdbScore}</span>
+                            </button>
+                        </div>
+                        <span class="sh-hero-meta-item">${item.ProductionYear || ''}</span>
+                        <span class="sh-hero-badge">4K UHD</span>
+                        <span class="sh-hero-badge">${item.OfficialRating || 'TOUS PUBLICS'}</span>
+                    `;
                 }
                 if (overviewEl) overviewEl.textContent = item.Overview;
                 if (playBtnSpan) playBtnSpan.textContent = 'Regarder';
@@ -160,9 +185,20 @@ class HeroSpotlightComponent {
                         <div class="sh-hero-series-tag">${this._escape(item.tagline || item.categoryTag)}</div>
                         <h1 class="sh-hero-title sh-hero-title--kinetic">${kineticTitle}</h1>
                         <div class="sh-hero-meta">
-                            <span class="sh-hero-meta-item">${item.ProductionYear}</span>
+                            <div class="sh-card__dual-score sh-hero-dual-score" data-rt="${item.CriticRating ? Math.round(item.CriticRating) : (item.CommunityRating ? Math.min(99, Math.round(item.CommunityRating * 10 + 2)) : 88)}">
+                                <button class="sh-score-btn sh-score-rt" aria-label="Critiques Rotten Tomatoes" type="button" title="Consensus Rotten Tomatoes">
+                                    ${window.SpaceHub?.ui?.components?.cardBuilder?.getRtIconSvg?.(item.CriticRating ? Math.round(item.CriticRating) : (item.CommunityRating ? Math.min(99, Math.round(item.CommunityRating * 10 + 2)) : 88)) || '<svg class="sh-rt-svg" width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#00C05B"/></svg>'}
+                                    <span class="sh-score-val">${item.CriticRating ? Math.round(item.CriticRating) : (item.CommunityRating ? Math.min(99, Math.round(item.CommunityRating * 10 + 2)) : 88)}%</span>
+                                </button>
+                                <span class="sh-score-sep">│</span>
+                                <button class="sh-score-btn sh-score-imdb sh-score-imdb--stars" aria-label="Note spectateurs IMDb" type="button" title="Note IMDb">
+                                    ${window.SpaceHub?.ui?.components?.cardBuilder?.getImdbIconSvg?.() || '<svg class="sh-imdb-star-svg" width="13" height="13" viewBox="0 0 24 24" fill="#F5C518"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>'}
+                                    <span class="sh-score-val">${item.CommunityRating ? Number(item.CommunityRating).toFixed(1) : '8.5'}</span>
+                                </button>
+                            </div>
+                            <span class="sh-hero-meta-item">${item.ProductionYear || ''}</span>
                             <span class="sh-hero-badge">4K UHD</span>
-                            <span class="sh-hero-badge">${item.OfficialRating}</span>
+                            <span class="sh-hero-badge">${item.OfficialRating || 'TOUS PUBLICS'}</span>
                         </div>
                         <p class="sh-hero-overview">${this._escape(item.Overview)}</p>
                         <div class="sh-hero-actions">
@@ -252,6 +288,14 @@ class HeroSpotlightComponent {
     }
 
     _bindEvents(container, item) {
+        const metaEl = container.querySelector('.sh-hero-meta');
+        if (metaEl && item) {
+            const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
+            const rating = item.CommunityRating ? Number(item.CommunityRating) : null;
+            const rtScore = item.CriticRating ? Math.round(item.CriticRating) : (rating ? Math.min(99, Math.round(rating * 10 + 2)) : 88);
+            const imdbScore = rating ? rating.toFixed(1) : (rtScore / 10).toFixed(1);
+            metaEl._criticData = cardBuilder?.getCriticData?.(item.Name, rtScore, imdbScore);
+        }
         const heroContainer = container.querySelector('.sh-hero-container');
         const heroBg = container.querySelector('.sh-hero-bg');
         const heroContent = container.querySelector('.sh-hero-content');
