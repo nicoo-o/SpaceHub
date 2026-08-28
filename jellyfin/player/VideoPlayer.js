@@ -642,22 +642,36 @@ class VideoPlayer {
             document.addEventListener('mouseup', onMouseUp);
         });
 
-        // Volume
+        // Volume & Ligne Jaune/Ambrée Dynamique
         const volumeRange = el.querySelector('#sh-volume-range');
-        volumeRange?.addEventListener('input', (e) => {
-            const v = parseFloat(e.target.value);
-            video.volume = v;
-            video.muted = false;
-            this._volume = v;
-            localStorage.setItem('SpaceHub_player_volume', String(v));
-            this._showFlashOSD(v === 0 ? '🔇' : '🔊', `${Math.round(v * 100)}%`, v);
-        });
+        const updateVolumeTrack = (v) => {
+            if (!volumeRange) return;
+            const percent = Math.round(Math.max(0, Math.min(1, v)) * 100);
+            volumeRange.style.background = `linear-gradient(to right, #ff9f0a 0%, #ff9f0a ${percent}%, rgba(255, 255, 255, 0.22) ${percent}%, rgba(255, 255, 255, 0.22) 100%)`;
+        };
+
+        if (volumeRange) {
+            updateVolumeTrack(this._volume);
+            volumeRange.addEventListener('input', (e) => {
+                const v = parseFloat(e.target.value);
+                video.volume = v;
+                video.muted = false;
+                this._volume = v;
+                updateVolumeTrack(v);
+                localStorage.setItem('SpaceHub_player_volume', String(v));
+                this._showFlashOSD(v === 0 ? '🔇' : '🔊', `${Math.round(v * 100)}%`, v);
+            });
+        }
 
         el.querySelector('#sh-btn-volume')?.addEventListener('click', () => {
             video.muted = !video.muted;
             if (video.muted) {
+                updateVolumeTrack(0);
+                if (volumeRange) volumeRange.value = '0';
                 this._showFlashOSD('🔇', 'Muet');
             } else {
+                updateVolumeTrack(video.volume);
+                if (volumeRange) volumeRange.value = String(video.volume);
                 this._showFlashOSD('🔊', `${Math.round(video.volume * 100)}%`, video.volume);
             }
         });
@@ -2184,6 +2198,9 @@ body.sh-cinema-active .dialogBackdrop {
     display: grid;
     grid-template-columns: 1fr 1px 1fr;
     gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 .sh-popover-col {
     display: flex;
@@ -2214,6 +2231,17 @@ body.sh-cinema-active .dialogBackdrop {
     gap: 4px;
     max-height: 180px;
     overflow-y: auto;
+    overflow-x: hidden !important;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.20) transparent;
+}
+.sh-popover-list::-webkit-scrollbar {
+    width: 4px;
+    height: 0px;
+}
+.sh-popover-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.20);
+    border-radius: 4px;
 }
 
 .sh-popover-item {
