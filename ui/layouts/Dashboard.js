@@ -32,6 +32,8 @@ import MoviesWidget from '../widgets/MoviesWidget.js';
 import TvShowsWidget from '../widgets/TvShowsWidget.js';
 import CollectionsWidget from '../widgets/CollectionsWidget.js';
 import MusicWidget from '../widgets/MusicWidget.js';
+import AnimeWidget from '../widgets/AnimeWidget.js';
+import DynamicLibraryWidget from '../widgets/DynamicLibraryWidget.js';
 
 import { 
     JellyseerrRequestsWidget, 
@@ -81,6 +83,7 @@ class Dashboard {
         this.registerWidget('latest-additions', LatestAdditionsWidget);
         this.registerWidget('movies', MoviesWidget);
         this.registerWidget('tv-shows', TvShowsWidget);
+        this.registerWidget('anime', AnimeWidget);
         this.registerWidget('collections-sagas', CollectionsWidget);
         this.registerWidget('music-soundtracks', MusicWidget);
 
@@ -414,6 +417,7 @@ class Dashboard {
             { widgetType: 'latest-additions', colSpan: 12 },
             { widgetType: 'movies', colSpan: 12 },
             { widgetType: 'tv-shows', colSpan: 12 },
+            { widgetType: 'anime', colSpan: 12 },
             { widgetType: 'collections-sagas', colSpan: 12 },
             { widgetType: 'music-soundtracks', colSpan: 12 },
             { widgetType: 'jellyseerr-trending', colSpan: 12 },
@@ -443,6 +447,37 @@ class Dashboard {
                 } else {
                     layout.push({ widgetType: 'movies', colSpan: 12 });
                 }
+            }
+            // Auto-injecter la section Séries TV si absente
+            if (!layout.some(i => i.widgetType === 'tv-shows')) {
+                const moviesIdx = layout.findIndex(i => i.widgetType === 'movies');
+                if (moviesIdx !== -1) {
+                    layout.splice(moviesIdx + 1, 0, { widgetType: 'tv-shows', colSpan: 12 });
+                } else {
+                    layout.push({ widgetType: 'tv-shows', colSpan: 12 });
+                }
+            }
+            // Auto-injecter la section Animés si absente
+            if (!layout.some(i => i.widgetType === 'anime')) {
+                const tvIdx = layout.findIndex(i => i.widgetType === 'tv-shows');
+                if (tvIdx !== -1) {
+                    layout.splice(tvIdx + 1, 0, { widgetType: 'anime', colSpan: 12 });
+                } else {
+                    layout.push({ widgetType: 'anime', colSpan: 12 });
+                }
+            }
+            // Auto-injecter Collections si absente
+            if (!layout.some(i => i.widgetType === 'collections-sagas')) {
+                const animeIdx = layout.findIndex(i => i.widgetType === 'anime');
+                if (animeIdx !== -1) {
+                    layout.splice(animeIdx + 1, 0, { widgetType: 'collections-sagas', colSpan: 12 });
+                } else {
+                    layout.push({ widgetType: 'collections-sagas', colSpan: 12 });
+                }
+            }
+            // Auto-injecter Musique si absente
+            if (!layout.some(i => i.widgetType === 'music-soundtracks')) {
+                layout.push({ widgetType: 'music-soundtracks', colSpan: 12 });
             }
 
             // Assurer que les widgets de découverte et d'intégrations sont présents
@@ -481,6 +516,73 @@ class Dashboard {
             }
             if (!layout.some(i => i.widgetType === 'media-analytics')) {
                 layout.push({ widgetType: 'media-analytics', colSpan: 12 });
+            }
+
+            // ── Auto-détection de TOUTES les bibliothèques Jellyfin ──
+            // Pour chaque bibliothèque non couverte par un widget dédié,
+            // on crée dynamiquement un DynamicLibraryWidget.
+            try {
+                const api = window.SpaceHub?.jellyfin?.api;
+                let userViews = [];
+                if (api?.getUserViews) {
+                    userViews = await api.getUserViews();
+                }
+                if ((!userViews || userViews.length === 0) && window.ApiClient?.getUserViews) {
+                    const rawViews = await window.ApiClient.getUserViews(api?.getUserId?.());
+                    userViews = rawViews?.Items || (Array.isArray(rawViews) ? rawViews : []);
+                }
+
+                if (Array.isArray(userViews) && userViews.length > 0) {
+                    // Types de collections déjà couverts par des widgets dédiés
+                    const coveredTypes = new Set(['movies', 'tvshows', 'music', 'boxsets', 'playlists']);
+                    // Noms de bibliothèques couverts par le widget Anime dédié
+                    const animeNames = new Set(['anime', 'animé', 'animés', 'animation']);
+
+                    for (const view of userViews) {
+                        const colType = (view.CollectionType || '').toLowerCase();
+                        const viewName = (view.Name || '').toLowerCase();
+                        const dynamicId = `dynamic-library-${view.Id}`;
+
+                        // Passer les bibliothèques déjà couvertes par un widget dédié
+                        if (coveredTypes.has(colType)) continue;
+                        // Passer si c'est une bibliothèque anime (déjà couverte par AnimeWidget)
+                        if (animeNames.has(viewName)) continue;
+                        // Passer si déjà dans le layout
+                        if (layout.some(i => i.widgetType === dynamicId)) continue;
+
+                        // Enregistrer dynamiquement le widget pour cette bibliothèque
+                        if (!this._registeredWidgets.has(dynamicId)) {
+                            // Créer une sous-classe liée à cette bibliothèque spécifique
+                            const libraryView = view;
+                            const DynamicWidget = class extends DynamicLibraryWidget {
+                                constructor() {
+                                    super(libraryView);
+                                }
+                            };
+                            this._registeredWidgets.set(dynamicId, DynamicWidget);
+                        }
+
+                        // Injecter dans le layout juste avant les widgets Servarr/Jellyseerr
+                        const insertIdx = layout.findIndex(i =>
+                            i.widgetType.startsWith('jellyseerr-') ||
+                            i.widgetType.startsWith('sonarr-') ||
+                            i.widgetType.startsWith('radarr-') ||
+                            i.widgetType.startsWith('bazarr-') ||
+                            i.widgetType.startsWith('qbittorrent-') ||
+                            i.widgetType === 'unified-calendar' ||
+                            i.widgetType === 'media-analytics'
+                        );
+                        if (insertIdx !== -1) {
+                            layout.splice(insertIdx, 0, { widgetType: dynamicId, colSpan: 12 });
+                        } else {
+                            layout.push({ widgetType: dynamicId, colSpan: 12 });
+                        }
+
+                        this._log.info(`[Dashboard] Auto-détection bibliothèque : "${view.Name}" → widget ${dynamicId}`);
+                    }
+                }
+            } catch (e) {
+                console.warn('[Dashboard] Erreur auto-détection bibliothèques:', e);
             }
         }
 
