@@ -1,17 +1,14 @@
 /**
- * SpaceHub — Standalone Cinema Video Player (Apple VisionOS & SpaceHub Grand Cinema)
- * Version: 2.2.0
+ * SpaceHub — Grand Cinema Video Player (Apple TV / VisionOS Experience)
+ * Version: 3.0.0 (From Scratch Masterpiece)
  *
- * Lecteur vidéo plein écran cinématique parfaitement harmonisé avec SpaceHub :
- *  - Design System Apple VisionOS : Verre dépoli 48px blur, reflets spéculaires 1px, noir OLED profond
- *  - Top Bar en Îlots de Verre (Glass Islands) : Pastille Retour, Capsule Titre Cinéma & Badges 4K/Atmos
- *  - Unified Floating Glass Dock : Timeline liquide électrique, contrôles ergonomiques et halo d'ambiance
- *  - Micro-interactions & Spring Physics : Rebond élastique du bouton Play/Pause, rotation des sauts 10s
- *  - Double-clic / Double-tap Ripple Waves : Sauts temporels avec ondes visuelles fluides
- *  - Tiroir d'Épisodes Rapide (Episode Quick Picker) : Changement d'épisode instantané sans quitter la vidéo
- *  - Popover Audio & Sous-titres Apple Ice : Sélecteur de flux, codecs Atmos/5.1, sync offset et recherche en ligne
- *  - OSD Gestuel Centré VisionOS : Jauges circulaires luminescentes pour Volume, Luminosité, Vitesse
- *  - HLS adaptatif multi-débits (hls.js), Direct Play 4K UHD Dolby Vision / HDR10 et session reporting Jellyfin
+ * Lecteur vidéo haut de gamme entièrement harmonisé avec SpaceHub :
+ *  - Design System & Palette : Noir OLED absolu, verre dépoli liquide 50px blur, reflets spéculaires 1px
+ *  - Signature LED Ambrée : Accentuation #ff9f0a / #ffb340 identique à la Dynamic Island supérieure
+ *  - Animations Grandioses : Entrée/Sortie cinématique à ressort, halo d'ambiance respirant et ripple waves
+ *  - Système de Tiroirs Latéraux en Verre (Glass Drawer) : Audio & Codecs, Sous-titres & Sync Live, Épisodes, Réglages
+ *  - Neutralisation Totale Jellyfin : Élimination absolue de tout élément natif parasite (zéro conflit DOM)
+ *  - HLS adaptatif multi-débits (hls.js), Direct Stream 4K UHD Dolby Vision / HDR10 et session reporting
  */
 
 'use strict';
@@ -31,7 +28,7 @@ class VideoPlayer {
         this._isControlsVisible = true;
         this._isScrubbing = false;
 
-        // Préférences & États
+        // Préférences utilisateur
         this._volume = parseFloat(localStorage.getItem('SpaceHub_player_volume') ?? '1.0');
         this._playbackRate = parseFloat(localStorage.getItem('SpaceHub_playback_speed') ?? '1.0');
         this._subOffset = 0.0;
@@ -48,11 +45,11 @@ class VideoPlayer {
         this._nextEpRemaining = 5;
         this._nextEpCancelled = false;
 
-        // Popovers & Tiroirs
-        this._activePopover = null;
-        this._isEpisodeDrawerOpen = false;
+        // Tiroir Latéral
+        this._activeDrawerTab = 'audio'; // 'audio' | 'subs' | 'episodes' | 'settings' | 'chapters'
+        this._isDrawerOpen = false;
 
-        // Détection double-clic / tap
+        // Gestes & Raccourcis
         this._lastTapTime = 0;
         this._lastTapSide = null;
 
@@ -68,7 +65,7 @@ class VideoPlayer {
     }
 
     /**
-     * Lance la lecture d'un média Jellyfin avec affichage instantané 0ms.
+     * Lance la lecture cinématique d'un média Jellyfin.
      * @param {Object} item - Média (Film, Épisode, Vidéo)
      * @param {number} [startPositionTicks=0]
      */
@@ -76,9 +73,9 @@ class VideoPlayer {
         this._currentItem = item;
         this._nextEpCancelled = false;
         const itemId = item.Id || item.id;
-        this._log.info(`🎬 Lancement Apple VisionOS Player pour "${item.Name || item.title}" (ID: ${itemId})...`);
+        this._log.info(`🎬 Lancement SpaceHub Grand Cinema pour "${item.Name || item.title}" (ID: ${itemId})`);
 
-        // 1. Montage DOM instantané (0ms)
+        // 1. Montage DOM instantané (0ms Latency) avec animation d'ouverture grandiose
         this._createPlayerDOM(item);
         this._initMediaStreams(item);
 
@@ -86,7 +83,7 @@ class VideoPlayer {
         const token = this._auth?.getToken() || '';
         const startPositionSeconds = (startPositionTicks || item.UserData?.PlaybackPositionTicks || 0) / 10000000;
 
-        // URL de flux vidéo HLS Master Playlist
+        // URL Master HLS adaptatif
         const streamUrl = `${serverUrl}/Videos/${itemId}/master.m3u8?DeviceId=${this._auth?.getDeviceId?.() || 'sh_web'}&MediaSourceId=${itemId}&VideoCodec=h264,hevc,vp9,av1&AudioCodec=aac,mp3,opus,flac&TranscodingMaxAudioChannels=6&RequireAvc=false&Tag=${item.Etag || ''}&StartTimeTicks=${Math.round(startPositionSeconds * 10000000)}&api_key=${token}`;
 
         this._setupVideoSource(streamUrl, startPositionSeconds, token);
@@ -94,7 +91,7 @@ class VideoPlayer {
         this._startProgressReporting();
         this._resetIdleTimer();
 
-        // 2. Enrichissement asynchrone des métadonnées
+        // 2. Enrichissement asynchrone des flux et épisodes
         this._enrichMediaData(item, itemId);
     }
 
@@ -105,17 +102,17 @@ class VideoPlayer {
                 if (fetched && this._currentItem && (this._currentItem.Id === itemId || this._currentItem.id === itemId)) {
                     this._currentItem = { ...item, ...fetched };
                     this._initMediaStreams(this._currentItem);
-                    this._populateAudioAndSubsLists();
+                    this._renderDrawerContent();
                 }
             } catch (e) {
-                this._log.warn('Impossible d\'enrichir les flux détaillés:', e);
+                this._log.debug('Enrichissement des flux différé:', e);
             }
         }
         this._prepareSeasonEpisodes(this._currentItem || item);
     }
 
     _setupVideoSource(streamUrl, startPositionSeconds, token) {
-        const spinner = this._el?.querySelector('#sh-player-spinner');
+        const spinner = this._el?.querySelector('#sh-player-buffering-spinner');
         if (spinner) spinner.classList.add('visible');
 
         if (Hls.isSupported()) {
@@ -176,7 +173,7 @@ class VideoPlayer {
         const defaultAudio = this._audioStreams.find(s => s.IsDefault) || this._audioStreams[0];
         this._selectedAudioIndex = defaultAudio ? defaultAudio.Index : (this._audioStreams[0]?.Index ?? 0);
 
-        // Sous-titre par défaut (forcé ou langue préférée)
+        // Sous-titre par défaut
         const defaultSub = this._subStreams.find(s => s.IsForced || s.IsDefault);
         this._selectedSubIndex = defaultSub ? defaultSub.Index : -1;
     }
@@ -198,10 +195,10 @@ class VideoPlayer {
                         if (currentIndex - 1 >= 0) this._prevEpisode = episodes[currentIndex - 1];
                     }
                     this._updateEpisodeNavButtons();
-                    this._renderEpisodeDrawerItems();
+                    this._renderDrawerContent();
                 }
             } catch (err) {
-                this._log.debug('Impossible de charger les épisodes de la saison:', err);
+                this._log.debug('Chargement des épisodes différé:', err);
             }
         }
     }
@@ -209,10 +206,10 @@ class VideoPlayer {
     _updateEpisodeNavButtons() {
         const prevBtn = this._el?.querySelector('#sh-btn-prev-ep');
         const nextBtn = this._el?.querySelector('#sh-btn-next-ep');
-        const drawerBtn = this._el?.querySelector('#sh-btn-episodes-drawer');
+        const drawerEpBtn = this._el?.querySelector('#sh-btn-trigger-episodes');
 
         if (this._seasonEpisodes.length > 0) {
-            if (drawerBtn) drawerBtn.style.display = 'inline-flex';
+            if (drawerEpBtn) drawerEpBtn.style.display = 'inline-flex';
             if (prevBtn) {
                 prevBtn.style.display = 'inline-flex';
                 prevBtn.disabled = !this._prevEpisode;
@@ -224,7 +221,7 @@ class VideoPlayer {
                 nextBtn.style.opacity = this._nextEpisode ? '1' : '0.35';
             }
         } else {
-            if (drawerBtn) drawerBtn.style.display = 'none';
+            if (drawerEpBtn) drawerEpBtn.style.display = 'none';
             if (prevBtn) prevBtn.style.display = 'none';
             if (nextBtn) nextBtn.style.display = 'none';
         }
@@ -232,6 +229,7 @@ class VideoPlayer {
 
     _createPlayerDOM(item) {
         this.close(false);
+        document.body.classList.add('sh-cinema-active');
 
         const title = item.Name || item.title || 'Média';
         const isEpisode = item.Type === 'Episode' || item.SeriesName;
@@ -241,274 +239,219 @@ class VideoPlayer {
         const year = item.ProductionYear || '';
 
         this._el = document.createElement('div');
-        this._el.id = 'sh-cinema-player';
-        this._el.className = 'sh-cinema-player';
+        this._el.id = 'sh-grand-cinema-player';
+        this._el.className = 'sh-grand-cinema-player sh-player--entering';
+
         this._el.innerHTML = `
+            <!-- Aura Cinématique Luminescente d'Arrière-plan -->
+            <div class="sh-cinema-ambient-glow"></div>
+
             <!-- Vidéo Principale -->
             <video class="sh-cinema-video" playsinline preload="auto"></video>
 
-            <!-- Dégradés Cinématiques Supérieur & Inférieur -->
-            <div class="sh-player-gradient-top"></div>
-            <div class="sh-player-gradient-bottom"></div>
+            <!-- Dégradés de Vignettage Cinématique -->
+            <div class="sh-cinema-vignette-top"></div>
+            <div class="sh-cinema-vignette-bottom"></div>
 
-            <!-- 🌀 Apple VisionOS Cinematic Buffering Spinner -->
-            <div class="sh-player-buffering-spinner visible" id="sh-player-spinner">
-                <div class="sh-spinner-glass-ring"></div>
-                <span class="sh-spinner-label">Chargement cinématique...</span>
+            <!-- 🌀 Spinner de Chargement Ambré / Verre Dépoli -->
+            <div class="sh-cinema-buffering" id="sh-player-buffering-spinner">
+                <div class="sh-buffering-glass-capsule">
+                    <div class="sh-buffering-led-dot"></div>
+                    <div class="sh-buffering-ring"></div>
+                </div>
+                <span class="sh-buffering-text">Chargement cinématique...</span>
             </div>
 
-            <!-- Zones Interactives Gauche / Droite pour Double-Tap Ripple -->
-            <div class="sh-gesture-tap-zone sh-gesture-left" id="sh-zone-left">
-                <div class="sh-ripple-indicator" id="sh-ripple-left">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>
+            <!-- Zones Gestuelles Gauche / Droite (Double-Tap Ripple) -->
+            <div class="sh-gesture-zone sh-gesture-zone--left" id="sh-zone-left">
+                <div class="sh-ripple-badge" id="sh-ripple-left">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>
                     <span>-10s</span>
                 </div>
             </div>
-            <div class="sh-gesture-tap-zone sh-gesture-right" id="sh-zone-right">
-                <div class="sh-ripple-indicator" id="sh-ripple-right">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
+            <div class="sh-gesture-zone sh-gesture-zone--right" id="sh-zone-right">
+                <div class="sh-ripple-badge" id="sh-ripple-right">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
                     <span>+10s</span>
                 </div>
             </div>
 
-            <!-- 🍏 Top Bar : Apple VisionOS Floating Islands -->
-            <header class="sh-player-topbar-islands">
+            <!-- 🍏 TOP BAR : ÎLOTS DE VERRE FLOTTANTS (Apple Glass Islands) -->
+            <header class="sh-cinema-topbar">
                 
-                <!-- Îlot Gauche : Quitter -->
-                <div class="sh-topbar-island sh-topbar-island--left">
-                    <button class="sh-player-back-pill" id="sh-player-back-btn" title="Quitter la lecture (Échap)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                <!-- Îlot Gauche : Quitter avec Pastille Verre Dépoli -->
+                <div class="sh-topbar-left">
+                    <button class="sh-glass-pill-btn sh-btn--exit" id="sh-btn-back" title="Quitter la lecture (Échap)">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                         <span>Quitter</span>
                     </button>
                 </div>
 
-                <!-- Îlot Central : Capsule Titre & Badges 4K/Atmos -->
-                <div class="sh-topbar-island sh-topbar-island--center">
-                    <div class="sh-cinema-header-capsule">
-                        <div class="sh-header-capsule-meta">
-                            <span class="sh-header-main-title">${this._escape(isEpisode ? seriesName : title)}</span>
-                            <span class="sh-header-meta-dot">•</span>
-                            <span class="sh-header-sub-title">${isEpisode ? `${episodeNumber} « ${this._escape(episodeTitle)} »` : (year ? `${year} · Film` : 'Cinéma')}</span>
+                <!-- Îlot Central : Capsule Titre & LED Signature Ambrée -->
+                <div class="sh-topbar-center">
+                    <div class="sh-title-capsule">
+                        <div class="sh-title-capsule__header">
+                            <div class="sh-title-led" title="SpaceHub Grand Cinema Active">
+                                <div class="sh-title-led-core"></div>
+                            </div>
+                            <span class="sh-title-main">${this._escape(isEpisode ? seriesName : title)}</span>
+                            <span class="sh-title-dot">•</span>
+                            <span class="sh-title-sub">${isEpisode ? `${episodeNumber} « ${this._escape(episodeTitle)} »` : (year ? `${year} · Film` : 'Film')}</span>
                         </div>
-                        <div class="sh-header-badges-row">
-                            <span class="sh-chip-vision sh-chip--gold">4K DOLBY VISION</span>
-                            <span class="sh-chip-vision sh-chip--blue">ATMOS 7.1</span>
-                            <span class="sh-chip-vision">IMAX</span>
+                        <div class="sh-title-capsule__badges">
+                            <span class="sh-tech-badge sh-tech-badge--amber">4K DOLBY VISION</span>
+                            <span class="sh-tech-badge sh-tech-badge--ice">ATMOS 7.1</span>
+                            <span class="sh-tech-badge">IMAX</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Îlot Droite : Actions Rapides -->
-                <div class="sh-topbar-island sh-topbar-island--right">
-                    <div class="sh-header-actions-pill">
-                        <button class="sh-island-icon-btn" id="sh-btn-episodes-drawer" title="Liste des épisodes" style="display:none;">
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                <!-- Îlot Droite : Actions Rapides & Tiroirs -->
+                <div class="sh-topbar-right">
+                    <div class="sh-actions-island">
+                        <button class="sh-island-btn" id="sh-btn-trigger-episodes" title="Liste des épisodes" style="display:none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                         </button>
-                        <button class="sh-island-icon-btn" id="sh-btn-aspect" title="Format d'image (16:9, 21:9)">
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
+                        <button class="sh-island-btn" id="sh-btn-aspect" title="Format d'image (16:9, 21:9)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
                         </button>
-                        <button class="sh-island-icon-btn" id="sh-btn-pip" title="Fenêtre flottante (PiP)">
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><rect width="8" height="6" x="12" y="12" rx="1" fill="currentColor"/></svg>
+                        <button class="sh-island-btn" id="sh-btn-pip" title="Fenêtre flottante (PiP)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><rect width="8" height="6" x="12" y="12" rx="1" fill="currentColor"/></svg>
                         </button>
-                        <button class="sh-island-icon-btn" id="sh-btn-fullscreen" title="Plein écran (F)">
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                        <button class="sh-island-btn" id="sh-btn-fullscreen" title="Plein écran (F)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
                         </button>
                     </div>
                 </div>
 
             </header>
 
-            <!-- 🌟 Centre Flash OSD (Overlay dynamique à jauge circulaire) -->
-            <div class="sh-vision-flash-osd" id="sh-player-osd">
-                <div class="sh-osd-glyph-wrap">
-                    <span class="sh-osd-glyph" id="sh-osd-icon">▶</span>
+            <!-- 🌟 Centre Flash OSD (Jauge Circulaire Ambrée) -->
+            <div class="sh-cinema-osd" id="sh-player-osd">
+                <div class="sh-osd-icon-box">
+                    <span id="sh-osd-icon">▶</span>
                 </div>
-                <div class="sh-osd-data">
-                    <span class="sh-osd-label" id="sh-osd-text">Lecture</span>
-                    <div class="sh-osd-progress-track" id="sh-osd-bar-wrap" style="display:none;">
-                        <div class="sh-osd-progress-fill" id="sh-osd-bar-fill"></div>
+                <div class="sh-osd-details">
+                    <span class="sh-osd-title" id="sh-osd-text">Lecture</span>
+                    <div class="sh-osd-bar-track" id="sh-osd-bar-wrap" style="display:none;">
+                        <div class="sh-osd-bar-fill" id="sh-osd-bar-fill"></div>
                     </div>
                 </div>
             </div>
 
             <!-- ⏭️ Smart Skip Intro Pill -->
-            <button class="sh-vision-skip-intro-btn" id="sh-smart-skip-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="3"/></svg>
-                <span>Passer l'introduction</span>
+            <button class="sh-smart-skip-pill" id="sh-smart-skip-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="3"/></svg>
+                <span>Passer l'intro</span>
             </button>
 
             <!-- 📺 Next Episode Auto-Play Card -->
-            <div class="sh-next-ep-card-vision" id="sh-next-ep-card">
-                <div class="sh-next-ep-card__inner">
-                    <div class="sh-next-ep-thumb-wrap">
+            <div class="sh-next-ep-vision-card" id="sh-next-ep-card">
+                <div class="sh-next-ep-inner">
+                    <div class="sh-next-ep-thumb">
                         <img id="sh-next-ep-img" src="" alt="Prochain épisode"/>
-                        <div class="sh-next-ep-countdown-badge">
+                        <div class="sh-next-ep-timer">
                             <span id="sh-next-ep-sec">5</span>
                         </div>
                     </div>
-                    <div class="sh-next-ep-details">
-                        <span class="sh-next-ep-kicker">ÉPISODE SUIVANT</span>
-                        <h4 class="sh-next-ep-name" id="sh-next-ep-title"></h4>
+                    <div class="sh-next-ep-meta">
+                        <span class="sh-next-ep-tag">ÉPISODE SUIVANT</span>
+                        <h4 class="sh-next-ep-title" id="sh-next-ep-title"></h4>
                     </div>
-                    <div class="sh-next-ep-btns">
-                        <button class="sh-next-ep-launch-btn" id="sh-next-ep-play-now">Lancer</button>
-                        <button class="sh-next-ep-dismiss-btn" id="sh-next-ep-cancel" title="Annuler">✕</button>
+                    <div class="sh-next-ep-actions">
+                        <button class="sh-next-ep-btn-play" id="sh-next-ep-play-now">Lancer</button>
+                        <button class="sh-next-ep-btn-close" id="sh-next-ep-cancel" title="Annuler">✕</button>
                     </div>
                 </div>
             </div>
 
-            <!-- 🎬 Tiroir Latéral d'Épisodes (Quick Drawer) -->
-            <aside class="sh-episodes-drawer-vision" id="sh-episodes-drawer">
-                <div class="sh-episodes-drawer-header">
-                    <h3>Épisodes de la saison</h3>
-                    <button class="sh-drawer-close-btn" id="sh-btn-close-drawer">✕</button>
-                </div>
-                <div class="sh-episodes-drawer-list sh-scrollbar" id="sh-drawer-episodes-list">
-                    <p style="padding:16px; color:rgba(255,255,255,0.5);">Chargement des épisodes...</p>
-                </div>
-            </aside>
+            <!-- 🍏 GRAND CINEMA DOCK FLOTTANT UNIFIÉ -->
+            <div class="sh-cinema-dock-wrapper">
+                
+                <!-- Halo Ambré Signature sous le Dock -->
+                <div class="sh-dock-amber-underglow"></div>
 
-            <!-- 🍏 UNIFIED VISIONOS LUXURY GLASS DOCK -->
-            <div class="sh-player-dock-container">
-                <div class="sh-vision-unified-dock">
+                <div class="sh-grand-cinema-dock">
                     
-                    <!-- Ligne 1 : Timeline Liquide Multi-couches -->
-                    <div class="sh-dock-timeline-row">
-                        <div class="sh-dock-time-pill" id="sh-time-elapsed">00:00:00</div>
+                    <!-- Ligne 1 : Timeline Liquide Multi-couches Ambrée -->
+                    <div class="sh-dock-timeline-section">
+                        <span class="sh-time-badge" id="sh-time-elapsed">00:00:00</span>
                         
-                        <div class="sh-dock-track-wrap" id="sh-timeline-track">
-                            <div class="sh-dock-track-bg"></div>
-                            <div class="sh-dock-track-buffer" id="sh-timeline-buffer"></div>
-                            <div class="sh-dock-track-played" id="sh-timeline-played"></div>
-                            <div class="sh-dock-track-handle" id="sh-timeline-handle"></div>
+                        <div class="sh-timeline-scrubber" id="sh-timeline-track">
+                            <div class="sh-scrubber-bg"></div>
+                            <div class="sh-scrubber-buffered" id="sh-timeline-buffer"></div>
+                            <div class="sh-scrubber-played" id="sh-timeline-played"></div>
+                            <div class="sh-scrubber-thumb" id="sh-timeline-handle"></div>
                             
-                            <!-- Bulle de Scrubbing interactive -->
-                            <div class="sh-dock-time-tooltip" id="sh-timeline-tooltip">
+                            <!-- Bulle Horodatage au Survol -->
+                            <div class="sh-scrubber-tooltip" id="sh-timeline-tooltip">
                                 <span id="sh-tooltip-time">00:00:00</span>
                             </div>
                         </div>
 
-                        <div class="sh-dock-time-pill sh-dock-time-pill--rem" id="sh-time-remaining">-00:00:00</div>
+                        <span class="sh-time-badge sh-time-badge--rem" id="sh-time-remaining">-00:00:00</span>
                     </div>
 
-                    <!-- Ligne 2 : Commandes Ergonomiques & Transport -->
-                    <div class="sh-dock-controls-row">
+                    <!-- Ligne 2 : Commandes Ergonomiques de Transport & Déclencheurs de Tiroirs -->
+                    <div class="sh-dock-controls-section">
                         
-                        <!-- Gauche : Contrôle Volume Coulissant -->
-                        <div class="sh-dock-group sh-dock-group--left">
-                            <div class="sh-volume-luxury-pill">
-                                <button class="sh-glass-round-btn" id="sh-btn-volume" title="Volume / Muet (M)">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                        <!-- Gauche : Contrôle Volume Glissant -->
+                        <div class="sh-controls-group sh-controls-left">
+                            <div class="sh-volume-capsule">
+                                <button class="sh-circle-btn" id="sh-btn-volume" title="Volume / Muet (M)">
+                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
                                 </button>
-                                <div class="sh-volume-track-container">
-                                    <input type="range" class="sh-vision-slider" id="sh-volume-range" min="0" max="1" step="0.02" value="${this._volume}">
+                                <div class="sh-volume-slider-box">
+                                    <input type="range" class="sh-range-slider" id="sh-volume-range" min="0" max="1" step="0.02" value="${this._volume}">
                                 </div>
-                                <span class="sh-volume-pct-label" id="sh-volume-pct-label">${Math.round(this._volume * 100)}%</span>
+                                <span class="sh-volume-val" id="sh-volume-pct-label">${Math.round(this._volume * 100)}%</span>
                             </div>
                         </div>
 
                         <!-- Centre : Transport Principal & Spring Play/Pause -->
-                        <div class="sh-dock-group sh-dock-group--center">
+                        <div class="sh-controls-group sh-controls-center">
                             <!-- Épisode Précédent -->
-                            <button class="sh-glass-round-btn sh-btn-nav-ep" id="sh-btn-prev-ep" title="Épisode précédent" style="display:none;">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+                            <button class="sh-circle-btn sh-btn-nav-ep" id="sh-btn-prev-ep" title="Épisode précédent" style="display:none;">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
                             </button>
 
                             <!-- Saut -10s -->
-                            <button class="sh-glass-round-btn sh-btn-skip-spring" id="sh-btn-skip-back" title="Reculer de 10s (← ou J)">
+                            <button class="sh-circle-btn sh-btn-skip-spring" id="sh-btn-skip-back" title="Reculer de 10s (← ou J)">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                                <span class="sh-skip-tag">10</span>
+                                <span class="sh-skip-num">10</span>
                             </button>
 
-                            <!-- 🌟 Play/Pause Géant avec Spring Physics & Halo -->
-                            <button class="sh-vision-play-pause-btn" id="sh-btn-play-pause" title="Lecture / Pause (Espace)">
-                                <svg class="sh-icon-play" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
-                                <svg class="sh-icon-pause" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                            <!-- 🌟 Play/Pause Géant Perlé avec Spring Physics & Halo Blanc/Ambre -->
+                            <button class="sh-master-play-btn" id="sh-btn-play-pause" title="Lecture / Pause (Espace)">
+                                <svg class="sh-icon-play" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                                <svg class="sh-icon-pause" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
                             </button>
 
                             <!-- Saut +10s -->
-                            <button class="sh-glass-round-btn sh-btn-skip-spring" id="sh-btn-skip-fwd" title="Avancer de 10s (→ ou L)">
+                            <button class="sh-circle-btn sh-btn-skip-spring" id="sh-btn-skip-fwd" title="Avancer de 10s (→ ou L)">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-                                <span class="sh-skip-tag">10</span>
+                                <span class="sh-skip-num">10</span>
                             </button>
 
                             <!-- Épisode Suivant -->
-                            <button class="sh-glass-round-btn sh-btn-nav-ep" id="sh-btn-next-ep" title="Épisode suivant" style="display:none;">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                            <button class="sh-circle-btn sh-btn-nav-ep" id="sh-btn-next-ep" title="Épisode suivant" style="display:none;">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
                             </button>
                         </div>
 
-                        <!-- Droite : Audio & Subs, Vitesse de Lecture -->
-                        <div class="sh-dock-group sh-dock-group--right">
+                        <!-- Droite : Déclencheurs de Tiroirs Latéraux en Verre -->
+                        <div class="sh-controls-group sh-controls-right">
                             
-                            <!-- Bouton & Popover Audio & Sous-titres -->
-                            <div class="sh-popover-anchor">
-                                <button class="sh-luxury-pill-btn" id="sh-btn-audio-sub-toggle" title="Pistes Audio & Sous-Titres (S)">
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                    <span>Audio & Subs</span>
-                                </button>
+                            <!-- Tiroir Audio & Sous-titres -->
+                            <button class="sh-glass-pill-btn" id="sh-btn-open-audio-subs" title="Pistes Audio & Sous-Titres (S)">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                <span>Audio & Subs</span>
+                            </button>
 
-                                <div class="sh-vision-popover" id="sh-popover-audio-sub">
-                                    <div class="sh-vision-popover-header">
-                                        <h4>Pistes Audio & Sous-Titres</h4>
-                                    </div>
-                                    <div class="sh-vision-popover-body sh-scrollbar">
-                                        <!-- Audio -->
-                                        <div class="sh-popover-group">
-                                            <label class="sh-popover-group-label">PISTES AUDIO</label>
-                                            <div class="sh-popover-item-list" id="sh-audio-stream-list">
-                                                <p class="sh-popover-empty">Chargement des pistes...</p>
-                                            </div>
-                                        </div>
-
-                                        <!-- Sous-Titres -->
-                                        <div class="sh-popover-group">
-                                            <label class="sh-popover-group-label">SOUS-TITRES</label>
-                                            <div class="sh-popover-item-list" id="sh-sub-stream-list">
-                                                <p class="sh-popover-empty">Chargement des sous-titres...</p>
-                                            </div>
-                                        </div>
-
-                                        <!-- Sync Offset -->
-                                        <div class="sh-popover-group sh-popover-group--offset">
-                                            <label class="sh-popover-group-label">SYNCHRONISATION DES SOUS-TITRES</label>
-                                            <div class="sh-offset-pill-grid">
-                                                <button class="sh-offset-pill" data-offset="-0.5">-0.5s</button>
-                                                <button class="sh-offset-pill" data-offset="-0.1">-0.1s</button>
-                                                <button class="sh-offset-pill sh-offset-pill--reset" data-offset="0">0.0s (Réinit)</button>
-                                                <button class="sh-offset-pill" data-offset="+0.1">+0.1s</button>
-                                                <button class="sh-offset-pill" data-offset="+0.5">+0.5s</button>
-                                            </div>
-                                            <p class="sh-offset-feedback">Décalage actuel : <strong id="sh-offset-val-txt">0.0s</strong></p>
-                                        </div>
-
-                                        <!-- Recherche OpenSubtitles -->
-                                        <div class="sh-popover-group">
-                                            <button class="sh-online-sub-search-btn" id="sh-btn-search-online-subs">
-                                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                                                <span>Rechercher de nouveaux sous-titres en ligne...</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Vitesse de lecture -->
-                            <div class="sh-popover-anchor">
-                                <button class="sh-luxury-pill-btn sh-luxury-pill-btn--speed" id="sh-btn-speed-toggle" title="Vitesse de lecture (C)">
-                                    <span id="sh-speed-badge">${this._playbackRate}x</span>
-                                </button>
-                                <div class="sh-vision-popover sh-vision-popover--speed" id="sh-popover-speed">
-                                    <div class="sh-vision-popover-header"><h4>Vitesse</h4></div>
-                                    <div class="sh-popover-item-list">
-                                        <button class="sh-speed-opt ${this._playbackRate === 0.75 ? 'selected' : ''}" data-speed="0.75">0.75x</button>
-                                        <button class="sh-speed-opt ${this._playbackRate === 1.0 ? 'selected' : ''}" data-speed="1.0">1.0x (Normal)</button>
-                                        <button class="sh-speed-opt ${this._playbackRate === 1.25 ? 'selected' : ''}" data-speed="1.25">1.25x</button>
-                                        <button class="sh-speed-opt ${this._playbackRate === 1.5 ? 'selected' : ''}" data-speed="1.5">1.5x</button>
-                                        <button class="sh-speed-opt ${this._playbackRate === 2.0 ? 'selected' : ''}" data-speed="2.0">2.0x</button>
-                                    </div>
-                                </div>
-                            </div>
+                            <!-- Tiroir Vitesse & Qualité -->
+                            <button class="sh-glass-pill-btn sh-glass-pill-btn--compact" id="sh-btn-open-settings" title="Vitesse & Réglages (C)">
+                                <span id="sh-speed-indicator">${this._playbackRate}x</span>
+                            </button>
 
                         </div>
 
@@ -516,13 +459,38 @@ class VideoPlayer {
 
                 </div>
             </div>
+
+            <!-- 🗄️ TIROIR LATÉRAL EN VERRE COULISSANT (Apple Glass Cinema Drawer) -->
+            <div class="sh-cinema-drawer-backdrop" id="sh-drawer-backdrop"></div>
+            <aside class="sh-cinema-drawer" id="sh-cinema-drawer">
+                <div class="sh-drawer-header">
+                    <!-- Onglets Segmentés Coulissants -->
+                    <div class="sh-drawer-tabs">
+                        <button class="sh-drawer-tab-btn ${this._activeDrawerTab === 'audio' ? 'active' : ''}" data-tab="audio">Audio</button>
+                        <button class="sh-drawer-tab-btn ${this._activeDrawerTab === 'subs' ? 'active' : ''}" data-tab="subs">Sous-Titres</button>
+                        <button class="sh-drawer-tab-btn ${this._activeDrawerTab === 'settings' ? 'active' : ''}" data-tab="settings">Réglages</button>
+                        <button class="sh-drawer-tab-btn ${this._activeDrawerTab === 'episodes' ? 'active' : ''}" data-tab="episodes" id="sh-drawer-tab-episodes-btn" style="${this._seasonEpisodes.length > 0 ? '' : 'display:none;'}">Épisodes</button>
+                    </div>
+                    <button class="sh-drawer-close-circle" id="sh-drawer-close" title="Fermer le volet">✕</button>
+                </div>
+
+                <!-- Corps du Tiroir -->
+                <div class="sh-drawer-body sh-scrollbar" id="sh-drawer-content">
+                    <!-- Contenu injecté dynamiquement -->
+                </div>
+            </aside>
         `;
 
         document.body.appendChild(this._el);
         this._video = this._el.querySelector('.sh-cinema-video');
 
+        // Retirer la classe entering après l'animation
+        setTimeout(() => {
+            this._el?.classList.remove('sh-player--entering');
+        }, 500);
+
         this._bindEvents();
-        this._populateAudioAndSubsLists();
+        this._renderDrawerContent();
 
         if (this._el.requestFullscreen) {
             this._el.requestFullscreen().catch(() => {});
@@ -532,10 +500,10 @@ class VideoPlayer {
     _bindEvents() {
         const el = this._el;
         const video = this._video;
-        const spinner = el.querySelector('#sh-player-spinner');
+        const spinner = el.querySelector('#sh-player-buffering-spinner');
 
-        // Quitter / Retour
-        el.querySelector('#sh-player-back-btn')?.addEventListener('click', () => this.close());
+        // Quitter / Retour avec animation de fermeture grandiose
+        el.querySelector('#sh-btn-back')?.addEventListener('click', () => this.close());
 
         // Inactivité souris (Auto-hide du HUD après 3.5s)
         el.addEventListener('mousemove', () => this._onUserActivity());
@@ -555,7 +523,7 @@ class VideoPlayer {
         };
         playPauseBtn?.addEventListener('click', togglePlay);
 
-        // Simple Clic au centre = Play/Pause
+        // Simple Clic sur la vidéo = Play/Pause
         video.addEventListener('click', (e) => {
             if (e.target === video) togglePlay();
         });
@@ -574,14 +542,13 @@ class VideoPlayer {
             this._showControls();
         });
 
-        // Double Clic Gauche / Droite (Saut 10s avec Ripple Waves)
+        // Double Clic / Double Tap Gauche / Droite (Sauts ±10s avec Ripple Waves)
         const leftZone = el.querySelector('#sh-zone-left');
         const rightZone = el.querySelector('#sh-zone-right');
 
         leftZone?.addEventListener('dblclick', () => this._triggerRippleSkip(-10));
         rightZone?.addEventListener('dblclick', () => this._triggerRippleSkip(10));
 
-        // Touch double-tap sur mobile/tablette
         const handleTap = (side, delta) => {
             const now = Date.now();
             if (now - this._lastTapTime < 300 && this._lastTapSide === side) {
@@ -593,7 +560,7 @@ class VideoPlayer {
         leftZone?.addEventListener('touchend', () => handleTap('left', -10));
         rightZone?.addEventListener('touchend', () => handleTap('right', 10));
 
-        // Sauts 10s via boutons du dock avec micro-animation
+        // Sauts 10s via boutons du dock avec micro-ressort
         el.querySelector('#sh-btn-skip-back')?.addEventListener('click', (e) => {
             this._animateButtonSpring(e.currentTarget);
             video.currentTime = Math.max(0, video.currentTime - 10);
@@ -605,26 +572,12 @@ class VideoPlayer {
             this._showFlashOSD('⏩', '+10s');
         });
 
-        // Navigation Épisode Précédent / Suivant
+        // Navigation Épisodes
         el.querySelector('#sh-btn-prev-ep')?.addEventListener('click', () => {
             if (this._prevEpisode) this.play(this._prevEpisode);
         });
         el.querySelector('#sh-btn-next-ep')?.addEventListener('click', () => {
             if (this._nextEpisode) this.play(this._nextEpisode);
-        });
-
-        // Tiroir d'Épisodes
-        const drawerBtn = el.querySelector('#sh-btn-episodes-drawer');
-        const drawer = el.querySelector('#sh-episodes-drawer');
-        const closeDrawerBtn = el.querySelector('#sh-btn-close-drawer');
-
-        drawerBtn?.addEventListener('click', () => {
-            this._isEpisodeDrawerOpen = !this._isEpisodeDrawerOpen;
-            drawer?.classList.toggle('open', this._isEpisodeDrawerOpen);
-        });
-        closeDrawerBtn?.addEventListener('click', () => {
-            this._isEpisodeDrawerOpen = false;
-            drawer?.classList.remove('open');
         });
 
         // Timeline & TimeUpdate
@@ -686,12 +639,12 @@ class VideoPlayer {
             }
         });
 
-        // Aspect Ratio
+        // Format d'image
         el.querySelector('#sh-btn-aspect')?.addEventListener('click', () => {
             this._aspectRatioIndex = (this._aspectRatioIndex + 1) % this._aspectRatios.length;
             const mode = this._aspectRatios[this._aspectRatioIndex];
             video.style.objectFit = mode;
-            const labels = { contain: '16:9 Adapté', cover: '21:9 Cinéma Zoom', fill: 'Plein écran Étiré' };
+            const labels = { contain: '16:9 Adapté', cover: '21:9 Cinéma Scope', fill: 'Plein écran Étiré' };
             this._showFlashOSD('📐', labels[mode] || mode);
         });
 
@@ -711,53 +664,29 @@ class VideoPlayer {
         // Plein écran
         el.querySelector('#sh-btn-fullscreen')?.addEventListener('click', () => this._toggleFullscreen());
 
-        // Popover Audio / Sous-titres Toggle
-        const audioSubBtn = el.querySelector('#sh-btn-audio-sub-toggle');
-        const audioSubPop = el.querySelector('#sh-popover-audio-sub');
-        audioSubBtn?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this._togglePopover(audioSubPop, audioSubBtn);
+        // 🗄️ Déclencheurs de Tiroirs Latéraux
+        el.querySelector('#sh-btn-open-audio-subs')?.addEventListener('click', () => {
+            this._openDrawer('audio');
+        });
+        el.querySelector('#sh-btn-open-settings')?.addEventListener('click', () => {
+            this._openDrawer('settings');
+        });
+        el.querySelector('#sh-btn-trigger-episodes')?.addEventListener('click', () => {
+            this._openDrawer('episodes');
         });
 
-        // Popover Vitesse Toggle
-        const speedBtn = el.querySelector('#sh-btn-speed-toggle');
-        const speedPop = el.querySelector('#sh-popover-speed');
-        speedBtn?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this._togglePopover(speedPop, speedBtn);
-        });
+        // Fermeture du tiroir
+        el.querySelector('#sh-drawer-close')?.addEventListener('click', () => this._closeDrawer());
+        el.querySelector('#sh-drawer-backdrop')?.addEventListener('click', () => this._closeDrawer());
 
-        // Clic sur option de vitesse
-        speedPop?.querySelectorAll('.sh-speed-opt').forEach(opt => {
-            opt.addEventListener('click', () => {
-                const spd = parseFloat(opt.dataset.speed);
-                video.playbackRate = spd;
-                this._playbackRate = spd;
-                localStorage.setItem('SpaceHub_playback_speed', String(spd));
-                el.querySelector('#sh-speed-badge').textContent = `${spd}x`;
-                speedPop.querySelectorAll('.sh-speed-opt').forEach(o => o.classList.toggle('selected', o === opt));
-                this._closeAllPopovers();
-                this._showFlashOSD('⚡', `${spd}x`);
-            });
-        });
-
-        // Décalage des sous-titres (Offset Buttons)
-        el.querySelectorAll('.sh-offset-pill').forEach(btn => {
+        // Changement d'onglet dans le tiroir
+        el.querySelectorAll('.sh-drawer-tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                const delta = parseFloat(btn.dataset.offset);
-                if (delta === 0) this._subOffset = 0;
-                else this._subOffset = Math.round((this._subOffset + delta) * 10) / 10;
-                
-                this._applySubtitleOffset();
-                el.querySelector('#sh-offset-val-txt').textContent = `${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s`;
-                this._showFlashOSD('⏱️', `Sous-titres ${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s`);
+                const tab = btn.dataset.tab;
+                this._activeDrawerTab = tab;
+                el.querySelectorAll('.sh-drawer-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+                this._renderDrawerContent();
             });
-        });
-
-        // Recherche en ligne de sous-titres
-        el.querySelector('#sh-btn-search-online-subs')?.addEventListener('click', () => {
-            this._closeAllPopovers();
-            this._openRemoteSubtitleModal();
         });
 
         // Smart Skip Intro Click
@@ -773,19 +702,273 @@ class VideoPlayer {
             this._cancelNextEpCountdown();
         });
 
-        // Fermer popovers et drawer au clic en dehors
-        document.addEventListener('click', this._onDocClick = (e) => {
-            if (!e.target.closest('.sh-vision-popover') && !e.target.closest('.sh-luxury-pill-btn') && !e.target.closest('.sh-episodes-drawer-vision') && !e.target.closest('#sh-btn-episodes-drawer')) {
-                this._closeAllPopovers();
-                if (this._isEpisodeDrawerOpen) {
-                    this._isEpisodeDrawerOpen = false;
-                    el.querySelector('#sh-episodes-drawer')?.classList.remove('open');
-                }
-            }
-        });
-
         // Clavier global
         document.addEventListener('keydown', this._keyHandler = (e) => this._onKeyDown(e));
+    }
+
+    _openDrawer(tab = 'audio') {
+        this._activeDrawerTab = tab;
+        this._isDrawerOpen = true;
+
+        const drawer = this._el?.querySelector('#sh-cinema-drawer');
+        const backdrop = this._el?.querySelector('#sh-drawer-backdrop');
+
+        this._el?.querySelectorAll('.sh-drawer-tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+
+        this._renderDrawerContent();
+
+        drawer?.classList.add('open');
+        backdrop?.classList.add('visible');
+    }
+
+    _closeDrawer() {
+        this._isDrawerOpen = false;
+        this._el?.querySelector('#sh-cinema-drawer')?.classList.remove('open');
+        this._el?.querySelector('#sh-drawer-backdrop')?.classList.remove('visible');
+    }
+
+    _renderDrawerContent() {
+        const bodyEl = this._el?.querySelector('#sh-drawer-content');
+        if (!bodyEl) return;
+
+        switch (this._activeDrawerTab) {
+            case 'audio':
+                this._renderAudioTab(bodyEl);
+                break;
+            case 'subs':
+                this._renderSubsTab(bodyEl);
+                break;
+            case 'settings':
+                this._renderSettingsTab(bodyEl);
+                break;
+            case 'episodes':
+                this._renderEpisodesTab(bodyEl);
+                break;
+        }
+    }
+
+    _renderAudioTab(container) {
+        if (!this._audioStreams || this._audioStreams.length === 0) {
+            container.innerHTML = '<p class="sh-drawer-empty">Piste audio standard stéréo</p>';
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="sh-drawer-section">
+                <h4 class="sh-drawer-kicker">PISTES AUDIO DISPONIBLES</h4>
+                <div class="sh-drawer-list">
+                    ${this._audioStreams.map(s => {
+                        const isSel = s.Index === this._selectedAudioIndex;
+                        const lang = (s.Language || 'und').toUpperCase();
+                        const codec = (s.Codec || 'AAC').toUpperCase();
+                        const channels = s.ChannelLayout || (s.Channels ? `${s.Channels} ch` : 'Stéréo');
+                        const title = s.DisplayTitle || s.Title || `${lang} · ${codec} ${channels}`;
+
+                        return `
+                            <button class="sh-drawer-item ${isSel ? 'active' : ''}" data-audio-idx="${s.Index}">
+                                <div class="sh-drawer-item-check">✓</div>
+                                <div class="sh-drawer-item-info">
+                                    <span class="sh-drawer-item-title">${this._escape(title)}</span>
+                                    <span class="sh-drawer-item-badge">${codec} ${channels}</span>
+                                </div>
+                            </button>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+
+        container.querySelectorAll('.sh-drawer-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this._selectedAudioIndex = parseInt(btn.dataset.audioIdx, 10);
+                this._renderAudioTab(container);
+                this._showFlashOSD('🔊', btn.querySelector('.sh-drawer-item-title').textContent);
+            });
+        });
+    }
+
+    _renderSubsTab(container) {
+        let subsHtml = `
+            <div class="sh-drawer-section">
+                <h4 class="sh-drawer-kicker">SOUS-TITRES</h4>
+                <div class="sh-drawer-list">
+                    <button class="sh-drawer-item ${this._selectedSubIndex === -1 ? 'active' : ''}" data-sub-idx="-1">
+                        <div class="sh-drawer-item-check">✓</div>
+                        <div class="sh-drawer-item-info">
+                            <span class="sh-drawer-item-title">Désactivé</span>
+                        </div>
+                    </button>
+        `;
+
+        if (this._subStreams && this._subStreams.length > 0) {
+            subsHtml += this._subStreams.map(s => {
+                const isSel = s.Index === this._selectedSubIndex;
+                const lang = (s.Language || 'und').toUpperCase();
+                const title = s.DisplayTitle || s.Title || `${lang} ${s.IsForced ? '(Forcé)' : ''}`;
+                return `
+                    <button class="sh-drawer-item ${isSel ? 'active' : ''}" data-sub-idx="${s.Index}">
+                        <div class="sh-drawer-item-check">✓</div>
+                        <div class="sh-drawer-item-info">
+                            <span class="sh-drawer-item-title">${this._escape(title)}</span>
+                            ${s.IsForced ? '<span class="sh-drawer-item-badge">FORCÉ</span>' : ''}
+                        </div>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        subsHtml += `
+                </div>
+            </div>
+
+            <!-- Outil de Synchronisation Temporelle -->
+            <div class="sh-drawer-section">
+                <h4 class="sh-drawer-kicker">SYNCHRONISATION DES SOUS-TITRES</h4>
+                <div class="sh-sync-grid">
+                    <button class="sh-sync-btn" data-offset="-0.5">-0.5s</button>
+                    <button class="sh-sync-btn" data-offset="-0.1">-0.1s</button>
+                    <button class="sh-sync-btn sh-sync-btn--reset" data-offset="0">0.0s (Réinit)</button>
+                    <button class="sh-sync-btn" data-offset="+0.1">+0.1s</button>
+                    <button class="sh-sync-btn" data-offset="+0.5">+0.5s</button>
+                </div>
+                <p class="sh-sync-label">Décalage actuel : <strong id="sh-drawer-offset-val">${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s</strong></p>
+            </div>
+
+            <!-- Recherche OpenSubtitles -->
+            <div class="sh-drawer-section">
+                <button class="sh-btn-search-online" id="sh-btn-search-online-subs">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <span>Rechercher de nouveaux sous-titres en ligne...</span>
+                </button>
+            </div>
+        `;
+
+        container.innerHTML = subsHtml;
+
+        container.querySelectorAll('.sh-drawer-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this._selectedSubIndex = parseInt(btn.dataset.subIdx, 10);
+                this._renderSubsTab(container);
+                const title = btn.querySelector('.sh-drawer-item-title').textContent;
+                this._showFlashOSD('💬', `Sous-titres : ${title}`);
+            });
+        });
+
+        container.querySelectorAll('.sh-sync-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const delta = parseFloat(btn.dataset.offset);
+                if (delta === 0) this._subOffset = 0;
+                else this._subOffset = Math.round((this._subOffset + delta) * 10) / 10;
+
+                this._applySubtitleOffset();
+                const label = container.querySelector('#sh-drawer-offset-val');
+                if (label) label.textContent = `${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s`;
+                this._showFlashOSD('⏱️', `Sous-titres ${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s`);
+            });
+        });
+
+        container.querySelector('#sh-btn-search-online-subs')?.addEventListener('click', () => {
+            this._closeDrawer();
+            this._openRemoteSubtitleModal();
+        });
+    }
+
+    _renderSettingsTab(container) {
+        const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+        const aspectLabels = { contain: '16:9 Adapté', cover: '21:9 Cinéma Scope', fill: 'Plein écran Étiré' };
+
+        container.innerHTML = `
+            <div class="sh-drawer-section">
+                <h4 class="sh-drawer-kicker">VITESSE DE LECTURE</h4>
+                <div class="sh-settings-chips">
+                    ${speeds.map(spd => `
+                        <button class="sh-chip-btn ${this._playbackRate === spd ? 'active' : ''}" data-speed="${spd}">${spd}x${spd === 1.0 ? ' (Normal)' : ''}</button>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="sh-drawer-section">
+                <h4 class="sh-drawer-kicker">FORMAT D'IMAGE</h4>
+                <div class="sh-settings-chips">
+                    ${this._aspectRatios.map((mode, idx) => `
+                        <button class="sh-chip-btn ${this._aspectRatioIndex === idx ? 'active' : ''}" data-aspect-idx="${idx}">${aspectLabels[mode] || mode}</button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        container.querySelectorAll('[data-speed]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const spd = parseFloat(btn.dataset.speed);
+                this._playbackRate = spd;
+                this._video.playbackRate = spd;
+                localStorage.setItem('SpaceHub_playback_speed', String(spd));
+                this._el.querySelector('#sh-speed-indicator').textContent = `${spd}x`;
+                this._renderSettingsTab(container);
+                this._showFlashOSD('⚡', `Vitesse : ${spd}x`);
+            });
+        });
+
+        container.querySelectorAll('[data-aspect-idx]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.dataset.aspectIdx, 10);
+                this._aspectRatioIndex = idx;
+                const mode = this._aspectRatios[idx];
+                this._video.style.objectFit = mode;
+                this._renderSettingsTab(container);
+                this._showFlashOSD('📐', aspectLabels[mode] || mode);
+            });
+        });
+    }
+
+    _renderEpisodesTab(container) {
+        if (this._seasonEpisodes.length === 0) {
+            container.innerHTML = '<p class="sh-drawer-empty">Aucun épisode disponible pour cette saison.</p>';
+            return;
+        }
+
+        const currentId = this._currentItem.Id || this._currentItem.id;
+
+        container.innerHTML = `
+            <div class="sh-drawer-section">
+                <h4 class="sh-drawer-kicker">ÉPISODES DE LA SAISON (${this._seasonEpisodes.length})</h4>
+                <div class="sh-episodes-grid">
+                    ${this._seasonEpisodes.map(ep => {
+                        const isCur = ep.Id === currentId;
+                        const sNum = String(ep.ParentIndexNumber || 1).padStart(2, '0');
+                        const eNum = String(ep.IndexNumber || 1).padStart(2, '0');
+                        const thumbUrl = this._api?.getImageUrl?.(ep.Id, 'Primary', { maxWidth: 260, maxHeight: 146 }) || '';
+
+                        return `
+                            <div class="sh-episode-card ${isCur ? 'active' : ''}" data-ep-id="${ep.Id}">
+                                <div class="sh-episode-card__thumb">
+                                    <img src="${thumbUrl}" alt="${ep.Name}" loading="lazy"/>
+                                    <span class="sh-episode-card__badge">S${sNum}E${eNum}</span>
+                                    ${isCur ? '<div class="sh-episode-card__playing">▶ En lecture</div>' : ''}
+                                </div>
+                                <div class="sh-episode-card__meta">
+                                    <h5 class="sh-episode-card__title">${this._escape(ep.Name)}</h5>
+                                    <span class="sh-episode-card__runtime">${ep.RunTimeTicks ? Math.round(ep.RunTimeTicks / 600000000) + ' min' : ''}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+
+        container.querySelectorAll('.sh-episode-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const epId = card.dataset.epId;
+                const targetEp = this._seasonEpisodes.find(e => e.Id === epId);
+                if (targetEp) {
+                    this._closeDrawer();
+                    this.play(targetEp);
+                }
+            });
+        });
     }
 
     _triggerRippleSkip(deltaSeconds) {
@@ -796,7 +979,7 @@ class VideoPlayer {
         const rippleEl = this._el?.querySelector(isFwd ? '#sh-ripple-right' : '#sh-ripple-left');
         if (rippleEl) {
             rippleEl.classList.remove('active');
-            void rippleEl.offsetWidth; // Force reflow
+            void rippleEl.offsetWidth;
             rippleEl.classList.add('active');
         }
         this._showFlashOSD(isFwd ? '⏩' : '⏪', `${isFwd ? '+' : ''}${deltaSeconds}s`);
@@ -804,129 +987,9 @@ class VideoPlayer {
 
     _animateButtonSpring(btn) {
         if (!btn) return;
-        btn.classList.remove('spring-active');
+        btn.classList.remove('spring-bounce');
         void btn.offsetWidth;
-        btn.classList.add('spring-active');
-    }
-
-    _renderEpisodeDrawerItems() {
-        const listEl = this._el?.querySelector('#sh-drawer-episodes-list');
-        if (!listEl) return;
-
-        if (this._seasonEpisodes.length === 0) {
-            listEl.innerHTML = '<p style="padding:16px; color:rgba(255,255,255,0.5);">Aucun épisode disponible.</p>';
-            return;
-        }
-
-        const currentId = this._currentItem.Id || this._currentItem.id;
-
-        listEl.innerHTML = this._seasonEpisodes.map(ep => {
-            const isCur = ep.Id === currentId;
-            const sNum = String(ep.ParentIndexNumber || 1).padStart(2, '0');
-            const eNum = String(ep.IndexNumber || 1).padStart(2, '0');
-            const thumbUrl = this._api?.getImageUrl?.(ep.Id, 'Primary', { maxWidth: 240, maxHeight: 135 }) || '';
-
-            return `
-                <div class="sh-drawer-ep-card ${isCur ? 'active' : ''}" data-ep-id="${ep.Id}">
-                    <div class="sh-drawer-ep-thumb">
-                        <img src="${thumbUrl}" alt="${ep.Name}" loading="lazy"/>
-                        <span class="sh-drawer-ep-pill">S${sNum}E${eNum}</span>
-                        ${isCur ? '<div class="sh-drawer-ep-playing">▶ En cours</div>' : ''}
-                    </div>
-                    <div class="sh-drawer-ep-info">
-                        <h4 class="sh-drawer-ep-title">${this._escape(ep.Name)}</h4>
-                        <span class="sh-drawer-ep-time">${ep.RunTimeTicks ? Math.round(ep.RunTimeTicks / 600000000) + ' min' : ''}</span>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        listEl.querySelectorAll('.sh-drawer-ep-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const epId = card.dataset.epId;
-                const targetEp = this._seasonEpisodes.find(e => e.Id === epId);
-                if (targetEp) {
-                    this._isEpisodeDrawerOpen = false;
-                    this._el?.querySelector('#sh-episodes-drawer')?.classList.remove('open');
-                    this.play(targetEp);
-                }
-            });
-        });
-    }
-
-    _populateAudioAndSubsLists() {
-        const audioList = this._el?.querySelector('#sh-audio-stream-list');
-        const subList = this._el?.querySelector('#sh-sub-stream-list');
-        if (!audioList || !subList) return;
-
-        // Audio
-        if (this._audioStreams && this._audioStreams.length > 0) {
-            audioList.innerHTML = this._audioStreams.map(s => {
-                const isSel = s.Index === this._selectedAudioIndex;
-                const lang = (s.Language || 'und').toUpperCase();
-                const codec = (s.Codec || 'AAC').toUpperCase();
-                const channels = s.ChannelLayout || (s.Channels ? `${s.Channels} ch` : 'Stéréo');
-                const title = s.DisplayTitle || s.Title || `${lang} · ${codec} ${channels}`;
-                return `
-                    <button class="sh-vision-stream-item ${isSel ? 'selected' : ''}" data-audio-idx="${s.Index}">
-                        <div class="sh-stream-check-icon">✓</div>
-                        <div class="sh-stream-meta">
-                            <span class="sh-stream-title">${this._escape(title)}</span>
-                            <span class="sh-stream-badge">${codec} ${channels}</span>
-                        </div>
-                    </button>
-                `;
-            }).join('');
-
-            audioList.querySelectorAll('.sh-vision-stream-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    this._selectedAudioIndex = parseInt(item.dataset.audioIdx, 10);
-                    audioList.querySelectorAll('.sh-vision-stream-item').forEach(i => i.classList.toggle('selected', i === item));
-                    this._showFlashOSD('🔊', item.querySelector('.sh-stream-title').textContent);
-                    this._closeAllPopovers();
-                });
-            });
-        } else {
-            audioList.innerHTML = '<p class="sh-popover-empty">Piste audio standard</p>';
-        }
-
-        // Sous-titres
-        let subsHtml = `
-            <button class="sh-vision-stream-item ${this._selectedSubIndex === -1 ? 'selected' : ''}" data-sub-idx="-1">
-                <div class="sh-stream-check-icon">✓</div>
-                <div class="sh-stream-meta">
-                    <span class="sh-stream-title">Désactivé</span>
-                </div>
-            </button>
-        `;
-
-        if (this._subStreams && this._subStreams.length > 0) {
-            subsHtml += this._subStreams.map(s => {
-                const isSel = s.Index === this._selectedSubIndex;
-                const lang = (s.Language || 'und').toUpperCase();
-                const title = s.DisplayTitle || s.Title || `${lang} ${s.IsForced ? '(Forcé)' : ''}`;
-                return `
-                    <button class="sh-vision-stream-item ${isSel ? 'selected' : ''}" data-sub-idx="${s.Index}">
-                        <div class="sh-stream-check-icon">✓</div>
-                        <div class="sh-stream-meta">
-                            <span class="sh-stream-title">${this._escape(title)}</span>
-                            ${s.IsForced ? '<span class="sh-stream-badge">FORCÉ</span>' : ''}
-                        </div>
-                    </button>
-                `;
-            }).join('');
-        }
-
-        subList.innerHTML = subsHtml;
-        subList.querySelectorAll('.sh-vision-stream-item').forEach(item => {
-            item.addEventListener('click', () => {
-                this._selectedSubIndex = parseInt(item.dataset.subIdx, 10);
-                subList.querySelectorAll('.sh-vision-stream-item').forEach(i => i.classList.toggle('selected', i === item));
-                const name = item.querySelector('.sh-stream-title').textContent;
-                this._showFlashOSD('💬', `Sous-titres : ${name}`);
-                this._closeAllPopovers();
-            });
-        });
+        btn.classList.add('spring-bounce');
     }
 
     _applySubtitleOffset() {
@@ -1134,7 +1197,7 @@ class VideoPlayer {
         }
 
         osd.classList.remove('active');
-        void osd.offsetWidth; // force reflow
+        void osd.offsetWidth;
         osd.classList.add('active');
 
         if (this._osdTimer) clearTimeout(this._osdTimer);
@@ -1156,7 +1219,7 @@ class VideoPlayer {
     }
 
     _hideControls() {
-        if (this._video && !this._video.paused && !this._activePopover && !this._isEpisodeDrawerOpen) {
+        if (this._video && !this._video.paused && !this._isDrawerOpen) {
             this._isControlsVisible = false;
             this._el?.classList.add('hud-hidden');
         }
@@ -1165,23 +1228,6 @@ class VideoPlayer {
     _resetIdleTimer() {
         if (this._idleTimer) clearTimeout(this._idleTimer);
         this._idleTimer = setTimeout(() => this._hideControls(), 3500);
-    }
-
-    _togglePopover(popoverEl, anchorBtn) {
-        if (!popoverEl) return;
-        const isOpen = popoverEl.classList.contains('open');
-        this._closeAllPopovers();
-        if (!isOpen) {
-            popoverEl.classList.add('open');
-            anchorBtn?.classList.add('active');
-            this._activePopover = popoverEl;
-        }
-    }
-
-    _closeAllPopovers() {
-        this._el?.querySelectorAll('.sh-vision-popover').forEach(p => p.classList.remove('open'));
-        this._el?.querySelectorAll('.sh-luxury-pill-btn').forEach(b => b.classList.remove('active'));
-        this._activePopover = null;
     }
 
     _toggleFullscreen() {
@@ -1229,19 +1275,16 @@ class VideoPlayer {
                 break;
             case 's':
                 e.preventDefault();
-                this._el.querySelector('#sh-btn-audio-sub-toggle')?.click();
+                this._openDrawer(this._isDrawerOpen && this._activeDrawerTab === 'subs' ? 'subs' : 'subs');
                 break;
             case 'c':
                 e.preventDefault();
-                this._el.querySelector('#sh-btn-speed-toggle')?.click();
+                this._openDrawer('settings');
                 break;
             case 'Escape':
                 e.preventDefault();
-                if (this._isEpisodeDrawerOpen) {
-                    this._isEpisodeDrawerOpen = false;
-                    this._el.querySelector('#sh-episodes-drawer')?.classList.remove('open');
-                } else if (this._activePopover) {
-                    this._closeAllPopovers();
+                if (this._isDrawerOpen) {
+                    this._closeDrawer();
                 } else {
                     this.close();
                 }
@@ -1325,25 +1368,32 @@ class VideoPlayer {
         if (this._nextEpCountdownInterval) clearInterval(this._nextEpCountdownInterval);
         if (this._osdTimer) clearTimeout(this._osdTimer);
 
-        if (this._onDocClick) document.removeEventListener('click', this._onDocClick);
         if (this._keyHandler) document.removeEventListener('keydown', this._keyHandler);
 
-        if (this._hls) {
-            this._hls.destroy();
-            this._hls = null;
-        }
+        // Animation grandiose de sortie (Grand Exit)
+        const elToClose = this._el;
+        elToClose.classList.add('sh-player--exiting');
 
-        if (this._video) {
-            this._video.pause();
-            this._video.src = '';
-            this._video.load();
-        }
+        setTimeout(() => {
+            if (this._hls) {
+                this._hls.destroy();
+                this._hls = null;
+            }
 
-        if (exitFullscreen && document.fullscreenElement) {
-            document.exitFullscreen().catch(() => {});
-        }
+            if (this._video) {
+                this._video.pause();
+                this._video.src = '';
+                this._video.load();
+            }
 
-        this._el.remove();
+            if (exitFullscreen && document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+
+            document.body.classList.remove('sh-cinema-active');
+            elToClose.remove();
+        }, 320);
+
         this._el = null;
         this._video = null;
         this._currentItem = null;
@@ -1367,15 +1417,32 @@ class VideoPlayer {
     }
 
     _injectStyles() {
-        if (document.getElementById('sh-cinema-player-vision-styles')) return;
+        if (document.getElementById('sh-grand-cinema-styles')) return;
         const style = document.createElement('style');
-        style.id = 'sh-cinema-player-vision-styles';
+        style.id = 'sh-grand-cinema-styles';
         style.textContent = `
 /* ═══════════════════════════════════════════════════════════════════════════
-   SpaceHub — Apple VisionOS & Grand Cinema Video Player Style System
+   SpaceHub — Grand Cinema Video Player Style System (Apple TV / VisionOS)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.sh-cinema-player {
+/* Neutralisation Totale des Éléments Jellyfin Parasites */
+body.sh-cinema-active {
+    overflow: hidden !important;
+}
+body.sh-cinema-active .btnHeaderClose,
+body.sh-cinema-active .headerBackButton,
+body.sh-cinema-active .headerElements,
+body.sh-cinema-active .videoOsd,
+body.sh-cinema-active .videoOsdBottom,
+body.sh-cinema-active .videoOsdHeader,
+body.sh-cinema-active .headerTop {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+}
+
+.sh-grand-cinema-player {
     position: fixed;
     inset: 0;
     width: 100vw;
@@ -1387,6 +1454,18 @@ class VideoPlayer {
     color: #ffffff;
     user-select: none;
     -webkit-font-smoothing: antialiased;
+    transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Animation Grandiose d'Entrée & Sortie ────────────────────────────── */
+.sh-grand-cinema-player.sh-player--entering {
+    opacity: 0;
+    transform: scale(1.04);
+}
+.sh-grand-cinema-player.sh-player--exiting {
+    opacity: 0;
+    transform: scale(0.96);
+    pointer-events: none;
 }
 
 .sh-cinema-video {
@@ -1398,8 +1477,58 @@ class VideoPlayer {
     background: #000;
 }
 
-/* 🌀 Spinner de Chargement VisionOS */
-.sh-player-buffering-spinner {
+/* Aura Cinématique Luminescente */
+.sh-cinema-ambient-glow {
+    position: absolute;
+    inset: -10%;
+    background: radial-gradient(circle at center, rgba(255, 159, 10, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.8;
+}
+
+/* Dégradés Supérieur et Inférieur */
+.sh-cinema-vignette-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 180px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
+    pointer-events: none;
+    z-index: 4;
+    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sh-cinema-vignette-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 240px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 60%, transparent 100%);
+    pointer-events: none;
+    z-index: 4;
+    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Auto-hide Mode Inactivité */
+.sh-grand-cinema-player.hud-hidden {
+    cursor: none;
+}
+.sh-grand-cinema-player.hud-hidden .sh-cinema-topbar,
+.sh-grand-cinema-player.hud-hidden .sh-cinema-dock-wrapper,
+.sh-grand-cinema-player.hud-hidden .sh-cinema-vignette-top,
+.sh-grand-cinema-player.hud-hidden .sh-cinema-vignette-bottom {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(16px);
+}
+.sh-grand-cinema-player.hud-hidden .sh-cinema-topbar {
+    transform: translateY(-16px);
+}
+
+/* 🌀 Spinner de Chargement Ambré / Verre Dépoli */
+.sh-cinema-buffering {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -1413,125 +1542,96 @@ class VideoPlayer {
     pointer-events: none;
     transition: opacity 0.3s ease;
 }
-.sh-player-buffering-spinner.visible {
+.sh-cinema-buffering.visible {
     opacity: 1;
 }
-.sh-spinner-glass-ring {
-    width: 58px;
-    height: 58px;
+.sh-buffering-glass-capsule {
+    position: relative;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
-    border: 3px solid rgba(255, 255, 255, 0.14);
-    border-top-color: #00d2ff;
-    border-right-color: #0077ff;
-    animation: shSpinVision 0.85s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-    box-shadow: 0 0 25px rgba(0, 168, 255, 0.45);
+    background: rgba(12, 12, 16, 0.85);
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.8), 0 0 25px rgba(255, 159, 10, 0.35);
 }
-@keyframes shSpinVision {
+.sh-buffering-led-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff9f0a;
+    box-shadow: 0 0 8px #ff9f0a, 0 0 16px rgba(255, 159, 10, 0.9);
+}
+.sh-buffering-ring {
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    border: 2.5px solid transparent;
+    border-top-color: #ff9f0a;
+    border-right-color: #ffc04d;
+    animation: shCinemaSpin 0.9s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+@keyframes shCinemaSpin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
-.sh-spinner-label {
+.sh-buffering-text {
     font-size: 13px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.75);
+    color: rgba(255, 255, 255, 0.8);
     letter-spacing: 0.3px;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
-}
-
-/* ── Dégradés Cinématiques Supérieur & Inférieur ───────────────────────── */
-.sh-player-gradient-top {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 190px;
-    background: linear-gradient(180deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 55%, transparent 100%);
-    pointer-events: none;
-    z-index: 5;
-    transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sh-player-gradient-bottom {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 250px;
-    background: linear-gradient(0deg, rgba(0,0,0,0.94) 0%, rgba(0,0,0,0.5) 55%, transparent 100%);
-    pointer-events: none;
-    z-index: 5;
-    transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* ── Auto-hide du HUD en mode inactivité ──────────────────────────────── */
-.sh-cinema-player.hud-hidden {
-    cursor: none;
-}
-.sh-cinema-player.hud-hidden .sh-player-topbar-islands,
-.sh-cinema-player.hud-hidden .sh-player-dock-container,
-.sh-cinema-player.hud-hidden .sh-player-gradient-top,
-.sh-cinema-player.hud-hidden .sh-player-gradient-bottom {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(18px);
-}
-.sh-cinema-player.hud-hidden .sh-player-topbar-islands {
-    transform: translateY(-18px);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.85);
 }
 
 /* ── Zones de Double-Tap Gauche / Droite (Ripple Waves) ───────────────── */
-.sh-gesture-tap-zone {
+.sh-gesture-zone {
     position: absolute;
     top: 100px;
-    bottom: 120px;
+    bottom: 130px;
     width: 35%;
     z-index: 6;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: default;
 }
-.sh-gesture-left { left: 0; }
-.sh-gesture-right { right: 0; }
+.sh-gesture-zone--left { left: 0; }
+.sh-gesture-zone--right { right: 0; }
 
-.sh-ripple-indicator {
+.sh-ripple-badge {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    width: 88px;
-    height: 88px;
+    width: 84px;
+    height: 84px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.16);
     backdrop-filter: blur(28px);
-    -webkit-backdrop-filter: blur(28px);
-    border: 1px solid rgba(255, 255, 255, 0.32);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     color: #fff;
     font-size: 13px;
     font-weight: 700;
-    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 159, 10, 0.4);
     opacity: 0;
     transform: scale(0.6);
     pointer-events: none;
     transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.45, 1);
 }
-.sh-ripple-indicator.active {
+.sh-ripple-badge.active {
     opacity: 1;
     transform: scale(1.15);
     animation: shRippleFlash 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-@keyframes shRippleFlash {
-    0% { opacity: 0; transform: scale(0.6); }
-    50% { opacity: 1; transform: scale(1.15); }
-    100% { opacity: 0; transform: scale(1.3); }
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   🍏 TOP BAR : ÎLOTS DE VERRE FLOTTANTS (Apple Glass Islands)
+   🍏 TOP BAR : ÎLOTS DE VERRE FLOTTANTS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.sh-player-topbar-islands {
+.sh-cinema-topbar {
     position: absolute;
     top: 24px;
     left: 28px;
@@ -1540,24 +1640,18 @@ class VideoPlayer {
     align-items: center;
     justify-content: space-between;
     z-index: 10;
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.sh-topbar-island {
-    display: flex;
+.sh-glass-pill-btn {
+    display: inline-flex;
     align-items: center;
-}
-
-/* Pastille Quitter */
-.sh-player-back-pill {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 18px;
-    background: rgba(22, 22, 32, 0.72);
-    backdrop-filter: blur(36px) saturate(220%);
-    -webkit-backdrop-filter: blur(36px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    gap: 7px;
+    padding: 8px 16px;
+    background: rgba(12, 12, 16, 0.85);
+    backdrop-filter: blur(48px) saturate(220%);
+    -webkit-backdrop-filter: blur(48px) saturate(220%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 999px;
     color: #ffffff;
     font-size: 13px;
@@ -1566,91 +1660,108 @@ class VideoPlayer {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25);
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.sh-player-back-pill:hover {
-    background: rgba(255, 255, 255, 0.18);
+.sh-glass-pill-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.28);
     transform: scale(1.04);
-    border-color: rgba(255, 255, 255, 0.32);
+}
+.sh-glass-pill-btn--compact {
+    padding: 8px 12px;
+    font-weight: 700;
 }
 
 /* 🎬 Capsule Centrale Titre & Badges */
-.sh-cinema-header-capsule {
+.sh-title-capsule {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     padding: 8px 22px;
-    background: rgba(18, 18, 28, 0.75);
+    background: rgba(12, 12, 16, 0.88);
     backdrop-filter: blur(48px) saturate(220%);
     -webkit-backdrop-filter: blur(48px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 999px;
-    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
-.sh-header-capsule-meta {
+.sh-title-capsule__header {
     display: flex;
     align-items: center;
     gap: 8px;
 }
-.sh-header-main-title {
+.sh-title-led {
+    position: relative;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ff9f0a;
+    box-shadow: 0 0 6px #ff9f0a, 0 0 12px rgba(255, 159, 10, 0.85);
+    flex-shrink: 0;
+}
+.sh-title-led-core {
+    position: absolute;
+    inset: 1px;
+    border-radius: 50%;
+    background: #ffb340;
+}
+.sh-title-main {
     font-size: 15px;
     font-weight: 800;
     color: #ffffff;
     letter-spacing: -0.2px;
 }
-.sh-header-meta-dot {
+.sh-title-dot {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.35);
 }
-.sh-header-sub-title {
+.sh-title-sub {
     font-size: 12px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.65);
 }
 
-.sh-header-badges-row {
+.sh-title-capsule__badges {
     display: flex;
     align-items: center;
     gap: 6px;
 }
-.sh-chip-vision {
+.sh-tech-badge {
     font-size: 9px;
     font-weight: 800;
     letter-spacing: 0.6px;
     padding: 2px 7px;
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     color: rgba(255, 255, 255, 0.85);
 }
-.sh-chip-vision.sh-chip--gold {
-    background: rgba(255, 184, 0, 0.16);
-    border-color: rgba(255, 184, 0, 0.4);
-    color: #ffb800;
-    box-shadow: 0 0 10px rgba(255, 184, 0, 0.2);
+.sh-tech-badge--amber {
+    background: rgba(255, 159, 10, 0.16);
+    border-color: rgba(255, 159, 10, 0.4);
+    color: #ff9f0a;
+    box-shadow: 0 0 10px rgba(255, 159, 10, 0.25);
 }
-.sh-chip-vision.sh-chip--blue {
-    background: rgba(0, 168, 255, 0.16);
-    border-color: rgba(0, 168, 255, 0.4);
-    color: #00d2ff;
-    box-shadow: 0 0 10px rgba(0, 168, 255, 0.2);
+.sh-tech-badge--ice {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: #ffffff;
 }
 
 /* Actions Droite Groupées */
-.sh-header-actions-pill {
+.sh-actions-island {
     display: flex;
     align-items: center;
     gap: 4px;
     padding: 4px 6px;
-    background: rgba(22, 22, 32, 0.72);
-    backdrop-filter: blur(36px) saturate(220%);
-    -webkit-backdrop-filter: blur(36px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(12, 12, 16, 0.85);
+    backdrop-filter: blur(48px) saturate(220%);
+    -webkit-backdrop-filter: blur(48px) saturate(220%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 999px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
-
-.sh-island-icon-btn {
+.sh-island-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1663,23 +1774,23 @@ class VideoPlayer {
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.sh-island-icon-btn:hover {
+.sh-island-btn:hover {
     color: #ffffff;
     background: rgba(255, 255, 255, 0.16);
     transform: scale(1.1);
 }
 
-/* ── Centre Vision Flash OSD ─────────────────────────────────────────── */
-.sh-vision-flash-osd {
+/* ── Flash OSD Jauge Ambrée ─────────────────────────────────────────── */
+.sh-cinema-osd {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0.85);
-    background: rgba(18, 18, 28, 0.90);
-    backdrop-filter: blur(48px) saturate(220%);
-    -webkit-backdrop-filter: blur(48px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.24);
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.85), 0 0 35px rgba(0, 168, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    background: rgba(12, 12, 16, 0.92);
+    backdrop-filter: blur(50px) saturate(220%);
+    -webkit-backdrop-filter: blur(50px) saturate(220%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.9), 0 0 35px rgba(255, 159, 10, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
     border-radius: 28px;
     padding: 16px 28px;
     display: flex;
@@ -1690,86 +1801,86 @@ class VideoPlayer {
     pointer-events: none;
     transition: all 0.28s cubic-bezier(0.34, 1.56, 0.45, 1);
 }
-.sh-vision-flash-osd.active {
+.sh-cinema-osd.active {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
 }
-.sh-osd-glyph-wrap {
-    font-size: 26px;
+.sh-osd-icon-box {
+    font-size: 24px;
 }
-.sh-osd-data {
+.sh-osd-details {
     display: flex;
     flex-direction: column;
     gap: 6px;
 }
-.sh-osd-label {
+.sh-osd-title {
     font-size: 15px;
     font-weight: 700;
     color: #fff;
 }
-.sh-osd-progress-track {
+.sh-osd-bar-track {
     width: 140px;
     height: 6px;
     background: rgba(255, 255, 255, 0.18);
     border-radius: 999px;
     overflow: hidden;
 }
-.sh-osd-progress-fill {
+.sh-osd-bar-fill {
     height: 100%;
     width: 70%;
-    background: linear-gradient(90deg, #0077ff, #00d2ff);
+    background: linear-gradient(90deg, #ff9f0a, #ffc04d);
     border-radius: 999px;
-    box-shadow: 0 0 12px rgba(0, 168, 255, 0.85);
+    box-shadow: 0 0 12px rgba(255, 159, 10, 0.85);
 }
 
 /* ── Smart Skip Intro Pill ───────────────────────────────────────────── */
-.sh-vision-skip-intro-btn {
+.sh-smart-skip-pill {
     position: absolute;
     bottom: 125px;
     right: 36px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 12px 22px;
-    background: rgba(20, 20, 32, 0.92);
+    gap: 8px;
+    padding: 11px 20px;
+    background: rgba(12, 12, 16, 0.92);
     backdrop-filter: blur(36px) saturate(220%);
     -webkit-backdrop-filter: blur(36px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: 999px;
     color: #fff;
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 16px 45px rgba(0,0,0,0.75), 0 0 25px rgba(0, 168, 255, 0.35);
+    box-shadow: 0 16px 45px rgba(0,0,0,0.8), 0 0 25px rgba(255, 159, 10, 0.3);
     z-index: 12;
     opacity: 0;
     pointer-events: none;
     transform: translateY(16px);
     transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.sh-vision-skip-intro-btn.visible {
+.sh-smart-skip-pill.visible {
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0);
 }
-.sh-vision-skip-intro-btn:hover {
-    background: rgba(0, 168, 255, 0.28);
-    border-color: #00d2ff;
+.sh-smart-skip-pill:hover {
+    background: rgba(255, 159, 10, 0.25);
+    border-color: #ff9f0a;
     transform: scale(1.05);
 }
 
-/* ── Next Episode Card VisionOS ──────────────────────────────────────── */
-.sh-next-ep-card-vision {
+/* ── Next Episode Card ───────────────────────────────────────────────── */
+.sh-next-ep-vision-card {
     position: absolute;
     bottom: 125px;
     right: 36px;
-    width: 390px;
-    background: rgba(18, 18, 28, 0.95);
+    width: 380px;
+    background: rgba(12, 12, 16, 0.96);
     backdrop-filter: blur(48px) saturate(220%);
     -webkit-backdrop-filter: blur(48px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 24px;
-    box-shadow: 0 30px 80px rgba(0,0,0,0.85);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.9);
     z-index: 15;
     padding: 14px;
     opacity: 0;
@@ -1777,52 +1888,48 @@ class VideoPlayer {
     transform: translateY(20px);
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.sh-next-ep-card-vision.visible {
+.sh-next-ep-vision-card.visible {
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0);
 }
-.sh-next-ep-card__inner {
+.sh-next-ep-inner {
     display: flex;
     align-items: center;
     gap: 12px;
 }
-.sh-next-ep-thumb-wrap {
+.sh-next-ep-thumb {
     position: relative;
     width: 96px;
-    height: 60px;
-    border-radius: 12px;
+    height: 58px;
+    border-radius: 10px;
     overflow: hidden;
     flex-shrink: 0;
     background: #000;
 }
-.sh-next-ep-thumb-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.sh-next-ep-countdown-badge {
+.sh-next-ep-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.sh-next-ep-timer {
     position: absolute;
     inset: 0;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.65);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
+    color: #ff9f0a;
     font-weight: 800;
-    font-size: 19px;
+    font-size: 20px;
 }
-.sh-next-ep-details {
+.sh-next-ep-meta {
     flex: 1;
     min-width: 0;
 }
-.sh-next-ep-kicker {
+.sh-next-ep-tag {
     font-size: 10px;
     font-weight: 800;
-    color: #00d2ff;
+    color: #ff9f0a;
     letter-spacing: 0.5px;
 }
-.sh-next-ep-name {
+.sh-next-ep-title {
     margin: 2px 0 0;
     font-size: 13px;
     font-weight: 600;
@@ -1831,166 +1938,39 @@ class VideoPlayer {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.sh-next-ep-btns {
+.sh-next-ep-actions {
     display: flex;
     align-items: center;
     gap: 6px;
 }
-.sh-next-ep-launch-btn {
+.sh-next-ep-btn-play {
     padding: 8px 16px;
-    background: #00a8ff;
+    background: #ff9f0a;
     border: none;
     border-radius: 999px;
-    color: #fff;
+    color: #000;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 750;
     cursor: pointer;
+    box-shadow: 0 4px 15px rgba(255, 159, 10, 0.4);
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.45, 1);
 }
-.sh-next-ep-launch-btn:hover { transform: scale(1.08); }
-.sh-next-ep-dismiss-btn {
+.sh-next-ep-btn-play:hover { transform: scale(1.08); }
+.sh-next-ep-btn-close {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.1);
     border: none;
     color: #fff;
     cursor: pointer;
-}
-
-/* ── 🎬 Tiroir Latéral d'Épisodes ─────────────────────────────────────── */
-.sh-episodes-drawer-vision {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 360px;
-    background: rgba(14, 14, 22, 0.96);
-    backdrop-filter: blur(48px) saturate(220%);
-    -webkit-backdrop-filter: blur(48px) saturate(220%);
-    border-left: 1px solid rgba(255, 255, 255, 0.16);
-    box-shadow: -20px 0 60px rgba(0,0,0,0.85);
-    z-index: 100;
-    display: flex;
-    flex-direction: column;
-    transform: translateX(100%);
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-episodes-drawer-vision.open {
-    transform: translateX(0);
-}
-.sh-episodes-drawer-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-.sh-episodes-drawer-header h3 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 700;
-    color: #fff;
-}
-.sh-drawer-close-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: #fff;
-    font-size: 14px;
-    cursor: pointer;
-}
-.sh-episodes-drawer-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-.sh-drawer-ep-card {
-    display: flex;
-    gap: 12px;
-    padding: 10px;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-drawer-ep-card:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-.sh-drawer-ep-card.active {
-    background: rgba(0, 168, 255, 0.18);
-    border-color: rgba(0, 168, 255, 0.45);
-}
-.sh-drawer-ep-thumb {
-    position: relative;
-    width: 100px;
-    height: 58px;
-    border-radius: 10px;
-    overflow: hidden;
-    flex-shrink: 0;
-    background: #000;
-}
-.sh-drawer-ep-thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.sh-drawer-ep-pill {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    background: rgba(0,0,0,0.75);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 700;
-}
-.sh-drawer-ep-playing {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 168, 255, 0.7);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 800;
-}
-.sh-drawer-ep-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 4px;
-}
-.sh-drawer-ep-title {
-    margin: 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: #fff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.sh-drawer-ep-time {
-    font-size: 11px;
-    color: rgba(255,255,255,0.5);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   🍏 UNIFIED VISIONOS LUXURY GLASS DOCK
+   🍏 GRAND CINEMA DOCK FLOTTANT UNIFIÉ
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.sh-player-dock-container {
+.sh-cinema-dock-wrapper {
     position: absolute;
     bottom: 24px;
     left: 0;
@@ -2002,29 +1982,44 @@ class VideoPlayer {
     transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.sh-vision-unified-dock {
+/* Halo Ambré Signature sous le Dock */
+.sh-dock-amber-underglow {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(780px, 88vw);
+    height: 38px;
+    background: radial-gradient(ellipse at center, rgba(255, 159, 10, 0.22) 0%, transparent 70%);
+    pointer-events: none;
+    filter: blur(14px);
+    z-index: 19;
+}
+
+.sh-grand-cinema-dock {
     width: min(840px, 100%);
-    background: rgba(14, 14, 22, 0.75);
-    backdrop-filter: blur(48px) saturate(220%);
-    -webkit-backdrop-filter: blur(48px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(12, 12, 16, 0.88);
+    backdrop-filter: blur(50px) saturate(220%);
+    -webkit-backdrop-filter: blur(50px) saturate(220%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 26px;
-    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.9), 0 0 35px rgba(0, 168, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.28);
     padding: 14px 22px;
     display: flex;
     flex-direction: column;
     gap: 12px;
+    z-index: 21;
 }
 
 /* ── Ligne 1 : Timeline Liquide Multi-couches ────────────────────────── */
-.sh-dock-timeline-row {
+.sh-dock-timeline-section {
     display: flex;
     align-items: center;
     gap: 12px;
     width: 100%;
 }
 
-.sh-dock-time-pill {
+.sh-time-badge {
     font-size: 11px;
     font-weight: 700;
     color: rgba(255, 255, 255, 0.85);
@@ -2036,11 +2031,11 @@ class VideoPlayer {
     min-width: 58px;
     text-align: center;
 }
-.sh-dock-time-pill--rem {
-    color: rgba(255, 255, 255, 0.6);
+.sh-time-badge--rem {
+    color: rgba(255, 255, 255, 0.55);
 }
 
-.sh-dock-track-wrap {
+.sh-timeline-scrubber {
     position: relative;
     flex: 1;
     height: 22px;
@@ -2049,49 +2044,49 @@ class VideoPlayer {
     cursor: pointer;
 }
 
-.sh-dock-track-bg {
+.sh-scrubber-bg {
     position: absolute;
     left: 0;
     right: 0;
     height: 6px;
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.16);
     border-radius: 999px;
     transition: height 0.2s cubic-bezier(0.34, 1.56, 0.45, 1);
 }
-.sh-dock-track-wrap:hover .sh-dock-track-bg {
+.sh-timeline-scrubber:hover .sh-scrubber-bg {
     height: 9px;
 }
 
-.sh-dock-track-buffer {
+.sh-scrubber-buffered {
     position: absolute;
     left: 0;
     height: 6px;
     width: 0%;
-    background: rgba(255, 255, 255, 0.38);
+    background: rgba(255, 255, 255, 0.35);
     border-radius: 999px;
     pointer-events: none;
     transition: height 0.2s;
 }
-.sh-dock-track-wrap:hover .sh-dock-track-buffer {
+.sh-timeline-scrubber:hover .sh-scrubber-buffered {
     height: 9px;
 }
 
-.sh-dock-track-played {
+.sh-scrubber-played {
     position: absolute;
     left: 0;
     height: 6px;
     width: 0%;
-    background: linear-gradient(90deg, #0077ff 0%, #00d2ff 100%);
+    background: linear-gradient(90deg, #ff9f0a 0%, #ffc04d 100%);
     border-radius: 999px;
     pointer-events: none;
-    box-shadow: 0 0 16px rgba(0, 210, 255, 0.85);
+    box-shadow: 0 0 16px rgba(255, 159, 10, 0.85);
     transition: height 0.2s;
 }
-.sh-dock-track-wrap:hover .sh-dock-track-played {
+.sh-timeline-scrubber:hover .sh-scrubber-played {
     height: 9px;
 }
 
-.sh-dock-track-handle {
+.sh-scrubber-thumb {
     position: absolute;
     top: 50%;
     left: 0%;
@@ -2099,24 +2094,24 @@ class VideoPlayer {
     height: 15px;
     border-radius: 50%;
     background: #ffffff;
-    box-shadow: 0 0 14px rgba(0, 210, 255, 1), 0 2px 8px rgba(0,0,0,0.7);
+    box-shadow: 0 0 14px rgba(255, 159, 10, 1), 0 2px 8px rgba(0,0,0,0.7);
     transform: translate(-50%, -50%) scale(0);
     pointer-events: none;
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.45, 1);
 }
-.sh-dock-track-wrap:hover .sh-dock-track-handle {
+.sh-timeline-scrubber:hover .sh-scrubber-thumb {
     transform: translate(-50%, -50%) scale(1.15);
 }
 
-.sh-dock-time-tooltip {
+.sh-scrubber-tooltip {
     position: absolute;
     bottom: 28px;
     left: 0%;
     transform: translateX(-50%);
     padding: 4px 8px;
-    background: rgba(18, 18, 28, 0.98);
+    background: rgba(12, 12, 16, 0.98);
     backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: 8px;
     color: #fff;
     font-size: 11px;
@@ -2127,28 +2122,28 @@ class VideoPlayer {
     transition: opacity 0.15s ease;
     box-shadow: 0 8px 24px rgba(0,0,0,0.7);
 }
-.sh-dock-track-wrap:hover .sh-dock-time-tooltip {
+.sh-timeline-scrubber:hover .sh-scrubber-tooltip {
     opacity: 1;
 }
 
-/* ── Ligne 2 : Commandes & Groupes Ergonomiques ──────────────────────── */
-.sh-dock-controls-row {
+/* ── Ligne 2 : Commandes Ergonomiques ────────────────────────────────── */
+.sh-dock-controls-section {
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
 
-.sh-dock-group {
+.sh-controls-group {
     display: flex;
     align-items: center;
     gap: 8px;
 }
-.sh-dock-group--center {
+.sh-controls-center {
     gap: 12px;
 }
 
-/* Volume Luxury Pill */
-.sh-volume-luxury-pill {
+/* Volume Capsule */
+.sh-volume-capsule {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -2157,18 +2152,18 @@ class VideoPlayer {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
-.sh-volume-track-container {
+.sh-volume-slider-box {
     width: 65px;
     display: flex;
     align-items: center;
 }
-.sh-vision-slider {
+.sh-range-slider {
     width: 65px;
     height: 4px;
-    accent-color: #00d2ff;
+    accent-color: #ff9f0a;
     cursor: pointer;
 }
-.sh-volume-pct-label {
+.sh-volume-val {
     font-size: 10px;
     font-weight: 700;
     color: rgba(255, 255, 255, 0.6);
@@ -2178,7 +2173,7 @@ class VideoPlayer {
 }
 
 /* Boutons Icones Glass */
-.sh-glass-round-btn {
+.sh-circle-btn {
     position: relative;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -2192,25 +2187,23 @@ class VideoPlayer {
     border-radius: 50%;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.sh-glass-round-btn:hover {
+.sh-circle-btn:hover {
     color: #fff;
     background: rgba(255, 255, 255, 0.16);
     border-color: rgba(255, 255, 255, 0.24);
     transform: scale(1.08);
 }
-.sh-glass-round-btn.spring-active {
-    animation: shButtonSpring 0.35s cubic-bezier(0.34, 1.56, 0.45, 1);
+.sh-circle-btn.spring-bounce {
+    animation: shCircleBounce 0.35s cubic-bezier(0.34, 1.56, 0.45, 1);
 }
-@keyframes shButtonSpring {
+@keyframes shCircleBounce {
     0% { transform: scale(1); }
     50% { transform: scale(1.22) rotate(-8deg); }
     100% { transform: scale(1); }
 }
 
-.sh-btn-skip-spring {
-    position: relative;
-}
-.sh-skip-tag {
+.sh-btn-skip-spring { position: relative; }
+.sh-skip-num {
     position: absolute;
     font-size: 8px;
     font-weight: 800;
@@ -2219,10 +2212,10 @@ class VideoPlayer {
     transform: translate(-50%, -50%);
 }
 
-/* 🌟 Play/Pause Géant avec Spring Physics & Halo */
-.sh-vision-play-pause-btn {
-    width: 52px;
-    height: 52px;
+/* 🌟 Play/Pause Géant Perlé avec Spring Physics & Halo */
+.sh-master-play-btn {
+    width: 54px;
+    height: 54px;
     border-radius: 50%;
     background: #ffffff;
     border: none;
@@ -2231,155 +2224,184 @@ class VideoPlayer {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 4px 24px rgba(255, 255, 255, 0.5), 0 0 25px rgba(0, 168, 255, 0.35);
+    box-shadow: 0 4px 24px rgba(255, 255, 255, 0.5), 0 0 25px rgba(255, 159, 10, 0.35);
     transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.45, 1), box-shadow 0.25s ease;
 }
-.sh-vision-play-pause-btn:hover {
+.sh-master-play-btn:hover {
     transform: scale(1.12);
-    box-shadow: 0 6px 30px rgba(255, 255, 255, 0.75), 0 0 30px rgba(0, 168, 255, 0.55);
+    box-shadow: 0 6px 30px rgba(255, 255, 255, 0.75), 0 0 30px rgba(255, 159, 10, 0.55);
 }
-.sh-vision-play-pause-btn:active {
+.sh-master-play-btn:active {
     transform: scale(0.92);
 }
 
-/* Boutons Pills Droite */
-.sh-luxury-pill-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 999px;
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-luxury-pill-btn:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.3);
-    transform: scale(1.03);
-}
-.sh-luxury-pill-btn.active {
-    background: rgba(0, 168, 255, 0.24);
-    border-color: rgba(0, 168, 255, 0.55);
-    color: #00d2ff;
-}
-.sh-luxury-pill-btn--speed {
-    padding: 7px 10px;
-    font-weight: 700;
-}
+/* ═══════════════════════════════════════════════════════════════════════════
+   🗄️ TIROIR LATÉRAL EN VERRE COULISSANT (Apple Glass Cinema Drawer)
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Popovers Apple VisionOS ─────────────────────────────────────────── */
-.sh-popover-anchor {
-    position: relative;
-}
-
-.sh-vision-popover {
+.sh-cinema-drawer-backdrop {
     position: absolute;
-    bottom: 56px;
-    right: 0;
-    width: 320px;
-    background: rgba(16, 16, 26, 0.98);
-    backdrop-filter: blur(48px) saturate(220%);
-    -webkit-backdrop-filter: blur(48px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    border-radius: 22px;
-    box-shadow: 0 24px 70px rgba(0,0,0,0.92);
-    padding: 16px;
-    z-index: 200;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    z-index: 95;
     opacity: 0;
     pointer-events: none;
-    transform: translateY(12px) scale(0.96);
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.sh-vision-popover.open {
+.sh-cinema-drawer-backdrop.visible {
     opacity: 1;
     pointer-events: auto;
-    transform: translateY(0) scale(1);
-}
-.sh-vision-popover--speed {
-    width: 140px;
-    padding: 10px;
 }
 
-.sh-vision-popover-header {
-    padding-bottom: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    margin-bottom: 12px;
-}
-.sh-vision-popover-header h4 {
-    margin: 0;
-    font-size: 13px;
-    font-weight: 700;
-    color: #fff;
-}
-
-.sh-vision-popover-body {
-    max-height: 360px;
-    overflow-y: auto;
+.sh-cinema-drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(420px, 90vw);
+    background: rgba(12, 12, 16, 0.96);
+    backdrop-filter: blur(50px) saturate(220%);
+    -webkit-backdrop-filter: blur(50px) saturate(220%);
+    border-left: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: -24px 0 70px rgba(0, 0, 0, 0.95);
+    z-index: 100;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sh-cinema-drawer.open {
+    transform: translateX(0);
 }
 
-.sh-popover-group-label {
-    display: block;
-    font-size: 10px;
-    font-weight: 800;
-    color: #00d2ff;
-    letter-spacing: 0.6px;
-    margin-bottom: 6px;
-}
-
-.sh-popover-item-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.sh-vision-stream-item {
+.sh-drawer-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
+    justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 12px;
+}
+
+.sh-drawer-tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 4px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.sh-drawer-tab-btn {
+    padding: 6px 12px;
+    border-radius: 999px;
     background: transparent;
     border: none;
-    border-radius: 12px;
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 12px;
-    font-weight: 500;
-    text-align: left;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 11px;
+    font-weight: 700;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: all 0.18s ease;
 }
-.sh-vision-stream-item:hover {
-    background: rgba(255, 255, 255, 0.1);
+.sh-drawer-tab-btn:hover {
     color: #fff;
 }
-.sh-vision-stream-item.selected {
-    background: rgba(0, 168, 255, 0.2);
-    color: #00d2ff;
-    font-weight: 700;
+.sh-drawer-tab-btn.active {
+    background: #ff9f0a;
+    color: #000000;
+    box-shadow: 0 2px 10px rgba(255, 159, 10, 0.35);
 }
-.sh-stream-check-icon {
-    width: 14px;
-    font-size: 12px;
+
+.sh-drawer-close-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+.sh-drawer-close-circle:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.08);
+}
+
+.sh-drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.sh-drawer-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.sh-drawer-kicker {
+    margin: 0;
+    font-size: 10px;
+    font-weight: 800;
+    color: #ff9f0a;
+    letter-spacing: 0.6px;
+}
+
+.sh-drawer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sh-drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.18s ease;
+}
+.sh-drawer-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    transform: translateX(2px);
+}
+.sh-drawer-item.active {
+    background: rgba(255, 159, 10, 0.18);
+    border-color: rgba(255, 159, 10, 0.45);
+    color: #ff9f0a;
+}
+.sh-drawer-item-check {
+    width: 16px;
+    font-size: 13px;
+    font-weight: 800;
     opacity: 0;
 }
-.sh-vision-stream-item.selected .sh-stream-check-icon {
+.sh-drawer-item.active .sh-drawer-item-check {
     opacity: 1;
 }
-.sh-stream-meta {
+.sh-drawer-item-info {
     flex: 1;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
-.sh-stream-badge {
+.sh-drawer-item-title {
+    font-size: 13px;
+    font-weight: 600;
+}
+.sh-drawer-item-badge {
     font-size: 9px;
     font-weight: 800;
     padding: 2px 6px;
@@ -2387,68 +2409,158 @@ class VideoPlayer {
     background: rgba(255, 255, 255, 0.1);
 }
 
-.sh-offset-pill-grid {
+.sh-sync-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 4px;
+    gap: 6px;
 }
-.sh-offset-pill {
-    padding: 6px 2px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.08);
+.sh-sync-btn {
+    padding: 8px 2px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: #fff;
     font-size: 11px;
     font-weight: 700;
     cursor: pointer;
+    transition: all 0.18s ease;
 }
-.sh-offset-pill:hover {
-    background: rgba(255, 255, 255, 0.18);
-}
-.sh-offset-pill--reset {
-    grid-column: span 1;
-    font-size: 10px;
-}
-.sh-offset-feedback {
-    margin: 6px 0 0;
+.sh-sync-btn:hover { background: rgba(255, 255, 255, 0.16); }
+.sh-sync-btn--reset { font-size: 10px; }
+.sh-sync-label {
+    margin: 4px 0 0;
     font-size: 11px;
-    color: rgba(255,255,255,0.6);
+    color: rgba(255, 255, 255, 0.6);
 }
 
-.sh-online-sub-search-btn {
+.sh-btn-search-online {
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 8px;
-    border-radius: 10px;
+    padding: 10px;
+    border-radius: 12px;
     background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     color: #fff;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
+    transition: all 0.2s ease;
 }
-.sh-online-sub-search-btn:hover {
-    background: rgba(255, 255, 255, 0.14);
+.sh-btn-search-online:hover {
+    background: rgba(255, 159, 10, 0.2);
+    border-color: #ff9f0a;
 }
 
-.sh-speed-opt {
-    padding: 8px 10px;
-    background: transparent;
-    border: none;
-    border-radius: 8px;
+.sh-settings-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.sh-chip-btn {
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     color: rgba(255, 255, 255, 0.85);
     font-size: 12px;
     font-weight: 600;
-    text-align: left;
     cursor: pointer;
+    transition: all 0.18s ease;
 }
-.sh-speed-opt:hover { background: rgba(255,255,255,0.1); color:#fff; }
-.sh-speed-opt.selected { background: rgba(0, 168, 255, 0.2); color: #00d2ff; }
+.sh-chip-btn:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.sh-chip-btn.active {
+    background: #ff9f0a;
+    color: #000;
+    border-color: #ff9f0a;
+    box-shadow: 0 2px 10px rgba(255, 159, 10, 0.35);
+}
 
-/* ── Scrollbar Glass ─────────────────────────────────────────────────── */
+.sh-episodes-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.sh-episode-card {
+    display: flex;
+    gap: 12px;
+    padding: 8px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.sh-episode-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+.sh-episode-card.active {
+    background: rgba(255, 159, 10, 0.18);
+    border-color: rgba(255, 159, 10, 0.45);
+}
+.sh-episode-card__thumb {
+    position: relative;
+    width: 110px;
+    height: 62px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #000;
+}
+.sh-episode-card__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.sh-episode-card__badge {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    background: rgba(0,0,0,0.8);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+}
+.sh-episode-card__playing {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 159, 10, 0.75);
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+}
+.sh-episode-card__meta {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+}
+.sh-episode-card__title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sh-episode-card__runtime {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.sh-drawer-empty {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 13px;
+    padding: 16px;
+}
+
+/* Scrollbar Verre */
 .sh-scrollbar::-webkit-scrollbar { width: 4px; }
 .sh-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
         `;
