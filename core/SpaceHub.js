@@ -40,6 +40,8 @@ import MoviesWidget           from '../ui/widgets/MoviesWidget.js';
 import TvShowsWidget          from '../ui/widgets/TvShowsWidget.js';
 import CollectionsWidget      from '../ui/widgets/CollectionsWidget.js';
 import MusicWidget            from '../ui/widgets/MusicWidget.js';
+import AnimeWidget            from '../ui/widgets/AnimeWidget.js';
+import DynamicLibraryWidget   from '../ui/widgets/DynamicLibraryWidget.js';
 import UnifiedCalendarWidget  from '../ui/widgets/UnifiedCalendarWidget.js';
 import MediaAnalyticsWidget   from '../ui/widgets/MediaAnalyticsWidget.js';
 
@@ -272,6 +274,7 @@ async function init() {
         dashboard.registerWidget('latest-additions', LatestAdditionsWidget);
         dashboard.registerWidget('movies', MoviesWidget);
         dashboard.registerWidget('tv-shows', TvShowsWidget);
+        dashboard.registerWidget('anime', AnimeWidget);
         dashboard.registerWidget('collections-sagas', CollectionsWidget);
         dashboard.registerWidget('music-soundtracks', MusicWidget);
         dashboard.registerWidget('sonarr-upcoming', UpcomingEpisodesWidget);

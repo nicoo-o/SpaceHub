@@ -430,139 +430,81 @@ class Dashboard {
             { widgetType: 'sonarr-upcoming', colSpan: 12 },
             { widgetType: 'radarr-upcoming', colSpan: 12 },
             { widgetType: 'bazarr-wanted', colSpan: 12 },
+            { widgetType: 'unified-calendar', colSpan: 12 },
+            { widgetType: 'media-analytics', colSpan: 12 },
         ];
 
         let layout = this._settings?.get('dashboard.layout', defaultLayout) || defaultLayout;
 
-        if (Array.isArray(layout)) {
-            // Filtrer quick-actions de la grille inférieure
-            layout = layout.filter(i => i.widgetType !== 'quick-actions');
-            if (!layout.some(i => i.widgetType === 'user-libraries')) {
-                layout = [{ widgetType: 'user-libraries', colSpan: 12 }, ...layout];
+        if (!Array.isArray(layout)) {
+            layout = [...defaultLayout];
+        }
+
+        // Filtrer quick-actions de la grille inférieure
+        layout = layout.filter(i => i && i.widgetType !== 'quick-actions');
+
+        // Assurer la présence des rayons de base
+        if (!layout.some(i => i.widgetType === 'user-libraries')) {
+            layout.unshift({ widgetType: 'user-libraries', colSpan: 12 });
+        }
+        if (!layout.some(i => i.widgetType === 'continue-watching')) {
+            const libIdx = layout.findIndex(i => i.widgetType === 'user-libraries');
+            layout.splice(libIdx !== -1 ? libIdx + 1 : 0, 0, { widgetType: 'continue-watching', colSpan: 12 });
+        }
+        if (!layout.some(i => i.widgetType === 'latest-additions')) {
+            const contIdx = layout.findIndex(i => i.widgetType === 'continue-watching');
+            layout.splice(contIdx !== -1 ? contIdx + 1 : 1, 0, { widgetType: 'latest-additions', colSpan: 12 });
+        }
+        if (!layout.some(i => i.widgetType === 'movies')) {
+            const addIdx = layout.findIndex(i => i.widgetType === 'latest-additions');
+            layout.splice(addIdx !== -1 ? addIdx + 1 : 2, 0, { widgetType: 'movies', colSpan: 12 });
+        }
+        if (!layout.some(i => i.widgetType === 'tv-shows')) {
+            const movIdx = layout.findIndex(i => i.widgetType === 'movies');
+            layout.splice(movIdx !== -1 ? movIdx + 1 : 3, 0, { widgetType: 'tv-shows', colSpan: 12 });
+        }
+        if (!layout.some(i => i.widgetType === 'anime')) {
+            const tvIdx = layout.findIndex(i => i.widgetType === 'tv-shows');
+            layout.splice(tvIdx !== -1 ? tvIdx + 1 : 4, 0, { widgetType: 'anime', colSpan: 12 });
+        }
+        if (!layout.some(i => i.widgetType === 'collections-sagas')) {
+            const aniIdx = layout.findIndex(i => i.widgetType === 'anime');
+            layout.splice(aniIdx !== -1 ? aniIdx + 1 : 5, 0, { widgetType: 'collections-sagas', colSpan: 12 });
+        }
+        if (!layout.some(i => i.widgetType === 'music-soundtracks')) {
+            const colIdx = layout.findIndex(i => i.widgetType === 'collections-sagas');
+            layout.splice(colIdx !== -1 ? colIdx + 1 : 6, 0, { widgetType: 'music-soundtracks', colSpan: 12 });
+        }
+
+        // ── Auto-détection de TOUTES les bibliothèques Jellyfin du serveur ──
+        try {
+            const api = window.SpaceHub?.jellyfin?.api;
+            let userViews = [];
+            if (api?.getUserViews) {
+                userViews = await api.getUserViews();
             }
-            if (!layout.some(i => i.widgetType === 'movies')) {
-                const addIdx = layout.findIndex(i => i.widgetType === 'latest-additions');
-                if (addIdx !== -1) {
-                    layout.splice(addIdx + 1, 0, { widgetType: 'movies', colSpan: 12 });
-                } else {
-                    layout.push({ widgetType: 'movies', colSpan: 12 });
-                }
-            }
-            // Auto-injecter la section Séries TV si absente
-            if (!layout.some(i => i.widgetType === 'tv-shows')) {
-                const moviesIdx = layout.findIndex(i => i.widgetType === 'movies');
-                if (moviesIdx !== -1) {
-                    layout.splice(moviesIdx + 1, 0, { widgetType: 'tv-shows', colSpan: 12 });
-                } else {
-                    layout.push({ widgetType: 'tv-shows', colSpan: 12 });
-                }
-            }
-            // Auto-injecter la section Animés si absente
-            if (!layout.some(i => i.widgetType === 'anime')) {
-                const tvIdx = layout.findIndex(i => i.widgetType === 'tv-shows');
-                if (tvIdx !== -1) {
-                    layout.splice(tvIdx + 1, 0, { widgetType: 'anime', colSpan: 12 });
-                } else {
-                    layout.push({ widgetType: 'anime', colSpan: 12 });
-                }
-            }
-            // Auto-injecter Collections si absente
-            if (!layout.some(i => i.widgetType === 'collections-sagas')) {
-                const animeIdx = layout.findIndex(i => i.widgetType === 'anime');
-                if (animeIdx !== -1) {
-                    layout.splice(animeIdx + 1, 0, { widgetType: 'collections-sagas', colSpan: 12 });
-                } else {
-                    layout.push({ widgetType: 'collections-sagas', colSpan: 12 });
-                }
-            }
-            // Auto-injecter Musique si absente
-            if (!layout.some(i => i.widgetType === 'music-soundtracks')) {
-                layout.push({ widgetType: 'music-soundtracks', colSpan: 12 });
+            if ((!userViews || userViews.length === 0) && window.ApiClient?.getUserViews) {
+                const rawViews = await window.ApiClient.getUserViews(api?.getUserId?.());
+                userViews = rawViews?.Items || (Array.isArray(rawViews) ? rawViews : []);
             }
 
-            // Assurer que les widgets de découverte et d'intégrations sont présents
-            if (!layout.some(i => i.widgetType === 'jellyseerr-trending')) {
-                layout.push({ widgetType: 'jellyseerr-trending', colSpan: 12 });
-            }
-            if (!layout.some(i => i.widgetType === 'jellyseerr-popular-movies')) {
-                layout.push({ widgetType: 'jellyseerr-popular-movies', colSpan: 12 });
-            }
-            if (!layout.some(i => i.widgetType === 'jellyseerr-popular-series')) {
-                layout.push({ widgetType: 'jellyseerr-popular-series', colSpan: 12 });
-            }
-            if (!layout.some(i => i.widgetType === 'jellyseerr-upcoming')) {
-                layout.push({ widgetType: 'jellyseerr-upcoming', colSpan: 12 });
-            }
-            if (!layout.some(i => i.widgetType === 'jellyseerr-requests')) {
-                layout.push({ widgetType: 'jellyseerr-requests', colSpan: 12 });
-            }
-            if (!layout.some(i => i.widgetType === 'qbittorrent-speed')) {
-                layout.push({ widgetType: 'qbittorrent-speed', colSpan: 6 });
-            }
-            if (!layout.some(i => i.widgetType === 'qbittorrent-active')) {
-                layout.push({ widgetType: 'qbittorrent-active', colSpan: 6 });
-            }
-            if (!layout.some(i => i.widgetType === 'sonarr-upcoming')) {
-                layout.push({ widgetType: 'sonarr-upcoming', colSpan: 12 });
-            }
-            if (!layout.some(i => i.widgetType === 'radarr-upcoming')) {
-                layout.push({ widgetType: 'radarr-upcoming', colSpan: 12 });
-            }
-            if (!layout.some(i => i.widgetType === 'bazarr-wanted')) {
-                layout.push({ widgetType: 'bazarr-wanted', colSpan: 12 });
-            }
-            if (!layout.some(i => i.widgetType === 'unified-calendar')) {
-                layout.push({ widgetType: 'unified-calendar', colSpan: 12 });
-            }
-            if (!layout.some(i => i.widgetType === 'media-analytics')) {
-                layout.push({ widgetType: 'media-analytics', colSpan: 12 });
-            }
+            if (Array.isArray(userViews) && userViews.length > 0) {
+                for (const view of userViews) {
+                    const dynamicId = `library-${view.Id}`;
 
-            // ── Auto-détection de TOUTES les bibliothèques Jellyfin ──
-            // Pour chaque bibliothèque non couverte par un widget dédié,
-            // on crée dynamiquement un DynamicLibraryWidget.
-            try {
-                const api = window.SpaceHub?.jellyfin?.api;
-                let userViews = [];
-                if (api?.getUserViews) {
-                    userViews = await api.getUserViews();
-                }
-                if ((!userViews || userViews.length === 0) && window.ApiClient?.getUserViews) {
-                    const rawViews = await window.ApiClient.getUserViews(api?.getUserId?.());
-                    userViews = rawViews?.Items || (Array.isArray(rawViews) ? rawViews : []);
-                }
-
-                if (Array.isArray(userViews) && userViews.length > 0) {
-                    // Types de collections déjà couverts par des widgets dédiés
-                    const coveredTypes = new Set(['movies', 'tvshows', 'music', 'boxsets', 'playlists']);
-                    // Noms de bibliothèques couverts par le widget Anime dédié
-                    const animeNames = new Set(['anime', 'animé', 'animés', 'animation']);
-
-                    for (const view of userViews) {
-                        const colType = (view.CollectionType || '').toLowerCase();
-                        const viewName = (view.Name || '').toLowerCase();
-                        const dynamicId = `dynamic-library-${view.Id}`;
-
-                        // Passer les bibliothèques déjà couvertes par un widget dédié
-                        if (coveredTypes.has(colType)) continue;
-                        // Passer si c'est une bibliothèque anime (déjà couverte par AnimeWidget)
-                        if (animeNames.has(viewName)) continue;
-                        // Passer si déjà dans le layout
-                        if (layout.some(i => i.widgetType === dynamicId)) continue;
-
-                        // Enregistrer dynamiquement le widget pour cette bibliothèque
-                        if (!this._registeredWidgets.has(dynamicId)) {
-                            // Créer une sous-classe liée à cette bibliothèque spécifique
-                            const libraryView = view;
-                            const DynamicWidget = class extends DynamicLibraryWidget {
-                                constructor() {
-                                    super(libraryView);
-                                }
-                            };
-                            this._registeredWidgets.set(dynamicId, DynamicWidget);
+                    // Enregistrer dynamiquement le widget pour chaque bibliothèque
+                    if (!this._registeredWidgets.has(dynamicId)) {
+                        const libraryView = view;
+                        class CustomLibraryShelfWidget extends DynamicLibraryWidget {
+                            constructor() {
+                                super(libraryView);
+                            }
                         }
+                        this._registeredWidgets.set(dynamicId, CustomLibraryShelfWidget);
+                    }
 
-                        // Injecter dans le layout juste avant les widgets Servarr/Jellyseerr
+                    // Si la bibliothèque n'est pas encore dans le layout, l'insérer dans la zone des rayons multimédias
+                    if (!layout.some(i => i.widgetType === dynamicId)) {
                         const insertIdx = layout.findIndex(i =>
                             i.widgetType.startsWith('jellyseerr-') ||
                             i.widgetType.startsWith('sonarr-') ||
@@ -577,12 +519,32 @@ class Dashboard {
                         } else {
                             layout.push({ widgetType: dynamicId, colSpan: 12 });
                         }
-
-                        this._log.info(`[Dashboard] Auto-détection bibliothèque : "${view.Name}" → widget ${dynamicId}`);
+                        this._log.info(`[Dashboard] Rayon de bibliothèque auto-lié : "${view.Name}" (${dynamicId})`);
                     }
                 }
-            } catch (e) {
-                console.warn('[Dashboard] Erreur auto-détection bibliothèques:', e);
+            }
+        } catch (e) {
+            console.warn('[Dashboard] Erreur auto-détection bibliothèques:', e);
+        }
+
+        // Assurer la présence des widgets d'intégrations
+        const integrationWidgets = [
+            { widgetType: 'jellyseerr-trending', colSpan: 12 },
+            { widgetType: 'jellyseerr-popular-movies', colSpan: 12 },
+            { widgetType: 'jellyseerr-popular-series', colSpan: 12 },
+            { widgetType: 'jellyseerr-upcoming', colSpan: 12 },
+            { widgetType: 'jellyseerr-requests', colSpan: 12 },
+            { widgetType: 'qbittorrent-speed', colSpan: 6 },
+            { widgetType: 'qbittorrent-active', colSpan: 6 },
+            { widgetType: 'sonarr-upcoming', colSpan: 12 },
+            { widgetType: 'radarr-upcoming', colSpan: 12 },
+            { widgetType: 'bazarr-wanted', colSpan: 12 },
+            { widgetType: 'unified-calendar', colSpan: 12 },
+            { widgetType: 'media-analytics', colSpan: 12 },
+        ];
+        for (const iw of integrationWidgets) {
+            if (!layout.some(i => i.widgetType === iw.widgetType)) {
+                layout.push(iw);
             }
         }
 
@@ -591,7 +553,15 @@ class Dashboard {
 
         if (Array.isArray(sectionOrderArr) && sectionOrderArr.length > 0) {
             const orderMap = new Map(sectionOrderArr.map((id, i) => [id, i]));
-            layout.sort((a, b) => (orderMap.has(a.widgetType) ? orderMap.get(a.widgetType) : 999) - (orderMap.has(b.widgetType) ? orderMap.get(b.widgetType) : 999));
+            layout.sort((a, b) => {
+                const getScore = (wType) => {
+                    if (orderMap.has(wType)) return orderMap.get(wType);
+                    // Placer les nouveaux rayons médias découverts juste après tv-shows (score 4.5)
+                    if (wType === 'anime' || wType.startsWith('library-') || wType.startsWith('dynamic-library-')) return 4.5;
+                    return 999;
+                };
+                return getScore(a.widgetType) - getScore(b.widgetType);
+            });
         }
 
         let mountedIndex = 0;

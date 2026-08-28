@@ -515,7 +515,8 @@ class SettingsPanel {
                 { id: 'continue-watching', name: 'Continuer la lecture', type: 'Reprise rapide avec progression', icon: '▶️' },
                 { id: 'latest-additions', name: 'Nouveautés & Ajouts Récents', type: 'Flux serveur Jellyfin', icon: '🔥' },
                 { id: 'movies', name: 'Films populaires', type: 'Rayon Films', icon: '🍿' },
-                { id: 'tv-shows', name: 'Séries TV & Animés', type: 'Rayon Séries', icon: '📺' },
+                { id: 'tv-shows', name: 'Séries TV', type: 'Rayon Séries', icon: '📺' },
+                { id: 'anime', name: 'Animés & Animation Japonaise', type: 'Rayon Animés', icon: '⚡' },
                 { id: 'collections-sagas', name: 'Mes Sagas & Collections', type: 'Boxsets & Sagas', icon: '📦' },
                 { id: 'music-soundtracks', name: 'Musiques & Bandes Originales', type: 'Rayon Musique', icon: '🎵' },
                 { id: 'jellyseerr-trending', name: 'Tendances & Découverte (Jellyseerr)', type: 'Découverte TMDB', icon: '🔥' },
@@ -536,10 +537,55 @@ class SettingsPanel {
             let sectionOrderArr = JSON.parse(localStorage.getItem('sh_dashboard_sections_order') || 'null') || this._settings?.get('dashboard.sectionsOrder', []);
             let sectionsList = [...DEFAULT_HOME_SECTIONS];
 
+            // Découvrir les bibliothèques personnalisées du serveur et les ajouter à la liste
+            const api = window.SpaceHub?.jellyfin?.api;
+            const loadCustomLibs = async () => {
+                try {
+                    let userViews = [];
+                    if (api?.getUserViews) {
+                        userViews = await api.getUserViews();
+                    }
+                    if ((!userViews || userViews.length === 0) && window.ApiClient?.getUserViews) {
+                        const rawViews = await window.ApiClient.getUserViews(api?.getUserId?.());
+                        userViews = rawViews?.Items || (Array.isArray(rawViews) ? rawViews : []);
+                    }
+                    if (Array.isArray(userViews)) {
+                        for (const v of userViews) {
+                            const libSecId = `library-${v.Id}`;
+                            if (!sectionsList.some(s => s.id === libSecId)) {
+                                const lowerType = (v.CollectionType || v.Type || '').toLowerCase();
+                                let libIcon = '📁';
+                                if (lowerType.includes('movie')) libIcon = '🎬';
+                                else if (lowerType.includes('tv') || lowerType.includes('series')) libIcon = '📺';
+                                else if (lowerType.includes('music')) libIcon = '🎵';
+                                else if (v.Name?.toLowerCase().includes('anime')) libIcon = '⚡';
+
+                                sectionsList.splice(6, 0, {
+                                    id: libSecId,
+                                    name: `Rayon : ${v.Name}`,
+                                    type: 'Médiathèque Jellyfin',
+                                    icon: libIcon
+                                });
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Ignorer
+                }
+                renderHomeSectionRows();
+            };
+
             const renderHomeSectionRows = () => {
                 if (Array.isArray(sectionOrderArr) && sectionOrderArr.length > 0) {
                     const orderMap = new Map(sectionOrderArr.map((id, i) => [id, i]));
-                    sectionsList.sort((a, b) => (orderMap.has(a.id) ? orderMap.get(a.id) : 999) - (orderMap.has(b.id) ? orderMap.get(b.id) : 999));
+                    sectionsList.sort((a, b) => {
+                        const getScore = (id) => {
+                            if (orderMap.has(id)) return orderMap.get(id);
+                            if (id === 'anime' || id.startsWith('library-')) return 4.5;
+                            return 999;
+                        };
+                        return getScore(a.id) - getScore(b.id);
+                    });
                 }
 
                 homeSectionsEl.innerHTML = sectionsList.map((sec, idx) => {
@@ -674,6 +720,7 @@ class SettingsPanel {
             };
 
             renderHomeSectionRows();
+            loadCustomLibs();
         }
 
         // Chargement et gestion de l'onglet Médiathèques
