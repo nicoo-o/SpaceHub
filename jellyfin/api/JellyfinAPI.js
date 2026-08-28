@@ -581,6 +581,98 @@ class JellyfinAPI {
     }
 
     /**
+     * Récupère la liste globale des prochains épisodes à regarder (NextUp) pour toutes les séries en cours.
+     * @param {number} [limit=16]
+     * @returns {Promise<Array<Object>>}
+     */
+    async getNextUpItems(limit = 16) {
+        const userId = this.getUserId();
+        if (!userId) return [];
+
+        const fields = 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,RunTimeTicks,SeriesName,SeriesId,SeasonId,IndexNumber,ParentIndexNumber,BackdropImageTags';
+
+        if (this._rawApiClient?.getJSON && this._rawApiClient?.getUrl) {
+            try {
+                const url = this._rawApiClient.getUrl('Shows/NextUp', {
+                    userId: userId || '',
+                    limit: String(limit),
+                    fields: fields
+                });
+                const res = await this._rawApiClient.getJSON(url);
+                return res?.Items || (Array.isArray(res) ? res : []);
+            } catch (e) {
+                this._log.debug('getNextUpItems rawApiClient fallback:', e);
+            }
+        }
+
+        const params = new URLSearchParams({
+            userId: userId || '',
+            limit: String(limit),
+            fields: fields
+        });
+
+        try {
+            const data = await this._client.get(`/Shows/NextUp?${params.toString()}`);
+            return data?.Items || [];
+        } catch (err) {
+            this._log.warn('Erreur getNextUpItems:', err);
+            return [];
+        }
+    }
+
+    /**
+     * Moteur d'Agrégation Unifié « Reprendre la lecture » (NextUp & En cours).
+     * Fusionne les médias stoppés en cours avec les prochains épisodes des séries actives.
+     * @param {number} [limit=16]
+     * @returns {Promise<Array<Object>>}
+     */
+    async getUnifiedContinueWatching(limit = 16) {
+        const userId = this.getUserId();
+        if (!userId) return [];
+
+        try {
+            const [resumeItems, nextUpItems] = await Promise.all([
+                this.getResumeItems(limit),
+                this.getNextUpItems(limit)
+            ]);
+
+            const seriesInResume = new Set();
+            const unified = [];
+
+            // 1. Ajouter d'abord les éléments en cours de visionnage (avec PlaybackPositionTicks > 0)
+            for (const item of resumeItems) {
+                unified.push(item);
+                if (item.SeriesId) {
+                    seriesInResume.add(item.SeriesId);
+                }
+            }
+
+            // 2. Ajouter les prochains épisodes (NextUp) pour les séries dont l'épisode précédent est terminé
+            for (const nextEp of nextUpItems) {
+                const seriesId = nextEp.SeriesId || nextEp.Id;
+                if (!seriesInResume.has(seriesId)) {
+                    unified.push(nextEp);
+                    seriesInResume.add(seriesId);
+                }
+            }
+
+            // 3. Tri chronologique intelligent par dernière date d'activité
+            unified.sort((a, b) => {
+                const dateA = new Date(a.UserData?.LastPlayedDate || a.DateCreated || 0).getTime();
+                const dateB = new Date(b.UserData?.LastPlayedDate || b.DateCreated || 0).getTime();
+                return dateB - dateA;
+            });
+
+            return unified.slice(0, limit);
+        } catch (err) {
+            this._log.warn('Erreur getUnifiedContinueWatching:', err);
+            return this.getResumeItems(limit);
+        }
+    }
+
+
+
+    /**
      * Récupère les derniers ajouts pour l'utilisateur.
      * @param {Object} [options]
      * @returns {Promise<Array<Object>>}

@@ -625,14 +625,12 @@ class CardBuilder {
             const rtScore = !isFolder ? (item.CriticRating !== undefined && item.CriticRating !== null ? Math.round(item.CriticRating) : (item.rottenScore !== undefined ? item.rottenScore : (item.CommunityRating ? Math.min(99, Math.round(item.CommunityRating * 10 + 2)) : 88))) : null;
             const rating = !isFolder ? (item.CommunityRating !== undefined ? item.CommunityRating : (item.rating !== undefined ? item.rating : 8.4)) : null;
 
-            // Formater le sous-titre avec Année + Genres (ex: "2026 • Sci-Fi, Action")
-            const genresText = (item.Genres && item.Genres.length > 0) ? item.Genres.slice(0, 2).join(', ') : '';
-            const subtitleText = isFolder ? (item.CollectionType || 'Dossier racine') : (item.subtitle || (item.ProductionYear ? `${item.ProductionYear}${genresText ? ' • ' + genresText : ''}` : (genresText || item.Type || '')));
+            const subtitleText = item.customSubtitle || (isFolder ? (item.CollectionType || 'Dossier racine') : (item.subtitle || (item.ProductionYear ? `${item.ProductionYear}${genresText ? ' • ' + genresText : ''}` : (genresText || item.Type || ''))));
 
             const card = this.createCard({
                 rawItem:  item,
                 id:       item.Id,
-                title:    item.Name ?? 'Inconnu',
+                title:    item.customTitle || item.Name || 'Inconnu',
                 subtitle: subtitleText,
                 imageUrl: item.customImage || (getImageUrl?.(item) ?? ''),
                 type,

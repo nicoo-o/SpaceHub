@@ -49,7 +49,9 @@ class ContinueWatchingWidget {
         try {
             const api = window.SpaceHub?.jellyfin?.api;
             let items = [];
-            if (api?.getResumeItems) {
+            if (api?.getUnifiedContinueWatching) {
+                items = await api.getUnifiedContinueWatching(16);
+            } else if (api?.getResumeItems) {
                 items = await api.getResumeItems(12);
             }
 
@@ -62,7 +64,26 @@ class ContinueWatchingWidget {
             container.style.display = '';
             const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
             if (cardBuilder) {
-                cardBuilder.renderGrid(contentEl, items, {
+                // Enrichissement du titre et du sous-titre pour une lisibilité Apple TV+ parfaite
+                const enrichedItems = items.map(it => {
+                    const isEpisode = it.Type === 'Episode' || it.SeriesName;
+                    const seriesTitle = it.SeriesName || (isEpisode ? it.Name : '');
+                    const epNum = isEpisode ? `S${String(it.ParentIndexNumber || 1).padStart(2, '0')}E${String(it.IndexNumber || 1).padStart(2, '0')}` : '';
+                    const epName = isEpisode ? (it.Name || '') : '';
+                    
+                    const displayTitle = isEpisode ? seriesTitle : (it.Name || it.title || 'Média');
+                    const displaySubtitle = isEpisode 
+                        ? `${epNum}${epName ? ' · ' + epName : ''}`
+                        : (it.ProductionYear ? `${it.ProductionYear} · Film` : 'Film');
+
+                    return {
+                        ...it,
+                        customTitle: displayTitle,
+                        customSubtitle: displaySubtitle
+                    };
+                });
+
+                cardBuilder.renderGrid(contentEl, enrichedItems, {
                     type: 'backdrop',
                     getImageUrl: (item) => {
                         const imageItemId = item.BackdropImageTags?.length ? item.Id : (item.SeriesId || item.Id);
