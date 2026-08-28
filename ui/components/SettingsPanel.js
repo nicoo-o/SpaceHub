@@ -524,13 +524,13 @@ class SettingsPanel {
                 { id: 'jellyseerr-popular-series', name: 'Séries Populaires & Nouveautés TV', type: 'Séries en streaming', icon: '📺' },
                 { id: 'jellyseerr-upcoming', name: 'Sorties Très Attendues (Jellyseerr)', type: 'Prochainement', icon: '⏳' },
                 { id: 'jellyseerr-requests', name: 'Demandes de Médias (Jellyseerr)', type: 'Gestion requêtes', icon: '🤝' },
+                { id: 'unified-calendar', name: 'Calendrier Unifié des Sorties', type: 'Sorties Séries & Films', icon: '📅' },
+                { id: 'media-analytics', name: 'Mon Activité & Statistiques', type: 'Statistiques de visionnage', icon: '📊' },
                 { id: 'qbittorrent-speed', name: 'Compteurs Vitesse qBittorrent', type: 'Intégration qBittorrent', icon: '⚡' },
                 { id: 'qbittorrent-active', name: 'Téléchargements Actifs qBittorrent', type: 'Intégration qBittorrent', icon: '📥' },
                 { id: 'sonarr-upcoming', name: 'Calendrier Séries (Sonarr)', type: 'Intégration Sonarr', icon: '📅' },
                 { id: 'radarr-upcoming', name: 'Sorties Films (Radarr)', type: 'Intégration Radarr', icon: '🎥' },
                 { id: 'bazarr-wanted', name: 'Sous-titres Recherchés (Bazarr)', type: 'Intégration Bazarr', icon: '📝' },
-                { id: 'unified-calendar', name: 'Calendrier Unifié des Sorties', type: 'Sorties Séries & Films', icon: '📅' },
-                { id: 'media-analytics', name: 'Mon Activité & Statistiques', type: 'Statistiques de visionnage', icon: '📊' },
             ];
 
             const hiddenSections = new Set(this._settings?.get('dashboard.hiddenSections', []));
@@ -551,6 +551,16 @@ class SettingsPanel {
                     }
                     if (Array.isArray(userViews)) {
                         for (const v of userViews) {
+                            const name = (v.Name || '').toLowerCase();
+                            const colType = (v.CollectionType || '').toLowerCase();
+
+                            // Sauter les bibliothèques déjà couvertes par des sections dédiées
+                            if (name.includes('anime') || name.includes('animé') || name.includes('animation') || name.includes('manga') || colType.includes('anime')) continue;
+                            if (name === 'films' || name === 'movies' || name === 'cinéma' || name === 'cinema') continue;
+                            if (name === 'séries' || name === 'series' || name === 'séries tv' || name === 'tv shows' || name === 'tv') continue;
+                            if (colType === 'music' || name === 'musique' || name === 'music') continue;
+                            if (colType === 'boxsets' || name === 'collections' || name === 'sagas') continue;
+
                             const libSecId = `library-${v.Id}`;
                             if (!sectionsList.some(s => s.id === libSecId)) {
                                 const lowerType = (v.CollectionType || v.Type || '').toLowerCase();
@@ -558,9 +568,8 @@ class SettingsPanel {
                                 if (lowerType.includes('movie')) libIcon = '🎬';
                                 else if (lowerType.includes('tv') || lowerType.includes('series')) libIcon = '📺';
                                 else if (lowerType.includes('music')) libIcon = '🎵';
-                                else if (v.Name?.toLowerCase().includes('anime')) libIcon = '⚡';
 
-                                sectionsList.splice(6, 0, {
+                                sectionsList.splice(10, 0, {
                                     id: libSecId,
                                     name: `Rayon : ${v.Name}`,
                                     type: 'Médiathèque Jellyfin',
