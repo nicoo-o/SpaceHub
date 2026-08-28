@@ -1,13 +1,13 @@
 /**
  * SpaceHub — CardBuilder (composant)
- * Version: 0.6.0
+ * Version: 0.7.0
  *
  * Constructeur de cartes médias SpaceHub avec :
  *  - Vraies notes Jellyfin (item.CriticRating / item.CommunityRating)
  *  - Exclusion totale des notes sur dossiers racines, bibliothèques ou playlists
- *  - Survol instantané et fluide Tomate 🍅 -> Fiche Critique & Consensus Rotten Tomatoes
- *  - Survol instantané et fluide Étoile ★ -> Fiche Audience & Répartition des votes IMDb
- *  - Menu contextuel latéral avec animations VisionOS
+ *  - Survol instantané garanti par délégation globale : Tomate 🍅 -> Rotten Tomatoes
+ *  - Survol instantané garanti par délégation globale : Étoile ★ -> Note & Répartition IMDb
+ *  - Animations d'ouverture/fermeture fluides Apple VisionOS
  */
 
 'use strict';
@@ -24,7 +24,8 @@ class CardBuilder {
         this._injectStyles();
         this._injectContextMenu();
         this._injectPopovers();
-        this._log.info('Initialisé.');
+        this._setupGlobalHoverDelegation();
+        this._log.info('Initialisé avec délégation de survol globale.');
     }
 
     // ─── API Publique ────────────────────────────────────────────────────────────
@@ -81,6 +82,7 @@ class CardBuilder {
             }
 
             critic = this._getCriticData(title || 'Média', rtScore, imdbScore);
+            card._criticData = critic; // Attaché directement pour la délégation de survol
         }
 
         card.innerHTML = `
@@ -115,21 +117,21 @@ class CardBuilder {
                     : ''}
             </div>
 
-            <!-- Dual Score Dark Frosted Glass Capsule (Affiché uniquement sur les films, séries, animés) -->
+            <!-- Dual Score Dark Frosted Glass Capsule (Films, séries, animés uniquement) -->
             ${hasScores && critic ? `
             <div class="sh-card__dual-score" data-rt="${rtScore}">
-                <button class="sh-score-btn sh-score-rt" aria-label="Critiques Rotten Tomatoes">
+                <button class="sh-score-btn sh-score-rt" aria-label="Critiques Rotten Tomatoes" type="button">
                     <span class="sh-score-emoji">🍅</span> <span>${rtScore}%</span>
                 </button>
                 <span class="sh-score-sep">│</span>
-                <button class="sh-score-btn sh-score-imdb sh-score-imdb--stars" aria-label="Note spectateurs IMDb">
+                <button class="sh-score-btn sh-score-imdb sh-score-imdb--stars" aria-label="Note spectateurs IMDb" type="button">
                     <span class="sh-star-icon">★</span> <span>${imdbScore}</span>
                 </button>
             </div>
             ` : ''}
 
             <!-- Bouton Favoris Rapide Quick Bookmark (Haut Droite) -->
-            <button class="sh-card__bookmark-btn ${isFavorite ? 'active' : ''}" aria-label="Ajouter aux favoris" title="Ajouter à ma liste">
+            <button class="sh-card__bookmark-btn ${isFavorite ? 'active' : ''}" aria-label="Ajouter aux favoris" title="Ajouter à ma liste" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
                 </svg>
@@ -145,80 +147,9 @@ class CardBuilder {
             </div>
         `;
 
-        // 🍅 Gestion du Survol Réactif et Instantané
-        if (hasScores && critic) {
-            const dualScoreEl = card.querySelector('.sh-card__dual-score');
-            const rtBtn = card.querySelector('.sh-score-rt');
-            const imdbBtn = card.querySelector('.sh-score-imdb');
-
-            if (dualScoreEl) {
-                // Stabiliser l'effet 3D lorsque le curseur entre dans la capsule de notes
-                dualScoreEl.addEventListener('mouseenter', () => {
-                    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1.04, 1.04, 1.04)';
-                });
-                dualScoreEl.addEventListener('mousemove', (e) => { e.stopPropagation(); });
-                dualScoreEl.addEventListener('pointermove', (e) => { e.stopPropagation(); });
-            }
-
-            if (rtBtn) {
-                const openRT = (e) => {
-                    e.stopPropagation();
-                    if (this._popoverHideTimer) {
-                        clearTimeout(this._popoverHideTimer);
-                        this._popoverHideTimer = null;
-                    }
-                    this._hideIMDbPopover();
-                    this._showRTPopover(rtBtn, critic);
-                };
-
-                const closeRT = () => {
-                    if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
-                    this._popoverHideTimer = setTimeout(() => {
-                        if (!this._isHoveringPopover) {
-                            this._hideRTPopover();
-                        }
-                    }, 220);
-                };
-
-                rtBtn.addEventListener('mouseenter', openRT);
-                rtBtn.addEventListener('pointerenter', openRT);
-                rtBtn.addEventListener('mouseover', openRT);
-                rtBtn.addEventListener('mouseleave', closeRT);
-                rtBtn.addEventListener('pointerleave', closeRT);
-            }
-
-            if (imdbBtn) {
-                const openIMDb = (e) => {
-                    e.stopPropagation();
-                    if (this._popoverHideTimer) {
-                        clearTimeout(this._popoverHideTimer);
-                        this._popoverHideTimer = null;
-                    }
-                    this._hideRTPopover();
-                    this._showIMDbPopover(imdbBtn, critic);
-                };
-
-                const closeIMDb = () => {
-                    if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
-                    this._popoverHideTimer = setTimeout(() => {
-                        if (!this._isHoveringPopover) {
-                            this._hideIMDbPopover();
-                        }
-                    }, 220);
-                };
-
-                imdbBtn.addEventListener('mouseenter', openIMDb);
-                imdbBtn.addEventListener('pointerenter', openIMDb);
-                imdbBtn.addEventListener('mouseover', openIMDb);
-                imdbBtn.addEventListener('mouseleave', closeIMDb);
-                imdbBtn.addEventListener('pointerleave', closeIMDb);
-            }
-        }
-
         // Action Favoris Rapide
         const bookmarkBtn = card.querySelector('.sh-card__bookmark-btn');
         bookmarkBtn?.addEventListener('mousedown', (e) => { e.stopPropagation(); });
-        bookmarkBtn?.addEventListener('pointerdown', (e) => { e.stopPropagation(); });
         bookmarkBtn?.addEventListener('click', async (e) => {
             e.stopPropagation();
             bookmarkBtn.classList.toggle('active');
@@ -237,36 +168,6 @@ class CardBuilder {
             window.SpaceHub?.ui?.components?.toaster?.info(
                 isFav ? `Ajouté aux favoris : ${title}` : `Retiré des favoris : ${title}`
             );
-        });
-
-        // Effet Tilt 3D + Magnetic Pull Cursor
-        card.addEventListener('mousemove', (e) => {
-            if (e.target.closest('.sh-card__bookmark-btn') || e.target.closest('.sh-card__dual-score')) return;
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const rotateX = ((y - centerY) / centerY) * -5;
-            const rotateY = ((x - centerX) / centerX) * 5;
-
-            card.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.04, 1.04, 1.04)`;
-        });
-
-        card.addEventListener('mouseleave', () => {
-            card.style.transform = '';
-        });
-
-        // Tactile Spring Press
-        card.addEventListener('mousedown', (e) => {
-            if (e.target.closest('.sh-card__bookmark-btn') || e.target.closest('.sh-card__dual-score')) return;
-            card.style.transition = 'transform 80ms ease';
-            card.style.transform = 'scale(0.97)';
-        });
-        card.addEventListener('mouseup', (e) => {
-            if (e.target.closest('.sh-card__bookmark-btn') || e.target.closest('.sh-card__dual-score')) return;
-            card.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-            card.style.transform = '';
         });
 
         // Événements de clic
@@ -292,6 +193,65 @@ class CardBuilder {
         });
 
         return card;
+    }
+
+    _setupGlobalHoverDelegation() {
+        if (this._hasGlobalHoverSetup) return;
+        this._hasGlobalHoverSetup = true;
+
+        document.addEventListener('mouseover', (e) => {
+            const rtBtn = e.target.closest('.sh-score-rt');
+            const imdbBtn = e.target.closest('.sh-score-imdb');
+            const popoverEl = e.target.closest('.sh-global-popover');
+
+            if (popoverEl) {
+                this._isHoveringPopover = true;
+                if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
+                return;
+            }
+
+            if (rtBtn) {
+                if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
+                const card = rtBtn.closest('.sh-card');
+                const criticData = card?._criticData;
+                if (criticData) {
+                    this._hideIMDbPopover();
+                    this._showRTPopover(rtBtn, criticData);
+                }
+                return;
+            }
+
+            if (imdbBtn) {
+                if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
+                const card = imdbBtn.closest('.sh-card');
+                const criticData = card?._criticData;
+                if (criticData) {
+                    this._hideRTPopover();
+                    this._showIMDbPopover(imdbBtn, criticData);
+                }
+                return;
+            }
+        }, { passive: true });
+
+        document.addEventListener('mouseout', (e) => {
+            const rtBtn = e.target.closest('.sh-score-rt');
+            const imdbBtn = e.target.closest('.sh-score-imdb');
+            const popoverEl = e.target.closest('.sh-global-popover');
+
+            if (rtBtn || imdbBtn || popoverEl) {
+                const related = e.relatedTarget;
+                if (related && (related.closest('.sh-score-rt') || related.closest('.sh-score-imdb') || related.closest('.sh-global-popover'))) {
+                    return;
+                }
+                if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
+                this._popoverHideTimer = setTimeout(() => {
+                    if (!this._isHoveringPopover) {
+                        this._hideRTPopover();
+                        this._hideIMDbPopover();
+                    }
+                }, 200);
+            }
+        }, { passive: true });
     }
 
     _getCriticData(title, rtScore, imdb) {
@@ -384,21 +344,21 @@ class CardBuilder {
 
     _positionPopover(popover, targetEl) {
         const rect = targetEl.getBoundingClientRect();
-        const popoverWidth = 250;
+        const popoverWidth = 260;
         let top = rect.bottom + 8;
-        let left = rect.left - 6;
+        let left = rect.left - 4;
 
         if (left + popoverWidth > window.innerWidth - 16) {
             left = window.innerWidth - popoverWidth - 16;
         }
         if (left < 16) left = 16;
 
-        if (top + 220 > window.innerHeight - 16) {
-            top = rect.top - 220;
+        if (top + 230 > window.innerHeight - 16) {
+            top = rect.top - 230;
         }
 
-        popover.style.top = `${Math.max(12, top)}px`;
-        popover.style.left = `${Math.max(12, left)}px`;
+        popover.style.top = `${Math.max(12, Math.round(top))}px`;
+        popover.style.left = `${Math.max(12, Math.round(left))}px`;
     }
 
     _showRTPopover(btnEl, criticData) {
@@ -550,24 +510,24 @@ class CardBuilder {
         menu.innerHTML = `
             <div class="sh-context-menu__header sh-truncate" id="sh-ctx-title">Média</div>
             <hr class="sh-ctx-sep"/>
-            <button class="sh-ctx-item" id="sh-ctx-play">
+            <button class="sh-ctx-item" id="sh-ctx-play" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                 <span>Lire maintenant</span>
             </button>
-            <button class="sh-ctx-item" id="sh-ctx-watchlist">
+            <button class="sh-ctx-item" id="sh-ctx-watchlist" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 <span>Ajouter à ma liste</span>
             </button>
-            <button class="sh-ctx-item" id="sh-ctx-trailer">
+            <button class="sh-ctx-item" id="sh-ctx-trailer" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>
                 <span>Bande-annonce</span>
             </button>
-            <button class="sh-ctx-item" id="sh-ctx-details">
+            <button class="sh-ctx-item" id="sh-ctx-details" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                 <span>Détails & Casting</span>
             </button>
             <hr class="sh-ctx-sep"/>
-            <button class="sh-ctx-item" id="sh-ctx-watched">
+            <button class="sh-ctx-item" id="sh-ctx-watched" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 <span>Marquer comme vu</span>
             </button>
@@ -650,7 +610,7 @@ class CardBuilder {
             lightbox.className = 'sh-trailer-lightbox';
             lightbox.innerHTML = `
                 <div class="sh-trailer-box">
-                    <button class="sh-trailer-close" id="sh-trailer-close" aria-label="Fermer">✕</button>
+                    <button class="sh-trailer-close" id="sh-trailer-close" aria-label="Fermer" type="button">✕</button>
                     <div class="sh-trailer-content">
                         <iframe id="sh-trailer-iframe" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
                     </div>
@@ -767,7 +727,7 @@ class CardBuilder {
     .sh-card-grid--backdrop .sh-card { width: 260px; }
 }
 
-/* ── Carte Média 8.0 Floating Cinema Artwork ──────────────── */
+/* ── Carte Média Floating Cinema Artwork ──────────────────── */
 .sh-card {
     background: transparent;
     border: none;
@@ -775,12 +735,15 @@ class CardBuilder {
     box-shadow: none;
     overflow: visible;
     cursor: pointer;
-    transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
     position: relative;
-    transform-style: preserve-3d;
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.sh-card:hover, .sh-card:focus-visible {
+.sh-card:hover {
+    transform: translateY(-8px) scale(1.025);
+}
+
+.sh-card:focus-visible {
     outline: none;
 }
 
@@ -791,7 +754,7 @@ class CardBuilder {
     border-radius: 16px;
     background: #000000;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.80), inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.05);
-    transition: box-shadow 300ms ease, transform 300ms ease;
+    transition: box-shadow 300ms ease;
 }
 .sh-card:hover .sh-card__image-wrap {
     box-shadow: 0 28px 65px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.22);
@@ -805,9 +768,9 @@ class CardBuilder {
     width: 100%; height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform 500ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: transform 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
-.sh-card:hover .sh-card__image { transform: scale(1.05); }
+.sh-card:hover .sh-card__image { transform: scale(1.04); }
 
 /* ── Glint & Edge Shimmer ────────────────────────────────── */
 .sh-card__glint {
@@ -833,59 +796,59 @@ class CardBuilder {
     position: absolute;
     top: 10px;
     left: 10px;
-    z-index: 50 !important;
+    z-index: 100 !important;
     pointer-events: auto !important;
     display: flex;
     align-items: center;
     gap: 4px;
-    background: rgba(12, 12, 16, 0.88);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(12, 12, 16, 0.90) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
     border-radius: 9999px;
     padding: 3.5px 8px;
     font-size: 11px;
     font-weight: 600;
     color: #ffffff;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.60);
-    transition: transform 200ms ease, background 200ms ease, border-color 200ms ease;
+    transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
 }
 .sh-card__dual-score:hover {
-    background: rgba(18, 18, 26, 0.98);
-    border-color: rgba(255, 255, 255, 0.32);
-    transform: scale(1.04);
+    background: rgba(18, 18, 26, 0.98) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    transform: scale(1.05);
 }
 
 .sh-score-btn {
-    background: transparent;
-    border: none;
-    padding: 2px 4px;
-    margin: 0;
-    border-radius: 6px;
-    color: inherit;
-    font: inherit;
+    background: transparent !important;
+    border: none !important;
+    padding: 2px 5px !important;
+    margin: 0 !important;
+    border-radius: 6px !important;
+    color: inherit !important;
+    font: inherit !important;
     cursor: pointer !important;
     pointer-events: auto !important;
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    transition: background 150ms ease, transform 150ms ease;
-    user-select: none;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    transition: background 150ms ease, transform 150ms ease !important;
+    user-select: none !important;
 }
 .sh-score-btn:hover {
-    background: rgba(255, 255, 255, 0.18);
-    transform: scale(1.08);
+    background: rgba(255, 255, 255, 0.20) !important;
+    transform: scale(1.10) !important;
 }
 
 .sh-score-rt {
-    color: #ff5252;
-    font-weight: 700;
+    color: #ff5252 !important;
+    font-weight: 700 !important;
     text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
 .sh-score-sep { opacity: 0.35; font-size: 10px; pointer-events: none; }
 .sh-score-imdb {
-    color: #ffd600;
-    font-weight: 700;
+    color: #ffd600 !important;
+    font-weight: 700 !important;
     text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
 
@@ -895,39 +858,41 @@ class CardBuilder {
     transition: transform 260ms cubic-bezier(0.175, 0.885, 0.32, 1.275), color 200ms ease;
 }
 .sh-score-imdb:hover .sh-star-icon {
-    transform: scale(1.28) rotate(12deg);
-    color: #ffe066;
+    transform: scale(1.30) rotate(12deg);
+    color: #ffe066 !important;
     text-shadow: 0 0 8px rgba(255, 214, 0, 0.8);
 }
 
 /* ── Global Popover Base (Apple VisionOS Glass) ─────────────── */
 .sh-global-popover {
-    position: fixed;
+    position: fixed !important;
     z-index: 2147483647 !important;
-    width: 250px;
-    background: rgba(12, 12, 18, 0.96);
-    -webkit-backdrop-filter: blur(40px) saturate(220%);
-    backdrop-filter: blur(40px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 16px;
-    padding: 12px 14px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95), 0 0 25px rgba(255, 159, 10, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.28);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    opacity: 0;
-    transform: translateY(-8px) scale(0.92);
-    filter: blur(8px);
-    pointer-events: none;
-    transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1), transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 200ms ease;
-    text-align: left;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    width: 260px !important;
+    background: rgba(12, 12, 18, 0.96) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(220%) !important;
+    backdrop-filter: blur(40px) saturate(220%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.20) !important;
+    border-radius: 16px !important;
+    padding: 12px 14px !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95), 0 0 25px rgba(255, 159, 10, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transform: translateY(-8px) scale(0.92) !important;
+    filter: blur(8px) !important;
+    pointer-events: none !important;
+    transition: opacity 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 180ms ease, visibility 180ms !important;
+    text-align: left !important;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif !important;
 }
 .sh-global-popover.visible {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0px);
-    pointer-events: auto;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) scale(1) !important;
+    filter: blur(0px) !important;
+    pointer-events: auto !important;
 }
 
 .sh-popover-tag {
@@ -948,7 +913,7 @@ class CardBuilder {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .sh-rt-popover__title {
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.4px;
     color: #ff5252;
