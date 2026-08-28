@@ -385,56 +385,66 @@ class ModalSlideUpSheet {
                         </div>
                     ` : ''}
 
-                    <!-- Panneau Universel : À propos -->
+                    <!-- Panneau Universel : À propos (Hiérarchie : Synopsis -> Critiques Bento -> Fiche Technique) -->
                     <div class="sh-tab-panel ${this._activeTab === 'synopsis' ? 'active' : ''}" id="sh-panel-synopsis">
                         <div class="sh-synopsis-layout">
-                            <!-- 🏆 Bandeau de Réputation Cinématographique & Critiques Presse / Public -->
+                            
+                            <!-- 1. 📖 LE GRAND SYNOPSIS (En premier) -->
+                            <div class="sh-synopsis-text-block">
+                                <div class="sh-section-subtitle">Synopsis & Histoire</div>
+                                <p class="sh-panel-overview" id="sh-panel-overview">${this._escape(overview)}</p>
+                            </div>
+
+                            <!-- 2. 🏆 RÉPUTATION & CRITIQUES PRESSE & PUBLIC (2 Boîtes Bento Distinctes) -->
                             ${(!isMusic && (rating || rtScore)) ? `
                             <div class="sh-cinema-critics-block">
-                                <div class="sh-critics-col sh-critics-col--rt">
-                                    <div class="sh-critics-top">
-                                        <div class="sh-critics-score-line">
+                                <!-- Carte 1: Rotten Tomatoes & Presse Internationale -->
+                                <div class="sh-critics-bento-card sh-critics-bento-card--rt">
+                                    <div class="sh-critics-card-header">
+                                        <div class="sh-critics-brand-row">
                                             ${cardBuilder?.getRtIconSvg?.(rtScore) || '<svg class="sh-rt-svg" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#00C05B"/></svg>'}
-                                            <span class="sh-critics-num">${rtScore}%</span>
-                                            <span class="sh-critics-verdict ${rtScore >= 75 ? 'certified' : (rtScore >= 60 ? 'fresh' : 'rotten')}">${rtScore >= 75 ? 'Certified Fresh' : (rtScore >= 60 ? 'Fresh' : 'Rotten')}</span>
+                                            <span class="sh-critics-title-label">Rotten Tomatoes</span>
+                                            <span class="sh-critics-badge ${rtScore >= 75 ? 'certified' : (rtScore >= 60 ? 'fresh' : 'rotten')}">${rtScore >= 75 ? 'Certified Fresh' : (rtScore >= 60 ? 'Fresh' : 'Rotten')}</span>
                                         </div>
-                                        <span class="sh-critics-sub">🍿 ${criticData?.audience || 91}% Score Public</span>
+                                        <div class="sh-critics-score-val-large">${rtScore}%</div>
                                     </div>
-                                    <p class="sh-critics-consensus">${criticData?.consensus || 'Consensus de la critique.'}</p>
-                                    <div class="sh-critics-quote">
+                                    <p class="sh-critics-consensus-text">${criticData?.consensus || 'Consensus de la critique.'}</p>
+                                    <div class="sh-critics-quote-box">
                                         <span>${criticData?.quote || ''}</span>
                                         <cite>${criticData?.outlet || ''}</cite>
                                     </div>
+                                    <div class="sh-critics-footer-meta">
+                                        <span>🍿 ${criticData?.audience || 91}% d'avis public favorable</span>
+                                    </div>
                                 </div>
 
-                                <div class="sh-critics-divider"></div>
-
-                                <div class="sh-critics-col sh-critics-col--imdb">
-                                    <div class="sh-critics-top">
-                                        <div class="sh-critics-score-line">
+                                <!-- Carte 2: IMDb & Communauté Spectateurs -->
+                                <div class="sh-critics-bento-card sh-critics-bento-card--imdb">
+                                    <div class="sh-critics-card-header">
+                                        <div class="sh-critics-brand-row">
                                             <span class="sh-imdb-badge-solid">IMDb</span>
-                                            <span class="sh-critics-num">${imdbScore}<small>/10</small></span>
-                                            <span class="sh-critics-stars">★★★★★</span>
+                                            <span class="sh-critics-title-label">Note des Spectateurs</span>
                                         </div>
-                                        <span class="sh-critics-sub">Metascore : <strong>${criticData?.metacritic || 84}</strong></span>
+                                        <div class="sh-critics-score-val-large imdb-gold">★ ${imdbScore}<small>/10</small></div>
                                     </div>
-                                    <div class="sh-critics-vote-stats">
+                                    <div class="sh-critics-stars-display">★★★★★</div>
+                                    <div class="sh-critics-stat-section">
                                         <div class="sh-critics-bar-track">
                                             <div class="sh-critics-bar-fill" style="width: ${criticData?.positiveVotes || 88}%;"></div>
                                         </div>
-                                        <div class="sh-critics-bar-legend">
-                                            <span>🔥 ${criticData?.positiveVotes || 88}% d'avis favorables</span>
-                                            <span>Avis des spectateurs</span>
+                                        <div class="sh-critics-legend-row">
+                                            <span>🔥 ${criticData?.positiveVotes || 88}% recommandent</span>
+                                            <span>Metascore: <strong>${criticData?.metacritic || 84}</strong></span>
                                         </div>
+                                    </div>
+                                    <div class="sh-critics-footer-meta">
+                                        <span>Basé sur les votes vérifiés de la communauté</span>
                                     </div>
                                 </div>
                             </div>
                             ` : ''}
 
-                            <div class="sh-synopsis-text-block">
-                                <p class="sh-panel-overview" id="sh-panel-overview">${this._escape(overview)}</p>
-                            </div>
-                            
+                            <!-- 3. ⚙️ FICHE TECHNIQUE & DÉTAILS DE PRODUCTION (Grille 4 cases) -->
                             <div class="sh-panel-meta-grid">
                                 <div class="sh-meta-card">
                                     <span class="sh-cell-label">Genres</span>

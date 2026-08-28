@@ -524,7 +524,19 @@ class HeroSpotlightComponent {
 
 
 .sh-hero-series-tag { display: inline-flex; color: rgba(255,255,255,0.7); font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 4px; margin-bottom: 12px; }
-.sh-hero-title { font-size: 64px; font-weight: 900; color: #fff; margin: 0 0 16px 0; }
+.sh-hero-title {
+    font-size: clamp(32px, 4.4vw, 54px);
+    font-weight: 900;
+    color: #ffffff;
+    margin: 0 0 16px 0;
+    line-height: 1.15;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.8px;
+}
 .sh-kt-word { display: inline-block; white-space: nowrap; margin-right: 0.2em; }
 .sh-kt-char { display: inline-block; animation: sh-kt-in 400ms cubic-bezier(0.3, 1.3, 0.6, 1) forwards; opacity: 0; transform: translateY(20px); }
 @keyframes sh-kt-in { to { opacity: 1; transform: translateY(0); } }
