@@ -1,8 +1,9 @@
 /**
  * SpaceHub — Standalone Cinema Video Player (Apple VisionOS & Apple TV+ Pro)
- * Version: 2.0.0
+ * Version: 2.1.0
  *
  * Lecteur vidéo plein écran cinématique de nouvelle génération :
+ *  - Lancement instantané (0ms latency DOM mount avec spinner cinématique VisionOS)
  *  - Design System Apple VisionOS : Verre dépoli 48px blur, reflets spéculaires 1px, noir OLED profond
  *  - Unified Floating Glass Dock : Timeline liquide et commandes fusionnées dans un dock ergonomique
  *  - Micro-interactions & Spring Physics : Rebond élastique du bouton Play/Pause, rotation des sauts 10s
@@ -67,46 +68,56 @@ class VideoPlayer {
     }
 
     /**
-     * Lance la lecture d'un média Jellyfin.
+     * Lance la lecture d'un média Jellyfin avec affichage immédiat 0ms.
      * @param {Object} item - Média (Film, Épisode, Vidéo)
      * @param {number} [startPositionTicks=0]
      */
-    async play(item, startPositionTicks = 0) {
+    play(item, startPositionTicks = 0) {
         this._currentItem = item;
         this._nextEpCancelled = false;
-        this._log.info(`🎬 Lancement Apple VisionOS Player pour "${item.Name || item.title}" (ID: ${item.Id || item.id})...`);
-
-        // Charger les métadonnées complètes et flux si nécessaire
-        let fullItem = item;
         const itemId = item.Id || item.id;
-        if ((!item.MediaStreams || !item.Chapters) && this._api && itemId) {
-            try {
-                const fetched = await this._api.getItem(itemId);
-                if (fetched) fullItem = { ...item, ...fetched };
-            } catch (e) {
-                this._log.warn('Impossible de charger les flux détaillés:', e);
-            }
-        }
-        this._currentItem = fullItem;
+        this._log.info(`🎬 Lancement Apple VisionOS Player pour "${item.Name || item.title}" (ID: ${itemId})...`);
 
-        this._createPlayerDOM(fullItem);
-        this._initMediaStreams(fullItem);
-        this._prepareSeasonEpisodes(fullItem);
+        // 1. Montage DOM instantané (0ms) pour un retour visuel immédiat
+        this._createPlayerDOM(item);
+        this._initMediaStreams(item);
 
         const serverUrl = this._auth?.getServerUrl() || '';
         const token = this._auth?.getToken() || '';
-        const startPositionSeconds = (startPositionTicks || fullItem.UserData?.PlaybackPositionTicks || 0) / 10000000;
+        const startPositionSeconds = (startPositionTicks || item.UserData?.PlaybackPositionTicks || 0) / 10000000;
 
         // URL de flux vidéo HLS Master Playlist
-        const streamUrl = `${serverUrl}/Videos/${itemId}/master.m3u8?DeviceId=${this._auth?.getDeviceId?.() || 'sh_web'}&MediaSourceId=${itemId}&VideoCodec=h264,hevc,vp9,av1&AudioCodec=aac,mp3,opus,flac&TranscodingMaxAudioChannels=6&RequireAvc=false&Tag=${fullItem.Etag || ''}&StartTimeTicks=${Math.round(startPositionSeconds * 10000000)}&api_key=${token}`;
+        const streamUrl = `${serverUrl}/Videos/${itemId}/master.m3u8?DeviceId=${this._auth?.getDeviceId?.() || 'sh_web'}&MediaSourceId=${itemId}&VideoCodec=h264,hevc,vp9,av1&AudioCodec=aac,mp3,opus,flac&TranscodingMaxAudioChannels=6&RequireAvc=false&Tag=${item.Etag || ''}&StartTimeTicks=${Math.round(startPositionSeconds * 10000000)}&api_key=${token}`;
 
         this._setupVideoSource(streamUrl, startPositionSeconds, token);
         this._reportPlaybackStart();
         this._startProgressReporting();
         this._resetIdleTimer();
+
+        // 2. Chargement asynchrone en arrière-plan sans bloquer l'affichage
+        this._enrichMediaData(item, itemId);
+    }
+
+    async _enrichMediaData(item, itemId) {
+        if (this._api && itemId) {
+            try {
+                const fetched = await this._api.getItem(itemId);
+                if (fetched && this._currentItem && (this._currentItem.Id === itemId || this._currentItem.id === itemId)) {
+                    this._currentItem = { ...item, ...fetched };
+                    this._initMediaStreams(this._currentItem);
+                    this._populateAudioAndSubsLists();
+                }
+            } catch (e) {
+                this._log.warn('Impossible d\'enrichir les flux détaillés:', e);
+            }
+        }
+        this._prepareSeasonEpisodes(this._currentItem || item);
     }
 
     _setupVideoSource(streamUrl, startPositionSeconds, token) {
+        const spinner = this._el?.querySelector('#sh-player-spinner');
+        if (spinner) spinner.classList.add('visible');
+
         if (Hls.isSupported()) {
             if (this._hls) this._hls.destroy();
             this._hls = new Hls({
@@ -241,6 +252,12 @@ class VideoPlayer {
             <!-- Dégradés Cinématiques Supérieur & Inférieur -->
             <div class="sh-player-gradient-top"></div>
             <div class="sh-player-gradient-bottom"></div>
+
+            <!-- 🌀 Apple VisionOS Cinematic Buffering Spinner -->
+            <div class="sh-player-buffering-spinner visible" id="sh-player-spinner">
+                <div class="sh-spinner-glass-ring"></div>
+                <span class="sh-spinner-label">Chargement cinématique...</span>
+            </div>
 
             <!-- Zones Interactives Gauche / Droite pour Double-Tap Ripple -->
             <div class="sh-gesture-tap-zone sh-gesture-left" id="sh-zone-left">
@@ -504,6 +521,7 @@ class VideoPlayer {
     _bindEvents() {
         const el = this._el;
         const video = this._video;
+        const spinner = el.querySelector('#sh-player-spinner');
 
         // Quitter / Retour
         el.querySelector('#sh-player-back-btn')?.addEventListener('click', () => this.close());
@@ -531,6 +549,20 @@ class VideoPlayer {
             if (e.target === video) togglePlay();
         });
 
+        // Gestion du Spinner de Buffering
+        video.addEventListener('waiting', () => spinner?.classList.add('visible'));
+        video.addEventListener('playing', () => spinner?.classList.remove('visible'));
+        video.addEventListener('canplay', () => spinner?.classList.remove('visible'));
+        video.addEventListener('playing', () => {
+            el.querySelector('.sh-icon-play').style.display = 'none';
+            el.querySelector('.sh-icon-pause').style.display = 'block';
+        });
+        video.addEventListener('pause', () => {
+            el.querySelector('.sh-icon-play').style.display = 'block';
+            el.querySelector('.sh-icon-pause').style.display = 'none';
+            this._showControls();
+        });
+
         // Double Clic Gauche / Droite (Saut 10s avec Ripple Waves)
         const leftZone = el.querySelector('#sh-zone-left');
         const rightZone = el.querySelector('#sh-zone-right');
@@ -549,16 +581,6 @@ class VideoPlayer {
         };
         leftZone?.addEventListener('touchend', () => handleTap('left', -10));
         rightZone?.addEventListener('touchend', () => handleTap('right', 10));
-
-        video.addEventListener('play', () => {
-            el.querySelector('.sh-icon-play').style.display = 'none';
-            el.querySelector('.sh-icon-pause').style.display = 'block';
-        });
-        video.addEventListener('pause', () => {
-            el.querySelector('.sh-icon-play').style.display = 'block';
-            el.querySelector('.sh-icon-pause').style.display = 'none';
-            this._showControls();
-        });
 
         // Sauts 10s via boutons du dock avec micro-animation
         el.querySelector('#sh-btn-skip-back')?.addEventListener('click', (e) => {
@@ -818,8 +840,9 @@ class VideoPlayer {
     }
 
     _populateAudioAndSubsLists() {
-        const audioList = this._el.querySelector('#sh-audio-stream-list');
-        const subList = this._el.querySelector('#sh-sub-stream-list');
+        const audioList = this._el?.querySelector('#sh-audio-stream-list');
+        const subList = this._el?.querySelector('#sh-sub-stream-list');
+        if (!audioList || !subList) return;
 
         // Audio
         if (this._audioStreams && this._audioStreams.length > 0) {
@@ -1355,6 +1378,45 @@ class VideoPlayer {
     height: 100%;
     object-fit: contain;
     background: #000;
+}
+
+/* 🌀 Spinner de Chargement VisionOS */
+.sh-player-buffering-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    z-index: 40;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+.sh-player-buffering-spinner.visible {
+    opacity: 1;
+}
+.sh-spinner-glass-ring {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.12);
+    border-top-color: #00d2ff;
+    border-right-color: #0084ff;
+    animation: shSpinVision 0.85s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    box-shadow: 0 0 20px rgba(0, 168, 255, 0.4);
+}
+@keyframes shSpinVision {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.sh-spinner-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 0.2px;
 }
 
 /* ── Dégradés Cinématiques Supérieur & Inférieur ───────────────────────── */
