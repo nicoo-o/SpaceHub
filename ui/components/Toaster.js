@@ -16,11 +16,11 @@
 import Logger from '../../core/Logger.js';
 
 const ICONS = {
-    success: '✅',
-    error:   '❌',
-    warning: '⚠️',
-    info:    'ℹ️',
-    default: '💬',
+    success: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+    error:   `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
+    warning: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
+    info:    `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`,
+    default: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`,
 };
 
 const DEFAULT_DURATION = {
@@ -106,7 +106,12 @@ class Toaster {
             <span class="sh-toast__icon" aria-hidden="true">${ICONS[type] ?? ICONS.default}</span>
             <span class="sh-toast__message">${this._escape(message)}</span>
             ${action ? `<button class="sh-toast__action">${this._escape(action.label)}</button>` : ''}
-            <button class="sh-toast__close" aria-label="Fermer">×</button>
+            <button class="sh-toast__close" aria-label="Fermer">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            ${duration > 0 ? `<div class="sh-toast__progress" style="animation-duration:${duration}ms"></div>` : ''}
         `;
 
         // Événements
@@ -166,68 +171,118 @@ class Toaster {
         style.textContent = `
 #sh-toast-container {
     position: fixed;
-    top: var(--sh-space-6, 24px);
-    right: var(--sh-space-6, 24px);
+    top: 24px;
+    right: 24px;
     display: flex;
     flex-direction: column;
-    gap: var(--sh-space-2, 8px);
+    gap: 8px;
     z-index: var(--sh-z-toast, 500);
     max-width: 380px;
     width: calc(100vw - 48px);
     pointer-events: none;
 }
 .sh-toast {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: var(--sh-space-3, 12px);
-    padding: var(--sh-space-3, 12px) var(--sh-space-4, 16px);
-    background: var(--sh-bg-surface, #18181f);
-    border: 1px solid var(--sh-border-color, rgba(255,255,255,0.08));
-    border-radius: var(--sh-radius-md, 12px);
-    box-shadow: var(--sh-shadow-lg, 0 12px 40px rgba(0,0,0,0.6));
-    backdrop-filter: blur(12px);
-    color: var(--sh-text-primary, #f0f0f8);
+    gap: 12px;
+    padding: 13px 14px 13px 16px;
+    background: rgba(18, 18, 24, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.80),
+        inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    color: #ffffff;
     font-family: var(--sh-font-family, sans-serif);
-    font-size: var(--sh-text-sm, 13px);
+    font-size: 13px;
+    font-weight: 500;
     pointer-events: all;
     opacity: 0;
-    transform: translateX(110%);
-    transition: opacity var(--sh-transition-base, 250ms ease),
-                transform var(--sh-transition-spring, 350ms cubic-bezier(0.34,1.56,0.64,1));
-    border-left: 3px solid transparent;
+    transform: translateX(calc(100% + 24px));
+    transition:
+        opacity 280ms cubic-bezier(0.16, 1, 0.3, 1),
+        transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+    border-left: 2px solid transparent;
+    overflow: hidden;
 }
 .sh-toast--visible  { opacity: 1; transform: translateX(0); }
-.sh-toast--leaving  { opacity: 0; transform: translateX(110%); transition: opacity 300ms ease, transform 300ms ease; }
-.sh-toast--success  { border-left-color: var(--sh-color-success, #3ddc84); }
-.sh-toast--error    { border-left-color: var(--sh-color-danger,  #ff5c7a); }
-.sh-toast--warning  { border-left-color: var(--sh-color-warning, #ffb830); }
-.sh-toast--info     { border-left-color: var(--sh-color-info,    #4fc3f7); }
-.sh-toast--default  { border-left-color: var(--sh-color-primary, #7c6aff); }
-.sh-toast__icon     { font-size: 16px; flex-shrink: 0; }
-.sh-toast__message  { flex: 1; line-height: var(--sh-leading-normal, 1.5); }
+.sh-toast--leaving  { opacity: 0; transform: translateX(calc(100% + 24px)); transition: opacity 220ms ease, transform 220ms ease; }
+
+/* Accents gauche par type */
+.sh-toast--success { border-left-color: #32d74b; }
+.sh-toast--error   { border-left-color: #ff453a; }
+.sh-toast--warning { border-left-color: #ff9f0a; }
+.sh-toast--info    { border-left-color: #64d2ff; }
+.sh-toast--default { border-left-color: rgba(255,255,255,0.30); }
+
+/* Icône */
+.sh-toast__icon { flex-shrink: 0; display: flex; align-items: center; }
+
+/* Texte */
+.sh-toast__message { flex: 1; line-height: 1.45; color: rgba(255,255,255,0.90); }
+
+/* Bouton Action */
 .sh-toast__action {
     flex-shrink: 0;
     padding: 4px 10px;
-    border-radius: var(--sh-radius-sm, 8px);
-    background: rgba(var(--sh-color-primary-rgb, 124,106,255), 0.18);
-    color: var(--sh-color-primary, #7c6aff);
-    border: none; cursor: pointer;
-    font-size: var(--sh-text-xs, 11px);
-    font-weight: var(--sh-font-semibold, 600);
-    transition: background var(--sh-transition-fast, 150ms);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: inherit;
+    letter-spacing: 0.02em;
+    transition: background 140ms ease;
 }
-.sh-toast__action:hover { background: rgba(var(--sh-color-primary-rgb,124,106,255), 0.3); }
+.sh-toast__action:hover { background: rgba(255, 255, 255, 0.20); }
+
+/* Bouton Fermer */
 .sh-toast__close {
     flex-shrink: 0;
-    background: none; border: none; cursor: pointer;
-    color: var(--sh-text-muted, #5c5c7a);
-    font-size: 18px; line-height: 1; padding: 0 2px;
-    transition: color var(--sh-transition-fast, 150ms);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.06);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.50);
+    transition: background 140ms ease, color 140ms ease;
 }
-.sh-toast__close:hover { color: var(--sh-text-primary, #f0f0f8); }
+.sh-toast__close:hover { background: rgba(255, 255, 255, 0.14); color: #ffffff; }
+
+/* Barre de progression */
+.sh-toast__progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.20);
+    border-radius: 0 0 14px 14px;
+    transform-origin: left;
+    animation: sh-toast-progress linear forwards;
+    animation-play-state: running;
+}
+.sh-toast--success .sh-toast__progress { background: rgba(50,  215, 75,  0.50); }
+.sh-toast--error   .sh-toast__progress { background: rgba(255, 69,  58,  0.50); }
+.sh-toast--warning .sh-toast__progress { background: rgba(255, 159, 10,  0.50); }
+.sh-toast--info    .sh-toast__progress { background: rgba(100, 210, 255, 0.50); }
+
+@keyframes sh-toast-progress {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+}
 
 @media (max-width: 480px) {
-    #sh-toast-container { top: auto; bottom: 16px; right: 12px; left: 12px; width: auto; }
+    #sh-toast-container { top: auto; bottom: 16px; right: 12px; left: 12px; width: auto; max-width: none; }
 }
         `;
         document.head.appendChild(style);

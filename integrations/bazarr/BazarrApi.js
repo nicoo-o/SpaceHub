@@ -19,7 +19,17 @@ class BazarrApi extends BaseApiClient {
         const apiKey = settings?.get('bazarr.apiKey', '') || '';
 
         super(url, apiKey);
+        this._settingsKey = 'bazarr';
         this._log = new Logger('BazarrApi');
+    }
+
+    /**
+     * Met à jour la configuration depuis les paramètres SpaceHub.
+     */
+    updateConfig() {
+        const settings = window.SpaceHub?.core?.settings;
+        this.baseUrl = (settings?.get('bazarr.url', 'http://localhost:6767') || 'http://localhost:6767').replace(/\/$/, '');
+        this.apiKey = settings?.get('bazarr.apiKey', '') || '';
     }
 
     /**
@@ -27,6 +37,7 @@ class BazarrApi extends BaseApiClient {
      * @returns {Promise<{ success: boolean, version?: string, error?: string }>}
      */
     async testConnection() {
+        this.updateConfig();
         try {
             const status = await this.get('/api/system/status');
             this._log.info(`Connexion Bazarr réussie (version: ${status?.data?.version || status?.version || 'inconnue'})`);

@@ -31,7 +31,9 @@ class QBittorrentApi {
      */
     async login() {
         this.updateConfig();
-        const url = `${this.baseUrl}/api/v2/auth/login`;
+        const isCrossDomain = typeof window !== 'undefined' && this.baseUrl.startsWith('http') && !this.baseUrl.startsWith(window.location.origin);
+        const directUrl = `${this.baseUrl}/api/v2/auth/login`;
+        let url = isCrossDomain ? `/api-proxy?url=${encodeURIComponent(directUrl)}` : directUrl;
 
         const body = new URLSearchParams({
             username: this.username,
@@ -39,25 +41,37 @@ class QBittorrentApi {
         });
 
         try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: body.toString(),
-                credentials: 'include'
-            });
+            let response;
+            try {
+                response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body.toString(),
+                    credentials: 'include'
+                });
+            } catch (netErr) {
+                // Si échec direct, fallback sur le proxy universel
+                const proxyUrl = `/api-proxy?url=${encodeURIComponent(directUrl)}`;
+                response = await fetch(proxyUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body.toString(),
+                    credentials: 'include'
+                });
+            }
 
             if (!response.ok) {
                 this._log.error(`Échec authentification qBittorrent (${response.status})`);
                 return false;
             }
 
-            const text = await response.text();
-            if (text.includes('Ok.') || response.ok) {
+            const text = (await response.text()).trim();
+            if (text === 'Ok.' || text.includes('Ok.')) {
                 this._log.info('Authentification qBittorrent réussie.');
                 return true;
             }
 
-            this._log.warn('Identifiants qBittorrent invalides.');
+            this._log.warn(`Identifiants qBittorrent invalides (réponse: ${text}).`);
             return false;
         } catch (err) {
             this._log.error('Erreur réseau lors du login qBittorrent:', err);
@@ -66,25 +80,39 @@ class QBittorrentApi {
     }
 
     /**
-     * Effectue une requête authentifiée vers l'API qBittorrent.
+     * Effectue une requête authentifiée vers l'API qBittorrent avec fallback proxy.
      */
     async request(endpoint, options = {}) {
-        const url = `${this.baseUrl}${endpoint}`;
+        const isCrossDomain = typeof window !== 'undefined' && this.baseUrl.startsWith('http') && !this.baseUrl.startsWith(window.location.origin);
+        const directUrl = `${this.baseUrl}${endpoint}`;
+        let url = isCrossDomain ? `/api-proxy?url=${encodeURIComponent(directUrl)}` : directUrl;
         const config = {
             ...options,
             credentials: 'include'
         };
 
-        let response = await fetch(url, config);
+        let response;
+        try {
+            response = await fetch(url, config);
+        } catch (netErr) {
+            // Fallback automatique sur le proxy universel
+            const proxyUrl = `/api-proxy?url=${encodeURIComponent(directUrl)}`;
+            response = await fetch(proxyUrl, config);
+        }
 
         // Si non autorisé (403), retenter un login puis refaire la requête
         if (response.status === 403) {
-            this._log.info('Session expirée, ré-authentification...');
+            this._log.info('Session expirée ou non authentifiée, tentative de login...');
             const loggedIn = await this.login();
             if (loggedIn) {
-                response = await fetch(url, config);
+                try {
+                    response = await fetch(url, config);
+                } catch (retryErr) {
+                    const proxyUrl = `/api-proxy?url=${encodeURIComponent(url)}`;
+                    response = await fetch(proxyUrl, config);
+                }
             } else {
-                throw new Error('Impossible de s\'authentifier sur qBittorrent.');
+                throw new Error('Impossible de s\'authentifier sur qBittorrent (Vérifiez nom d\'utilisateur et mot de passe).');
             }
         }
 
@@ -104,16 +132,31 @@ class QBittorrentApi {
      * @returns {Promise<{ success: boolean, version?: string, error?: string }>}
      */
     async testConnection() {
+        this.updateConfig();
         try {
+            // 1. Tenter d'abord un accès direct (cas où localhost bypass est activé)
+            try {
+                const directVer = await this.request('/api/v2/app/version');
+                if (directVer && typeof directVer === 'string' && !directVer.includes('<!DOCTYPE')) {
+                    this._log.info(`Connexion qBittorrent directe réussie (version: ${directVer.trim()})`);
+                    return { success: true, version: directVer.trim() };
+                }
+            } catch (noAuthErr) {
+                // Besoin d'authentification
+            }
+
+            // 2. Tenter le login
             const loggedIn = await this.login();
-            if (!loggedIn) return { success: false, error: 'Identifiants invalides' };
+            if (!loggedIn) {
+                return { success: false, error: 'Identifiants invalides ou CSRF WebUI activé' };
+            }
 
             const version = await this.request('/api/v2/app/version');
             this._log.info(`Connexion qBittorrent réussie (version: ${version})`);
-            return { success: true, version: String(version) };
+            return { success: true, version: String(version).trim() };
         } catch (err) {
             this._log.error('Échec du test de connexion qBittorrent:', err);
-            return { success: false, error: err.message };
+            return { success: false, error: err.message || 'Serveur qBittorrent injoignable' };
         }
     }
 

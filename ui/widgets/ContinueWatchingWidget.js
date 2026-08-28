@@ -1,8 +1,8 @@
 /**
  * SpaceHub — Continue Watching Widget
- * Version: 0.4.0
+ * Version: 1.1.0
  *
- * Affiche la liste des films / épisodes en cours de lecture pour l'utilisateur connecté.
+ * Affiche la section des médias en cours de lecture pour l'utilisateur.
  */
 
 'use strict';
@@ -18,13 +18,16 @@ class ContinueWatchingWidget {
         container.innerHTML = `
             <div class="sh-widget sh-widget--continue-watching">
                 <div class="sh-widget__header">
-                    <h2 class="sh-widget__title">▶️ ${this.title}</h2>
-                    <button class="sh-btn sh-btn--ghost sh-widget__refresh-btn" title="Rafraîchir">🔄</button>
+                    <h2 class="sh-widget__title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sh-shelf-title-icon">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>${this.title}</span>
+                    </h2>
                 </div>
                 <div class="sh-widget__content">
-                    <div class="sh-widget__items-container">
-                        <!-- Skeleton loading initial -->
-                    </div>
+                    <div class="sh-widget__items-container"></div>
                 </div>
             </div>
         `;
@@ -34,11 +37,7 @@ class ContinueWatchingWidget {
 
         if (cardBuilder) {
             contentEl.appendChild(cardBuilder.createSkeletonGrid(4, 'backdrop'));
-        } else {
-            contentEl.innerHTML = '<p style="color:var(--sh-text-muted);">Chargement...</p>';
         }
-
-        container.querySelector('.sh-widget__refresh-btn')?.addEventListener('click', () => this.refresh(container));
 
         await this.loadData(container);
     }
@@ -48,31 +47,19 @@ class ContinueWatchingWidget {
         if (!contentEl) return;
 
         try {
-            const apiClient = window.SpaceHub?.core?.api?.getClient('jellyfin');
-            const currentUser = await window.ApiClient?.getCurrentUser?.();
-            const userId = currentUser?.Id || window.ApiClient?.getCurrentUserId?.();
+            const api = window.SpaceHub?.jellyfin?.api;
+            let items = [];
+            if (api?.getResumeItems) {
+                items = await api.getResumeItems(12);
+            }
 
-            if (!apiClient || !userId) {
-                contentEl.innerHTML = `
-                    <div class="sh-widget-empty">
-                        <p>Connectez-vous à Jellyfin pour voir vos lectures en cours.</p>
-                    </div>
-                `;
+            // Si aucune lecture en cours pour l'utilisateur, masquer proprement l'étagère
+            if (!items || items.length === 0) {
+                container.style.display = 'none';
                 return;
             }
 
-            const response = await apiClient.getContinueWatching(userId, 8);
-            const items = response?.Items || [];
-
-            if (items.length === 0) {
-                contentEl.innerHTML = `
-                    <div class="sh-widget-empty" style="padding: var(--sh-space-6, 24px); text-align: center; color: var(--sh-text-muted);">
-                        <p>🎬 Aucun média en cours de lecture. Commencez un film ou une série !</p>
-                    </div>
-                `;
-                return;
-            }
-
+            container.style.display = '';
             const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
             if (cardBuilder) {
                 cardBuilder.renderGrid(contentEl, items, {
@@ -80,10 +67,12 @@ class ContinueWatchingWidget {
                     getImageUrl: (item) => {
                         const imageItemId = item.BackdropImageTags?.length ? item.Id : (item.SeriesId || item.Id);
                         const imageType = item.BackdropImageTags?.length ? 'Backdrop' : 'Primary';
-                        return apiClient.getImageUrl(imageItemId, imageType, { maxWidth: 500, maxHeight: 280 });
+                        return api?.getImageUrl?.(imageItemId, imageType, { maxWidth: 500, maxHeight: 280 }) || '';
                     },
                     onClick: (item) => {
-                        if (window.Emby?.Page?.showItem) {
+                        if (window.SpaceHub?.ui?.modalSlideUpSheet) {
+                            window.SpaceHub.ui.modalSlideUpSheet.open(item);
+                        } else if (window.Emby?.Page?.showItem) {
                             window.Emby.Page.showItem(item.Id);
                         } else {
                             window.location.hash = `#/details?id=${item.Id}`;
@@ -93,11 +82,7 @@ class ContinueWatchingWidget {
             }
         } catch (err) {
             console.error('[ContinueWatchingWidget] Erreur chargement:', err);
-            contentEl.innerHTML = `
-                <div class="sh-widget-error">
-                    <p>Impossible de récupérer vos lectures en cours (${err.message}).</p>
-                </div>
-            `;
+            container.style.display = 'none';
         }
     }
 

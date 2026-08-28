@@ -19,7 +19,17 @@ class JellyseerrApi extends BaseApiClient {
         const apiKey = settings?.get('jellyseerr.apiKey', '') || '';
 
         super(url, apiKey);
+        this._settingsKey = 'jellyseerr';
         this._log = new Logger('JellyseerrApi');
+    }
+
+    /**
+     * Met à jour la configuration active depuis les settings SpaceHub.
+     */
+    updateConfig() {
+        const settings = window.SpaceHub?.core?.settings;
+        this.baseUrl = (settings?.get('jellyseerr.url', 'http://localhost:5055') || 'http://localhost:5055').replace(/\/$/, '');
+        this.apiKey = settings?.get('jellyseerr.apiKey', '') || '';
     }
 
     /**
@@ -27,13 +37,27 @@ class JellyseerrApi extends BaseApiClient {
      * @returns {Promise<{ success: boolean, version?: string, error?: string }>}
      */
     async testConnection() {
+        this.updateConfig();
         try {
+            // 1. Tester le statut de l'application
             const status = await this.get('/api/v1/status');
-            this._log.info(`Connexion Jellyseerr réussie (version: ${status?.version || 'inconnue'})`);
-            return { success: true, version: status?.version };
+            const version = status?.version || status?.commitTag || '1.x';
+
+            // 2. Si une clé est renseignée, valider l'authentification avec le compteur de requêtes
+            if (this.apiKey) {
+                try {
+                    await this.get('/api/v1/request/count');
+                } catch (authErr) {
+                    this._log.warn('Status accessible mais clé API non reconnue:', authErr);
+                    return { success: false, error: 'Serveur accessible, mais la clé API est invalide' };
+                }
+            }
+
+            this._log.info(`Connexion Jellyseerr réussie (version: ${version})`);
+            return { success: true, version: String(version) };
         } catch (err) {
             this._log.error('Échec du test de connexion Jellyseerr:', err);
-            return { success: false, error: err.message };
+            return { success: false, error: err.message || 'Serveur injoignable' };
         }
     }
 
@@ -97,6 +121,15 @@ class JellyseerrApi extends BaseApiClient {
     }
 
     /**
+     * Helper renvoyant directement la liste des médias tendances.
+     * @returns {Promise<Array>}
+     */
+    async getTrendingMedia() {
+        const res = await this.getTrending(1);
+        return res?.results || [];
+    }
+
+    /**
      * Récupère les films populaires.
      * @param {number} [page=1]
      * @returns {Promise<Object>}
@@ -106,12 +139,74 @@ class JellyseerrApi extends BaseApiClient {
     }
 
     /**
+     * Helper renvoyant directement la liste des films populaires.
+     * @returns {Promise<Array>}
+     */
+    async getPopularMoviesList() {
+        const res = await this.getPopularMovies(1);
+        return (res?.results || []).map(item => ({ ...item, mediaType: 'movie' }));
+    }
+
+    /**
      * Récupère les séries populaires.
      * @param {number} [page=1]
      * @returns {Promise<Object>}
      */
     async getPopularSeries(page = 1) {
         return await this.get(`/api/v1/discover/tv?page=${page}&sortBy=popularity.desc`);
+    }
+
+    /**
+     * Helper renvoyant directement la liste des séries populaires.
+     * @returns {Promise<Array>}
+     */
+    async getPopularSeriesList() {
+        const res = await this.getPopularSeries(1);
+        return (res?.results || []).map(item => ({ ...item, mediaType: 'tv' }));
+    }
+
+    /**
+     * Récupère les sorties de films à venir.
+     * @param {number} [page=1]
+     * @returns {Promise<Object>}
+     */
+    async getUpcomingMovies(page = 1) {
+        return await this.get(`/api/v1/discover/movies/upcoming?page=${page}`);
+    }
+
+    /**
+     * Helper renvoyant directement la liste des sorties très attendues.
+     * @returns {Promise<Array>}
+     */
+    async getUpcomingMediaList() {
+        try {
+            const res = await this.getUpcomingMovies(1);
+            if (res?.results && res.results.length > 0) {
+                return res.results.map(item => ({ ...item, mediaType: 'movie' }));
+            }
+        } catch {
+            // Fallback si endpoint upcoming non disponible
+        }
+        const fallback = await this.getTrending(2);
+        return fallback?.results || [];
+    }
+
+    /**
+     * Helper de demande rapide en 1-clic.
+     * @param {'movie'|'tv'} type
+     * @param {number|string} mediaId
+     * @param {Array<number>} [seasons]
+     * @returns {Promise<Object>}
+     */
+    async requestMedia(type, mediaId, seasons = null) {
+        const payload = {
+            mediaType: type === 'tv' ? 'tv' : 'movie',
+            mediaId: Number(mediaId)
+        };
+        if (type === 'tv') {
+            payload.seasons = seasons && seasons.length > 0 ? seasons : 'all';
+        }
+        return await this.createRequest(payload);
     }
 
     /**

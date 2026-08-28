@@ -19,7 +19,17 @@ class SonarrApi extends BaseApiClient {
         const apiKey = settings?.get('sonarr.apiKey', '') || '';
 
         super(url, apiKey);
+        this._settingsKey = 'sonarr';
         this._log = new Logger('SonarrApi');
+    }
+
+    /**
+     * Met à jour la configuration depuis les paramètres SpaceHub.
+     */
+    updateConfig() {
+        const settings = window.SpaceHub?.core?.settings;
+        this.baseUrl = (settings?.get('sonarr.url', 'http://localhost:8989') || 'http://localhost:8989').replace(/\/$/, '');
+        this.apiKey = settings?.get('sonarr.apiKey', '') || '';
     }
 
     /**
@@ -27,6 +37,7 @@ class SonarrApi extends BaseApiClient {
      * @returns {Promise<{ success: boolean, version?: string, error?: string }>}
      */
     async testConnection() {
+        this.updateConfig();
         try {
             const systemStatus = await this.get('/api/v3/system/status');
             this._log.info(`Connexion Sonarr réussie (version: ${systemStatus?.version || 'inconnue'})`);

@@ -1,0 +1,713 @@
+/**
+ * SpaceHub — HeroSpotlightComponent
+ * Version: 2.4.0
+ *
+ * Afficheur Vedette (Hero Spotlight) Plein Écran 100vw Style Apple TV+ 4K Pure Cinema :
+ * - Transition fluide et continue éprouvée avec Ken Burns subtil
+ * - Boutons de navigation Précédent / Suivant toujours visibles et accessibles
+ * - Lignes de progression épaissies (4px) avec tête lumineuse éclatante et remplissage fluide
+ * - Trio de boutons d'action (Regarder blanc pur, Bande-annonce verre fumé, Plus d'infos)
+ */
+
+'use strict';
+
+class HeroSpotlightComponent {
+    constructor() {
+        this._currentIndex = 0;
+        this._sliderTimer = null;
+        this._isTransitioning = false;
+        this._featuredItems = [];
+        this._injectStyles();
+    }
+
+    async render(container) {
+        await this._loadHeroItems();
+        if (this._featuredItems.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+        this._renderSlide(container, this._currentIndex);
+        this._startAutoSlide(container);
+    }
+
+    async _loadHeroItems() {
+        try {
+            const api = window.SpaceHub?.jellyfin?.api;
+            if (api) {
+                let realItems = await api.getFeaturedHeroItems();
+                if (!realItems || realItems.length === 0) {
+                    realItems = await api.getMovies({ limit: 6 });
+                }
+                if (!realItems || realItems.length === 0) {
+                    realItems = await api.getLatestItems({ limit: 6 });
+                }
+
+                if (realItems && realItems.length > 0) {
+                    this._featuredItems = realItems.map(item => ({
+                        ...item,
+                        Id: item.Id || item.id,
+                        Name: item.Name || item.title,
+                        title: item.Name || item.title,
+                        categoryTag: (item.Type === 'Series' || item.Type === 'Season' || item.Type === 'Episode') ? 'SÉRIE TV' : (item.Type === 'BoxSet' ? 'SAGA' : 'FILM'),
+                        tagline: item.Taglines?.[0] || ((item.Type === 'Series' || item.Type === 'Season') ? 'Série TV' : 'Film'),
+                        Overview: item.Overview || 'Aucun synopsis disponible.',
+                        Type: item.Type,
+                        ProductionYear: item.ProductionYear || '',
+                        OfficialRating: item.OfficialRating || 'HD',
+                        CommunityRating: item.CommunityRating ? Number(item.CommunityRating).toFixed(1) : '8.5',
+                        backdropUrl: api.getImageUrl(item.Id, 'Backdrop', { maxWidth: 1920, maxHeight: 1080, quality: 90 }) || api.getImageUrl(item.Id, 'Primary', { maxWidth: 1920, maxHeight: 1080, quality: 90 }),
+                        posterUrl: api.getImageUrl(item.Id, 'Primary', { maxWidth: 600, maxHeight: 900, quality: 90 }),
+                        rawItem: item
+                    }));
+                }
+            }
+        } catch (err) {
+            console.warn('[HeroSpotlightComponent] Erreur lors du chargement des médias du Hero:', err);
+        }
+    }
+
+    _renderSlide(container, index) {
+        this._currentIndex = index;
+        const item = this._featuredItems[index] || this._featuredItems[0];
+        if (!item) return;
+        const backdropUrl = item.backdropUrl;
+
+        const buildKineticTitle = (name) => {
+            let globalCharIndex = 0;
+            const words = (name || '').split(' ');
+            return words.map(word => {
+                const charsHtml = Array.from(word).map(ch => {
+                    const delay = globalCharIndex * 24;
+                    globalCharIndex++;
+                    const safeChar = ch === '<' ? '&lt;' : (ch === '>' ? '&gt;' : (ch === '&' ? '&amp;' : (ch === '"' ? '&quot;' : ch)));
+                    return `<span class="sh-kt-char" style="animation-delay:${delay}ms">${safeChar}</span>`;
+                }).join('');
+                globalCharIndex++;
+                return `<span class="sh-kt-word">${charsHtml}</span>`;
+            }).join(' ');
+        };
+
+        const existingHero = container.querySelector('.sh-hero-container');
+
+        if (existingHero) {
+            const heroBg = existingHero.querySelector('.sh-hero-bg');
+            const heroInfo = existingHero.querySelector('.sh-hero-info');
+            const tagEl = existingHero.querySelector('.sh-hero-series-tag');
+            const titleEl = existingHero.querySelector('.sh-hero-title');
+            const metaEl = existingHero.querySelector('.sh-hero-meta');
+            const overviewEl = existingHero.querySelector('.sh-hero-overview');
+            const playBtnSpan = existingHero.querySelector('#sh-hero-btn-play span');
+
+            if (heroInfo) {
+                heroInfo.style.transition = 'opacity 200ms ease, transform 200ms ease';
+                heroInfo.style.opacity = '0.2';
+                heroInfo.style.transform = 'translateY(6px)';
+                heroInfo.classList.remove('sh-hero-info--active');
+            }
+
+            if (heroBg) {
+                heroBg.style.transition = 'opacity 450ms cubic-bezier(0.16, 1, 0.3, 1), transform 450ms cubic-bezier(0.16, 1, 0.3, 1)';
+                heroBg.style.opacity = '0.35';
+                heroBg.style.transform = 'scale(1.04)';
+            }
+
+            setTimeout(() => {
+                if (heroBg) {
+                    heroBg.style.backgroundImage = `url('${backdropUrl}')`;
+                    heroBg.style.opacity = '1';
+                    heroBg.style.transform = 'scale(1.02)';
+                }
+
+                if (tagEl) {
+                    tagEl.textContent = item.tagline || item.categoryTag;
+                }
+                if (titleEl) titleEl.innerHTML = buildKineticTitle(item.Name);
+                if (metaEl) {
+                    metaEl.innerHTML = `<span class="sh-hero-meta-item">${item.ProductionYear}</span><span class="sh-hero-badge">4K UHD</span><span class="sh-hero-badge">${item.OfficialRating}</span>`;
+                }
+                if (overviewEl) overviewEl.textContent = item.Overview;
+                if (playBtnSpan) playBtnSpan.textContent = 'Regarder';
+
+                if (heroInfo) {
+                    heroInfo.style.transition = 'opacity 480ms cubic-bezier(0.16, 1, 0.3, 1), transform 480ms cubic-bezier(0.16, 1, 0.3, 1)';
+                    heroInfo.style.opacity = '1';
+                    heroInfo.style.transform = 'translateY(0)';
+                    heroInfo.classList.add('sh-hero-info--active');
+                }
+
+                existingHero.querySelectorAll('.sh-hero-progress-bar').forEach((p, i) => {
+                    const fill = p.querySelector('.sh-hero-progress-fill');
+                    p.classList.toggle('active', i === index);
+                    if (fill) {
+                        fill.style.animation = 'none';
+                        void fill.offsetWidth; 
+                        if (i === index) {
+                            fill.style.animation = 'sh-hero-progress-run 8s linear forwards';
+                        }
+                    }
+                });
+            }, 180);
+            return;
+        }
+
+        const kineticTitle = buildKineticTitle(item.Name);
+        container.innerHTML = `
+            <div class="sh-hero-container">
+                <div class="sh-hero-bg" style="background-image: url('${backdropUrl}');"></div>
+                <div class="sh-hero-gradient-overlay"></div>
+                <div class="sh-hero-content">
+                    <div class="sh-hero-info sh-hero-info--active">
+                        <div class="sh-hero-series-tag">${this._escape(item.tagline || item.categoryTag)}</div>
+                        <h1 class="sh-hero-title sh-hero-title--kinetic">${kineticTitle}</h1>
+                        <div class="sh-hero-meta">
+                            <span class="sh-hero-meta-item">${item.ProductionYear}</span>
+                            <span class="sh-hero-badge">4K UHD</span>
+                            <span class="sh-hero-badge">${item.OfficialRating}</span>
+                        </div>
+                        <p class="sh-hero-overview">${this._escape(item.Overview)}</p>
+                        <div class="sh-hero-actions">
+                            <button class="sh-hero-btn-play" id="sh-hero-btn-play">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                                <span>Regarder</span>
+                            </button>
+                            <button class="sh-hero-btn-glass" id="sh-hero-btn-trailer">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
+                                <span>Bande-annonce</span>
+                            </button>
+                            <button class="sh-hero-btn-glass" id="sh-hero-btn-details">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                <span>Plus d'infos</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button class="sh-hero-edge-btn sh-hero-edge-btn--prev" id="sh-hero-edge-prev" title="Affiche précédente" aria-label="Affiche précédente">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <button class="sh-hero-edge-btn sh-hero-edge-btn--next" id="sh-hero-edge-next" title="Affiche suivante" aria-label="Affiche suivante">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+                <div class="sh-hero-progress-track">
+                    ${this._featuredItems.map((it, i) => `
+                        <button class="sh-hero-progress-bar ${i === index ? 'active' : ''}" data-index="${i}" title="${this._escape(it.Name)}" aria-label="${this._escape(it.Name)}">
+                            <div class="sh-hero-progress-fill" style="${i === index ? 'animation: sh-hero-progress-run 8s linear forwards;' : ''}"></div>
+                        </button>
+                    `).join('')}
+                </div>
+                <!-- Indicateur de Défilement Découvrir (Scroll Hint) -->
+                <div class="sh-hero-scroll-hint" id="sh-hero-scroll-hint" role="button" tabindex="0" title="Découvrir le catalogue">
+                    <span class="sh-scroll-hint-label">Découvrir</span>
+                    <svg class="sh-scroll-hint-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
+        `;
+        this._bindEvents(container, item);
+    }
+
+    async _fetchFeaturedItem() {
+        try {
+            const apiClient = window.SpaceHub?.core?.api?.getClient('jellyfin');
+            const currentUser = await window.ApiClient?.getCurrentUser?.();
+            const userId = currentUser?.Id || window.ApiClient?.getCurrentUserId?.();
+
+            if (apiClient && userId) {
+                const continueRes = await apiClient.getContinueWatching(userId, 1);
+                if (continueRes?.Items?.length > 0) {
+                    const it = continueRes.Items[0];
+                    this._featuredItems[0] = {
+                        Id: it.Id,
+                        Name: it.Name,
+                        SeriesName: it.SeriesName || 'Reprendre la lecture',
+                        Overview: it.Overview || '',
+                        Type: it.Type,
+                        ProductionYear: it.ProductionYear,
+                        OfficialRating: it.OfficialRating || 'HD',
+                        CommunityRating: it.CommunityRating || 8.5,
+                        backdropUrl: apiClient.getImageUrl(it.BackdropImageTags?.length ? it.Id : (it.SeriesId || it.Id), 'Backdrop', { maxWidth: 1920, quality: 90 }),
+                        posterUrl: apiClient.getImageUrl(it.Id, 'Primary', { maxWidth: 500, quality: 85 })
+                    };
+                }
+            }
+        } catch (e) {
+            console.warn('[HeroSpotlight] Impossible de récupérer le média Jellyfin:', e);
+        }
+    }
+
+    _startAutoSlide(container) {
+        if (this._sliderTimer) clearInterval(this._sliderTimer);
+        this._sliderTimer = setInterval(() => {
+            this._goToSlide(container, this._currentIndex + 1);
+        }, 8000);
+    }
+
+    _goToSlide(container, targetIndex) {
+        if (this._isTransitioning) return;
+        this._isTransitioning = true;
+        this._currentIndex = (targetIndex + this._featuredItems.length) % this._featuredItems.length;
+        this._renderSlide(container, this._currentIndex);
+        this._startAutoSlide(container);
+        setTimeout(() => {
+            this._isTransitioning = false;
+        }, 500);
+    }
+
+    _bindEvents(container, item) {
+        const heroContainer = container.querySelector('.sh-hero-container');
+        const heroBg = container.querySelector('.sh-hero-bg');
+        const heroContent = container.querySelector('.sh-hero-content');
+        const prevBtn = container.querySelector('#sh-hero-edge-prev');
+        const nextBtn = container.querySelector('#sh-hero-edge-next');
+        const scrollHint = container.querySelector('#sh-hero-scroll-hint');
+
+        if (heroContainer && heroBg) {
+            heroContainer.addEventListener('mousemove', (e) => {
+                const rect = heroContainer.getBoundingClientRect();
+                const xPercent = (e.clientX - rect.left) / rect.width - 0.5;
+                const yPercent = (e.clientY - rect.top) / rect.height - 0.5;
+                heroBg.style.transform = `scale(1.03) translate(${(-xPercent * 16).toFixed(1)}px, ${(-yPercent * 10).toFixed(1)}px)`;
+
+                // Révélation dynamique par proximité : uniquement si la souris est tout près du bouton
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                const containerWidth = rect.width;
+                const centerY = rect.height / 2;
+
+                const isNearLeft = mouseX < 140 && Math.abs(mouseY - centerY) < 220;
+                const isNearRight = (containerWidth - mouseX) < 140 && Math.abs(mouseY - centerY) < 220;
+
+                if (prevBtn) prevBtn.classList.toggle('sh-hero-edge-btn--visible', isNearLeft);
+                if (nextBtn) nextBtn.classList.toggle('sh-hero-edge-btn--visible', isNearRight);
+            });
+
+            heroContainer.addEventListener('mouseleave', () => {
+                heroBg.style.transform = 'scale(1.02) translate(0, 0)';
+                if (prevBtn) prevBtn.classList.remove('sh-hero-edge-btn--visible');
+                if (nextBtn) nextBtn.classList.remove('sh-hero-edge-btn--visible');
+            });
+        }
+
+
+
+        // Clic sur l'indicateur de scroll "Découvrir"
+        if (scrollHint) {
+            scrollHint.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const target = document.querySelector('.sh-dashboard-body') || document.querySelector('.sh-genre-chips-container') || document.querySelector('.sh-dashboard__grid');
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+                }
+            });
+        }
+
+
+        // ── Effet Parallaxe & Immersion au Scroll ──
+        if (!this._hasBoundScroll) {
+            this._hasBoundScroll = true;
+            let isTicking = false;
+            window.addEventListener('scroll', () => {
+                if (!isTicking) {
+                    requestAnimationFrame(() => {
+                        const scrollY = window.scrollY;
+                        const heroH = window.innerHeight;
+
+                        if (scrollY <= heroH * 1.2) {
+                            const progress = Math.min(1, scrollY / heroH);
+
+                            if (heroBg) {
+                                heroBg.style.transform = `scale(${1.02 - progress * 0.04}) translateY(${(scrollY * 0.32).toFixed(1)}px)`;
+                            }
+
+                            if (heroContent) {
+                                const opacity = Math.max(0, 1 - progress * 1.5);
+                                heroContent.style.opacity = opacity.toFixed(2);
+                                heroContent.style.transform = `translateY(${(scrollY * 0.22).toFixed(1)}px)`;
+                            }
+
+                            if (scrollHint) {
+                                const hintOpacity = Math.max(0, 1 - progress * 3.5);
+                                scrollHint.style.opacity = hintOpacity.toFixed(2);
+                                scrollHint.style.pointerEvents = scrollY > 60 ? 'none' : 'auto';
+                            }
+                        }
+                        isTicking = false;
+                    });
+                    isTicking = true;
+                }
+            }, { passive: true });
+        }
+
+        // ── Raccourcis Clavier Hero (Power-User) ──
+        if (!this._hasBoundKeyboard) {
+            this._hasBoundKeyboard = true;
+            window.addEventListener('keydown', (e) => {
+                const activeTag = document.activeElement?.tagName?.toLowerCase();
+                if (activeTag === 'input' || activeTag === 'textarea' || document.querySelector('.sh-modal--open, .sh-slideup-sheet--open, .sh-trailer-lightbox.sh-lightbox--open')) {
+                    return;
+                }
+
+                if (window.scrollY < window.innerHeight * 0.45) {
+                    if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        this._goToSlide(container, this._currentIndex - 1);
+                    } else if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        this._goToSlide(container, this._currentIndex + 1);
+                    } else if (e.key === ' ' || e.key === 'p' || e.key === 'P') {
+                        e.preventDefault();
+                        const currentItem = this._featuredItems[this._currentIndex];
+                        if (currentItem) {
+                            if (window.Emby?.Page?.showItem) {
+                                window.Emby.Page.showItem(currentItem.Id || currentItem.id);
+                            } else {
+                                window.location.hash = `#/details?id=${currentItem.Id || currentItem.id}`;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        container.querySelector('#sh-hero-edge-prev')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._goToSlide(container, this._currentIndex - 1);
+        });
+
+        container.querySelector('#sh-hero-edge-next')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._goToSlide(container, this._currentIndex + 1);
+        });
+
+        container.querySelectorAll('.sh-hero-progress-bar').forEach(bar => {
+            bar.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = parseInt(e.currentTarget.dataset.index, 10);
+                if (!isNaN(idx)) {
+                    this._goToSlide(container, idx);
+                }
+            });
+        });
+
+        const getCurrentItem = () => {
+            return this._featuredItems[this._currentIndex] || this._featuredItems[0];
+        };
+
+        container.querySelector('#sh-hero-btn-play')?.addEventListener('click', () => {
+            const current = getCurrentItem();
+            if (!current) return;
+            if (window.SpaceHub?.player?.play) {
+                window.SpaceHub.player.play(current.rawItem || current);
+            } else if (window.Emby?.Page?.showItem) {
+                window.Emby.Page.showItem(current.Id || current.id);
+            }
+        });
+
+        container.querySelector('#sh-hero-btn-trailer')?.addEventListener('click', () => {
+            const current = getCurrentItem();
+            if (!current) return;
+            const title = current.Name || current.title || 'Film';
+            if (window.SpaceHub?.ui?.components?.cardBuilder?._showTrailerLightbox) {
+                window.SpaceHub.ui.components.cardBuilder._showTrailerLightbox(title);
+            } else {
+                this._showTrailerLightbox(title);
+            }
+        });
+
+        container.querySelector('#sh-hero-btn-details')?.addEventListener('click', () => {
+            const current = getCurrentItem();
+            if (!current) return;
+            if (window.SpaceHub?.ui?.modalSlideUpSheet) {
+                window.SpaceHub.ui.modalSlideUpSheet.open(current.rawItem || current);
+            } else if (current.Id || current.id) {
+                window.location.hash = `#/details?id=${current.Id || current.id}`;
+            }
+        });
+    }
+
+    _showTrailerLightbox(title) {
+        let lightbox = document.getElementById('sh-trailer-lightbox');
+        if (!lightbox) {
+            lightbox = document.createElement('div');
+            lightbox.id = 'sh-trailer-lightbox';
+            lightbox.className = 'sh-trailer-lightbox';
+            lightbox.innerHTML = `
+                <div class="sh-trailer-box">
+                    <button class="sh-trailer-close" id="sh-trailer-close" aria-label="Fermer">✕</button>
+                    <div class="sh-trailer-content">
+                        <iframe id="sh-trailer-iframe" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(lightbox);
+
+            lightbox.querySelector('#sh-trailer-close').onclick = () => {
+                lightbox.classList.remove('sh-lightbox--open');
+                lightbox.querySelector('#sh-trailer-iframe').src = '';
+            };
+            lightbox.onclick = (e) => {
+                if (e.target === lightbox) {
+                    lightbox.classList.remove('sh-lightbox--open');
+                    lightbox.querySelector('#sh-trailer-iframe').src = '';
+                }
+            };
+        }
+
+        const iframe = lightbox.querySelector('#sh-trailer-iframe');
+        if (iframe) {
+            iframe.src = `https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(title + ' bande annonce official trailer')}&autoplay=1`;
+        }
+        lightbox.classList.add('sh-lightbox--open');
+    }
+
+    _escape(str) {
+        if (!str) return '';
+        return str.replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
+    }
+
+    _injectStyles() {
+        if (document.getElementById('sh-hero-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'sh-hero-styles';
+        style.textContent = `
+.sh-hero-container { position: relative; width: 100%; height: 100vh; overflow: hidden; background: #000000; }
+.sh-hero-bg { position: absolute; top: -2%; left: -2%; right: -2%; bottom: -2%; background-size: cover; background-position: center 20%; animation: sh-ken-burns 36s ease-in-out infinite alternate; transition: background-image 500ms ease, opacity 500ms ease, transform 500ms ease; will-change: transform, opacity; pointer-events: none !important; }
+@keyframes sh-ken-burns { 0% { transform: scale(1.02) translate(0, 0); } 50% { transform: scale(1.04) translate(-8px, -4px); } 100% { transform: scale(1.02) translate(0, 0); } }
+.sh-hero-gradient-overlay { position: absolute; inset: 0; background: linear-gradient(to right, rgba(0,0,0,0.96) 0%, transparent 60%), linear-gradient(to top, #000000 0%, transparent 70%); z-index: 6; pointer-events: none !important; }
+.sh-hero-content { position: relative; z-index: 10; height: 100%; max-width: 1600px; margin: 0 auto; padding: 0 54px; display: flex; align-items: flex-end; padding-bottom: 84px; pointer-events: none !important; }
+.sh-hero-info { max-width: 700px; pointer-events: auto !important; }
+
+
+
+
+.sh-hero-series-tag { display: inline-flex; color: rgba(255,255,255,0.7); font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; background: rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 4px; margin-bottom: 12px; }
+.sh-hero-title { font-size: 64px; font-weight: 900; color: #fff; margin: 0 0 16px 0; }
+.sh-kt-word { display: inline-block; white-space: nowrap; margin-right: 0.2em; }
+.sh-kt-char { display: inline-block; animation: sh-kt-in 400ms cubic-bezier(0.3, 1.3, 0.6, 1) forwards; opacity: 0; transform: translateY(20px); }
+@keyframes sh-kt-in { to { opacity: 1; transform: translateY(0); } }
+.sh-hero-meta { display: flex; gap: 12px; color: #fff; margin-bottom: 20px; }
+.sh-hero-badge { background: rgba(255,255,255,0.15); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+.sh-hero-overview { color: rgba(255,255,255,0.8); line-height: 1.6; margin-bottom: 30px; }
+.sh-hero-actions { display: flex; gap: 16px; }
+.sh-hero-btn-play { display: inline-flex; align-items: center; gap: 10px; background: #fff; color: #000; border: none; padding: 12px 30px; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; transition: transform 180ms ease; }
+.sh-hero-btn-play:hover { transform: scale(1.03); }
+.sh-hero-btn-glass { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; backdrop-filter: blur(10px); transition: background 180ms ease, transform 180ms ease; }
+.sh-hero-btn-glass:hover { background: rgba(255,255,255,0.18); transform: scale(1.02); }
+.sh-hero-edge-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%) scale(0.88);
+    z-index: 35 !important;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: rgba(12, 12, 18, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    transition: opacity 280ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                background 200ms ease,
+                border-color 200ms ease,
+                color 200ms ease,
+                box-shadow 200ms ease;
+}
+.sh-hero-edge-btn--prev { left: 24px; }
+.sh-hero-edge-btn--next { right: 24px; }
+
+.sh-hero-edge-btn.sh-hero-edge-btn--visible {
+    opacity: 0.90;
+    pointer-events: auto !important;
+    transform: translateY(-50%) scale(1);
+}
+
+.sh-hero-edge-btn:hover {
+    opacity: 1;
+    pointer-events: auto !important;
+    transform: translateY(-50%) scale(1.08) !important;
+    background: rgba(26, 26, 36, 0.85);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: #ffffff;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.08);
+}
+.sh-hero-edge-btn:active {
+    transform: translateY(-50%) scale(0.94) !important;
+}
+.sh-hero-progress-track {
+    position: absolute;
+    right: 48px;
+    bottom: 36px;
+    z-index: 35 !important;
+    pointer-events: auto !important;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(6, 6, 10, 0.50);
+    padding: 8px 14px;
+    border-radius: 9999px;
+    backdrop-filter: blur(28px) saturate(200%);
+    -webkit-backdrop-filter: blur(28px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.75);
+    transition: background 250ms ease, border-color 250ms ease;
+}
+
+.sh-hero-progress-track:hover {
+    background: rgba(10, 10, 16, 0.75);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+.sh-hero-progress-bar {
+    position: relative;
+    width: 24px;
+    height: 4px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.22);
+    border: none;
+    cursor: pointer;
+    overflow: hidden;
+    padding: 0;
+    will-change: width, background, box-shadow, transform;
+    transform: translateZ(0);
+    transition: width 280ms cubic-bezier(0.25, 1, 0.5, 1),
+                background 200ms ease,
+                box-shadow 200ms ease,
+                transform 200ms ease;
+}
+
+/* Zone tampon stable pour le survol sans flickering */
+.sh-hero-progress-bar::before {
+    content: '';
+    position: absolute;
+    top: -12px;
+    bottom: -12px;
+    left: -4px;
+    right: -4px;
+    z-index: 10;
+}
+
+.sh-hero-progress-bar:hover {
+    width: 36px;
+    background: rgba(255, 255, 255, 0.65);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.85), 0 0 18px rgba(255, 255, 255, 0.40);
+}
+
+.sh-hero-progress-bar.active {
+    width: 48px;
+    background: rgba(255, 255, 255, 0.30);
+}
+
+.sh-hero-progress-bar.active:hover {
+    width: 54px;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.95), 0 0 22px rgba(255, 255, 255, 0.50);
+}
+
+.sh-hero-progress-bar:active {
+    transform: scale(0.95) translateZ(0);
+}
+
+.sh-hero-progress-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.75) 65%, #ffffff 100%);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.9), 0 0 16px rgba(255, 255, 255, 0.5);
+}
+@keyframes sh-hero-progress-run { from { width: 0%; } to { width: 100%; } }
+
+/* Lightbox Bande-Annonce Vidéo */
+.sh-trailer-lightbox {
+    position: fixed; inset: 0; z-index: 99999;
+    background: rgba(0, 0, 0, 0.88);
+    -webkit-backdrop-filter: blur(30px);
+    backdrop-filter: blur(30px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 250ms ease;
+}
+.sh-trailer-lightbox.sh-lightbox--open {
+    opacity: 1;
+    pointer-events: auto;
+}
+.sh-trailer-box {
+    width: 82vw; max-width: 1040px;
+    aspect-ratio: 16/9;
+    background: #000000;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.12);
+    position: relative;
+}
+.sh-trailer-close {
+    position: absolute; top: 14px; right: 14px; z-index: 10;
+    width: 38px; height: 38px; border-radius: 50%;
+    background: rgba(14, 14, 20, 0.75); border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff; font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 180ms ease;
+}
+.sh-trailer-close:hover { background: rgba(255, 255, 255, 0.25); transform: scale(1.1); }
+.sh-trailer-content { width: 100%; height: 100%; }
+
+/* ── Indicateur de Défilement Découvrir (Scroll Hint) ── */
+.sh-hero-scroll-hint {
+    position: absolute;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 35 !important;
+    pointer-events: auto !important;
+    display: inline-flex;
+
+    align-items: center;
+    gap: 6px;
+    background: rgba(14, 14, 20, 0.60);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 9999px;
+    padding: 6px 14px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+    transition: background 200ms ease, border-color 200ms ease, transform 200ms ease, opacity 250ms ease;
+    animation: sh-hint-float 3.5s ease-in-out infinite;
+}
+.sh-hero-scroll-hint:hover {
+    background: rgba(26, 26, 36, 0.85);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: #ffffff;
+    transform: translateX(-50%) scale(1.06);
+}
+.sh-scroll-hint-chevron {
+    animation: sh-hint-bounce 1.6s ease-in-out infinite;
+}
+@keyframes sh-hint-float {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-4px); }
+}
+@keyframes sh-hint-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(3px); }
+}
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+export default HeroSpotlightComponent;

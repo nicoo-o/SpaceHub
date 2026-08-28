@@ -132,7 +132,7 @@ class Modal {
     /** Met à jour le titre. */
     setTitle(title) {
         const el = this._el?.querySelector('.sh-modal__title');
-        if (el) el.textContent = title;
+        if (el) el.innerHTML = title;
         this.title = title;
     }
 
@@ -170,13 +170,17 @@ class Modal {
 
         this._el.innerHTML = `
             <div class="sh-modal__backdrop"></div>
-            <div class="sh-modal__container sh-scrollbar">
+            <div class="sh-modal__container sh-no-scrollbar">
                 ${this.title ? `
                 <header class="sh-modal__header">
-                    <h2 class="sh-modal__title" id="sh-modal-title-${this.id}">${this._escape(this.title)}</h2>
-                    ${this.showCloseButton ? `<button class="sh-modal__close" aria-label="Fermer la fenêtre">×</button>` : ''}
+                    <h2 class="sh-modal__title" id="sh-modal-title-${this.id}"></h2>
+                    ${this.showCloseButton ? `<button class="sh-modal__close" aria-label="Fermer la fenêtre">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>` : ''}
                 </header>` : ''}
-                <div class="sh-modal__body">
+                <div class="sh-modal__body sh-no-scrollbar">
                     ${typeof this.content === 'string' ? this.content : ''}
                 </div>
                 ${this.footer ? `
@@ -185,6 +189,12 @@ class Modal {
                 </footer>` : ''}
             </div>
         `;
+
+        // Injecter le titre en tant que HTML (pas escaped) pour permettre les badges SVG
+        const titleEl = this._el.querySelector('.sh-modal__title');
+        if (titleEl && this.title) {
+            titleEl.innerHTML = this.title;
+        }
 
         // Insérer les éléments HTMLElement (non-string)
         if (this.content instanceof HTMLElement) {
@@ -199,6 +209,7 @@ class Modal {
         if (this.closeOnBackdrop) {
             this._el.querySelector('.sh-modal__backdrop').addEventListener('click', () => this.close());
         }
+
     }
 
     _onKeyDown(e) {
@@ -251,31 +262,49 @@ class Modal {
     z-index: var(--sh-z-modal, 400);
     pointer-events: none;
     opacity: 0;
-    transition: opacity var(--sh-transition-base, 250ms ease);
+    transition: opacity 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .sh-modal--open    { opacity: 1; pointer-events: all; }
 .sh-modal--closing { opacity: 0; pointer-events: none; }
 
 .sh-modal__backdrop {
     position: absolute; inset: 0;
-    background: var(--sh-bg-overlay, rgba(0,0,0,0.72));
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: opacity 260ms ease;
 }
 
 .sh-modal__container {
     position: relative;
-    background: var(--sh-bg-surface, #18181f);
-    border: 1px solid var(--sh-border-color, rgba(255,255,255,0.08));
-    border-radius: var(--sh-radius-lg, 16px);
-    box-shadow: var(--sh-shadow-xl, 0 24px 64px rgba(0,0,0,0.7));
+    background: rgba(12, 12, 16, 0.92);
+    backdrop-filter: blur(50px) saturate(220%);
+    -webkit-backdrop-filter: blur(50px) saturate(220%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 22px;
+    box-shadow: 
+        0 20px 50px rgba(0, 0, 0, 0.90),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.05);
     display: flex; flex-direction: column;
     max-height: calc(100vh - 64px);
     overflow-y: auto;
-    transform: scale(0.94) translateY(8px);
-    transition: transform var(--sh-transition-spring, 350ms cubic-bezier(0.34,1.56,0.64,1));
+    transform: scale(0.97) translateY(8px);
+    opacity: 0;
+    transition: 
+        transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.sh-modal--open .sh-modal__container { transform: scale(1) translateY(0); }
-.sh-modal--closing .sh-modal__container { transform: scale(0.94) translateY(8px); }
+.sh-modal--open .sh-modal__container {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+}
+.sh-modal--closing .sh-modal__container {
+    transform: scale(0.97) translateY(8px);
+    opacity: 0;
+    transition: transform 200ms ease, opacity 200ms ease;
+}
 
 /* Tailles */
 .sh-modal--sm .sh-modal__container  { width: min(380px, 90vw); }
@@ -286,77 +315,87 @@ class Modal {
 
 .sh-modal__header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: var(--sh-space-5, 20px) var(--sh-space-6, 24px) var(--sh-space-4, 16px);
-    border-bottom: 1px solid var(--sh-border-color, rgba(255,255,255,0.08));
+    padding: 18px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.015);
     flex-shrink: 0;
 }
 .sh-modal__title {
     margin: 0;
-    font-size: var(--sh-text-lg, 20px);
-    font-weight: var(--sh-font-semibold, 600);
-    color: var(--sh-text-primary, #f0f0f8);
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
 }
 .sh-modal__close {
-    background: none; border: none; cursor: pointer;
-    color: var(--sh-text-muted, #5c5c7a);
-    font-size: 24px; line-height: 1; padding: 4px;
-    border-radius: var(--sh-radius-sm, 8px);
-    transition: color var(--sh-transition-fast, 150ms), background var(--sh-transition-fast, 150ms);
+    background: rgba(255, 255, 255, 0.06);
+    border: none;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.60);
+    font-size: 16px;
+    line-height: 1;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 140ms ease;
 }
-.sh-modal__close:hover { color: var(--sh-text-primary, #f0f0f8); background: var(--sh-bg-surface-3, #2e2e3d); }
+.sh-modal__close:hover { color: #ffffff; background: rgba(255, 255, 255, 0.15); }
 
 .sh-modal__body {
-    padding: var(--sh-space-6, 24px);
-    color: var(--sh-text-secondary, #9898b8);
-    font-size: var(--sh-text-base, 15px);
-    line-height: var(--sh-leading-normal, 1.5);
+    padding: 24px;
+    color: rgba(255, 255, 255, 0.70);
+    font-size: 14px;
+    line-height: 1.5;
     flex: 1;
     overflow-y: auto;
 }
 
 .sh-modal__footer {
-    display: flex; gap: var(--sh-space-3, 12px); justify-content: flex-end;
-    padding: var(--sh-space-4, 16px) var(--sh-space-6, 24px);
-    border-top: 1px solid var(--sh-border-color, rgba(255,255,255,0.08));
+    display: flex; gap: 10px; justify-content: flex-end;
+    padding: 14px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.015);
     flex-shrink: 0;
 }
 
 .sh-modal__loading {
     display: flex; flex-direction: column; align-items: center;
-    gap: var(--sh-space-4, 16px); padding: var(--sh-space-12, 48px);
-    color: var(--sh-text-muted, #5c5c7a);
+    gap: 12px; padding: 48px;
+    color: rgba(255, 255, 255, 0.40);
 }
 .sh-spinner {
-    width: 32px; height: 32px;
-    border: 3px solid var(--sh-border-color, rgba(255,255,255,0.08));
-    border-top-color: var(--sh-color-primary, #7c6aff);
+    width: 28px; height: 28px;
+    border: 2px solid rgba(255, 255, 255, 0.10);
+    border-top-color: #ffffff;
     border-radius: 50%;
     animation: sh-spin 0.8s linear infinite;
     display: block;
 }
 
-/* Boutons standard SpaceHub */
+/* Boutons standard SpaceHub Smoked Glass */
 .sh-btn {
-    display: inline-flex; align-items: center; gap: var(--sh-space-2, 8px);
-    padding: var(--sh-space-2, 8px) var(--sh-space-4, 16px);
-    border-radius: var(--sh-radius-sm, 8px);
-    font-family: var(--sh-font-family, sans-serif);
-    font-size: var(--sh-text-sm, 13px);
-    font-weight: var(--sh-font-medium, 500);
-    border: 1px solid transparent; cursor: pointer;
-    transition: all var(--sh-transition-fast, 150ms);
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    border: none; cursor: pointer;
+    transition: all 140ms ease;
 }
 .sh-btn--primary {
-    background: var(--sh-color-primary, #7c6aff);
-    color: var(--sh-text-on-primary, #fff);
+    background: #ffffff;
+    color: #000000;
 }
-.sh-btn--primary:hover { background: var(--sh-color-primary-hover, #9a8bff); }
+.sh-btn--primary:hover { background: #e8e8f0; }
 .sh-btn--ghost {
-    background: transparent;
-    border-color: var(--sh-border-color, rgba(255,255,255,0.08));
-    color: var(--sh-text-secondary, #9898b8);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.80);
 }
-.sh-btn--ghost:hover { background: var(--sh-bg-surface-3, #2e2e3d); color: var(--sh-text-primary, #f0f0f8); }
+.sh-btn--ghost:hover { background: rgba(255, 255, 255, 0.10); color: #ffffff; }
 .sh-btn--danger { background: var(--sh-color-danger, #ff5c7a); color: #fff; }
 .sh-btn--danger:hover { filter: brightness(1.1); }
         `;

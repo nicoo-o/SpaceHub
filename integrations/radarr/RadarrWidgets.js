@@ -20,8 +20,13 @@ class UpcomingMoviesWidget {
         container.innerHTML = `
             <div class="sh-widget sh-widget--radarr-upcoming">
                 <div class="sh-widget__header">
-                    <h2 class="sh-widget__title">🍿 ${this.title}</h2>
-                    <button class="sh-btn sh-btn--ghost sh-widget__refresh-btn" title="Rafraîchir">🔄</button>
+                    <h2 class="sh-widget__title">
+                        <svg class="sh-shelf-title-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>
+                        <span>${this.title}</span>
+                    </h2>
+                    <button class="sh-btn sh-btn--ghost sh-widget__refresh-btn" title="Rafraîchir">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                    </button>
                 </div>
                 <div class="sh-widget__content">
                     <div class="sh-widget__items-container">
@@ -45,7 +50,7 @@ class UpcomingMoviesWidget {
             if (!radarr) {
                 contentEl.innerHTML = `
                     <div class="sh-widget-empty" style="padding:var(--sh-space-4,16px); text-align:center; color:var(--sh-text-muted);">
-                        <p>⚙️ Radarr n'est pas configuré. Rendez-vous dans les réglages SpaceHub pour renseigner l'URL et la clé API.</p>
+                        <p>Radarr n'est pas configuré. Rendez-vous dans les réglages SpaceHub pour renseigner l'URL et la clé API.</p>
                     </div>
                 `;
                 return;
@@ -55,36 +60,53 @@ class UpcomingMoviesWidget {
 
             if (!movies || movies.length === 0) {
                 contentEl.innerHTML = `
-                    <div class="sh-widget-empty" style="padding:var(--sh-space-4,16px); text-align:center; color:var(--sh-text-muted);">
-                        <p>🎬 Aucune sortie de film prévue dans les 30 prochains jours.</p>
+                    <div class="sh-widget-empty">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="20" height="20" x="2" y="2" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line>
+                        </svg>
+                        <p>Aucune sortie de film prévue dans les 30 prochains jours.</p>
                     </div>
                 `;
                 return;
             }
 
             contentEl.innerHTML = `
-                <div class="sh-radarr-movies-grid">
-                    ${movies.slice(0, 10).map(m => {
+                <div class="sh-card-grid sh-card-grid--poster sh-radarr-carousel">
+                    ${movies.slice(0, 20).map(m => {
                         const releaseDate = m.digitalRelease || m.physicalRelease || m.inCinemas;
                         const dateObj = releaseDate ? new Date(releaseDate) : null;
                         const dateFormatted = dateObj ? dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Bientôt';
                         const poster = m.images?.find(i => i.coverType === 'poster')?.remoteUrl || '';
+                        const year = m.year || (dateObj ? dateObj.getFullYear() : '');
+                        const studio = m.studio || 'Cinéma';
 
                         return `
-                            <div class="sh-radarr-movie-card">
-                                <div class="sh-radarr-movie-card__image-wrap">
-                                    ${poster ? `<img src="${poster}" alt="${m.title || 'Film'}" loading="lazy"/>` : '<div class="sh-placeholder">🍿</div>'}
-                                    <span class="sh-radarr-movie-card__date">${dateFormatted}</span>
+                            <div class="sh-card sh-card--poster sh-radarr-bento-card">
+                                <div class="sh-card__image-wrap sh-radarr-bento-card__poster-wrap">
+                                    ${poster 
+                                        ? `<img class="sh-card__image" src="${poster}" alt="${m.title || 'Film'}" loading="lazy"/>` 
+                                        : '<div class="sh-card__image sh-placeholder"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg></div>'}
+                                    <div class="sh-card__glint"></div>
+                                    <div class="sh-radarr-bento-card__floating-badges">
+                                        <span class="sh-radarr-pill-badge sh-radarr-pill-badge--date">${dateFormatted}</span>
+                                    </div>
                                 </div>
-                                <div class="sh-radarr-movie-card__info">
-                                    <h4 class="sh-radarr-movie-card__title sh-truncate">${m.title || 'Film'}</h4>
-                                    <p class="sh-radarr-movie-card__year">${m.year || ''} ${m.studio ? `• ${m.studio}` : ''}</p>
+                                <div class="sh-radarr-bento-card__body">
+                                    <h4 class="sh-radarr-bento-card__title sh-truncate" title="${m.title || 'Film'}">${m.title || 'Film'}</h4>
+                                    <span class="sh-radarr-bento-card__meta">${year ? `${year} • ` : ''}${studio}</span>
                                 </div>
                             </div>
                         `;
                     }).join('')}
                 </div>
             `;
+
+            setTimeout(() => {
+                const carousel = contentEl.querySelector('.sh-radarr-carousel');
+                if (carousel && window.SpaceHub?.ui?.gooeyScroller) {
+                    window.SpaceHub.ui.gooeyScroller.attach(carousel);
+                }
+            }, 60);
         } catch (err) {
             contentEl.innerHTML = `
                 <div class="sh-widget-error">
@@ -103,68 +125,139 @@ class UpcomingMoviesWidget {
         const style = document.createElement('style');
         style.id = 'sh-radarr-widget-styles';
         style.textContent = `
-.sh-radarr-movies-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: var(--sh-space-4, 16px);
+.sh-radarr-carousel {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    gap: 20px !important;
+    padding: 14px 8px 28px 8px !important;
+    scroll-behavior: smooth !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    scroll-snap-type: x mandatory !important;
+    width: 100% !important;
+    -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 64px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 64px), transparent 100%);
 }
 
-.sh-radarr-movie-card {
+.sh-radarr-carousel::-webkit-scrollbar {
+    display: none !important;
+}
+
+.sh-radarr-bento-card {
+    flex: 0 0 auto !important;
+    width: 196px !important;
+    scroll-snap-align: start !important;
+    scroll-snap-stop: normal !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 18px !important;
+    padding: 8px !important;
+    transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    position: relative !important;
+    cursor: pointer !important;
+}
+
+@media (max-width: 768px) {
+    .sh-radarr-carousel {
+        gap: 16px !important;
+    }
+    .sh-radarr-bento-card {
+        width: 150px !important;
+    }
+}
+
+.sh-radarr-bento-card:hover {
+    background: rgba(255, 255, 255, 0.07) !important;
+    border-color: rgba(255, 255, 255, 0.20) !important;
+    transform: translateY(-4px) !important;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.65) !important;
+}
+
+.sh-radarr-bento-card__poster-wrap {
+    position: relative !important;
+    aspect-ratio: 2/3 !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important;
+}
+
+.sh-radarr-bento-card__floating-badges {
+    position: absolute !important;
+    bottom: 8px !important;
+    left: 8px !important;
+    right: 8px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    pointer-events: none !important;
+}
+
+.sh-radarr-pill-badge {
+    padding: 4px 9px !important;
+    border-radius: 8px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    letter-spacing: 0.02em !important;
+}
+
+.sh-radarr-pill-badge--date {
+    background: rgba(0, 0, 0, 0.80) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+.sh-radarr-bento-card__body {
+    padding: 10px 4px 4px 4px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+}
+
+.sh-radarr-bento-card__title {
+    font-size: 13.5px !important;
+    font-weight: 650 !important;
+    color: #ffffff !important;
+    margin: 0 !important;
+    line-height: 1.3 !important;
+}
+
+.sh-radarr-bento-card__meta {
+    font-size: 11.5px !important;
+    font-weight: 550 !important;
+    color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.sh-widget-empty {
     display: flex;
     flex-direction: column;
-    background: var(--sh-bg-surface-2, #22222e);
-    border: 1px solid var(--sh-border-color, rgba(255,255,255,0.08));
-    border-radius: var(--sh-radius-md, 12px);
-    overflow: hidden;
-    transition: transform var(--sh-transition-fast, 150ms);
-}
-
-.sh-radarr-movie-card:hover {
-    transform: translateY(-4px);
-    border-color: var(--sh-color-primary, #7c6aff);
-}
-
-.sh-radarr-movie-card__image-wrap {
-    aspect-ratio: 2/3;
-    width: 100%;
-    position: relative;
-    background: var(--sh-bg-surface-3, #2e2e3d);
-}
-
-.sh-radarr-movie-card__image-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.sh-radarr-movie-card__date {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(0,0,0,0.8);
-    font-size: 10px;
-    font-weight: 700;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 36px 20px;
     text-align: center;
-    padding: 3px 0;
-    color: var(--sh-color-secondary, #00c9a7);
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 13px;
 }
 
-.sh-radarr-movie-card__info {
-    padding: var(--sh-space-2, 8px) var(--sh-space-3, 12px);
+.sh-radarr-queue-row {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: background 150ms ease;
 }
-
-.sh-radarr-movie-card__title {
-    margin: 0 0 2px 0;
-    font-size: var(--sh-text-sm, 13px);
-    font-weight: var(--sh-font-semibold, 600);
-    color: var(--sh-text-primary, #f0f0f8);
-}
-
-.sh-radarr-movie-card__year {
-    margin: 0;
-    font-size: var(--sh-text-xs, 11px);
-    color: var(--sh-text-muted, #5c5c7a);
+.sh-radarr-queue-row:hover {
+    background: rgba(255, 255, 255, 0.06);
 }
         `;
         document.head.appendChild(style);
@@ -182,12 +275,17 @@ class RadarrQueueWidget {
         container.innerHTML = `
             <div class="sh-widget sh-widget--radarr-queue">
                 <div class="sh-widget__header">
-                    <h2 class="sh-widget__title">📥 ${this.title}</h2>
-                    <button class="sh-btn sh-btn--ghost sh-widget__refresh-btn" title="Rafraîchir">🔄</button>
+                    <h2 class="sh-widget__title">
+                        <svg class="sh-shelf-title-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span>${this.title}</span>
+                    </h2>
+                    <button class="sh-btn sh-btn--ghost sh-widget__refresh-btn" title="Rafraîchir">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                    </button>
                 </div>
                 <div class="sh-widget__content">
                     <div class="sh-widget__items-container">
-                        <p style="color:var(--sh-text-muted);">Chargement de la file d'attente...</p>
+                        <p style="color:rgba(255,255,255,0.4);">Chargement de la file d'attente...</p>
                     </div>
                 </div>
             </div>
@@ -204,7 +302,7 @@ class RadarrQueueWidget {
         try {
             const radarr = window.SpaceHub?.integrations?.radarr;
             if (!radarr) {
-                contentEl.innerHTML = '<p style="color:var(--sh-text-muted);">Radarr non configuré.</p>';
+                contentEl.innerHTML = '<p style="color:rgba(255,255,255,0.4); text-align:center; padding:24px;">Radarr non configuré.</p>';
                 return;
             }
 
@@ -212,25 +310,26 @@ class RadarrQueueWidget {
 
             if (!queue || queue.length === 0) {
                 contentEl.innerHTML = `
-                    <div style="padding:var(--sh-space-4,16px); text-align:center; color:var(--sh-text-muted);">
-                        <p>✅ Aucun téléchargement de film en cours dans Radarr.</p>
+                    <div class="sh-widget-empty">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <p>Aucun téléchargement de film en cours dans Radarr.</p>
                     </div>
                 `;
                 return;
             }
 
             contentEl.innerHTML = `
-                <div style="display:flex; flex-direction:column; gap:var(--sh-space-2,8px);">
+                <div style="display:flex; flex-direction:column; gap:8px;">
                     ${queue.map(item => {
                         const progress = item.sizeleft && item.size ? Math.round(((item.size - item.sizeleft) / item.size) * 100) : 0;
                         return `
-                            <div style="background:var(--sh-bg-surface-2,#22222e); padding:var(--sh-space-3,12px); border-radius:var(--sh-radius-sm,8px);">
-                                <div style="display:flex; justify-content:space-between; font-size:var(--sh-text-sm,13px); margin-bottom:6px;">
-                                    <span class="sh-truncate" style="font-weight:600;">${item.title || item.movie?.title || 'Film'}</span>
-                                    <span style="color:var(--sh-color-secondary);">${progress}%</span>
+                            <div class="sh-radarr-queue-row">
+                                <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                                    <span class="sh-truncate" style="font-weight:600; color:#ffffff;">${item.title || item.movie?.title || 'Film'}</span>
+                                    <span style="font-weight:700; color:#ffffff; font-size:12px; background:rgba(255,255,255,0.08); padding:2px 8px; border-radius:9999px;">${progress}%</span>
                                 </div>
-                                <div style="height:4px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden;">
-                                    <div style="width:${progress}%; height:100%; background:var(--sh-color-secondary);"></div>
+                                <div style="height:4px; background:rgba(255,255,255,0.08); border-radius:9999px; overflow:hidden;">
+                                    <div style="width:${progress}%; height:100%; background:#ffffff; border-radius:9999px;"></div>
                                 </div>
                             </div>
                         `;
@@ -238,7 +337,7 @@ class RadarrQueueWidget {
                 </div>
             `;
         } catch (err) {
-            contentEl.innerHTML = `<p style="color:var(--sh-color-danger);">${err.message}</p>`;
+            contentEl.innerHTML = `<p style="color:#ff453a; text-align:center; padding:16px;">${err.message}</p>`;
         }
     }
 

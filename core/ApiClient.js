@@ -47,9 +47,10 @@ class BaseApiClient {
         const url     = `${this.baseUrl}${endpoint}`;
         const retries = options.retries ?? 2;
 
+        const isJellyfin = this instanceof JellyfinClient || !!this._defaultHeaders['X-Emby-Authorization'];
         const headers = {
             ...this._defaultHeaders,
-            ...(this.apiKey ? { 'X-Api-Key': this.apiKey } : {}),
+            ...((this.apiKey && !isJellyfin) ? { 'X-Api-Key': this.apiKey } : {}),
             ...options.headers,
         };
 
@@ -59,17 +60,25 @@ class BaseApiClient {
             signal: options.signal,
         };
 
-        if (body && ['POST', 'PUT', 'PATCH'].includes(config.method)) {
-            config.body = JSON.stringify(body);
+        if (['GET', 'HEAD'].includes(config.method) && !body) {
+            delete headers['Content-Type'];
         }
+
+        const isCrossDomain = typeof window !== 'undefined' && this.baseUrl.startsWith('http') && !this.baseUrl.startsWith(window.location.origin);
 
         for (let attempt = 0; attempt <= retries; attempt++) {
             try {
-                const response = await fetch(url, config);
+                let requestUrl = url;
+                // Si cross-origin en environnement navigateur, passer directement par le proxy universel
+                if ((isCrossDomain || attempt > 0) && typeof window !== 'undefined') {
+                    requestUrl = `/api-proxy?url=${encodeURIComponent(url)}`;
+                }
+
+                const response = await fetch(requestUrl, config);
 
                 if (!response.ok) {
                     const text = await response.text().catch(() => '');
-                    throw new ApiError(response.status, response.statusText, text, url);
+                    throw new ApiError(response.status, response.statusText, text, requestUrl);
                 }
 
                 // Réponse vide (204 No Content)
@@ -82,6 +91,13 @@ class BaseApiClient {
 
             } catch (err) {
                 const isLast = attempt === retries;
+                // Si échec réseau direct/CORS, tenter le proxy universel immédiatement sur la tentative suivante
+                if (err.name === 'TypeError' && !isLast) {
+                    this._log.warn(`[${method}] ${url} échec CORS/réseau direct. Tentative via proxy universel /api-proxy...`);
+                    await sleep(100);
+                    continue;
+                }
+
                 if (err instanceof ApiError || isLast) {
                     this._log.error(`[${method}] ${url} — ${err.message}`);
                     throw err;
@@ -99,28 +115,52 @@ class BaseApiClient {
     delete(endpoint, options)       { return this.request('DELETE', endpoint, null,  options); }
 
     /** Met à jour la baseUrl (utile quand l'URL Sonarr/Radarr change dans les settings) */
-    setBaseUrl(url) { this.baseUrl = url.replace(/\/$/, ''); }
+    setBaseUrl(url) { this.baseUrl = (url || '').replace(/\/$/, ''); }
     setApiKey(key)  { this.apiKey = key; }
+
+    /** Met à jour dynamiquement la configuration depuis SettingsManager */
+    updateConfig(settingsKey = null) {
+        const key = settingsKey || this._settingsKey;
+        const settings = window.SpaceHub?.core?.settings;
+        if (key && settings) {
+            const newUrl = settings.get(`${key}.url`, this.baseUrl);
+            const newKey = settings.get(`${key}.apiKey`, this.apiKey);
+            if (newUrl !== undefined && newUrl !== null) this.setBaseUrl(newUrl);
+            if (newKey !== undefined && newKey !== null) this.setApiKey(newKey);
+        }
+    }
 }
 
 // ─── JellyfinClient ──────────────────────────────────────────────────────────
 
 class JellyfinClient extends BaseApiClient {
     constructor() {
-        const serverAddress = window.ApiClient?.serverAddress?.() || '';
-        const token         = window.ApiClient?.accessToken?.()   || '';
+        const serverAddress = window.SpaceHub?.auth?.getServerUrl() || window.ApiClient?.serverAddress?.() || '';
+        const token         = window.SpaceHub?.auth?.getToken() || window.ApiClient?.accessToken?.()   || '';
 
-        super(serverAddress, null, {
-            'X-Emby-Authorization': `MediaBrowser Token="${token}"`,
-        });
-
+        super(serverAddress, token);
+        this.updateAuthHeaders(token);
         this._jfClient = window.ApiClient;
+    }
+
+    updateAuthHeaders(token) {
+        this.apiKey = token;
+        const deviceId = window.SpaceHub?.auth?.getDeviceId?.() || 'sh_web';
+        const authHeader = `MediaBrowser Client="Jellyfin Web", Device="Chrome", DeviceId="${deviceId}", Version="10.8.13"${token ? `, Token="${token}"` : ''}`;
+        this._defaultHeaders['Accept'] = 'application/json';
+        this._defaultHeaders['Content-Type'] = 'application/json';
+        this._defaultHeaders['X-Emby-Authorization'] = authHeader;
+        this._defaultHeaders['Authorization'] = authHeader;
+    }
+
+    setApiKey(token) {
+        this.updateAuthHeaders(token);
     }
 
     /** Rafraîchit le token Jellyfin (à appeler après reconnexion) */
     refreshAuth() {
-        const token = this._jfClient?.accessToken?.() || '';
-        this._defaultHeaders['X-Emby-Authorization'] = `MediaBrowser Token="${token}"`;
+        const token = window.SpaceHub?.auth?.getToken() || this._jfClient?.accessToken?.() || '';
+        this.updateAuthHeaders(token);
     }
 
     /**
@@ -130,12 +170,18 @@ class JellyfinClient extends BaseApiClient {
      * @param {{ maxWidth?: number, maxHeight?: number, quality?: number }} [opts]
      */
     getImageUrl(itemId, type = 'Primary', opts = {}) {
+        if (!itemId) return '';
         const params = new URLSearchParams({
             maxWidth:  opts.maxWidth  ?? 400,
             maxHeight: opts.maxHeight ?? 600,
             quality:   opts.quality   ?? 90,
         });
-        return `${this.baseUrl}/Items/${itemId}/Images/${type}?${params}`;
+        const token = this.apiKey || window.SpaceHub?.auth?.getToken() || '';
+        if (token) {
+            params.set('api_key', token);
+        }
+        const base = this.baseUrl || window.SpaceHub?.auth?.getServerUrl() || '';
+        return `${base}/Items/${itemId}/Images/${type}?${params}`;
     }
 
     /** /Items/Latest */
@@ -148,9 +194,26 @@ class JellyfinClient extends BaseApiClient {
         return this.get(`/Items?SortBy=DateCreated&SortOrder=Descending&Limit=${limit}&Recursive=true&Fields=PrimaryImageAspectRatio`);
     }
 
-    /** /Users/{userId}/Items/Resume */
-    getContinueWatching(userId, limit = 10) {
-        return this.get(`/Users/${userId}/Items/Resume?Limit=${limit}&MediaTypes=Video`);
+    /** /Items ou /Users/{userId}/Items */
+    getItems(userIdOrOptions = {}, maybeOptions = {}) {
+        let userId = null;
+        let opts = {};
+        if (typeof userIdOrOptions === 'string') {
+            userId = userIdOrOptions;
+            opts = maybeOptions || {};
+        } else {
+            opts = userIdOrOptions || {};
+            userId = opts.userId || window.SpaceHub?.auth?.getUserId() || '';
+        }
+        const params = new URLSearchParams();
+        for (const [k, v] of Object.entries(opts)) {
+            if (v !== undefined && v !== null && k !== 'userId') {
+                params.set(k, String(v));
+            }
+        }
+        const q = params.toString() ? `?${params.toString()}` : '';
+        const endpoint = userId ? `/Users/${userId}/Items${q}` : `/Items${q}`;
+        return this.get(endpoint);
     }
 }
 

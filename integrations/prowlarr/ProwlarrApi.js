@@ -19,7 +19,17 @@ class ProwlarrApi extends BaseApiClient {
         const apiKey = settings?.get('prowlarr.apiKey', '') || '';
 
         super(url, apiKey);
+        this._settingsKey = 'prowlarr';
         this._log = new Logger('ProwlarrApi');
+    }
+
+    /**
+     * Met à jour la configuration depuis les paramètres SpaceHub.
+     */
+    updateConfig() {
+        const settings = window.SpaceHub?.core?.settings;
+        this.baseUrl = (settings?.get('prowlarr.url', 'http://localhost:9696') || 'http://localhost:9696').replace(/\/$/, '');
+        this.apiKey = settings?.get('prowlarr.apiKey', '') || '';
     }
 
     /**
@@ -27,6 +37,7 @@ class ProwlarrApi extends BaseApiClient {
      * @returns {Promise<{ success: boolean, version?: string, error?: string }>}
      */
     async testConnection() {
+        this.updateConfig();
         try {
             const systemStatus = await this.get('/api/v1/system/status');
             this._log.info(`Connexion Prowlarr réussie (version: ${systemStatus?.version || 'inconnue'})`);

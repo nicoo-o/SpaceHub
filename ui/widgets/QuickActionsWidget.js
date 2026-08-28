@@ -1,8 +1,10 @@
 /**
- * SpaceHub — Quick Actions Widget
- * Version: 1.0.0
+ * SpaceHub — Quick Actions Widget (Apple VisionOS Subtile Edition)
+ * Version: 2.0.0
  *
- * Widget d'actions et raccourcis rapides (changer de thème, chercher, actualiser, accès rapide).
+ * Raccourcis ultra-subtils et discrets (Icônes seules, sans texte) :
+ * 1. Changer de thème (Palette)
+ * 2. Recharger les médias (Refresh)
  */
 
 'use strict';
@@ -10,33 +12,27 @@
 class QuickActionsWidget {
     constructor() {
         this.id = 'quick-actions';
-        this.title = 'Accès Rapide';
+        this.title = 'Actions Rapides';
         this.defaultColSpan = 12;
     }
 
     async render(container) {
         container.innerHTML = `
-            <div class="sh-widget sh-widget--quick-actions">
-                <div class="sh-widget__content">
-                    <div class="sh-quick-actions-bar">
-                        <button class="sh-quick-btn" data-action="theme-next">
-                            <span class="sh-quick-btn__icon">🎨</span>
-                            <span class="sh-quick-btn__label">Changer de thème</span>
-                        </button>
-                        <button class="sh-quick-btn" data-action="search">
-                            <span class="sh-quick-btn__icon">🔍</span>
-                            <span class="sh-quick-btn__label">Recherche rapide</span>
-                        </button>
-                        <button class="sh-quick-btn" data-action="refresh">
-                            <span class="sh-quick-btn__icon">🔄</span>
-                            <span class="sh-quick-btn__label">Recharger les médias</span>
-                        </button>
-                        <button class="sh-quick-btn" data-action="settings">
-                            <span class="sh-quick-btn__icon">⚙️</span>
-                            <span class="sh-quick-btn__label">Réglages SpaceHub</span>
-                        </button>
-                    </div>
-                </div>
+            <div class="sh-quick-actions-compact">
+                <button class="sh-quick-btn-icon" data-action="theme-next" title="Changer de thème">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
+                        <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
+                        <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle>
+                        <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle>
+                        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path>
+                    </svg>
+                </button>
+                <button class="sh-quick-btn-icon" data-action="refresh" title="Recharger les médias">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                    </svg>
+                </button>
             </div>
         `;
 
@@ -52,24 +48,6 @@ class QuickActionsWidget {
         container.querySelector('[data-action="refresh"]')?.addEventListener('click', () => {
             window.SpaceHub?.ui?.dashboard?.refreshAll();
         });
-
-        container.querySelector('[data-action="search"]')?.addEventListener('click', () => {
-            if (window.SpaceHub?.jellyfin?.search?.open) {
-                window.SpaceHub.jellyfin.search.open();
-            } else {
-                const searchBtn = document.querySelector('.headerSearchButton') || document.querySelector('.searchButton');
-                if (searchBtn) searchBtn.click();
-            }
-        });
-
-        container.querySelector('[data-action="settings"]')?.addEventListener('click', () => {
-            if (window.SpaceHub?.ui?.settingsPanel?.open) {
-                window.SpaceHub.ui.settingsPanel.open();
-            } else {
-                const userBtn = document.querySelector('.headerUserButton') || document.querySelector('.headerButtonUser');
-                if (userBtn) userBtn.click();
-            }
-        });
     }
 
     _injectStyles() {
@@ -77,38 +55,43 @@ class QuickActionsWidget {
         const style = document.createElement('style');
         style.id = 'sh-quick-actions-styles';
         style.textContent = `
-.sh-quick-actions-bar {
-    display: flex;
-    gap: var(--sh-space-3, 12px);
-    overflow-x: auto;
-    padding: var(--sh-space-1, 4px) 0;
-}
-
-.sh-quick-btn {
+.sh-quick-actions-compact {
     display: inline-flex;
     align-items: center;
-    gap: var(--sh-space-2, 8px);
-    padding: var(--sh-space-3, 12px) var(--sh-space-4, 16px);
-    background: var(--sh-bg-surface-2, #22222e);
-    border: 1px solid var(--sh-border-color, rgba(255,255,255,0.08));
-    border-radius: var(--sh-radius-md, 12px);
-    color: var(--sh-text-primary, #f0f0f8);
-    font-family: var(--sh-font-family, sans-serif);
-    font-size: var(--sh-text-sm, 13px);
-    font-weight: var(--sh-font-medium, 500);
+    gap: 8px;
+}
+
+.sh-quick-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    color: rgba(255, 255, 255, 0.85);
     cursor: pointer;
-    white-space: nowrap;
-    transition: all var(--sh-transition-fast, 150ms);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: 
+        background 160ms ease,
+        border-color 160ms ease,
+        transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        color 160ms ease,
+        box-shadow 200ms ease;
 }
 
-.sh-quick-btn:hover {
-    background: var(--sh-bg-surface-3, #2e2e3d);
-    border-color: var(--sh-color-primary, #7c6aff);
-    transform: translateY(-2px);
+.sh-quick-btn-icon:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: #ffffff;
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
-.sh-quick-btn__icon {
-    font-size: 16px;
+.sh-quick-btn-icon:active {
+    transform: scale(0.94);
 }
         `;
         document.head.appendChild(style);
@@ -116,3 +99,4 @@ class QuickActionsWidget {
 }
 
 export default QuickActionsWidget;
+

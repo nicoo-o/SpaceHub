@@ -1,54 +1,50 @@
 /**
  * SpaceHub — Design Tokens
- * Version: 0.3.0
+ * Version: 2.0.0 (Apple TV Premium)
  *
  * Variables CSS globales définissant l'identité visuelle de SpaceHub.
- * Tous les composants (Modal, Toaster, CardBuilder, Dashboard...) utilisent ces tokens.
- * Le ThemeManager surcharge ces variables pour appliquer les thèmes.
- *
- * Convention de nommage : --sh-[catégorie]-[élément]-[état]
+ * Référence visuelle : Apple TV+ (tvOS / macOS)
+ * Noir OLED absolu (#000000), typographie contrastée, zéro accent violet.
  */
 
-/* ═══════════════════════════════════════════════════════════════
-   THÈME PAR DÉFAUT — SpaceHub Dark
-   ═══════════════════════════════════════════════════════════════ */
 :root {
 
-    /* ─── Couleurs de base ────────────────────────────────────── */
-    --sh-color-primary:          #7c6aff;   /* Violet SpaceHub */
-    --sh-color-primary-hover:    #9a8bff;
-    --sh-color-primary-active:   #5d4ee8;
-    --sh-color-primary-rgb:      124, 106, 255;
+    /* ─── Couleurs de base — Monochrome Apple TV ─────────────── */
+    --sh-color-primary:          #ffffff;   /* Blanc pur (actions principales) */
+    --sh-color-primary-hover:    #f0f0f0;
+    --sh-color-primary-active:   #e0e0e0;
+    --sh-color-primary-rgb:      255, 255, 255;
 
-    --sh-color-secondary:        #00c9a7;   /* Teal accent */
-    --sh-color-secondary-hover:  #00e8c1;
-    --sh-color-secondary-rgb:    0, 201, 167;
+    --sh-color-secondary:        rgba(255, 255, 255, 0.50); /* Gris argenté */
+    --sh-color-secondary-hover:  rgba(255, 255, 255, 0.75);
+    --sh-color-secondary-rgb:    255, 255, 255;
 
-    --sh-color-danger:           #ff5c7a;
-    --sh-color-warning:          #ffb830;
-    --sh-color-success:          #3ddc84;
-    --sh-color-info:             #4fc3f7;
+    --sh-color-danger:           #ff453a;   /* Rouge Apple système */
+    --sh-color-warning:          #ff9f0a;   /* Orange Apple système */
+    --sh-color-success:          #32d74b;   /* Vert Apple système */
+    --sh-color-info:             #64d2ff;   /* Bleu ciel Apple système */
 
-    /* ─── Surfaces & fonds ───────────────────────────────────── */
-    --sh-bg-base:                #101014;   /* Fond principal */
-    --sh-bg-surface:             #18181f;   /* Cards, panels */
-    --sh-bg-surface-2:           #22222e;   /* Nested surfaces */
-    --sh-bg-surface-3:           #2e2e3d;   /* Hover states */
-    --sh-bg-overlay:             rgba(0, 0, 0, 0.72); /* Backdrop modal */
-    --sh-bg-glass:               rgba(24, 24, 31, 0.82);
-    --sh-bg-glass-blur:          blur(14px) saturate(1.6);
+    /* ─── Surfaces & fonds — OLED & Frosted Glass ───────────── */
+    --sh-bg-base:                #000000;   /* Noir OLED absolu */
+    --sh-bg-surface:             #111111;   /* Surface relevée */
+    --sh-bg-surface-2:           #1a1a1a;   /* Nested surfaces */
+    --sh-bg-surface-3:           #242424;   /* Hover states */
+    --sh-bg-overlay:             rgba(0, 0, 0, 0.88); /* Backdrop modal */
+    --sh-bg-glass:               rgba(255, 255, 255, 0.07);
+    --sh-bg-glass-heavy:         rgba(0, 0, 0, 0.92);
+    --sh-bg-glass-blur:          blur(32px) saturate(180%);
 
-    /* ─── Texte ──────────────────────────────────────────────── */
-    --sh-text-primary:           #f0f0f8;
-    --sh-text-secondary:         #9898b8;
-    --sh-text-muted:             #5c5c7a;
-    --sh-text-on-primary:        #ffffff;
-    --sh-text-on-dark:           rgba(255, 255, 255, 0.87);
+    /* ─── Texte — Contraste Apple ────────────────────────────── */
+    --sh-text-primary:           #ffffff;   /* Blanc pur */
+    --sh-text-secondary:         rgba(255, 255, 255, 0.65); /* Gris moyen */
+    --sh-text-muted:             rgba(255, 255, 255, 0.38); /* Gris discret */
+    --sh-text-on-primary:        #000000;   /* Noir sur bouton blanc */
+    --sh-text-on-dark:           rgba(255, 255, 255, 0.90);
 
-    /* ─── Bordures ───────────────────────────────────────────── */
+    /* ─── Bordures — Invisibles ou ultrafines ───────────────── */
     --sh-border-color:           rgba(255, 255, 255, 0.08);
-    --sh-border-color-hover:     rgba(255, 255, 255, 0.18);
-    --sh-border-color-focus:     var(--sh-color-primary);
+    --sh-border-color-hover:     rgba(255, 255, 255, 0.16);
+    --sh-border-color-focus:     rgba(255, 255, 255, 0.40);
     --sh-border-width:           1px;
     --sh-border-width-thick:     2px;
 
@@ -72,41 +68,45 @@
     --sh-space-12:               48px;
     --sh-space-16:               64px;
 
-    /* ─── Typographie ────────────────────────────────────────── */
-    --sh-font-family:            'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --sh-font-family-mono:       'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    /* ─── Typographie — SF Pro Style ─────────────────────────── */
+    --sh-font-family:            'SF Pro Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --sh-font-family-mono:       'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
 
     --sh-text-xs:                11px;
     --sh-text-sm:                13px;
     --sh-text-base:              15px;
     --sh-text-md:                17px;
-    --sh-text-lg:                20px;
-    --sh-text-xl:                24px;
-    --sh-text-2xl:               30px;
-    --sh-text-3xl:               38px;
+    --sh-text-lg:                22px;
+    --sh-text-xl:                28px;
+    --sh-text-2xl:               36px;
+    --sh-text-3xl:               48px;
+    --sh-text-4xl:               64px;
 
+    --sh-font-light:             300;
     --sh-font-normal:            400;
     --sh-font-medium:            500;
     --sh-font-semibold:          600;
     --sh-font-bold:              700;
+    --sh-font-black:             900;
 
-    --sh-leading-tight:          1.25;
-    --sh-leading-normal:         1.5;
-    --sh-leading-relaxed:        1.75;
+    --sh-leading-tight:          1.15;
+    --sh-leading-normal:         1.45;
+    --sh-leading-relaxed:        1.65;
 
-    /* ─── Ombres ─────────────────────────────────────────────── */
-    --sh-shadow-sm:              0 1px 3px rgba(0,0,0,0.4);
-    --sh-shadow-md:              0 4px 16px rgba(0,0,0,0.5);
-    --sh-shadow-lg:              0 12px 40px rgba(0,0,0,0.6);
-    --sh-shadow-xl:              0 24px 64px rgba(0,0,0,0.7);
-    --sh-shadow-primary:         0 4px 20px rgba(var(--sh-color-primary-rgb), 0.35);
-    --sh-shadow-glow:            0 0 20px rgba(var(--sh-color-primary-rgb), 0.5);
+    /* ─── Ombres — Profondes Cinématiques ───────────────────── */
+    --sh-shadow-sm:              0 2px 8px rgba(0, 0, 0, 0.5);
+    --sh-shadow-md:              0 8px 24px rgba(0, 0, 0, 0.7);
+    --sh-shadow-lg:              0 16px 48px rgba(0, 0, 0, 0.85);
+    --sh-shadow-xl:              0 32px 80px rgba(0, 0, 0, 0.95);
+    --sh-shadow-primary:         0 4px 20px rgba(255, 255, 255, 0.15);
+    --sh-shadow-glow:            0 0 24px rgba(255, 255, 255, 0.20);
 
-    /* ─── Transitions ────────────────────────────────────────── */
-    --sh-transition-fast:        150ms ease;
-    --sh-transition-base:        250ms ease;
-    --sh-transition-slow:        400ms ease;
+    /* ─── Transitions — Courbes Apple ───────────────────────── */
+    --sh-transition-fast:        120ms cubic-bezier(0.4, 0, 0.2, 1);
+    --sh-transition-base:        220ms cubic-bezier(0.4, 0, 0.2, 1);
+    --sh-transition-slow:        380ms cubic-bezier(0.4, 0, 0.2, 1);
     --sh-transition-spring:      350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    --sh-transition-smooth:      600ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
     /* ─── Z-index ────────────────────────────────────────────── */
     --sh-z-base:                 1;
@@ -119,32 +119,142 @@
 
     /* ─── Cartes médias ──────────────────────────────────────── */
     --sh-card-bg:                var(--sh-bg-surface);
-    --sh-card-border:            var(--sh-border-color);
-    --sh-card-radius:            var(--sh-radius-md);
+    --sh-card-border:            none;
+    --sh-card-radius:            10px;
     --sh-card-shadow:            var(--sh-shadow-md);
-    --sh-card-shadow-hover:      var(--sh-shadow-lg);
+    --sh-card-shadow-hover:      0 20px 48px rgba(0,0,0,0.90), 0 0 0 1px rgba(255,255,255,0.14);
     --sh-card-aspect-poster:     2 / 3;
     --sh-card-aspect-backdrop:   16 / 9;
     --sh-card-aspect-thumb:      4 / 3;
 
     /* ─── Scrollbar ──────────────────────────────────────────── */
-    --sh-scrollbar-width:        6px;
-    --sh-scrollbar-thumb:        rgba(var(--sh-color-primary-rgb), 0.4);
+    --sh-scrollbar-width:        4px;
+    --sh-scrollbar-thumb:        rgba(255, 255, 255, 0.18);
     --sh-scrollbar-track:        transparent;
+
+    /* ─── Glass Input ─────────────────────────────────────── */
+    --sh-input-bg:               rgba(255, 255, 255, 0.06);
+    --sh-input-bg-focus:         rgba(255, 255, 255, 0.10);
+    --sh-input-border:           rgba(255, 255, 255, 0.12);
+    --sh-input-border-focus:     rgba(255, 255, 255, 0.40);
+    --sh-input-text:             #ffffff;
+    --sh-input-placeholder:      rgba(255, 255, 255, 0.35);
+    --sh-input-radius:           12px;
+    --sh-input-padding:          12px 16px;
+    --sh-input-shadow-focus:     0 0 0 3px rgba(255, 255, 255, 0.12);
 }
 
 /* ═══════════════════════════════════════════════════════════════
    UTILITAIRES GLOBAUX
    ═══════════════════════════════════════════════════════════════ */
 
-/* Scrollbar SpaceHub */
+body, #app {
+    background-color: var(--sh-bg-base) !important;
+    color: var(--sh-text-primary) !important;
+    margin: 0;
+    padding: 0;
+    font-family: var(--sh-font-family);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+body::-webkit-scrollbar, #app::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+/* Scrollbar SpaceHub — Discrete Apple Style */
 .sh-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: var(--sh-scrollbar-thumb) var(--sh-scrollbar-track);
 }
-.sh-scrollbar::-webkit-scrollbar        { width: var(--sh-scrollbar-width); }
+.sh-scrollbar::-webkit-scrollbar        { width: var(--sh-scrollbar-width); height: var(--sh-scrollbar-width); }
 .sh-scrollbar::-webkit-scrollbar-thumb  { background: var(--sh-scrollbar-thumb); border-radius: var(--sh-radius-full); }
 .sh-scrollbar::-webkit-scrollbar-track  { background: var(--sh-scrollbar-track); }
+
+/* ── No-Scrollbar Utility ─────────────────────────────────────── */
+.sh-no-scrollbar {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+.sh-no-scrollbar::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+
+/* ── Glass Input Global ───────────────────────────────────────── */
+.sh-input {
+    background: var(--sh-input-bg);
+    border: 1px solid var(--sh-input-border);
+    border-radius: var(--sh-input-radius);
+    padding: var(--sh-input-padding);
+    color: var(--sh-input-text);
+    font-size: 14px;
+    font-family: var(--sh-font-family);
+    font-weight: 450;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.sh-input::placeholder { color: var(--sh-input-placeholder); }
+.sh-input:focus {
+    background: var(--sh-input-bg-focus);
+    border-color: var(--sh-input-border-focus);
+    box-shadow: var(--sh-input-shadow-focus);
+}
+.sh-input:focus-visible { outline: none; }
+
+/* ── Apple Toggle Switch ──────────────────────────────────────── */
+.sh-toggle {
+    position: relative;
+    display: inline-flex;
+    width: 44px;
+    height: 26px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+.sh-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.sh-toggle-track {
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+    transition: background 220ms ease;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+}
+.sh-toggle input:checked + .sh-toggle-track { background: #ffffff; }
+.sh-toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: rgba(180, 180, 180, 0.9);
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), background 220ms ease;
+}
+.sh-toggle input:checked ~ .sh-toggle-thumb {
+    transform: translateX(18px);
+    background: #000000;
+}
+
+/* ── Badge / Pill Statuts ─────────────────────────────────────── */
+.sh-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+.sh-badge--success { background: rgba(50, 215, 75, 0.15);  color: #32d74b; border: 1px solid rgba(50, 215, 75, 0.25); }
+.sh-badge--warning { background: rgba(255, 159, 10, 0.15); color: #ff9f0a; border: 1px solid rgba(255, 159, 10, 0.25); }
+.sh-badge--danger  { background: rgba(255, 69, 58, 0.15);  color: #ff453a; border: 1px solid rgba(255, 69, 58, 0.25); }
+.sh-badge--info    { background: rgba(100, 210, 255, 0.12); color: #64d2ff; border: 1px solid rgba(100, 210, 255, 0.20); }
+.sh-badge--neutral { background: rgba(255, 255, 255, 0.08); color: rgba(255,255,255,0.65); border: 1px solid rgba(255,255,255,0.12); }
 
 /* Truncate text */
 .sh-truncate {
@@ -165,9 +275,12 @@
 }
 
 /* Animations réutilisables */
-@keyframes sh-fadeIn    { from { opacity: 0; }                         to { opacity: 1; } }
-@keyframes sh-fadeInUp  { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes sh-scaleIn   { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
-@keyframes sh-slideInRight { from { transform: translateX(110%); }     to { transform: translateX(0); } }
-@keyframes sh-pulse     { 0%, 100% { opacity: 1; }                     50% { opacity: 0.5; } }
-@keyframes sh-spin      { to { transform: rotate(360deg); } }
+@keyframes sh-fadeIn        { from { opacity: 0; }                               to { opacity: 1; } }
+@keyframes sh-fadeInUp      { from { opacity: 0; transform: translateY(12px); }  to { opacity: 1; transform: translateY(0); } }
+@keyframes sh-fadeInDown    { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes sh-scaleIn       { from { opacity: 0; transform: scale(0.94); }       to { opacity: 1; transform: scale(1); } }
+@keyframes sh-springIn      { from { opacity: 0; transform: scale(0.92) translateY(14px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes sh-slideInRight  { from { transform: translateX(110%); }              to { transform: translateX(0); } }
+@keyframes sh-slideOutRight { from { transform: translateX(0); opacity: 1; }     to { transform: translateX(110%); opacity: 0; } }
+@keyframes sh-pulse         { 0%, 100% { opacity: 1; }                           50% { opacity: 0.5; } }
+@keyframes sh-spin          { to { transform: rotate(360deg); } }

@@ -19,7 +19,17 @@ class RadarrApi extends BaseApiClient {
         const apiKey = settings?.get('radarr.apiKey', '') || '';
 
         super(url, apiKey);
+        this._settingsKey = 'radarr';
         this._log = new Logger('RadarrApi');
+    }
+
+    /**
+     * Met à jour la configuration depuis les paramètres SpaceHub.
+     */
+    updateConfig() {
+        const settings = window.SpaceHub?.core?.settings;
+        this.baseUrl = (settings?.get('radarr.url', 'http://localhost:7878') || 'http://localhost:7878').replace(/\/$/, '');
+        this.apiKey = settings?.get('radarr.apiKey', '') || '';
     }
 
     /**
@@ -27,6 +37,7 @@ class RadarrApi extends BaseApiClient {
      * @returns {Promise<{ success: boolean, version?: string, error?: string }>}
      */
     async testConnection() {
+        this.updateConfig();
         try {
             const systemStatus = await this.get('/api/v3/system/status');
             this._log.info(`Connexion Radarr réussie (version: ${systemStatus?.version || 'inconnue'})`);

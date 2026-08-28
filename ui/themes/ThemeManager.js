@@ -78,7 +78,7 @@ class ThemeManager {
             this._eventBus.emit('theme:changed', { id: themeId, name: preset.name });
         }
 
-        this._log.info(`Thème appliqué : "${preset.name}" ${preset.emoji}`);
+        this._log.info(`Thème appliqué : "${preset.name}"`);
         return true;
     }
 
@@ -90,10 +90,10 @@ class ThemeManager {
 
     /**
      * Retourne la liste de tous les thèmes disponibles.
-     * @returns {Array<{ id: string, name: string, emoji: string }>}
+     * @returns {Array<{ id: string, name: string, icon: string }>}
      */
     getAvailable() {
-        return PRESETS.map(({ id, name, emoji }) => ({ id, name, emoji }));
+        return PRESETS.map(({ id, name, icon }) => ({ id, name, icon }));
     }
 
     /**

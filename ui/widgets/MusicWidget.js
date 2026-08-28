@@ -1,26 +1,28 @@
 /**
- * SpaceHub — Latest Additions Widget
+ * SpaceHub — Music Shelf Widget
  * Version: 1.1.0
  *
- * Affiche la section des derniers ajouts dans la bibliothèque Jellyfin.
+ * Affiche la section Musique sur le Dashboard.
  */
 
 'use strict';
 
-class LatestAdditionsWidget {
+class MusicWidget {
     constructor() {
-        this.id = 'latest-additions';
-        this.title = 'Derniers Ajouts';
+        this.id = 'music-soundtracks';
+        this.title = 'Musique';
         this.defaultColSpan = 12;
     }
 
     async render(container) {
         container.innerHTML = `
-            <div class="sh-widget sh-widget--latest-additions">
+            <div class="sh-widget sh-widget--music">
                 <div class="sh-widget__header">
                     <h2 class="sh-widget__title">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sh-shelf-title-icon">
-                            <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"></path>
+                            <path d="M9 18V5l12-2v13"></path>
+                            <circle cx="6" cy="18" r="3"></circle>
+                            <circle cx="18" cy="16" r="3"></circle>
                         </svg>
                         <span>${this.title}</span>
                     </h2>
@@ -47,16 +49,26 @@ class LatestAdditionsWidget {
 
         try {
             const api = window.SpaceHub?.jellyfin?.api;
+            const apiClient = window.SpaceHub?.core?.api?.getClient('jellyfin');
             let items = [];
-            if (api?.getLatestItems) {
+
+            if (api?.getMusicAlbums) {
                 try {
-                    items = await api.getLatestItems({ limit: 18 });
+                    items = await api.getMusicAlbums({ limit: 18 });
                 } catch (e) {
-                    console.warn('[LatestAdditionsWidget] Erreur API Jellyfin:', e);
+                    console.warn('[MusicWidget] Erreur api.getMusicAlbums:', e);
+                }
+            }
+            if ((!items || items.length === 0) && apiClient?.getItems) {
+                try {
+                    const response = await apiClient.getItems({ IncludeItemTypes: 'MusicAlbum', Recursive: true, Limit: 18, SortBy: 'SortName', SortOrder: 'Ascending' });
+                    items = response?.Items || [];
+                } catch (e) {
+                    console.warn('[MusicWidget] Erreur apiClient.getItems:', e);
                 }
             }
 
-            // Si aucun élément disponible, masquer le bloc proprement
+            // Si aucun album de musique n'est présent sur le serveur, masquer le bloc
             if (!items || items.length === 0) {
                 container.style.display = 'none';
                 return;
@@ -67,20 +79,18 @@ class LatestAdditionsWidget {
             if (cardBuilder) {
                 cardBuilder.renderGrid(contentEl, items, {
                     type: 'poster',
-                    getImageUrl: (item) => api?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || '',
+                    getImageUrl: (item) => api?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || apiClient?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || '',
                     onClick: (item) => {
                         if (window.SpaceHub?.ui?.modalSlideUpSheet) {
                             window.SpaceHub.ui.modalSlideUpSheet.open(item);
                         } else if (window.Emby?.Page?.showItem) {
                             window.Emby.Page.showItem(item.Id);
-                        } else {
-                            window.location.hash = `#/details?id=${item.Id}`;
                         }
                     }
                 });
             }
         } catch (err) {
-            console.error('[LatestAdditionsWidget] Erreur:', err);
+            console.error('[MusicWidget] Erreur:', err);
             container.style.display = 'none';
         }
     }
@@ -90,4 +100,4 @@ class LatestAdditionsWidget {
     }
 }
 
-export default LatestAdditionsWidget;
+export default MusicWidget;

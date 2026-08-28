@@ -1,26 +1,33 @@
 /**
- * SpaceHub — Latest Additions Widget
- * Version: 1.1.0
+ * SpaceHub — Movies Shelf Widget
+ * Version: 1.0.0
  *
- * Affiche la section des derniers ajouts dans la bibliothèque Jellyfin.
+ * Affiche la section des Films & Cinéma sur le Dashboard.
  */
 
 'use strict';
 
-class LatestAdditionsWidget {
+class MoviesWidget {
     constructor() {
-        this.id = 'latest-additions';
-        this.title = 'Derniers Ajouts';
+        this.id = 'movies';
+        this.title = 'Films';
         this.defaultColSpan = 12;
     }
 
     async render(container) {
         container.innerHTML = `
-            <div class="sh-widget sh-widget--latest-additions">
+            <div class="sh-widget sh-widget--movies">
                 <div class="sh-widget__header">
                     <h2 class="sh-widget__title">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sh-shelf-title-icon">
-                            <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"></path>
+                            <rect width="20" height="20" x="2" y="2" rx="2.18" ry="2.18"></rect>
+                            <line x1="7" y1="2" x2="7" y2="22"></line>
+                            <line x1="17" y1="2" x2="17" y2="22"></line>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                            <line x1="2" y1="7" x2="7" y2="7"></line>
+                            <line x1="2" y1="17" x2="7" y2="17"></line>
+                            <line x1="17" y1="17" x2="22" y2="17"></line>
+                            <line x1="17" y1="7" x2="22" y2="7"></line>
                         </svg>
                         <span>${this.title}</span>
                     </h2>
@@ -47,16 +54,26 @@ class LatestAdditionsWidget {
 
         try {
             const api = window.SpaceHub?.jellyfin?.api;
+            const apiClient = window.SpaceHub?.core?.api?.getClient('jellyfin');
             let items = [];
-            if (api?.getLatestItems) {
+
+            if (api?.getMovies) {
                 try {
-                    items = await api.getLatestItems({ limit: 18 });
+                    items = await api.getMovies({ limit: 18, sortBy: 'DateCreated', sortOrder: 'Descending' });
                 } catch (e) {
-                    console.warn('[LatestAdditionsWidget] Erreur API Jellyfin:', e);
+                    console.warn('[MoviesWidget] Erreur api.getMovies:', e);
+                }
+            }
+            if ((!items || items.length === 0) && apiClient?.getItems) {
+                try {
+                    const response = await apiClient.getItems({ IncludeItemTypes: 'Movie', Recursive: true, Limit: 18, SortBy: 'DateCreated', SortOrder: 'Descending' });
+                    items = response?.Items || [];
+                } catch (e) {
+                    console.warn('[MoviesWidget] Erreur apiClient.getItems:', e);
                 }
             }
 
-            // Si aucun élément disponible, masquer le bloc proprement
+            // Si aucun film disponible, masquer proprement le bloc sans afficher de données démo factices
             if (!items || items.length === 0) {
                 container.style.display = 'none';
                 return;
@@ -67,20 +84,18 @@ class LatestAdditionsWidget {
             if (cardBuilder) {
                 cardBuilder.renderGrid(contentEl, items, {
                     type: 'poster',
-                    getImageUrl: (item) => api?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || '',
+                    getImageUrl: (item) => api?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || apiClient?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || '',
                     onClick: (item) => {
                         if (window.SpaceHub?.ui?.modalSlideUpSheet) {
                             window.SpaceHub.ui.modalSlideUpSheet.open(item);
                         } else if (window.Emby?.Page?.showItem) {
                             window.Emby.Page.showItem(item.Id);
-                        } else {
-                            window.location.hash = `#/details?id=${item.Id}`;
                         }
                     }
                 });
             }
         } catch (err) {
-            console.error('[LatestAdditionsWidget] Erreur:', err);
+            console.error('[MoviesWidget] Erreur:', err);
             container.style.display = 'none';
         }
     }
@@ -90,4 +105,4 @@ class LatestAdditionsWidget {
     }
 }
 
-export default LatestAdditionsWidget;
+export default MoviesWidget;
