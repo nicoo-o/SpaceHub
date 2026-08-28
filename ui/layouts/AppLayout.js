@@ -108,7 +108,7 @@ class AppLayout {
                                             <span class="sh-user-server sh-truncate">${serverUrl || 'Jellyfin Server'}</span>
                                         </div>
                                         <hr style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin:10px 0;"/>
-                                        <button class="sh-user-dropdown__item" id="sh-btn-switch-theme">
+                                        <button class="sh-user-dropdown__item" id="sh-btn-switch-theme" style="--item-idx: 0;">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
                                                 <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
@@ -118,7 +118,7 @@ class AppLayout {
                                             </svg>
                                             <span>Changer de thème</span>
                                         </button>
-                                        <button class="sh-user-dropdown__item" id="sh-btn-customize-dashboard">
+                                        <button class="sh-user-dropdown__item" id="sh-btn-customize-dashboard" style="--item-idx: 1;">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <rect x="3" y="3" width="7" height="7"></rect>
                                                 <rect x="14" y="3" width="7" height="7"></rect>
@@ -127,13 +127,13 @@ class AppLayout {
                                             </svg>
                                             <span>Personnaliser l'accueil</span>
                                         </button>
-                                        <button class="sh-user-dropdown__item" id="sh-btn-refresh-app">
+                                        <button class="sh-user-dropdown__item" id="sh-btn-refresh-app" style="--item-idx: 2;">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
                                             </svg>
                                             <span>Actualiser l'affichage</span>
                                         </button>
-                                        <button class="sh-user-dropdown__item" id="sh-btn-open-analytics">
+                                        <button class="sh-user-dropdown__item" id="sh-btn-open-analytics" style="--item-idx: 3;">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <line x1="18" y1="20" x2="18" y2="10"></line>
                                                 <line x1="12" y1="20" x2="12" y2="4"></line>
@@ -141,17 +141,17 @@ class AppLayout {
                                             </svg>
                                             <span>Mes Statistiques</span>
                                         </button>
-                                        <button class="sh-user-dropdown__item" id="sh-btn-open-admin">
+                                        <button class="sh-user-dropdown__item" id="sh-btn-open-admin" style="--item-idx: 4;">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                                             </svg>
                                             <span>Administration Serveur</span>
                                         </button>
-                                        <button class="sh-user-dropdown__item" id="sh-btn-open-settings">
+                                        <button class="sh-user-dropdown__item" id="sh-btn-open-settings" style="--item-idx: 5;">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                                             <span>Réglages</span>
                                         </button>
-                                        <button class="sh-user-dropdown__item sh-danger" id="sh-btn-logout">
+                                        <button class="sh-user-dropdown__item sh-danger" id="sh-btn-logout" style="--item-idx: 6;">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                                             <span>Déconnexion</span>
                                         </button>
@@ -257,27 +257,38 @@ class AppLayout {
 
         const toggleDropdown = (show) => {
             if (!dropdown) return;
-            const isCurrentlyOpen = dropdown.style.display !== 'none';
-            const willOpen = (show !== undefined) ? show : !isCurrentlyOpen;
+            const isOpen = dropdown.classList.contains('sh-dropdown--open');
+            const willOpen = (show !== undefined) ? show : !isOpen;
 
             if (willOpen) {
-                dropdown.style.display = 'block';
-                island?.classList.add('sh-dropdown-active');
                 if (_islandCloseTimer) {
                     clearTimeout(_islandCloseTimer);
                     _islandCloseTimer = null;
                 }
+                dropdown.classList.remove('sh-dropdown--closing');
+                dropdown.style.display = 'block';
+                void dropdown.offsetWidth; // Reflow pour redémarrer l'animation
+                dropdown.classList.add('sh-dropdown--open');
+                island?.classList.add('sh-dropdown-active');
             } else {
-                if (!isCurrentlyOpen) return;
-                dropdown.style.display = 'none';
+                if (!isOpen && dropdown.style.display === 'none') return;
+                dropdown.classList.remove('sh-dropdown--open');
+                dropdown.classList.add('sh-dropdown--closing');
                 island?.classList.remove('sh-dropdown-active');
-                if (!island?.matches(':hover') && !island?.classList.contains('sh-island--search')) {
-                    _islandCloseTimer = setTimeout(() => {
-                        if (!island?.matches(':hover') && !island?.classList.contains('sh-island--search')) {
-                            setIslandState('compact');
-                        }
-                    }, 240);
-                }
+
+                setTimeout(() => {
+                    if (dropdown.classList.contains('sh-dropdown--closing')) {
+                        dropdown.style.display = 'none';
+                        dropdown.classList.remove('sh-dropdown--closing');
+                    }
+                    if (!island?.matches(':hover') && !island?.classList.contains('sh-island--search')) {
+                        _islandCloseTimer = setTimeout(() => {
+                            if (!island?.matches(':hover') && !island?.classList.contains('sh-island--search') && (!dropdown || dropdown.style.display === 'none')) {
+                                setIslandState('compact');
+                            }
+                        }, 240);
+                    }
+                }, 180);
             }
         };
 
@@ -1223,7 +1234,43 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.95), 0 0 1px rgba(255, 255, 255, 0.4) !important;
     padding: 14px !important;
     z-index: 20005 !important;
-    animation: sh-fadeInScale 160ms cubic-bezier(0.16, 1, 0.3, 1);
+    transform-origin: top right;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.88) translateY(-10px);
+    filter: blur(10px);
+    transition: opacity 220ms cubic-bezier(0.16, 1, 0.3, 1), transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sh-user-dropdown.sh-dropdown--open {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0px);
+    pointer-events: auto;
+}
+
+.sh-user-dropdown.sh-dropdown--closing {
+    opacity: 0;
+    transform: scale(0.92) translateY(-8px);
+    filter: blur(6px);
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease, filter 180ms ease;
+}
+
+.sh-user-dropdown.sh-dropdown--open .sh-user-dropdown__item {
+    animation: sh-menu-item-cascade 220ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(var(--item-idx, 0) * 22ms + 40ms);
+}
+
+@keyframes sh-menu-item-cascade {
+    0% {
+        opacity: 0;
+        transform: translateY(8px) scale(0.96);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .sh-user-dropdown__header strong {

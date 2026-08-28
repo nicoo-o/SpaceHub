@@ -468,7 +468,12 @@ class CardBuilder {
 
     _hideContextMenu() {
         const menu = document.getElementById('sh-context-menu');
-        menu?.classList.remove('sh-context-menu--open');
+        if (!menu || !menu.classList.contains('sh-context-menu--open')) return;
+        menu.classList.remove('sh-context-menu--open');
+        menu.classList.add('sh-context-menu--closing');
+        setTimeout(() => {
+            menu.classList.remove('sh-context-menu--closing');
+        }, 160);
     }
 
     _showTrailerLightbox(title) {
@@ -951,7 +956,7 @@ class CardBuilder {
     position: fixed;
     z-index: 9999;
     width: 220px;
-    background: rgba(18, 18, 24, 0.92);
+    background: rgba(18, 18, 24, 0.94);
     -webkit-backdrop-filter: blur(36px) saturate(200%);
     backdrop-filter: blur(36px) saturate(200%);
     border: 1px solid rgba(255, 255, 255, 0.16);
@@ -960,14 +965,23 @@ class CardBuilder {
     padding: 8px;
     opacity: 0;
     transform-origin: top left;
-    transform: scaleY(0.4) scaleX(0.88) translateY(-8px);
+    transform: scale(0.88) translateY(-8px);
+    filter: blur(8px);
     pointer-events: none;
-    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms cubic-bezier(0.16, 1, 0.3, 1), filter 200ms ease;
 }
 .sh-context-menu.sh-context-menu--open {
     opacity: 1;
-    transform: scaleY(1) scaleX(1) translateY(0);
+    transform: scale(1) translateY(0);
+    filter: blur(0px);
     pointer-events: auto;
+}
+.sh-context-menu.sh-context-menu--closing {
+    opacity: 0;
+    transform: scale(0.92) translateY(-6px);
+    filter: blur(6px);
+    pointer-events: none;
+    transition: opacity 160ms ease, transform 160ms ease, filter 160ms ease;
 }
 .sh-context-menu__header {
     padding: 6px 10px;
