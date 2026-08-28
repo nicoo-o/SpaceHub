@@ -892,8 +892,17 @@ class CardBuilder {
     user-select: none !important;
 }
 .sh-score-btn:hover {
-    background: rgba(255, 255, 255, 0.16) !important;
-    transform: scale(1.06) !important;
+    transform: scale(1.10) !important;
+}
+.sh-score-btn.sh-score-rt:hover {
+    background: rgba(250, 50, 10, 0.45) !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(250, 50, 10, 0.90) !important;
+}
+.sh-score-btn.sh-score-imdb:hover {
+    background: rgba(245, 197, 24, 0.45) !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(245, 197, 24, 0.90) !important;
 }
 
 .sh-score-val {
