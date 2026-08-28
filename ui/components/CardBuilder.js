@@ -1,12 +1,12 @@
 /**
  * SpaceHub — CardBuilder (composant)
- * Version: 0.5.0
+ * Version: 0.6.0
  *
  * Constructeur de cartes médias SpaceHub avec :
  *  - Vraies notes Jellyfin (item.CriticRating / item.CommunityRating)
- *  - AUCUNE note sur les dossiers racines, bibliothèques ou playlists
- *  - Survol Tomate 🍅 -> Fiche Critique & Consensus Rotten Tomatoes
- *  - Survol Étoile ★ -> Fiche Audience & Répartition des votes IMDb
+ *  - Exclusion totale des notes sur dossiers racines, bibliothèques ou playlists
+ *  - Survol instantané et fluide Tomate 🍅 -> Fiche Critique & Consensus Rotten Tomatoes
+ *  - Survol instantané et fluide Étoile ★ -> Fiche Audience & Répartition des votes IMDb
  *  - Menu contextuel latéral avec animations VisionOS
  */
 
@@ -20,6 +20,7 @@ class CardBuilder {
     constructor() {
         this._log = new Logger('CardBuilder');
         this._isHoveringPopover = false;
+        this._popoverHideTimer = null;
         this._injectStyles();
         this._injectContextMenu();
         this._injectPopovers();
@@ -51,7 +52,7 @@ class CardBuilder {
         const fallbackSvg = this._generateSvgPoster(title, type);
         const encodedFallback = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(fallbackSvg)}`;
 
-        // Exclusion stricte des notes pour les dossiers, bibliothèques et playlists
+        // Exclusion stricte des notes pour les dossiers racines, bibliothèques et playlists
         const isFolderItem = isFolder || (rottenScore === null && rating === null) ||
             ['CollectionFolder', 'UserView', 'Folder', 'Playlist', 'Channel'].includes(itemType);
 
@@ -144,39 +145,73 @@ class CardBuilder {
             </div>
         `;
 
-        // 🍅 Gestion des Survol Séparés : Tomate (Rotten Tomatoes) & Étoile (IMDb)
+        // 🍅 Gestion du Survol Réactif et Instantané
         if (hasScores && critic) {
+            const dualScoreEl = card.querySelector('.sh-card__dual-score');
             const rtBtn = card.querySelector('.sh-score-rt');
             const imdbBtn = card.querySelector('.sh-score-imdb');
 
+            if (dualScoreEl) {
+                // Stabiliser l'effet 3D lorsque le curseur entre dans la capsule de notes
+                dualScoreEl.addEventListener('mouseenter', () => {
+                    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1.04, 1.04, 1.04)';
+                });
+                dualScoreEl.addEventListener('mousemove', (e) => { e.stopPropagation(); });
+                dualScoreEl.addEventListener('pointermove', (e) => { e.stopPropagation(); });
+            }
+
             if (rtBtn) {
-                rtBtn.addEventListener('mouseenter', (e) => {
+                const openRT = (e) => {
                     e.stopPropagation();
+                    if (this._popoverHideTimer) {
+                        clearTimeout(this._popoverHideTimer);
+                        this._popoverHideTimer = null;
+                    }
                     this._hideIMDbPopover();
                     this._showRTPopover(rtBtn, critic);
-                });
-                rtBtn.addEventListener('mouseleave', () => {
-                    setTimeout(() => {
+                };
+
+                const closeRT = () => {
+                    if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
+                    this._popoverHideTimer = setTimeout(() => {
                         if (!this._isHoveringPopover) {
                             this._hideRTPopover();
                         }
-                    }, 120);
-                });
+                    }, 220);
+                };
+
+                rtBtn.addEventListener('mouseenter', openRT);
+                rtBtn.addEventListener('pointerenter', openRT);
+                rtBtn.addEventListener('mouseover', openRT);
+                rtBtn.addEventListener('mouseleave', closeRT);
+                rtBtn.addEventListener('pointerleave', closeRT);
             }
 
             if (imdbBtn) {
-                imdbBtn.addEventListener('mouseenter', (e) => {
+                const openIMDb = (e) => {
                     e.stopPropagation();
+                    if (this._popoverHideTimer) {
+                        clearTimeout(this._popoverHideTimer);
+                        this._popoverHideTimer = null;
+                    }
                     this._hideRTPopover();
                     this._showIMDbPopover(imdbBtn, critic);
-                });
-                imdbBtn.addEventListener('mouseleave', () => {
-                    setTimeout(() => {
+                };
+
+                const closeIMDb = () => {
+                    if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
+                    this._popoverHideTimer = setTimeout(() => {
                         if (!this._isHoveringPopover) {
                             this._hideIMDbPopover();
                         }
-                    }, 120);
-                });
+                    }, 220);
+                };
+
+                imdbBtn.addEventListener('mouseenter', openIMDb);
+                imdbBtn.addEventListener('pointerenter', openIMDb);
+                imdbBtn.addEventListener('mouseover', openIMDb);
+                imdbBtn.addEventListener('mouseleave', closeIMDb);
+                imdbBtn.addEventListener('pointerleave', closeIMDb);
             }
         }
 
@@ -313,10 +348,16 @@ class CardBuilder {
             rtPopover.className = 'sh-global-popover sh-global-rt-popover';
             document.body.appendChild(rtPopover);
 
-            rtPopover.addEventListener('mouseenter', () => { this._isHoveringPopover = true; });
+            rtPopover.addEventListener('mouseenter', () => {
+                this._isHoveringPopover = true;
+                if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
+            });
             rtPopover.addEventListener('mouseleave', () => {
                 this._isHoveringPopover = false;
-                this._hideRTPopover();
+                if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
+                this._popoverHideTimer = setTimeout(() => {
+                    this._hideRTPopover();
+                }, 160);
             });
         }
 
@@ -327,10 +368,16 @@ class CardBuilder {
             imdbPopover.className = 'sh-global-popover sh-global-imdb-popover';
             document.body.appendChild(imdbPopover);
 
-            imdbPopover.addEventListener('mouseenter', () => { this._isHoveringPopover = true; });
+            imdbPopover.addEventListener('mouseenter', () => {
+                this._isHoveringPopover = true;
+                if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
+            });
             imdbPopover.addEventListener('mouseleave', () => {
                 this._isHoveringPopover = false;
-                this._hideIMDbPopover();
+                if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
+                this._popoverHideTimer = setTimeout(() => {
+                    this._hideIMDbPopover();
+                }, 160);
             });
         }
     }
@@ -339,7 +386,7 @@ class CardBuilder {
         const rect = targetEl.getBoundingClientRect();
         const popoverWidth = 250;
         let top = rect.bottom + 8;
-        let left = rect.left - 8;
+        let left = rect.left - 6;
 
         if (left + popoverWidth > window.innerWidth - 16) {
             left = window.innerWidth - popoverWidth - 16;
@@ -786,7 +833,8 @@ class CardBuilder {
     position: absolute;
     top: 10px;
     left: 10px;
-    z-index: 25;
+    z-index: 50 !important;
+    pointer-events: auto !important;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -816,11 +864,13 @@ class CardBuilder {
     border-radius: 6px;
     color: inherit;
     font: inherit;
-    cursor: pointer;
+    cursor: pointer !important;
+    pointer-events: auto !important;
     display: inline-flex;
     align-items: center;
     gap: 3px;
     transition: background 150ms ease, transform 150ms ease;
+    user-select: none;
 }
 .sh-score-btn:hover {
     background: rgba(255, 255, 255, 0.18);
@@ -832,7 +882,7 @@ class CardBuilder {
     font-weight: 700;
     text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
-.sh-score-sep { opacity: 0.35; font-size: 10px; }
+.sh-score-sep { opacity: 0.35; font-size: 10px; pointer-events: none; }
 .sh-score-imdb {
     color: #ffd600;
     font-weight: 700;
