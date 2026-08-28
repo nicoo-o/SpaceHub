@@ -1041,15 +1041,15 @@ class ModalSlideUpSheet {
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -46%) scale(0.95) !important;
-    width: 1060px !important;
-    max-width: 92vw !important;
-    height: 730px !important;
-    max-height: 88vh !important;
+    width: 1040px !important;
+    max-width: 94vw !important;
+    height: 740px !important;
+    max-height: 92vh !important;
     z-index: 100000 !important;
     background: rgba(12, 12, 16, 0.94) !important;
     backdrop-filter: blur(50px) saturate(220%) !important;
     -webkit-backdrop-filter: blur(50px) saturate(220%) !important;
-    border-radius: 26px !important;
+    border-radius: 24px !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
     box-shadow: 
         0 40px 120px rgba(0, 0, 0, 0.95),
@@ -1159,13 +1159,13 @@ class ModalSlideUpSheet {
 /* ── 🎬 En-tête Hero Backdrop 16:9 avec Affiche 2:3 ─────────── */
 .sh-cinema-hero {
     position: relative;
-    height: 280px;
+    height: 230px;
     flex-shrink: 0;
     overflow: visible;
     z-index: 50;
     display: flex;
     align-items: flex-end;
-    padding: 24px 38px 20px;
+    padding: 16px 32px 14px;
     box-sizing: border-box;
 }
 .sh-cinema-hero-bg-container {
@@ -1211,12 +1211,12 @@ class ModalSlideUpSheet {
 
 /* Affiche 2:3 Restaurée & Sublimée */
 .sh-cinema-hero-poster {
-    width: 130px;
+    width: 108px;
     aspect-ratio: 2/3;
-    border-radius: 14px;
+    border-radius: 12px;
     overflow: hidden;
     flex-shrink: 0;
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.90), 0 0 0 1px rgba(255, 255, 255, 0.20);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.90), 0 0 0 1px rgba(255, 255, 255, 0.20);
     background: #14141e;
 }
 .sh-cinema-hero-poster img {
@@ -1248,9 +1248,9 @@ class ModalSlideUpSheet {
     border-radius: 9999px;
 }
 .sh-cinema-title {
-    font-size: 38px;
+    font-size: 32px;
     font-weight: 850;
-    letter-spacing: -1.2px;
+    letter-spacing: -1px;
     color: #ffffff;
     margin: 0;
     line-height: 1.1;
@@ -1494,7 +1494,7 @@ class ModalSlideUpSheet {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 0 38px 24px;
+    padding: 0 32px 16px;
     box-sizing: border-box;
     overflow: hidden;
 }
@@ -1504,22 +1504,22 @@ class ModalSlideUpSheet {
     gap: 2px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 4px;
+    padding: 3px;
     border-radius: 9999px;
-    margin: 8px 0 14px;
+    margin: 4px 0 10px;
     width: fit-content;
     flex-shrink: 0;
 }
 .sh-tabs-slider-pill {
     position: absolute;
-    top: 4px;
-    bottom: 4px;
+    top: 3px;
+    bottom: 3px;
     left: 0;
-    width: 100px;
+    width: 90px;
     border-radius: 9999px;
     background: rgba(255, 255, 255, 0.14);
     border: 1px solid rgba(255, 255, 255, 0.20);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
     pointer-events: none;
     transition: transform 320ms cubic-bezier(0.34, 1.4, 0.64, 1),
                 width 320ms cubic-bezier(0.34, 1.4, 0.64, 1);
@@ -1531,9 +1531,9 @@ class ModalSlideUpSheet {
     background: transparent;
     border: none;
     color: rgba(255, 255, 255, 0.55);
-    padding: 7px 18px;
+    padding: 5px 16px;
     border-radius: 9999px;
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 600;
     cursor: pointer;
     transition: color 180ms ease;
@@ -1579,41 +1579,45 @@ class ModalSlideUpSheet {
     to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ── 📖 Onglet 1 : Synopsis & Structure Éditoriale 3 Niveaux ── */
+/* ── 📖 Onglet 1 : Synopsis & Structure Éditoriale Zéro-Scroll ── */
 .sh-synopsis-layout {
     display: flex;
     flex-direction: column;
-    gap: 22px;
-    padding-bottom: 20px;
+    gap: 12px;
+    padding-bottom: 6px;
 }
 
 .sh-synopsis-text-block {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
 }
 .sh-section-subtitle {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    color: rgba(255, 255, 255, 0.45);
+    letter-spacing: 0.8px;
+    color: rgba(255, 255, 255, 0.40);
 }
 .sh-panel-overview {
-    font-size: 14.5px !important;
-    line-height: 1.7 !important;
-    color: rgba(255, 255, 255, 0.92) !important;
+    font-size: 13.5px !important;
+    line-height: 1.55 !important;
+    color: rgba(255, 255, 255, 0.90) !important;
     margin: 0 !important;
     font-weight: 400;
-    letter-spacing: 0.1px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* ── 🏆 Section Réputation Cinéma : 2 Boîtes Bento Smoked Glass ─ */
+/* ── 🏆 Section Réputation Cinéma : 2 Boîtes Bento Smoked Glass Compactes ─ */
 .sh-cinema-critics-block {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
-    gap: 16px !important;
-    margin: 2px 0 !important;
+    gap: 12px !important;
+    margin: 0 !important;
 }
 @media (max-width: 820px) {
     .sh-cinema-critics-block { grid-template-columns: 1fr !important; }
@@ -1624,45 +1628,45 @@ class ModalSlideUpSheet {
     -webkit-backdrop-filter: blur(30px) saturate(190%) !important;
     backdrop-filter: blur(30px) saturate(190%) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-radius: 16px !important;
-    padding: 16px 18px !important;
+    border-radius: 14px !important;
+    padding: 12px 14px !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 12px !important;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+    gap: 8px !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.60), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
     transition: border-color 220ms ease, transform 220ms ease, box-shadow 220ms ease;
 }
 .sh-critics-bento-card:hover {
     border-color: rgba(255, 255, 255, 0.28) !important;
-    transform: translateY(-2px);
-    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.70), inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
 }
 
 .sh-critics-card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-bottom: 8px;
+    padding-bottom: 6px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .sh-critics-brand-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
 }
 .sh-critics-title-label {
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 800;
     color: rgba(255, 255, 255, 0.85);
     letter-spacing: -0.2px;
 }
 .sh-critics-badge {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 2px 7px;
-    border-radius: 6px;
+    padding: 1.5px 6px;
+    border-radius: 5px;
 }
 .sh-critics-badge.certified {
     background: rgba(250, 50, 10, 0.22);
@@ -1681,7 +1685,7 @@ class ModalSlideUpSheet {
 }
 
 .sh-critics-score-val-large {
-    font-size: 22px;
+    font-size: 19px;
     font-weight: 900;
     color: #ffffff;
     letter-spacing: -0.5px;
@@ -1690,53 +1694,53 @@ class ModalSlideUpSheet {
     color: #f5c518;
 }
 .sh-critics-score-val-large small {
-    font-size: 12px;
+    font-size: 11px;
     color: rgba(255, 255, 255, 0.5);
     font-weight: 600;
 }
 
 .sh-critics-consensus-text {
     margin: 0;
-    font-size: 12px;
-    line-height: 1.5;
-    color: rgba(255, 255, 255, 0.85);
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.82);
     font-weight: 400;
 }
 
 .sh-critics-quote-box {
     background: rgba(255, 255, 255, 0.04);
-    border-left: 3px solid #ff9f0a;
-    padding: 10px 14px;
-    border-radius: 8px;
-    font-size: 12px;
+    border-left: 2.5px solid #ff9f0a;
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
     font-style: italic;
-    color: rgba(255, 255, 255, 0.88);
+    color: rgba(255, 255, 255, 0.85);
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
 }
 .sh-critics-quote-box cite {
     font-style: normal;
     font-weight: 700;
     color: #ff9f0a;
-    font-size: 10.5px;
+    font-size: 10px;
     text-align: right;
 }
 
 .sh-critics-stars-display {
     color: #f5c518;
-    font-size: 15px;
-    letter-spacing: 2px;
+    font-size: 13px;
+    letter-spacing: 1.5px;
 }
 
 .sh-critics-stat-section {
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 5px;
 }
 .sh-critics-bar-track {
     width: 100%;
-    height: 6px;
+    height: 5px;
     background: rgba(255, 255, 255, 0.10);
     border-radius: 9999px;
     overflow: hidden;
@@ -1749,34 +1753,34 @@ class ModalSlideUpSheet {
 .sh-critics-legend-row {
     display: flex;
     justify-content: space-between;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.75);
+    color: rgba(255, 255, 255, 0.70);
 }
 
 .sh-critics-footer-meta {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.45);
-    padding-top: 4px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.40);
+    padding-top: 2px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* ── ⚙️ Fiche Technique & Métadonnées (Grille 4 cases) ──────── */
+/* ── ⚙️ Fiche Technique & Métadonnées (Grille 4 cases Compacte) ──────── */
 .sh-panel-meta-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-top: 4px;
+    gap: 8px;
+    margin-top: 0;
 }
 .sh-meta-card {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    padding: 12px 16px;
+    border-radius: 10px;
+    padding: 7px 12px;
     transition: all 180ms ease;
 }
 .sh-meta-card:hover {
@@ -1784,16 +1788,19 @@ class ModalSlideUpSheet {
     border-color: rgba(255, 255, 255, 0.18);
 }
 .sh-cell-label {
-    font-size: 10.5px;
+    font-size: 9.5px;
     font-weight: 750;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(255, 255, 255, 0.40);
 }
 .sh-cell-val {
-    font-size: 12.5px;
+    font-size: 11.5px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.90);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ── Idée D : Onglet 2 : Casting & Équipe Enrichi ────────────── */
