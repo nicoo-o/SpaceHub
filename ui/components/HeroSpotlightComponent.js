@@ -27,7 +27,11 @@ class HeroSpotlightComponent {
             return;
         }
         this._renderSlide(container, this._currentIndex);
-        this._startAutoSlide(container);
+        if (!this._isHoveringCritique) {
+            this._startAutoSlide(container);
+        } else {
+            this._pauseAutoSlide(container);
+        }
     }
 
     async _loadHeroItems() {
@@ -170,6 +174,9 @@ class HeroSpotlightComponent {
                         }
                     }
                 });
+
+                // Ré-attacher les écouteurs de critique sur les nouveaux badges du slide actif
+                this._bindCriticEvents(existingHero, item);
             }, 180);
             return;
         }
@@ -311,8 +318,8 @@ class HeroSpotlightComponent {
         this._startAutoSlide(container);
     }
 
-    _bindEvents(container, item) {
-        const metaEl = container.querySelector('.sh-hero-meta');
+    _bindCriticEvents(container, item) {
+        const metaEl = container?.querySelector('.sh-hero-meta');
         if (metaEl && item) {
             const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
             const rating = item.CommunityRating ? Number(item.CommunityRating) : null;
@@ -321,22 +328,42 @@ class HeroSpotlightComponent {
             metaEl._criticData = cardBuilder?.getCriticData?.(item.Name, rtScore, imdbScore);
         }
 
-        // ⏸️ Mise en pause intelligente du défilement lorsque l'utilisateur s'intéresse aux critiques
-        const onCriticEnter = () => this._pauseAutoSlide(container);
+        // ⏸️ Mise en pause intelligente & garantie du défilement lorsque l'utilisateur s'intéresse aux critiques
+        const onCriticEnter = () => {
+            this._isHoveringCritique = true;
+            this._pauseAutoSlide(container);
+        };
         const onCriticLeave = () => {
+            this._isHoveringCritique = false;
             setTimeout(() => {
-                const isHoveringPop = Boolean(document.querySelector('.sh-rt-critics-popover:hover, .sh-imdb-critics-popover:hover'));
-                const isHoveringBadge = Boolean(container.querySelector('.sh-hero-badge--rt:hover, .sh-hero-badge--imdb:hover'));
-                if (!isHoveringPop && !isHoveringBadge) {
+                const isHoveringPop = Boolean(document.querySelector('.sh-global-popover:hover, .sh-global-rt-popover:hover, .sh-global-imdb-popover:hover'));
+                const isHoveringBadge = Boolean(container?.querySelector('.sh-hero-badge--rt:hover, .sh-hero-badge--imdb:hover'));
+                if (!isHoveringPop && !isHoveringBadge && !this._isHoveringCritique) {
                     this._resumeAutoSlide(container);
                 }
-            }, 140);
+            }, 160);
         };
 
-        container.querySelectorAll('.sh-hero-badge--rt, .sh-hero-badge--imdb').forEach(badge => {
-            badge.addEventListener('mouseenter', onCriticEnter);
-            badge.addEventListener('mouseleave', onCriticLeave);
+        container?.querySelectorAll('.sh-hero-badge--rt, .sh-hero-badge--imdb').forEach(badge => {
+            badge.onmouseenter = onCriticEnter;
+            badge.onmouseleave = onCriticLeave;
         });
+
+        // Liaison avec les popovers globaux s'ils existent
+        const globalRTPop = document.getElementById('sh-global-rt-popover');
+        const globalIMDbPop = document.getElementById('sh-global-imdb-popover');
+        if (globalRTPop) {
+            globalRTPop.onmouseenter = onCriticEnter;
+            globalRTPop.onmouseleave = onCriticLeave;
+        }
+        if (globalIMDbPop) {
+            globalIMDbPop.onmouseenter = onCriticEnter;
+            globalIMDbPop.onmouseleave = onCriticLeave;
+        }
+    }
+
+    _bindEvents(container, item) {
+        this._bindCriticEvents(container, item);
         const heroContainer = container.querySelector('.sh-hero-container');
         const heroBg = container.querySelector('.sh-hero-bg');
         const heroContent = container.querySelector('.sh-hero-content');
