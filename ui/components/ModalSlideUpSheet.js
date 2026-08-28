@@ -1138,9 +1138,8 @@ class ModalSlideUpSheet {
 /* Bouton Retour Épuré & Fondu (Seamless Ghost Style, Sans Capsule) */
 .sh-slideup-back-btn {
     position: absolute;
-    top: 16px;
+    top: 18px;
     left: 28px;
-    display: none !important;
     z-index: 120 !important;
     height: 36px;
     padding: 6px 14px 6px 8px;
@@ -1149,7 +1148,7 @@ class ModalSlideUpSheet {
     border: none;
     color: rgba(255, 255, 255, 0.85);
     cursor: pointer;
-    display: inline-flex !important;
+    display: none !important;
     align-items: center;
     gap: 8px;
     font-size: 14px;
@@ -1162,6 +1161,9 @@ class ModalSlideUpSheet {
     white-space: nowrap;
     max-width: 280px;
     overflow: hidden;
+}
+.sh-slideup-back-btn.visible {
+    display: inline-flex !important;
 }
 .sh-slideup-back-btn svg {
     flex-shrink: 0;

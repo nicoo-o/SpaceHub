@@ -591,98 +591,57 @@ class HeroSpotlightComponent {
     cursor: pointer !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 8px !important;
-    padding: 6px 16px !important;
+    gap: 6px !important;
+    padding: 4px 10px !important;
     border-radius: 9999px !important;
-    background: rgba(18, 18, 28, 0.90) !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.25) !important;
-    backdrop-filter: blur(24px) !important;
-    -webkit-backdrop-filter: blur(24px) !important;
-    font-weight: 850 !important;
-    font-size: 13.5px !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    font-weight: 750 !important;
+    font-size: 12.5px !important;
+    color: #ffffff !important;
     user-select: none !important;
     overflow: hidden !important;
     transform: translateZ(0);
-    transition: transform 220ms cubic-bezier(0.34, 1.8, 0.64, 1),
-                background 220ms ease,
-                border-color 220ms ease,
-                box-shadow 220ms ease,
-                color 220ms ease !important;
+    transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                background 200ms ease,
+                border-color 200ms ease,
+                box-shadow 200ms ease !important;
 }
 
-/* Shimmer Sweep Animation on Badge */
-.sh-hero-badge--rt::after, .sh-hero-badge--imdb::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.45) 50%, transparent 80%);
-    transform: translateX(-120%);
-    transition: transform 400ms ease;
-    pointer-events: none;
-}
-.sh-hero-badge--rt:hover::after, .sh-hero-badge--imdb:hover::after {
-    transform: translateX(120%);
-}
-
-.sh-hero-badge--rt {
-    color: #ff5252 !important;
-}
 .sh-hero-badge--rt:hover {
-    background: linear-gradient(135deg, rgba(250, 50, 10, 0.88) 0%, rgba(200, 20, 0, 0.96) 100%) !important;
-    border-color: #ff8585 !important;
-    color: #ffffff !important;
-    box-shadow: 0 0 35px rgba(250, 50, 10, 0.95), 0 0 70px rgba(250, 50, 10, 0.45), 0 8px 24px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.7) !important;
-    transform: translateY(-5px) scale(1.22) translateZ(0) !important;
+    transform: scale(1.18) translateY(-2px) translateZ(0) !important;
+    background: rgba(255, 255, 255, 0.20) !important;
+    border-color: rgba(250, 50, 10, 0.85) !important;
+    box-shadow: 0 0 22px rgba(250, 50, 10, 0.90), 0 4px 14px rgba(0, 0, 0, 0.6) !important;
     z-index: 50 !important;
 }
 .sh-hero-badge--rt .sh-rt-svg {
-    width: 15px;
-    height: 15px;
-    transition: transform 220ms cubic-bezier(0.34, 1.8, 0.64, 1);
+    width: 14px;
+    height: 14px;
+    transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .sh-hero-badge--rt:hover .sh-rt-svg {
-    transform: scale(1.35) rotate(-14deg);
-    filter: drop-shadow(0 0 8px #ffffff) !important;
+    transform: scale(1.25) rotate(-10deg);
+    filter: drop-shadow(0 0 6px #fa320a) !important;
 }
 
-.sh-hero-badge--imdb {
-    color: #f5c518 !important;
-}
 .sh-hero-badge--imdb:hover {
-    background: linear-gradient(135deg, rgba(245, 197, 24, 0.92) 0%, rgba(210, 150, 0, 1) 100%) !important;
-    border-color: #fff066 !important;
-    color: #000000 !important;
-    box-shadow: 0 0 35px rgba(245, 197, 24, 0.95), 0 0 70px rgba(245, 197, 24, 0.45), 0 8px 24px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.8) !important;
-    transform: translateY(-5px) scale(1.22) translateZ(0) !important;
+    transform: scale(1.18) translateY(-2px) translateZ(0) !important;
+    background: rgba(255, 255, 255, 0.20) !important;
+    border-color: rgba(245, 197, 24, 0.85) !important;
+    box-shadow: 0 0 22px rgba(245, 197, 24, 0.90), 0 4px 14px rgba(0, 0, 0, 0.6) !important;
     z-index: 50 !important;
 }
 .sh-hero-badge--imdb .sh-imdb-star-svg {
-    width: 15px;
-    height: 15px;
-    transition: transform 220ms cubic-bezier(0.34, 1.8, 0.64, 1);
+    width: 14px;
+    height: 14px;
+    transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .sh-hero-badge--imdb:hover .sh-imdb-star-svg {
-    transform: scale(1.35) rotate(16deg);
-    filter: drop-shadow(0 0 6px #000000) !important;
-}
-
-.sh-badge-hint-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: currentColor;
-    opacity: 0.65;
-    transition: transform 200ms ease, opacity 200ms ease, box-shadow 200ms ease;
-}
-.sh-hero-badge--rt:hover .sh-badge-hint-dot {
-    background: #ffffff !important;
-    transform: scale(1.8);
-    box-shadow: 0 0 8px #ffffff;
-}
-.sh-hero-badge--imdb:hover .sh-badge-hint-dot {
-    background: #000000 !important;
-    transform: scale(1.8);
-    box-shadow: 0 0 8px #000000;
+    transform: scale(1.25) rotate(12deg);
+    filter: drop-shadow(0 0 6px #f5c518) !important;
 }
 .sh-hero-overview { color: rgba(255,255,255,0.8); line-height: 1.6; margin-bottom: 30px; }
 .sh-hero-actions { display: flex; gap: 16px; }

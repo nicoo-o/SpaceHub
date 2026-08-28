@@ -866,32 +866,32 @@ class CardBuilder {
     100% { transform: translateX(100%); }
 }
 
-/* ── Dual-Pill Micro-Capsule Réagrandie (Infuse / Apple TV) ── */
+/* ── Dual-Pill Micro-Capsule Transparente Glass (Infuse / Apple TV) ── */
 .sh-card__dual-score {
     position: absolute;
-    top: 9px;
-    left: 9px;
+    top: 8px;
+    left: 8px;
     z-index: 100 !important;
     pointer-events: auto !important;
     display: inline-flex;
     align-items: center;
     gap: 2px;
-    background: rgba(8, 8, 14, 0.84) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-    backdrop-filter: blur(24px) saturate(180%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    background: rgba(0, 0, 0, 0.40) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
     border-radius: 9999px;
     padding: 2.5px 5.5px;
     font-size: 11px;
     font-weight: 750;
     color: #ffffff;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.70), inset 0 1px 0 rgba(255, 255, 255, 0.20);
-    transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+    transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 .sh-card__dual-score:hover {
-    background: rgba(14, 14, 22, 0.96) !important;
-    border-color: rgba(255, 255, 255, 0.35) !important;
-    transform: scale(1.06);
+    background: rgba(0, 0, 0, 0.60) !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.65);
 }
 
 .sh-score-btn {
@@ -914,14 +914,12 @@ class CardBuilder {
     transform: scale(1.10) !important;
 }
 .sh-score-btn.sh-score-rt:hover {
-    background: rgba(250, 50, 10, 0.50) !important;
-    color: #ffffff !important;
-    box-shadow: 0 0 12px rgba(250, 50, 10, 0.90) !important;
+    background: rgba(250, 50, 10, 0.35) !important;
+    box-shadow: 0 0 10px rgba(250, 50, 10, 0.75) !important;
 }
 .sh-score-btn.sh-score-imdb:hover {
-    background: rgba(245, 197, 24, 0.50) !important;
-    color: #ffffff !important;
-    box-shadow: 0 0 12px rgba(245, 197, 24, 0.90) !important;
+    background: rgba(245, 197, 24, 0.35) !important;
+    box-shadow: 0 0 10px rgba(245, 197, 24, 0.75) !important;
 }
 
 .sh-score-val {
