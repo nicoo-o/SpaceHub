@@ -1139,37 +1139,32 @@ class ModalSlideUpSheet {
 /* ── 🎬 En-tête Hero Backdrop 16:9 avec Affiche 2:3 & Barre Supérieure Dédiée ── */
 .sh-cinema-hero {
     position: relative;
-    min-height: 255px;
     flex-shrink: 0;
     overflow: visible;
     z-index: 50;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
-    padding: 56px 32px 14px;
+    padding: 16px 32px 14px;
     box-sizing: border-box;
+    gap: 12px;
 }
 
 .sh-cinema-hero-top-bar {
-    position: absolute;
-    top: 16px;
-    left: 28px;
-    right: 28px;
-    height: 38px;
+    position: relative;
+    width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
     z-index: 120 !important;
-    pointer-events: none;
+    min-height: 36px;
 }
 
-/* Bouton Retour Flottant Universel (Toujours affiché dans la barre d'en-tête, sans chevauchement) */
+/* Bouton Retour Flottant Universel (Dans la barre d'en-tête, au-dessus de l'affiche avec zéro chevauchement) */
 .sh-slideup-back-btn {
-    pointer-events: auto !important;
     height: 32px;
     padding: 5px 14px 5px 10px;
     border-radius: 9999px;
-    background: rgba(14, 14, 22, 0.65);
+    background: rgba(14, 14, 22, 0.70);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.16);
@@ -1184,7 +1179,7 @@ class ModalSlideUpSheet {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.40);
     transition: all 180ms ease;
     white-space: nowrap;
-    max-width: 280px;
+    max-width: 320px;
     overflow: hidden;
 }
 .sh-slideup-back-btn svg {
@@ -1213,12 +1208,11 @@ class ModalSlideUpSheet {
 
 /* Bouton Fermer Flottant Discret en Verre */
 .sh-slideup-close-btn {
-    pointer-events: auto !important;
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    background: rgba(14, 14, 22, 0.65);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(14, 14, 22, 0.70);
+    border: 1px solid rgba(255, 255, 255, 0.16);
     color: #ffffff;
     cursor: pointer;
     display: flex;
@@ -1236,17 +1230,6 @@ class ModalSlideUpSheet {
     transform: scale(1.06);
 }
 
-
-/* ── 🎬 En-tête Hero Backdrop 16:9 avec Affiche 2:3 ─────────── */
-.sh-cinema-hero { position: relative; height: 245px;
-    flex-shrink: 0;
-    overflow: visible;
-    z-index: 50;
-    display: flex;
-    align-items: flex-end;
-    padding: 16px 32px 14px;
-    box-sizing: border-box;
-}
 .sh-cinema-hero-bg-container {
     position: absolute;
     inset: 0;
@@ -1289,7 +1272,8 @@ class ModalSlideUpSheet {
 }
 
 /* Affiche 2:3 Restaurée & Sublimée */
-.sh-cinema-hero-poster { width: 128px;
+.sh-cinema-hero-poster {
+    width: 120px;
     aspect-ratio: 2/3;
     border-radius: 12px;
     overflow: hidden;
