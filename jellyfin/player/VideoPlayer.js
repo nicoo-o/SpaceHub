@@ -346,23 +346,106 @@ class VideoPlayer {
             <div class="sh-cinema-dock-anchor">
                 <div class="sh-dock-amber-glow"></div>
 
+                <!-- 🗄️ Menus Dépliants Flottants (Glass Popovers au-dessus du Dock) -->
+                
+                <!-- Popover 1 : Audio & Sous-titres à Double Colonne -->
+                <div class="sh-player-popover" id="sh-popover-audio-subs">
+                    <div class="sh-popover-inner sh-popover-inner--audio-subs">
+                        <div class="sh-popover-cols">
+                            <!-- Colonne 1 : Pistes Audio -->
+                            <div class="sh-popover-col">
+                                <div class="sh-popover-col-header">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                                    <span>Pistes Audio</span>
+                                </div>
+                                <div class="sh-popover-list" id="sh-player-audio-list">
+                                    <!-- Injecté dynamiquement -->
+                                </div>
+                            </div>
+
+                            <div class="sh-popover-divider"></div>
+
+                            <!-- Colonne 2 : Sous-titres & Décalage -->
+                            <div class="sh-popover-col">
+                                <div class="sh-popover-col-header">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+                                    <span>Sous-titres</span>
+                                </div>
+                                <div class="sh-popover-list" id="sh-player-subs-list">
+                                    <!-- Injecté dynamiquement -->
+                                </div>
+
+                                <!-- Stepper de Synchronisation Direct -->
+                                <div class="sh-popover-sub-sync">
+                                    <div class="sh-popover-sub-sync-title">Synchronisation Live</div>
+                                    <div class="sh-sync-grid">
+                                        <button class="sh-sync-btn" data-offset="-0.5">-0.5s</button>
+                                        <button class="sh-sync-btn" data-offset="-0.1">-0.1s</button>
+                                        <button class="sh-sync-btn sh-sync-btn--reset" data-offset="0">0.0s</button>
+                                        <button class="sh-sync-btn" data-offset="+0.1">+0.1s</button>
+                                        <button class="sh-sync-btn" data-offset="+0.5">+0.5s</button>
+                                    </div>
+                                    <div class="sh-sync-label">Décalage : <strong id="sh-popover-offset-val">${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s</strong></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Popover 2 : Vitesse & Format d'Image -->
+                <div class="sh-player-popover" id="sh-popover-settings">
+                    <div class="sh-popover-inner sh-popover-inner--settings">
+                        <div class="sh-popover-section">
+                            <div class="sh-popover-section-title">Vitesse de Lecture</div>
+                            <div class="sh-settings-chips" id="sh-player-speed-chips">
+                                <button class="sh-chip-btn ${this._playbackRate === 0.5 ? 'active' : ''}" data-speed="0.5">0.5x</button>
+                                <button class="sh-chip-btn ${this._playbackRate === 0.75 ? 'active' : ''}" data-speed="0.75">0.75x</button>
+                                <button class="sh-chip-btn ${this._playbackRate === 1.0 ? 'active' : ''}" data-speed="1.0">1.0x (Normal)</button>
+                                <button class="sh-chip-btn ${this._playbackRate === 1.25 ? 'active' : ''}" data-speed="1.25">1.25x</button>
+                                <button class="sh-chip-btn ${this._playbackRate === 1.5 ? 'active' : ''}" data-speed="1.5">1.5x</button>
+                                <button class="sh-chip-btn ${this._playbackRate === 2.0 ? 'active' : ''}" data-speed="2.0">2.0x</button>
+                            </div>
+                        </div>
+
+                        <div class="sh-popover-section" style="margin-top: 12px;">
+                            <div class="sh-popover-section-title">Format d'Image</div>
+                            <div class="sh-settings-chips" id="sh-player-aspect-chips">
+                                <button class="sh-chip-btn ${this._aspectRatioIndex === 0 ? 'active' : ''}" data-aspect-idx="0">16:9 Adapté</button>
+                                <button class="sh-chip-btn ${this._aspectRatioIndex === 1 ? 'active' : ''}" data-aspect-idx="1">21:9 Cinéma Scope</button>
+                                <button class="sh-chip-btn ${this._aspectRatioIndex === 2 ? 'active' : ''}" data-aspect-idx="2">Plein écran Étiré</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Popover 3 : Galerie Épisodes (Séries) -->
+                <div class="sh-player-popover" id="sh-popover-episodes">
+                    <div class="sh-popover-inner sh-popover-inner--episodes">
+                        <div class="sh-popover-section-title">Épisodes de la Saison</div>
+                        <div class="sh-episodes-popover-list sh-scrollbar" id="sh-player-episodes-list">
+                            <!-- Injecté dynamiquement -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dock Principal -->
                 <div class="sh-liquid-ribbon-dock">
                     
                     <!-- Section Gauche : Commandes Transport Proportionnées & Temps Écoulé -->
                     <div class="sh-ribbon-group sh-ribbon-group--left">
-                        <!-- Play / Pause Master Pearl (34px) -->
+                        <!-- Play / Pause Master Pearl (32px Calibré) -->
                         <button class="sh-pearl-play-btn" id="sh-btn-play-pause" title="Lecture / Pause (Espace)">
-                            <svg class="sh-icon-play" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
-                            <svg class="sh-icon-pause" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                            <svg class="sh-icon-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                            <svg class="sh-icon-pause" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
                         </button>
 
                         <!-- Sauts ±10s (30px) -->
                         <button class="sh-micro-btn" id="sh-btn-skip-back" title="Reculer de 10s (←)">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                             <span class="sh-micro-num">10</span>
                         </button>
                         <button class="sh-micro-btn" id="sh-btn-skip-fwd" title="Avancer de 10s (→)">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
                             <span class="sh-micro-num">10</span>
                         </button>
 
@@ -386,13 +469,13 @@ class VideoPlayer {
                         <span class="sh-time-remaining-label" id="sh-time-remaining">-00:00:00</span>
                     </div>
 
-                    <!-- Section Droite : Volume Compact & Tiroirs Rapides -->
+                    <!-- Section Droite : Volume Compact (Micro-perle 7px) & Menus Dépliants -->
                     <div class="sh-ribbon-group sh-ribbon-group--right">
                         
                         <!-- Volume Coulissant Compact -->
                         <div class="sh-volume-flow-box">
                             <button class="sh-micro-btn" id="sh-btn-volume" title="Volume / Muet (M)">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
                             </button>
                             <div class="sh-volume-track">
                                 <input type="range" class="sh-volume-range" id="sh-volume-range" min="0" max="1" step="0.02" value="${this._volume}">
@@ -407,48 +490,31 @@ class VideoPlayer {
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
                         </button>
 
-                        <!-- Bouton Tiroir Épisodes (Séries) -->
+                        <!-- Bouton Dépliant Épisodes (Séries) -->
                         <button class="sh-dock-pill-btn" id="sh-btn-open-episodes" title="Liste des épisodes" style="display:none;">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
                             <span>Épisodes</span>
+                            <span class="sh-popover-chevron">▴</span>
                         </button>
 
-                        <!-- Bouton Tiroir Audio & Sous-titres -->
+                        <!-- Bouton Dépliant Audio & Sous-titres -->
                         <button class="sh-dock-pill-btn" id="sh-btn-open-audio-subs" title="Pistes Audio & Sous-Titres (S)">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
                             <span>Audio & Subs</span>
+                            <span class="sh-popover-chevron">▴</span>
                         </button>
 
-                        <!-- Bouton Tiroir Vitesse & Réglages -->
+                        <!-- Bouton Dépliant Vitesse & Réglages -->
                         <button class="sh-dock-pill-btn" id="sh-btn-open-settings" title="Vitesse & Réglages (C)">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
                             <span id="sh-speed-indicator">${this._playbackRate}x</span>
+                            <span class="sh-popover-chevron">▴</span>
                         </button>
 
                     </div>
 
                 </div>
             </div>
-
-            <!-- 🗄️ TIROIR LATÉRAL EN VERRE COULISSANT (Apple Glass Cinema Drawer) -->
-            <div class="sh-cinema-drawer-backdrop" id="sh-drawer-backdrop"></div>
-            <aside class="sh-cinema-drawer" id="sh-cinema-drawer">
-                <div class="sh-drawer-header">
-                    <div class="sh-drawer-tabs">
-                        <button class="sh-drawer-tab-btn ${this._activeDrawerTab === 'audio' ? 'active' : ''}" data-tab="audio">Audio</button>
-                        <button class="sh-drawer-tab-btn ${this._activeDrawerTab === 'subs' ? 'active' : ''}" data-tab="subs">Sous-Titres</button>
-                        <button class="sh-drawer-tab-btn ${this._activeDrawerTab === 'settings' ? 'active' : ''}" data-tab="settings">Réglages</button>
-                        <button class="sh-drawer-tab-btn ${this._activeDrawerTab === 'episodes' ? 'active' : ''}" data-tab="episodes" id="sh-drawer-tab-episodes-btn" style="${this._seasonEpisodes.length > 0 ? '' : 'display:none;'}">Épisodes</button>
-                    </div>
-                    <button class="sh-drawer-close-btn" id="sh-drawer-close" title="Fermer le volet">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                </div>
-
-                <div class="sh-drawer-body sh-scrollbar" id="sh-drawer-content">
-                    <!-- Contenu injecté dynamiquement -->
-                </div>
-            </aside>
         `;
 
         document.body.appendChild(this._el);
@@ -621,26 +687,24 @@ class VideoPlayer {
         el.querySelector('#sh-btn-fullscreen')?.addEventListener('click', () => this._toggleFullscreen());
 
         // 🗄️ Déclencheurs de Tiroirs
-        el.querySelector('#sh-btn-open-audio-subs')?.addEventListener('click', () => {
-            this._openDrawer('audio');
+        el.querySelector('#sh-btn-open-audio-subs')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._togglePopover('sh-popover-audio-subs', e.currentTarget);
         });
-        el.querySelector('#sh-btn-open-settings')?.addEventListener('click', () => {
-            this._openDrawer('settings');
+        el.querySelector('#sh-btn-open-settings')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._togglePopover('sh-popover-settings', e.currentTarget);
         });
-        el.querySelector('#sh-btn-open-episodes')?.addEventListener('click', () => {
-            this._openDrawer('episodes');
+        el.querySelector('#sh-btn-open-episodes')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._togglePopover('sh-popover-episodes', e.currentTarget);
         });
 
-        el.querySelector('#sh-drawer-close')?.addEventListener('click', () => this._closeDrawer());
-        el.querySelector('#sh-drawer-backdrop')?.addEventListener('click', () => this._closeDrawer());
-
-        el.querySelectorAll('.sh-drawer-tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const tab = btn.dataset.tab;
-                this._activeDrawerTab = tab;
-                el.querySelectorAll('.sh-drawer-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
-                this._renderDrawerContent();
-            });
+        // Fermeture des popovers en cliquant ailleurs
+        el.addEventListener('click', (e) => {
+            if (!e.target.closest('.sh-player-popover') && !e.target.closest('.sh-dock-pill-btn')) {
+                this._closeAllPopovers();
+            }
         });
 
         el.querySelector('#sh-smart-skip-btn')?.addEventListener('click', () => {
@@ -657,289 +721,194 @@ class VideoPlayer {
         document.addEventListener('keydown', this._keyHandler = (e) => this._onKeyDown(e));
     }
 
-    _openDrawer(tab = 'audio') {
-        this._activeDrawerTab = tab;
-        this._isDrawerOpen = true;
+    _togglePopover(popoverId, triggerBtn) {
+        const popover = this._el?.querySelector(`#${popoverId}`);
+        if (!popover) return;
 
-        const drawer = this._el?.querySelector('#sh-cinema-drawer');
-        const backdrop = this._el?.querySelector('#sh-drawer-backdrop');
+        const isOpen = popover.classList.contains('open');
 
-        this._el?.querySelectorAll('.sh-drawer-tab-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.tab === tab);
-        });
+        // Fermer tous les popovers ouverts
+        this._closeAllPopovers();
 
-        this._renderDrawerContent();
-
-        drawer?.classList.add('open');
-        backdrop?.classList.add('visible');
-    }
-
-    _closeDrawer() {
-        this._isDrawerOpen = false;
-        this._el?.querySelector('#sh-cinema-drawer')?.classList.remove('open');
-        this._el?.querySelector('#sh-drawer-backdrop')?.classList.remove('visible');
-    }
-
-    _renderDrawerContent() {
-        const bodyEl = this._el?.querySelector('#sh-drawer-content');
-        if (!bodyEl) return;
-
-        switch (this._activeDrawerTab) {
-            case 'audio':
-                this._renderAudioTab(bodyEl);
-                break;
-            case 'subs':
-                this._renderSubsTab(bodyEl);
-                break;
-            case 'settings':
-                this._renderSettingsTab(bodyEl);
-                break;
-            case 'episodes':
-                this._renderEpisodesTab(bodyEl);
-                break;
+        if (!isOpen) {
+            this._renderPopoversContent();
+            popover.classList.add('open');
+            triggerBtn?.classList.add('active');
         }
     }
 
-    _renderAudioTab(container) {
-        if (!this._audioStreams || this._audioStreams.length === 0) {
-            container.innerHTML = '<p class="sh-drawer-empty">Piste audio standard stéréo</p>';
-            return;
-        }
-
-        container.innerHTML = `
-            <div class="sh-drawer-section">
-                <h4 class="sh-drawer-kicker">PISTES AUDIO DISPONIBLES</h4>
-                <div class="sh-drawer-list">
-                    ${this._audioStreams.map(s => {
-                        const isSel = s.Index === this._selectedAudioIndex;
-                        const lang = (s.Language || 'und').toUpperCase();
-                        const codec = (s.Codec || 'AAC').toUpperCase();
-                        const channels = s.ChannelLayout || (s.Channels ? `${s.Channels} ch` : 'Stéréo');
-                        const title = s.DisplayTitle || s.Title || `${lang} · ${codec} ${channels}`;
-
-                        return `
-                            <button class="sh-drawer-item ${isSel ? 'active' : ''}" data-audio-idx="${s.Index}">
-                                <div class="sh-drawer-item-check">✓</div>
-                                <div class="sh-drawer-item-info">
-                                    <span class="sh-drawer-item-title">${this._escape(title)}</span>
-                                    <span class="sh-drawer-item-badge">${codec} ${channels}</span>
-                                </div>
-                            </button>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-        `;
-
-        container.querySelectorAll('.sh-drawer-item').forEach(btn => {
-            btn.addEventListener('click', () => {
-                this._selectedAudioIndex = parseInt(btn.dataset.audioIdx, 10);
-                this._renderAudioTab(container);
-                this._showFlashOSD('🔊', btn.querySelector('.sh-drawer-item-title').textContent);
-            });
-        });
+    _closeAllPopovers() {
+        this._el?.querySelectorAll('.sh-player-popover').forEach(p => p.classList.remove('open'));
+        this._el?.querySelectorAll('.sh-dock-pill-btn').forEach(b => b.classList.remove('active'));
     }
 
-    _renderSubsTab(container) {
-        let subsHtml = `
-            <div class="sh-drawer-section">
-                <h4 class="sh-drawer-kicker">SOUS-TITRES</h4>
-                <div class="sh-drawer-list">
-                    <button class="sh-drawer-item ${this._selectedSubIndex === -1 ? 'active' : ''}" data-sub-idx="-1">
-                        <div class="sh-drawer-item-check">✓</div>
-                        <div class="sh-drawer-item-info">
-                            <span class="sh-drawer-item-title">Désactivé</span>
+    _renderPopoversContent() {
+        this._renderAudioSubsPopover();
+        this._renderSettingsPopover();
+        this._renderEpisodesPopover();
+    }
+
+    _renderAudioSubsPopover() {
+        const audioList = this._el?.querySelector('#sh-player-audio-list');
+        const subsList = this._el?.querySelector('#sh-player-subs-list');
+
+        // 1. Pistes Audio
+        if (audioList) {
+            if (!this._audioStreams || this._audioStreams.length === 0) {
+                audioList.innerHTML = '<div class="sh-popover-empty">Stéréo Standard</div>';
+            } else {
+                audioList.innerHTML = this._audioStreams.map(s => {
+                    const isSel = s.Index === this._selectedAudioIndex;
+                    const lang = (s.Language || 'und').toUpperCase();
+                    const codec = (s.Codec || 'AAC').toUpperCase();
+                    const channels = s.ChannelLayout || (s.Channels ? `${s.Channels} ch` : 'Stéréo');
+                    const title = s.DisplayTitle || s.Title || `${lang} · ${codec} ${channels}`;
+
+                    return `
+                        <div class="sh-popover-item ${isSel ? 'selected' : ''}" data-audio-idx="${s.Index}">
+                            <div class="sh-popover-item-name">${this._escape(title)}</div>
+                            <div class="sh-popover-item-badge">${codec} ${channels}</div>
                         </div>
-                    </button>
-        `;
+                    `;
+                }).join('');
 
-        if (this._subStreams && this._subStreams.length > 0) {
-            subsHtml += this._subStreams.map(s => {
-                const isSel = s.Index === this._selectedSubIndex;
-                const lang = (s.Language || 'und').toUpperCase();
-                const title = s.DisplayTitle || s.Title || `${lang} ${s.IsForced ? '(Forcé)' : ''}`;
-                return `
-                    <button class="sh-drawer-item ${isSel ? 'active' : ''}" data-sub-idx="${s.Index}">
-                        <div class="sh-drawer-item-check">✓</div>
-                        <div class="sh-drawer-item-info">
-                            <span class="sh-drawer-item-title">${this._escape(title)}</span>
-                            ${s.IsForced ? '<span class="sh-drawer-item-badge">FORCÉ</span>' : ''}
-                        </div>
-                    </button>
-                `;
-            }).join('');
+                audioList.querySelectorAll('.sh-popover-item').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this._selectedAudioIndex = parseInt(el.dataset.audioIdx, 10);
+                        this._renderAudioSubsPopover();
+                        const title = el.querySelector('.sh-popover-item-name')?.textContent || 'Audio';
+                        this._showFlashOSD('🔊', title);
+                    });
+                });
+            }
         }
 
-        subsHtml += `
+        // 2. Sous-titres
+        if (subsList) {
+            let subsHtml = `
+                <div class="sh-popover-item ${this._selectedSubIndex === -1 ? 'selected' : ''}" data-sub-idx="-1">
+                    <div class="sh-popover-item-name">Désactivé</div>
                 </div>
-            </div>
+            `;
 
-            <div class="sh-drawer-section">
-                <h4 class="sh-drawer-kicker">SYNCHRONISATION DES SOUS-TITRES</h4>
-                <div class="sh-sync-grid">
-                    <button class="sh-sync-btn" data-offset="-0.5">-0.5s</button>
-                    <button class="sh-sync-btn" data-offset="-0.1">-0.1s</button>
-                    <button class="sh-sync-btn sh-sync-btn--reset" data-offset="0">0.0s (Réinit)</button>
-                    <button class="sh-sync-btn" data-offset="+0.1">+0.1s</button>
-                    <button class="sh-sync-btn" data-offset="+0.5">+0.5s</button>
-                </div>
-                <p class="sh-sync-label">Décalage : <strong id="sh-drawer-offset-val">${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s</strong></p>
-            </div>
+            if (this._subStreams && this._subStreams.length > 0) {
+                subsHtml += this._subStreams.map(s => {
+                    const isSel = s.Index === this._selectedSubIndex;
+                    const lang = (s.Language || 'und').toUpperCase();
+                    const title = s.DisplayTitle || s.Title || `${lang} ${s.IsForced ? '(Forcé)' : ''}`;
 
-            <div class="sh-drawer-section">
-                <button class="sh-btn-search-online" id="sh-btn-search-online-subs">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <span>Rechercher des sous-titres en ligne...</span>
-                </button>
-            </div>
-        `;
+                    return `
+                        <div class="sh-popover-item ${isSel ? 'selected' : ''}" data-sub-idx="${s.Index}">
+                            <div class="sh-popover-item-name">${this._escape(title)}</div>
+                            ${s.IsForced ? '<span class="sh-popover-item-badge">FORCÉ</span>' : ''}
+                        </div>
+                    `;
+                }).join('');
+            }
 
-        container.innerHTML = subsHtml;
+            subsList.innerHTML = subsHtml;
 
-        container.querySelectorAll('.sh-drawer-item').forEach(btn => {
-            btn.addEventListener('click', () => {
-                this._selectedSubIndex = parseInt(btn.dataset.subIdx, 10);
-                this._renderSubsTab(container);
-                const title = btn.querySelector('.sh-drawer-item-title').textContent;
-                this._showFlashOSD('💬', `Sous-titres : ${title}`);
+            subsList.querySelectorAll('.sh-popover-item').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this._selectedSubIndex = parseInt(el.dataset.subIdx, 10);
+                    this._renderAudioSubsPopover();
+                    const title = el.querySelector('.sh-popover-item-name')?.textContent || 'Sous-titre';
+                    this._showFlashOSD('💬', `Sous-titres : ${title}`);
+                });
             });
-        });
+        }
 
-        container.querySelectorAll('.sh-sync-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+        // 3. Stepper de Synchronisation
+        const syncGrid = this._el?.querySelector('#sh-popover-audio-subs .sh-sync-grid');
+        syncGrid?.querySelectorAll('.sh-sync-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
                 const delta = parseFloat(btn.dataset.offset);
                 if (delta === 0) this._subOffset = 0;
                 else this._subOffset = Math.round((this._subOffset + delta) * 10) / 10;
 
                 this._applySubtitleOffset();
-                const label = container.querySelector('#sh-drawer-offset-val');
+                const label = this._el?.querySelector('#sh-popover-offset-val');
                 if (label) label.textContent = `${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s`;
                 this._showFlashOSD('⏱️', `Sous-titres ${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s`);
-            });
-        });
-
-        container.querySelector('#sh-btn-search-online-subs')?.addEventListener('click', () => {
-            this._closeDrawer();
-            this._openRemoteSubtitleModal();
+            };
         });
     }
 
-    _renderSettingsTab(container) {
-        const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+    _renderSettingsPopover() {
+        const speedChips = this._el?.querySelector('#sh-player-speed-chips');
+        const aspectChips = this._el?.querySelector('#sh-player-aspect-chips');
         const aspectLabels = { contain: '16:9 Adapté', cover: '21:9 Cinéma Scope', fill: 'Plein écran Étiré' };
 
-        container.innerHTML = `
-            <div class="sh-drawer-section">
-                <h4 class="sh-drawer-kicker">VITESSE DE LECTURE</h4>
-                <div class="sh-settings-chips">
-                    ${speeds.map(spd => `
-                        <button class="sh-chip-btn ${this._playbackRate === spd ? 'active' : ''}" data-speed="${spd}">${spd}x${spd === 1.0 ? ' (Normal)' : ''}</button>
-                    `).join('')}
-                </div>
-            </div>
-
-            <div class="sh-drawer-section">
-                <h4 class="sh-drawer-kicker">FORMAT D'IMAGE</h4>
-                <div class="sh-settings-chips">
-                    ${this._aspectRatios.map((mode, idx) => `
-                        <button class="sh-chip-btn ${this._aspectRatioIndex === idx ? 'active' : ''}" data-aspect-idx="${idx}">${aspectLabels[mode] || mode}</button>
-                    `).join('')}
-                </div>
-            </div>
-
-            <div class="sh-drawer-section">
-                <h4 class="sh-drawer-kicker">SYNCHRONISATION DES SOUS-TITRES</h4>
-                <div class="sh-sync-grid">
-                    <button class="sh-sync-btn" data-offset="-0.5">-0.5s</button>
-                    <button class="sh-sync-btn" data-offset="-0.1">-0.1s</button>
-                    <button class="sh-sync-btn sh-sync-btn--reset" data-offset="0">0.0s (Réinit)</button>
-                    <button class="sh-sync-btn" data-offset="+0.1">+0.1s</button>
-                    <button class="sh-sync-btn" data-offset="+0.5">+0.5s</button>
-                </div>
-                <p class="sh-sync-label">Décalage actif : <strong id="sh-drawer-offset-val-settings">${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s</strong></p>
-            </div>
-        `;
-
-        container.querySelectorAll('[data-speed]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const spd = parseFloat(btn.dataset.speed);
-                this._playbackRate = spd;
-                this._video.playbackRate = spd;
-                localStorage.setItem('SpaceHub_playback_speed', String(spd));
-                const speedInd = this._el.querySelector('#sh-speed-indicator');
-                if (speedInd) speedInd.textContent = `${spd}x`;
-                this._renderSettingsTab(container);
-                this._showFlashOSD('⚡', `Vitesse : ${spd}x`);
+        if (speedChips) {
+            speedChips.querySelectorAll('[data-speed]').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const spd = parseFloat(btn.dataset.speed);
+                    this._playbackRate = spd;
+                    this._video.playbackRate = spd;
+                    localStorage.setItem('SpaceHub_playback_speed', String(spd));
+                    const speedInd = this._el?.querySelector('#sh-speed-indicator');
+                    if (speedInd) speedInd.textContent = `${spd}x`;
+                    speedChips.querySelectorAll('[data-speed]').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.speed) === spd));
+                    this._showFlashOSD('⚡', `Vitesse : ${spd}x`);
+                };
             });
-        });
+        }
 
-        container.querySelectorAll('[data-aspect-idx]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const idx = parseInt(btn.dataset.aspectIdx, 10);
-                this._aspectRatioIndex = idx;
-                const mode = this._aspectRatios[idx];
-                this._video.style.objectFit = mode;
-                this._renderSettingsTab(container);
-                this._showFlashOSD('📐', aspectLabels[mode] || mode);
+        if (aspectChips) {
+            aspectChips.querySelectorAll('[data-aspect-idx]').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const idx = parseInt(btn.dataset.aspectIdx, 10);
+                    this._aspectRatioIndex = idx;
+                    const mode = this._aspectRatios[idx];
+                    this._video.style.objectFit = mode;
+                    aspectChips.querySelectorAll('[data-aspect-idx]').forEach(b => b.classList.toggle('active', parseInt(b.dataset.aspectIdx, 10) === idx));
+                    this._showFlashOSD('📐', aspectLabels[mode] || mode);
+                };
             });
-        });
-
-        container.querySelectorAll('.sh-sync-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const delta = parseFloat(btn.dataset.offset);
-                if (delta === 0) this._subOffset = 0;
-                else this._subOffset = Math.round((this._subOffset + delta) * 10) / 10;
-
-                this._applySubtitleOffset();
-                const label = container.querySelector('#sh-drawer-offset-val-settings');
-                if (label) label.textContent = `${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s`;
-                this._showFlashOSD('⏱️', `Sous-titres ${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s`);
-            });
-        });
+        }
     }
 
-    _renderEpisodesTab(container) {
+    _renderEpisodesPopover() {
+        const epList = this._el?.querySelector('#sh-player-episodes-list');
+        if (!epList) return;
+
         if (this._seasonEpisodes.length === 0) {
-            container.innerHTML = '<p class="sh-drawer-empty">Aucun épisode disponible pour cette saison.</p>';
+            epList.innerHTML = '<div class="sh-popover-empty">Aucun épisode disponible.</div>';
             return;
         }
 
         const currentId = this._currentItem.Id || this._currentItem.id;
+        epList.innerHTML = this._seasonEpisodes.map(ep => {
+            const isCur = ep.Id === currentId;
+            const sNum = String(ep.ParentIndexNumber || 1).padStart(2, '0');
+            const eNum = String(ep.IndexNumber || 1).padStart(2, '0');
+            const imgUrl = this._api?.getImageUrl(ep.Id, 'Primary', { maxWidth: 200, maxHeight: 112 }) || '';
 
-        container.innerHTML = `
-            <div class="sh-drawer-section">
-                <h4 class="sh-drawer-kicker">ÉPISODES DE LA SAISON (${this._seasonEpisodes.length})</h4>
-                <div class="sh-episodes-grid">
-                    ${this._seasonEpisodes.map(ep => {
-                        const isCur = ep.Id === currentId;
-                        const sNum = String(ep.ParentIndexNumber || 1).padStart(2, '0');
-                        const eNum = String(ep.IndexNumber || 1).padStart(2, '0');
-                        const thumbUrl = this._api?.getImageUrl?.(ep.Id, 'Primary', { maxWidth: 260, maxHeight: 146 }) || '';
-
-                        return `
-                            <div class="sh-episode-card ${isCur ? 'active' : ''}" data-ep-id="${ep.Id}">
-                                <div class="sh-episode-card__thumb">
-                                    <img src="${thumbUrl}" alt="${ep.Name}" loading="lazy"/>
-                                    <span class="sh-episode-card__badge">S${sNum}E${eNum}</span>
-                                    ${isCur ? '<div class="sh-episode-card__playing">▶ En lecture</div>' : ''}
-                                </div>
-                                <div class="sh-episode-card__meta">
-                                    <h5 class="sh-episode-card__title">${this._escape(ep.Name)}</h5>
-                                    <span class="sh-episode-card__runtime">${ep.RunTimeTicks ? Math.round(ep.RunTimeTicks / 600000000) + ' min' : ''}</span>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
+            return `
+                <div class="sh-popover-episode-row ${isCur ? 'selected' : ''}" data-ep-id="${ep.Id}">
+                    <div class="sh-popover-ep-thumb">
+                        <img src="${imgUrl}" alt="${this._escape(ep.Name)}" onerror="this.style.display='none';"/>
+                        <span class="sh-popover-ep-tag">S${sNum}E${eNum}</span>
+                    </div>
+                    <div class="sh-popover-ep-meta">
+                        <div class="sh-popover-ep-name">${this._escape(ep.Name)}</div>
+                        <div class="sh-popover-ep-dur">${ep.RunTimeTicks ? Math.round(ep.RunTimeTicks / 600000000) + ' min' : ''}</div>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }).join('');
 
-        container.querySelectorAll('.sh-episode-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const epId = card.dataset.epId;
+        epList.querySelectorAll('.sh-popover-episode-row').forEach(row => {
+            row.addEventListener('click', () => {
+                const epId = row.dataset.epId;
                 const targetEp = this._seasonEpisodes.find(e => e.Id === epId);
                 if (targetEp) {
-                    this._closeDrawer();
+                    this._closeAllPopovers();
                     this.play(targetEp);
                 }
             });
@@ -1257,8 +1226,9 @@ class VideoPlayer {
                 break;
             case 'Escape':
                 e.preventDefault();
-                if (this._isDrawerOpen) {
-                    this._closeDrawer();
+                const anyPopoverOpen = this._el?.querySelector('.sh-player-popover.open');
+                if (anyPopoverOpen) {
+                    this._closeAllPopovers();
                 } else {
                     this.close();
                 }
@@ -1393,7 +1363,7 @@ class VideoPlayer {
         style.id = 'sh-grand-cinema-styles-v3';
         style.textContent = `
 /* ═══════════════════════════════════════════════════════════════════════════
-   SpaceHub — Grand Cinema Video Player v3.2.0 (Apple TV+ Studio Layout)
+   SpaceHub — Grand Cinema Video Player v3.3.0 (VisionOS Floating Popovers)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Neutralisation Absolue des Éléments Parasites */
@@ -1903,7 +1873,7 @@ body.sh-cinema-active .dialogBackdrop {
 .sh-liquid-ribbon-dock {
     position: relative;
     width: min(1040px, 100%);
-    height: 52px;
+    height: 50px;
     background: rgba(14, 14, 20, 0.48);
     backdrop-filter: blur(36px) saturate(190%);
     -webkit-backdrop-filter: blur(36px) saturate(190%);
@@ -1913,23 +1883,23 @@ body.sh-cinema-active .dialogBackdrop {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 12px 0 8px;
+    padding: 0 10px 0 8px;
     z-index: 21;
-    gap: 12px;
+    gap: 10px;
 }
 
 /* ── Section Gauche : Commandes Transport Proportionnées ──────────────── */
 .sh-ribbon-group {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     flex-shrink: 0;
 }
 
-/* Master Play/Pause Button (34px Proportionné) */
+/* Master Play/Pause Button (32px Calibré Harmonieux) */
 .sh-pearl-play-btn {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: #ffffff;
     border: none;
@@ -2084,276 +2054,270 @@ body.sh-cinema-active .dialogBackdrop {
     white-space: nowrap;
 }
 
-/* ── Section Droite : Volume Compact & Tiroirs ───────────────────────── */
+/* ── Section Droite : Volume Compact (Micro-perle 7px) & Menus Dépliants ── */
 .sh-volume-flow-box {
     display: flex;
     align-items: center;
     gap: 2px;
-    padding-right: 4px;
+    padding-right: 2px;
 }
 .sh-volume-track {
-    width: 46px;
+    width: 48px;
     display: flex;
     align-items: center;
 }
+
+/* 🔘 Curseur de Volume Personnalisé Ultra-Fin (Suppression du gros rond orange) */
 .sh-volume-range {
-    width: 46px;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 48px;
     height: 3px;
-    accent-color: #ff9f0a;
+    background: rgba(255, 255, 255, 0.20);
+    border-radius: 999px;
+    outline: none;
     cursor: pointer;
 }
+.sh-volume-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ff9f0a;
+    box-shadow: 0 0 6px #ff9f0a, 0 1px 3px rgba(0,0,0,0.5);
+    cursor: pointer;
+    border: none;
+    transition: transform 0.15s ease;
+}
+.sh-volume-range:hover::-webkit-slider-thumb {
+    transform: scale(1.25);
+}
+.sh-volume-range::-moz-range-thumb {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ff9f0a;
+    box-shadow: 0 0 6px #ff9f0a;
+    cursor: pointer;
+    border: none;
+}
 
+/* Boutons Pilules Dépliants du Dock */
 .sh-dock-pill-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
+    gap: 5px;
+    height: 30px;
+    padding: 4px 11px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: rgba(255, 255, 255, 0.90);
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
     white-space: nowrap;
 }
-.sh-dock-pill-btn:hover {
+.sh-dock-pill-btn:hover,
+.sh-dock-pill-btn.active {
     background: rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.28);
     color: #fff;
     transform: scale(1.03);
 }
+.sh-popover-chevron {
+    font-size: 9px;
+    opacity: 0.65;
+    margin-left: 1px;
+    transition: transform 0.2s ease;
+}
+.sh-dock-pill-btn.active .sh-popover-chevron {
+    transform: rotate(180deg);
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   🗄️ TIROIR LATÉRAL EN VERRE COULISSANT (Apple Glass Cinema Drawer)
+   🗄️ MENUS DÉPLIANTS FLOTTANTS (Glass Popovers au-dessus du Dock)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.sh-cinema-drawer-backdrop {
+.sh-player-popover {
     position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(10px);
-    z-index: 95;
+    bottom: 64px;
+    z-index: 999;
     opacity: 0;
+    transform: translateY(12px) scale(0.94);
     pointer-events: none;
-    transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.24s cubic-bezier(0.34, 1.56, 0.45, 1);
 }
-.sh-cinema-drawer-backdrop.visible {
+.sh-player-popover.open {
     opacity: 1;
+    transform: translateY(0) scale(1);
     pointer-events: auto;
 }
 
-.sh-cinema-drawer {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: min(390px, 90vw);
-    background: rgba(14, 14, 20, 0.88);
-    backdrop-filter: blur(50px) saturate(200%);
-    -webkit-backdrop-filter: blur(50px) saturate(200%);
-    border-left: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: -24px 0 70px rgba(0, 0, 0, 0.95);
-    z-index: 100;
-    display: flex;
-    flex-direction: column;
-    transform: translateX(100%);
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+#sh-popover-audio-subs {
+    right: 76px;
+    width: 440px;
 }
-.sh-cinema-drawer.open {
-    transform: translateX(0);
+#sh-popover-settings {
+    right: 12px;
+    width: 310px;
+}
+#sh-popover-episodes {
+    right: 180px;
+    width: 350px;
 }
 
-.sh-drawer-header {
+.sh-popover-inner {
+    background: rgba(14, 14, 20, 0.88);
+    backdrop-filter: blur(40px) saturate(200%);
+    -webkit-backdrop-filter: blur(40px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+/* Double Colonne Audio & Subs */
+.sh-popover-cols {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 12px;
+}
+.sh-popover-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.sh-popover-divider {
+    background: rgba(255, 255, 255, 0.10);
+    width: 1px;
+    height: 100%;
+}
+
+.sh-popover-col-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #ff9f0a;
+    padding: 2px 4px 8px;
+}
+
+.sh-popover-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.sh-popover-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 18px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-    gap: 10px;
-}
-
-.sh-drawer-tabs {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    background: rgba(255, 255, 255, 0.06);
-    padding: 3px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-}
-.sh-drawer-tab-btn {
-    padding: 5px 12px;
-    border-radius: 999px;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.70);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.18s ease;
-}
-.sh-drawer-tab-btn:hover { color: #fff; }
-.sh-drawer-tab-btn.active {
-    background: rgba(255, 255, 255, 0.18);
-    color: #ffffff;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
-}
-
-.sh-drawer-close-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #fff;
-    cursor: pointer;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 0 !important;
-    line-height: 0 !important;
-    transition: all 0.2s ease;
-}
-.sh-drawer-close-btn:hover {
-    background: rgba(255, 255, 255, 0.20);
-    transform: scale(1.08);
-}
-
-.sh-drawer-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-}
-
-.sh-drawer-section {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-.sh-drawer-kicker {
-    margin: 0;
-    font-size: 9.5px;
-    font-weight: 800;
-    color: #ff9f0a;
-    letter-spacing: 0.6px;
-}
-
-.sh-drawer-list {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.sh-drawer-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 12px;
-    border-radius: 12px;
+    padding: 7px 9px;
+    border-radius: 9px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.85);
     cursor: pointer;
-    text-align: left;
-    transition: all 0.18s ease;
+    color: rgba(255, 255, 255, 0.85);
+    transition: all 0.16s ease;
 }
-.sh-drawer-item:hover {
-    background: rgba(255, 255, 255, 0.10);
+.sh-popover-item:hover {
+    background: rgba(255, 255, 255, 0.12);
     color: #fff;
     transform: translateX(2px);
 }
-.sh-drawer-item.active {
+.sh-popover-item.selected {
     background: rgba(255, 159, 10, 0.18);
     border-color: rgba(255, 159, 10, 0.45);
     color: #ff9f0a;
+    font-weight: 700;
 }
-.sh-drawer-item-check {
-    width: 14px;
-    font-size: 12px;
-    font-weight: 800;
-    opacity: 0;
-}
-.sh-drawer-item.active .sh-drawer-item-check { opacity: 1; }
-.sh-drawer-item-info {
+.sh-popover-item-name {
+    font-size: 11.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     flex: 1;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
 }
-.sh-drawer-item-title { font-size: 12.5px; font-weight: 600; }
-.sh-drawer-item-badge {
-    font-size: 8.5px;
+.sh-popover-item-badge {
+    font-size: 8px;
     font-weight: 800;
     padding: 2px 5px;
     border-radius: 4px;
     background: rgba(255, 255, 255, 0.10);
+    margin-left: 6px;
+    flex-shrink: 0;
 }
 
+/* Stepper Synchronisation Direct */
+.sh-popover-sub-sync {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.sh-popover-sub-sync-title {
+    font-size: 9.5px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.60);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
 .sh-sync-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 5px;
+    gap: 3px;
 }
 .sh-sync-btn {
-    padding: 7px 2px;
-    border-radius: 8px;
+    padding: 5px 2px;
+    border-radius: 6px;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: #fff;
-    font-size: 10.5px;
+    font-size: 9.5px;
     font-weight: 700;
     cursor: pointer;
-    transition: all 0.18s ease;
+    transition: all 0.16s ease;
 }
 .sh-sync-btn:hover { background: rgba(255, 255, 255, 0.16); }
-.sh-sync-btn--reset { font-size: 9.5px; }
+.sh-sync-btn--reset { font-size: 9px; }
 .sh-sync-label {
-    margin: 4px 0 0;
+    margin-top: 5px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+/* Popover Settings Sections */
+.sh-popover-section-title {
     font-size: 10.5px;
-    color: rgba(255, 255, 255, 0.60);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #ff9f0a;
+    margin-bottom: 7px;
 }
-
-.sh-btn-search-online {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    padding: 9px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #fff;
-    font-size: 11.5px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-.sh-btn-search-online:hover {
-    background: rgba(255, 159, 10, 0.20);
-    border-color: #ff9f0a;
-}
-
 .sh-settings-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 5px;
 }
 .sh-chip-btn {
-    padding: 7px 14px;
+    padding: 6px 12px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: rgba(255, 255, 255, 0.85);
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.18s ease;
+    transition: all 0.16s ease;
 }
 .sh-chip-btn:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
 .sh-chip-btn.active {
@@ -2363,43 +2327,58 @@ body.sh-cinema-active .dialogBackdrop {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
 }
 
-.sh-episodes-grid {
+/* Popover Épisodes */
+.sh-episodes-popover-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
+    max-height: 280px;
+    overflow-y: auto;
 }
-.sh-episode-card {
+.sh-popover-episode-row {
     display: flex;
-    gap: 10px;
-    padding: 7px;
-    border-radius: 12px;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 7px;
+    border-radius: 10px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.18s ease;
 }
-.sh-episode-card:hover {
-    background: rgba(255, 255, 255, 0.10);
-    transform: translateY(-2px);
+.sh-popover-episode-row:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateX(2px);
 }
-.sh-episode-card.active {
+.sh-popover-episode-row.selected {
     background: rgba(255, 159, 10, 0.18);
     border-color: rgba(255, 159, 10, 0.45);
 }
-.sh-episode-card__thumb {
+.sh-popover-ep-thumb {
     position: relative;
-    width: 100px;
-    height: 56px;
+    width: 64px;
+    height: 38px;
     border-radius: 6px;
     overflow: hidden;
-    flex-shrink: 0;
     background: #000;
+    flex-shrink: 0;
 }
-.sh-episode-card__thumb img { width: 100%; height: 100%; object-fit: cover; }
-.sh-episode-card__body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
-.sh-episode-card__kicker { font-size: 9.5px; font-weight: 800; color: #ff9f0a; }
-.sh-episode-card__title { margin: 0; font-size: 11.5px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sh-episode-card__duration { font-size: 10px; color: rgba(255,255,255,0.5); }
+.sh-popover-ep-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.sh-popover-ep-tag {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    font-size: 7.5px;
+    font-weight: 800;
+    padding: 1px 3px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #ff9f0a;
+}
+.sh-popover-ep-meta { flex: 1; min-width: 0; }
+.sh-popover-ep-name { font-size: 11px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh-popover-ep-dur { font-size: 9.5px; color: rgba(255,255,255,0.50); }
+.sh-popover-empty { font-size: 11px; color: rgba(255,255,255,0.45); padding: 10px; text-align: center; }
 `;
         document.head.appendChild(style);
     }
