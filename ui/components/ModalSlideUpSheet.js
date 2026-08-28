@@ -224,7 +224,7 @@ class ModalSlideUpSheet {
 
         this._sheet.innerHTML = `
             <!-- Bouton Retour Flottant Universel -->
-            <button class="sh-slideup-back-btn visible" id="sh-slideup-back" aria-label="Retour">
+            <button class="sh-slideup-back-btn ${hasHistory ? 'visible' : ''}" id="sh-slideup-back" aria-label="Retour">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="15 18 9 12 15 6"></polyline>
                 </svg>
@@ -1138,8 +1138,9 @@ class ModalSlideUpSheet {
 /* Bouton Retour Épuré & Fondu (Seamless Ghost Style, Sans Capsule) */
 .sh-slideup-back-btn {
     position: absolute;
-    top: 24px;
+    top: 16px;
     left: 28px;
+    display: none !important;
     z-index: 120 !important;
     height: 36px;
     padding: 6px 14px 6px 8px;
@@ -1219,9 +1220,7 @@ class ModalSlideUpSheet {
 
 
 /* ── 🎬 En-tête Hero Backdrop 16:9 avec Affiche 2:3 ─────────── */
-.sh-cinema-hero {
-    position: relative;
-    height: 230px;
+.sh-cinema-hero { position: relative; height: 245px;
     flex-shrink: 0;
     overflow: visible;
     z-index: 50;
@@ -1272,8 +1271,7 @@ class ModalSlideUpSheet {
 }
 
 /* Affiche 2:3 Restaurée & Sublimée */
-.sh-cinema-hero-poster {
-    width: 108px;
+.sh-cinema-hero-poster { width: 128px;
     aspect-ratio: 2/3;
     border-radius: 12px;
     overflow: hidden;

@@ -207,6 +207,25 @@ class CardBuilder {
             });
         }
 
+        // 🌟 3D Magnetic Parallax Tilt (Apple TV style)
+        card.addEventListener('mouseenter', () => {
+            card.style.transition = 'transform 100ms ease-out';
+        });
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateX = ((y - centerY) / centerY) * -10;
+            const rotateY = ((x - centerX) / centerX) * 10;
+            card.style.transform = `perspective(800px) translateY(-8px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) scale3d(1.03, 1.03, 1.03)`;
+        });
+        card.addEventListener('mouseleave', () => {
+            card.style.transition = 'transform 360ms cubic-bezier(0.16, 1, 0.3, 1)';
+            card.style.transform = 'perspective(800px) translateY(0) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+        });
+
         // Clic-droit : Context Menu
         card.addEventListener('contextmenu', (e) => {
             e.preventDefault();
@@ -847,38 +866,38 @@ class CardBuilder {
     100% { transform: translateX(100%); }
 }
 
-/* ── Dual-Pill Micro-Capsule Délicate (Infuse / Apple TV) ── */
+/* ── Dual-Pill Micro-Capsule Réagrandie (Infuse / Apple TV) ── */
 .sh-card__dual-score {
     position: absolute;
-    top: 8px;
-    left: 8px;
+    top: 9px;
+    left: 9px;
     z-index: 100 !important;
     pointer-events: auto !important;
     display: inline-flex;
     align-items: center;
-    gap: 1px;
-    background: rgba(8, 8, 12, 0.76) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    border: 0.5px solid rgba(255, 255, 255, 0.12) !important;
+    gap: 2px;
+    background: rgba(8, 8, 14, 0.84) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
     border-radius: 9999px;
-    padding: 1.5px 3.5px;
-    font-size: 9.5px;
-    font-weight: 700;
+    padding: 2.5px 5.5px;
+    font-size: 11px;
+    font-weight: 750;
     color: #ffffff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.60), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.70), inset 0 1px 0 rgba(255, 255, 255, 0.20);
+    transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
 }
 .sh-card__dual-score:hover {
-    background: rgba(12, 12, 18, 0.95) !important;
-    border-color: rgba(255, 255, 255, 0.28) !important;
-    transform: scale(1.04);
+    background: rgba(14, 14, 22, 0.96) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    transform: scale(1.06);
 }
 
 .sh-score-btn {
     background: transparent !important;
     border: none !important;
-    padding: 1.5px 3.5px !important;
+    padding: 2px 4px !important;
     margin: 0 !important;
     border-radius: 9999px !important;
     color: inherit !important;
@@ -887,65 +906,66 @@ class CardBuilder {
     pointer-events: auto !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 3px !important;
-    transition: all 140ms ease !important;
+    gap: 3.5px !important;
+    transition: all 160ms ease !important;
     user-select: none !important;
 }
 .sh-score-btn:hover {
     transform: scale(1.10) !important;
 }
 .sh-score-btn.sh-score-rt:hover {
-    background: rgba(250, 50, 10, 0.45) !important;
+    background: rgba(250, 50, 10, 0.50) !important;
     color: #ffffff !important;
     box-shadow: 0 0 12px rgba(250, 50, 10, 0.90) !important;
 }
 .sh-score-btn.sh-score-imdb:hover {
-    background: rgba(245, 197, 24, 0.45) !important;
+    background: rgba(245, 197, 24, 0.50) !important;
     color: #ffffff !important;
     box-shadow: 0 0 12px rgba(245, 197, 24, 0.90) !important;
 }
 
 .sh-score-val {
-    font-size: 9.5px;
+    font-size: 11px;
+    font-weight: 800;
     letter-spacing: -0.2px;
 }
 .sh-score-rt {
     color: #ff5252 !important;
-    font-weight: 700 !important;
+    font-weight: 750 !important;
 }
 .sh-score-sep {
-    opacity: 0.25;
-    font-size: 8px;
+    opacity: 0.30;
+    font-size: 9px;
     pointer-events: none;
     margin: 0 -1px;
 }
 .sh-score-imdb {
     color: #f5c518 !important;
-    font-weight: 700 !important;
+    font-weight: 750 !important;
 }
 
 .sh-rt-svg {
-    width: 10.5px;
-    height: 10.5px;
+    width: 12px;
+    height: 12px;
     display: inline-block;
     flex-shrink: 0;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
     transition: transform 180ms ease;
 }
 .sh-score-rt:hover .sh-rt-svg {
-    transform: scale(1.15) rotate(-6deg);
+    transform: scale(1.20) rotate(-8deg);
 }
 
 .sh-imdb-star-svg {
-    width: 10.5px;
-    height: 10.5px;
+    width: 12px;
+    height: 12px;
     display: inline-block;
     flex-shrink: 0;
     filter: drop-shadow(0 1px 3px rgba(245, 197, 24, 0.5));
     transition: transform 200ms ease;
 }
 .sh-score-imdb:hover .sh-imdb-star-svg {
-    transform: scale(1.18) rotate(12deg);
+    transform: scale(1.20) rotate(14deg);
 }
 
 /* ── Global Popover Base (Apple VisionOS Glass) ─────────────── */
