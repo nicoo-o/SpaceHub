@@ -141,7 +141,12 @@ class SettingsPanel {
 
                     <!-- Onglet Dashboard -->
                     <div class="sh-settings-tab ${this._activeTab === 'dashboard' ? 'active' : ''}" id="tab-dashboard">
-                        <h3>Personnalisation de l'Accueil</h3>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <h3 style="margin:0;">Personnalisation de l'Accueil</h3>
+                            <button class="sh-btn sh-btn--ghost sh-btn--sm" id="btn-reset-home-order" style="font-size:12px; padding:4px 10px;">
+                                ↺ Réinitialiser l'ordre
+                            </button>
+                        </div>
                         <p class="sh-settings-desc">Choisissez précisément les sections et flux multimédias que vous souhaitez afficher sur votre page d'accueil SpaceHub.</p>
                         <div class="sh-settings-libraries-list" id="sh-cfg-home-sections-list"></div>
                     </div>
@@ -584,16 +589,48 @@ class SettingsPanel {
                 renderHomeSectionRows();
             };
 
+            const CANONICAL_RANKS = new Map([
+                ['hero-spotlight', 0],
+                ['user-genres', 5],
+                ['user-libraries', 10],
+                ['continue-watching', 20],
+                ['latest-additions', 30],
+                ['movies', 40],
+                ['tv-shows', 50],
+                ['anime', 60],
+                ['collections-sagas', 70],
+                ['music-soundtracks', 80],
+                ['jellyseerr-trending', 100],
+                ['jellyseerr-popular-movies', 110],
+                ['jellyseerr-popular-series', 120],
+                ['jellyseerr-upcoming', 130],
+                ['jellyseerr-requests', 140],
+                ['unified-calendar', 150],
+                ['media-analytics', 160],
+                ['qbittorrent-speed', 170],
+                ['qbittorrent-active', 180],
+                ['sonarr-upcoming', 190],
+                ['radarr-upcoming', 200],
+                ['bazarr-wanted', 210],
+            ]);
+
             const renderHomeSectionRows = () => {
                 if (Array.isArray(sectionOrderArr) && sectionOrderArr.length > 0) {
                     const orderMap = new Map(sectionOrderArr.map((id, i) => [id, i]));
                     sectionsList.sort((a, b) => {
                         const getScore = (id) => {
                             if (orderMap.has(id)) return orderMap.get(id);
-                            if (id === 'anime' || id.startsWith('library-')) return 4.5;
-                            return 999;
+                            if (id.startsWith('library-')) return 8.5;
+                            const canRank = CANONICAL_RANKS.get(id);
+                            return canRank !== undefined ? canRank / 10 : 999;
                         };
                         return getScore(a.id) - getScore(b.id);
+                    });
+                } else {
+                    sectionsList.sort((a, b) => {
+                        const rankA = a.id.startsWith('library-') ? 85 : (CANONICAL_RANKS.get(a.id) ?? 999);
+                        const rankB = b.id.startsWith('library-') ? 85 : (CANONICAL_RANKS.get(b.id) ?? 999);
+                        return rankA - rankB;
                     });
                 }
 
@@ -727,6 +764,20 @@ class SettingsPanel {
                     });
                 });
             };
+
+            // Bouton de réinitialisation de l'ordre
+            const resetHomeOrderBtn = el.querySelector('#btn-reset-home-order');
+            if (resetHomeOrderBtn) {
+                resetHomeOrderBtn.addEventListener('click', () => {
+                    localStorage.removeItem('sh_dashboard_sections_order');
+                    sectionOrderArr = null;
+                    this._settings?.set('dashboard.sectionsOrder', null);
+                    sectionsList = [...DEFAULT_HOME_SECTIONS];
+                    loadCustomLibs();
+                    window.SpaceHub?.ui?.dashboard?.render?.();
+                    window.SpaceHub?.ui?.components?.toaster?.success?.('Ordre par défaut restauré !');
+                });
+            }
 
             renderHomeSectionRows();
             loadCustomLibs();

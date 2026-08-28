@@ -425,8 +425,7 @@ class Dashboard {
             console.warn('[Dashboard] Erreur récupération getUserViews:', e);
         }
 
-        // Identifier les bibliothèques déjà couvertes par des widgets dédiés
-        // (afin d'éviter TOUT doublon sur l'accueil, ex: anime, films, séries)
+        // Identifier les bibliothèques déjà couvertes par des widgets dédiés (Films, Séries, Animés, Musique, Collections)
         const coveredLibraryIds = new Set();
         if (Array.isArray(userViews)) {
             for (const v of userViews) {
@@ -438,11 +437,11 @@ class Dashboard {
                     coveredLibraryIds.add(v.Id);
                 }
                 // Est-ce la bibliothèque principale Films ?
-                else if (name === 'films' || name === 'movies' || name === 'cinéma' || name === 'cinema') {
+                else if (name === 'films' || name === 'movies' || name === 'cinéma' || name === 'cinema' || colType === 'movies') {
                     coveredLibraryIds.add(v.Id);
                 }
                 // Est-ce la bibliothèque principale Séries ?
-                else if (name === 'séries' || name === 'series' || name === 'séries tv' || name === 'tv shows' || name === 'tv') {
+                else if (name === 'séries' || name === 'series' || name === 'séries tv' || name === 'tv shows' || name === 'tv' || colType === 'tvshows') {
                     coveredLibraryIds.add(v.Id);
                 }
                 // Est-ce la bibliothèque Musique ?
@@ -520,7 +519,7 @@ class Dashboard {
         layout = layout.filter(i => {
             if (i.widgetType.startsWith('library-')) {
                 const libId = i.widgetType.replace('library-', '');
-                if (coveredLibraryIds.has(libId)) return false; // Élimine le doublon !
+                if (coveredLibraryIds.has(libId)) return false;
             }
             return true;
         });
@@ -558,6 +557,8 @@ class Dashboard {
 
         // Hiérarchie de tri stricte pour l'affichage
         const sectionRankMap = new Map([
+            ['hero-spotlight', 0],
+            ['user-genres', 5],
             ['user-libraries', 10],
             ['continue-watching', 20],
             ['latest-additions', 30],
@@ -588,17 +589,18 @@ class Dashboard {
             layout.sort((a, b) => {
                 const getScore = (wType) => {
                     if (userOrderMap.has(wType)) return userOrderMap.get(wType);
-                    // Si nouvel élément non encore sauvegardé dans l'ordre utilisateur :
-                    if (wType.startsWith('library-')) return 85;
-                    return sectionRankMap.get(wType) || 999;
+                    // Si nouvel élément non encore sauvegardé dans l'ordre utilisateur : utiliser son rang canonique
+                    if (wType.startsWith('library-')) return 8.5;
+                    const canonical = sectionRankMap.get(wType);
+                    return canonical !== undefined ? canonical / 10 : 999;
                 };
                 return getScore(a.widgetType) - getScore(b.widgetType);
             });
         } else {
             // Tri naturel par rang hiérarchique
             layout.sort((a, b) => {
-                const rankA = a.widgetType.startsWith('library-') ? 85 : (sectionRankMap.get(a.widgetType) || 999);
-                const rankB = b.widgetType.startsWith('library-') ? 85 : (sectionRankMap.get(b.widgetType) || 999);
+                const rankA = a.widgetType.startsWith('library-') ? 85 : (sectionRankMap.get(a.widgetType) ?? 999);
+                const rankB = b.widgetType.startsWith('library-') ? 85 : (sectionRankMap.get(b.widgetType) ?? 999);
                 return rankA - rankB;
             });
         }

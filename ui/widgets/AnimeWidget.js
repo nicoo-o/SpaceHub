@@ -98,33 +98,50 @@ class AnimeWidget {
 
             // 2. Récupérer les séries/films de cette bibliothèque ou par genre
             if (animeLibraryId) {
+                // 1. Essai avec includeItemTypes: 'Series' (évite les bugs d'encodage virgule)
                 if (api?.getItemsWithTotal) {
                     try {
                         const res = await api.getItemsWithTotal(animeLibraryId, {
                             limit: 24,
                             sortBy: 'DateCreated',
                             sortOrder: 'Descending',
-                            includeItemTypes: 'Series,Movie'
+                            includeItemTypes: 'Series'
                         });
                         items = res?.items || [];
                     } catch (e) {
-                        console.warn('[AnimeWidget] Erreur api.getItemsWithTotal:', e);
+                        console.warn('[AnimeWidget] Erreur api.getItemsWithTotal Series:', e);
                     }
                 }
 
+                // 2. Essai sans filtre strict de type
+                if ((!items || items.length === 0) && api?.getItemsWithTotal) {
+                    try {
+                        const res = await api.getItemsWithTotal(animeLibraryId, {
+                            limit: 24,
+                            sortBy: 'DateCreated',
+                            sortOrder: 'Descending'
+                        });
+                        items = res?.items || [];
+                    } catch (e) {
+                        console.warn('[AnimeWidget] Erreur api.getItemsWithTotal all:', e);
+                    }
+                }
+
+                // 3. Essai api.getItems
                 if ((!items || items.length === 0) && api?.getItems) {
                     try {
                         items = await api.getItems(animeLibraryId, {
                             limit: 24,
                             sortBy: 'DateCreated',
                             sortOrder: 'Descending',
-                            includeItemTypes: 'Series,Movie'
+                            includeItemTypes: 'Series'
                         });
                     } catch (e) {
                         console.warn('[AnimeWidget] Erreur api.getItems:', e);
                     }
                 }
 
+                // 4. Essai apiClient.getItems
                 if ((!items || items.length === 0) && apiClient?.getItems) {
                     try {
                         const response = await apiClient.getItems({
@@ -133,23 +150,32 @@ class AnimeWidget {
                             Limit: 24,
                             SortBy: 'DateCreated',
                             SortOrder: 'Descending',
-                            IncludeItemTypes: 'Series,Movie'
+                            IncludeItemTypes: 'Series'
                         });
                         items = response?.Items || (Array.isArray(response) ? response : []);
                     } catch (e) {
                         console.warn('[AnimeWidget] Erreur apiClient.getItems pour Anime:', e);
                     }
                 }
+
+                // 5. Essai api.getLatestItems avec parentId
+                if ((!items || items.length === 0) && api?.getLatestItems) {
+                    try {
+                        items = await api.getLatestItems({ parentId: animeLibraryId, limit: 24 });
+                    } catch (e) {
+                        console.warn('[AnimeWidget] Erreur api.getLatestItems:', e);
+                    }
+                }
             } else {
-                // Pas de bibliothèque dédiée : chercher les séries et films avec le genre Animation / Anime
+                // Pas de bibliothèque dédiée : chercher les séries avec le genre Animation / Anime
                 if (api?.getItemsWithTotal) {
                     try {
                         const res = await api.getItemsWithTotal('', {
                             limit: 24,
                             sortBy: 'DateCreated',
                             sortOrder: 'Descending',
-                            includeItemTypes: 'Series,Movie',
-                            genres: 'Animation,Anime'
+                            includeItemTypes: 'Series',
+                            genres: 'Animation'
                         });
                         items = res?.items || [];
                     } catch (e) {
@@ -164,8 +190,8 @@ class AnimeWidget {
                             Limit: 24,
                             SortBy: 'DateCreated',
                             SortOrder: 'Descending',
-                            IncludeItemTypes: 'Series,Movie',
-                            Genres: 'Animation,Anime'
+                            IncludeItemTypes: 'Series',
+                            Genres: 'Animation'
                         });
                         items = response?.Items || (Array.isArray(response) ? response : []);
                     } catch (e) {
@@ -174,7 +200,6 @@ class AnimeWidget {
                 }
             }
 
-            // Si aucun contenu anime, masquer proprement sans casser la page
             if (!items || items.length === 0) {
                 container.style.display = 'none';
                 return;
