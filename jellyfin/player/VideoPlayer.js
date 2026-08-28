@@ -346,88 +346,6 @@ class VideoPlayer {
             <div class="sh-cinema-dock-anchor">
                 <div class="sh-dock-amber-glow"></div>
 
-                <!-- 🗄️ Menus Dépliants Flottants (Glass Popovers au-dessus du Dock) -->
-                
-                <!-- Popover 1 : Audio & Sous-titres à Double Colonne -->
-                <div class="sh-player-popover" id="sh-popover-audio-subs">
-                    <div class="sh-popover-inner sh-popover-inner--audio-subs">
-                        <div class="sh-popover-cols">
-                            <!-- Colonne 1 : Pistes Audio -->
-                            <div class="sh-popover-col">
-                                <div class="sh-popover-col-header">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-                                    <span>Pistes Audio</span>
-                                </div>
-                                <div class="sh-popover-list" id="sh-player-audio-list">
-                                    <!-- Injecté dynamiquement -->
-                                </div>
-                            </div>
-
-                            <div class="sh-popover-divider"></div>
-
-                            <!-- Colonne 2 : Sous-titres & Décalage -->
-                            <div class="sh-popover-col">
-                                <div class="sh-popover-col-header">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
-                                    <span>Sous-titres</span>
-                                </div>
-                                <div class="sh-popover-list" id="sh-player-subs-list">
-                                    <!-- Injecté dynamiquement -->
-                                </div>
-
-                                <!-- Stepper de Synchronisation Direct -->
-                                <div class="sh-popover-sub-sync">
-                                    <div class="sh-popover-sub-sync-title">Synchronisation Live</div>
-                                    <div class="sh-sync-grid">
-                                        <button class="sh-sync-btn" data-offset="-0.5">-0.5s</button>
-                                        <button class="sh-sync-btn" data-offset="-0.1">-0.1s</button>
-                                        <button class="sh-sync-btn sh-sync-btn--reset" data-offset="0">0.0s</button>
-                                        <button class="sh-sync-btn" data-offset="+0.1">+0.1s</button>
-                                        <button class="sh-sync-btn" data-offset="+0.5">+0.5s</button>
-                                    </div>
-                                    <div class="sh-sync-label">Décalage : <strong id="sh-popover-offset-val">${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s</strong></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Popover 2 : Vitesse & Format d'Image -->
-                <div class="sh-player-popover" id="sh-popover-settings">
-                    <div class="sh-popover-inner sh-popover-inner--settings">
-                        <div class="sh-popover-section">
-                            <div class="sh-popover-section-title">Vitesse de Lecture</div>
-                            <div class="sh-settings-chips" id="sh-player-speed-chips">
-                                <button class="sh-chip-btn ${this._playbackRate === 0.5 ? 'active' : ''}" data-speed="0.5">0.5x</button>
-                                <button class="sh-chip-btn ${this._playbackRate === 0.75 ? 'active' : ''}" data-speed="0.75">0.75x</button>
-                                <button class="sh-chip-btn ${this._playbackRate === 1.0 ? 'active' : ''}" data-speed="1.0">1.0x (Normal)</button>
-                                <button class="sh-chip-btn ${this._playbackRate === 1.25 ? 'active' : ''}" data-speed="1.25">1.25x</button>
-                                <button class="sh-chip-btn ${this._playbackRate === 1.5 ? 'active' : ''}" data-speed="1.5">1.5x</button>
-                                <button class="sh-chip-btn ${this._playbackRate === 2.0 ? 'active' : ''}" data-speed="2.0">2.0x</button>
-                            </div>
-                        </div>
-
-                        <div class="sh-popover-section" style="margin-top: 12px;">
-                            <div class="sh-popover-section-title">Format d'Image</div>
-                            <div class="sh-settings-chips" id="sh-player-aspect-chips">
-                                <button class="sh-chip-btn ${this._aspectRatioIndex === 0 ? 'active' : ''}" data-aspect-idx="0">16:9 Adapté</button>
-                                <button class="sh-chip-btn ${this._aspectRatioIndex === 1 ? 'active' : ''}" data-aspect-idx="1">21:9 Cinéma Scope</button>
-                                <button class="sh-chip-btn ${this._aspectRatioIndex === 2 ? 'active' : ''}" data-aspect-idx="2">Plein écran Étiré</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Popover 3 : Galerie Épisodes (Séries) -->
-                <div class="sh-player-popover" id="sh-popover-episodes">
-                    <div class="sh-popover-inner sh-popover-inner--episodes">
-                        <div class="sh-popover-section-title">Épisodes de la Saison</div>
-                        <div class="sh-episodes-popover-list sh-scrollbar" id="sh-player-episodes-list">
-                            <!-- Injecté dynamiquement -->
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Dock Principal -->
                 <div class="sh-liquid-ribbon-dock">
                     
@@ -469,7 +387,7 @@ class VideoPlayer {
                         <span class="sh-time-remaining-label" id="sh-time-remaining">-00:00:00</span>
                     </div>
 
-                    <!-- Section Droite : Volume Compact (Micro-perle 7px) & Menus Dépliants -->
+                    <!-- Section Droite : Volume Compact & Boutons Dépliants Ancrés -->
                     <div class="sh-ribbon-group sh-ribbon-group--right">
                         
                         <!-- Volume Coulissant Compact -->
@@ -490,26 +408,109 @@ class VideoPlayer {
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
                         </button>
 
-                        <!-- Bouton Dépliant Épisodes (Séries) -->
-                        <button class="sh-dock-pill-btn" id="sh-btn-open-episodes" title="Liste des épisodes" style="display:none;">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
-                            <span>Épisodes</span>
-                            <span class="sh-popover-chevron">▴</span>
-                        </button>
+                        <!-- Ancre Dépliante 1 : Épisodes (Séries) -->
+                        <div class="sh-dock-popover-anchor" id="sh-anchor-episodes" style="display:none;">
+                            <button class="sh-dock-pill-btn" id="sh-btn-open-episodes" title="Liste des épisodes">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
+                                <span>Épisodes</span>
+                                <span class="sh-popover-chevron">▴</span>
+                            </button>
 
-                        <!-- Bouton Dépliant Audio & Sous-titres -->
-                        <button class="sh-dock-pill-btn" id="sh-btn-open-audio-subs" title="Pistes Audio & Sous-Titres (S)">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
-                            <span>Audio & Subs</span>
-                            <span class="sh-popover-chevron">▴</span>
-                        </button>
+                            <div class="sh-player-popover" id="sh-popover-episodes">
+                                <div class="sh-popover-inner sh-popover-inner--episodes">
+                                    <div class="sh-popover-section-title">Épisodes de la Saison</div>
+                                    <div class="sh-episodes-popover-list sh-scrollbar" id="sh-player-episodes-list">
+                                        <!-- Injecté dynamiquement -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                        <!-- Bouton Dépliant Vitesse & Réglages -->
-                        <button class="sh-dock-pill-btn" id="sh-btn-open-settings" title="Vitesse & Réglages (C)">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-                            <span id="sh-speed-indicator">${this._playbackRate}x</span>
-                            <span class="sh-popover-chevron">▴</span>
-                        </button>
+                        <!-- Ancre Dépliante 2 : Audio & Sous-titres -->
+                        <div class="sh-dock-popover-anchor" id="sh-anchor-audio-subs">
+                            <button class="sh-dock-pill-btn" id="sh-btn-open-audio-subs" title="Pistes Audio & Sous-Titres (S)">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+                                <span>Audio & Subs</span>
+                                <span class="sh-popover-chevron">▴</span>
+                            </button>
+
+                            <div class="sh-player-popover" id="sh-popover-audio-subs">
+                                <div class="sh-popover-inner sh-popover-inner--audio-subs">
+                                    <div class="sh-popover-cols">
+                                        <!-- Colonne 1 : Pistes Audio -->
+                                        <div class="sh-popover-col">
+                                            <div class="sh-popover-col-header">
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                                                <span>Pistes Audio</span>
+                                            </div>
+                                            <div class="sh-popover-list" id="sh-player-audio-list">
+                                                <!-- Injecté dynamiquement -->
+                                            </div>
+                                        </div>
+
+                                        <div class="sh-popover-divider"></div>
+
+                                        <!-- Colonne 2 : Sous-titres & Décalage -->
+                                        <div class="sh-popover-col">
+                                            <div class="sh-popover-col-header">
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+                                                <span>Sous-titres</span>
+                                            </div>
+                                            <div class="sh-popover-list" id="sh-player-subs-list">
+                                                <!-- Injecté dynamiquement -->
+                                            </div>
+
+                                            <!-- Stepper de Synchronisation Direct -->
+                                            <div class="sh-popover-sub-sync">
+                                                <div class="sh-popover-sub-sync-title">Synchronisation Live</div>
+                                                <div class="sh-sync-grid">
+                                                    <button class="sh-sync-btn" data-offset="-0.5">-0.5s</button>
+                                                    <button class="sh-sync-btn" data-offset="-0.1">-0.1s</button>
+                                                    <button class="sh-sync-btn sh-sync-btn--reset" data-offset="0">0.0s</button>
+                                                    <button class="sh-sync-btn" data-offset="+0.1">+0.1s</button>
+                                                    <button class="sh-sync-btn" data-offset="+0.5">+0.5s</button>
+                                                </div>
+                                                <div class="sh-sync-label">Décalage : <strong id="sh-popover-offset-val">${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s</strong></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ancre Dépliante 3 : Vitesse & Réglages -->
+                        <div class="sh-dock-popover-anchor" id="sh-anchor-settings">
+                            <button class="sh-dock-pill-btn" id="sh-btn-open-settings" title="Vitesse & Réglages (C)">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                                <span id="sh-speed-indicator">${this._playbackRate}x</span>
+                                <span class="sh-popover-chevron">▴</span>
+                            </button>
+
+                            <div class="sh-player-popover" id="sh-popover-settings">
+                                <div class="sh-popover-inner sh-popover-inner--settings">
+                                    <div class="sh-popover-section">
+                                        <div class="sh-popover-section-title">Vitesse de Lecture</div>
+                                        <div class="sh-settings-chips" id="sh-player-speed-chips">
+                                            <button class="sh-chip-btn ${this._playbackRate === 0.5 ? 'active' : ''}" data-speed="0.5">0.5x</button>
+                                            <button class="sh-chip-btn ${this._playbackRate === 0.75 ? 'active' : ''}" data-speed="0.75">0.75x</button>
+                                            <button class="sh-chip-btn ${this._playbackRate === 1.0 ? 'active' : ''}" data-speed="1.0">1.0x (Normal)</button>
+                                            <button class="sh-chip-btn ${this._playbackRate === 1.25 ? 'active' : ''}" data-speed="1.25">1.25x</button>
+                                            <button class="sh-chip-btn ${this._playbackRate === 1.5 ? 'active' : ''}" data-speed="1.5">1.5x</button>
+                                            <button class="sh-chip-btn ${this._playbackRate === 2.0 ? 'active' : ''}" data-speed="2.0">2.0x</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="sh-popover-section" style="margin-top: 12px;">
+                                        <div class="sh-popover-section-title">Format d'Image</div>
+                                        <div class="sh-settings-chips" id="sh-player-aspect-chips">
+                                            <button class="sh-chip-btn ${this._aspectRatioIndex === 0 ? 'active' : ''}" data-aspect-idx="0">16:9 Adapté</button>
+                                            <button class="sh-chip-btn ${this._aspectRatioIndex === 1 ? 'active' : ''}" data-aspect-idx="1">21:9 Cinéma Scope</button>
+                                            <button class="sh-chip-btn ${this._aspectRatioIndex === 2 ? 'active' : ''}" data-aspect-idx="2">Plein écran Étiré</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                     </div>
 
@@ -2155,12 +2156,20 @@ body.sh-cinema-active .dialogBackdrop {
    🗄️ MENUS DÉPLIANTS FLOTTANTS (Glass Popovers au-dessus du Dock)
    ═══════════════════════════════════════════════════════════════════════════ */
 
+.sh-dock-popover-anchor {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
 .sh-player-popover {
     position: absolute;
-    bottom: 64px;
-    z-index: 999;
+    bottom: calc(100% + 14px);
+    right: 0;
+    z-index: 9999;
     opacity: 0;
-    transform: translateY(12px) scale(0.94);
+    transform: translateY(10px) scale(0.95);
+    transform-origin: bottom right;
     pointer-events: none;
     transition: all 0.24s cubic-bezier(0.34, 1.56, 0.45, 1);
 }
@@ -2171,26 +2180,24 @@ body.sh-cinema-active .dialogBackdrop {
 }
 
 #sh-popover-audio-subs {
-    right: 76px;
     width: 440px;
 }
 #sh-popover-settings {
-    right: 12px;
-    width: 310px;
+    width: 300px;
 }
 #sh-popover-episodes {
-    right: 180px;
     width: 350px;
 }
 
+/* Texture de Verre Liquide Identique au Dock */
 .sh-popover-inner {
-    background: rgba(14, 14, 20, 0.88);
-    backdrop-filter: blur(40px) saturate(200%);
-    -webkit-backdrop-filter: blur(40px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 18px;
-    padding: 14px;
-    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    background: rgba(14, 14, 20, 0.52);
+    backdrop-filter: blur(40px) saturate(190%);
+    -webkit-backdrop-filter: blur(40px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 20px;
+    padding: 14px 16px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 /* Double Colonne Audio & Subs */
@@ -2213,7 +2220,8 @@ body.sh-cinema-active .dialogBackdrop {
     height: 100%;
 }
 
-.sh-popover-col-header {
+.sh-popover-col-header,
+.sh-popover-section-title {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -2221,7 +2229,7 @@ body.sh-cinema-active .dialogBackdrop {
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.6px;
-    color: #ff9f0a;
+    color: rgba(255, 255, 255, 0.70);
     padding: 2px 4px 8px;
 }
 
@@ -2248,24 +2256,26 @@ body.sh-cinema-active .dialogBackdrop {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 7px 9px;
-    border-radius: 9px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 7px 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.10);
     cursor: pointer;
     color: rgba(255, 255, 255, 0.85);
-    transition: all 0.16s ease;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .sh-popover-item:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    transform: translateX(2px);
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+    transform: scale(1.02);
 }
 .sh-popover-item.selected {
-    background: rgba(255, 159, 10, 0.18);
-    border-color: rgba(255, 159, 10, 0.45);
-    color: #ff9f0a;
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #ffffff;
     font-weight: 700;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 .sh-popover-item-name {
     font-size: 11.5px;
@@ -2304,17 +2314,22 @@ body.sh-cinema-active .dialogBackdrop {
     gap: 3px;
 }
 .sh-sync-btn {
-    padding: 5px 2px;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.06);
+    padding: 6px 2px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #fff;
+    color: rgba(255, 255, 255, 0.90);
     font-size: 9.5px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.16s ease;
 }
-.sh-sync-btn:hover { background: rgba(255, 255, 255, 0.16); }
+.sh-sync-btn:hover {
+    background: rgba(255, 255, 255, 0.20);
+    border-color: rgba(255, 255, 255, 0.30);
+    color: #ffffff;
+    transform: scale(1.04);
+}
 .sh-sync-btn--reset { font-size: 9px; }
 .sh-sync-label {
     margin-top: 5px;
@@ -2323,14 +2338,6 @@ body.sh-cinema-active .dialogBackdrop {
 }
 
 /* Popover Settings Sections */
-.sh-popover-section-title {
-    font-size: 10.5px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: #ff9f0a;
-    margin-bottom: 7px;
-}
 .sh-settings-chips {
     display: flex;
     flex-wrap: wrap;
@@ -2339,7 +2346,7 @@ body.sh-cinema-active .dialogBackdrop {
 .sh-chip-btn {
     padding: 6px 12px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: rgba(255, 255, 255, 0.85);
     font-size: 11px;
@@ -2347,12 +2354,18 @@ body.sh-cinema-active .dialogBackdrop {
     cursor: pointer;
     transition: all 0.16s ease;
 }
-.sh-chip-btn:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.sh-chip-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #fff;
+    transform: scale(1.03);
+}
 .sh-chip-btn.active {
     background: rgba(255, 255, 255, 0.22);
     color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.35);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    border-color: rgba(255, 255, 255, 0.40);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    font-weight: 700;
 }
 
 /* Popover Épisodes */
@@ -2367,20 +2380,22 @@ body.sh-cinema-active .dialogBackdrop {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 5px 7px;
+    padding: 6px 8px;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.10);
     cursor: pointer;
     transition: all 0.18s ease;
 }
 .sh-popover-episode-row:hover {
-    background: rgba(255, 255, 255, 0.12);
-    transform: translateX(2px);
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.22);
+    transform: scale(1.02);
 }
 .sh-popover-episode-row.selected {
-    background: rgba(255, 159, 10, 0.18);
-    border-color: rgba(255, 159, 10, 0.45);
+    background: rgba(255, 255, 255, 0.20);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 .sh-popover-ep-thumb {
     position: relative;
