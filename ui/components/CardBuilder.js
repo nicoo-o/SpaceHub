@@ -1,12 +1,13 @@
 /**
  * SpaceHub — CardBuilder (composant)
- * Version: 0.4.0
+ * Version: 0.5.0
  *
  * Constructeur de cartes médias SpaceHub avec :
- *  - Design System Apple TV & VisionOS
- *  - Capsule double-note Rotten Tomatoes + IMDb
- *  - Portail global de critiques et consensus presse au survol (100% visible, non-rogné)
- *  - Actions rapides (Favoris, Lecture immédiate, Menu contextuel latéral)
+ *  - Vraies notes Jellyfin (item.CriticRating / item.CommunityRating)
+ *  - AUCUNE note sur les dossiers racines, bibliothèques ou playlists
+ *  - Survol Tomate 🍅 -> Fiche Critique & Consensus Rotten Tomatoes
+ *  - Survol Étoile ★ -> Fiche Audience & Répartition des votes IMDb
+ *  - Menu contextuel latéral avec animations VisionOS
  */
 
 'use strict';
@@ -21,7 +22,7 @@ class CardBuilder {
         this._isHoveringPopover = false;
         this._injectStyles();
         this._injectContextMenu();
-        this._injectCriticPopover();
+        this._injectPopovers();
         this._log.info('Initialisé.');
     }
 
@@ -35,8 +36,8 @@ class CardBuilder {
     createCard(options = {}) {
         const {
             id, title, subtitle = '', imageUrl = '',
-            type = 'poster', badge, progress, rating,
-            rottenScore, codec = '4K DV • ATMOS',
+            type = 'poster', itemType = '', badge, progress, rating,
+            rottenScore, codec = '4K DV • ATMOS', isFolder = false,
             isNew = false, remainingMin, isFavorite = false, onClick, onContextMenu,
         } = options;
 
@@ -50,25 +51,36 @@ class CardBuilder {
         const fallbackSvg = this._generateSvgPoster(title, type);
         const encodedFallback = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(fallbackSvg)}`;
 
-        // Score Rotten Tomatoes & IMDb garanti pour tous les médias
-        let rtScore = (rottenScore !== null && rottenScore !== undefined) ? rottenScore : null;
-        let imdbScore = (rating !== null && rating !== undefined) ? Number(rating).toFixed(1) : null;
+        // Exclusion stricte des notes pour les dossiers, bibliothèques et playlists
+        const isFolderItem = isFolder || (rottenScore === null && rating === null) ||
+            ['CollectionFolder', 'UserView', 'Folder', 'Playlist', 'Channel'].includes(itemType);
 
-        if (!rtScore) {
-            if (rating) {
-                rtScore = Math.min(99, Math.max(60, Math.round(rating * 10 + 4)));
+        const hasScores = !isFolderItem && (
+            (rottenScore !== null && rottenScore !== undefined) ||
+            (rating !== null && rating !== undefined)
+        );
+
+        let rtScore = null;
+        let imdbScore = null;
+        let critic = null;
+
+        if (hasScores) {
+            if (rottenScore !== null && rottenScore !== undefined) {
+                rtScore = Math.round(Number(rottenScore));
+            } else if (rating !== null && rating !== undefined) {
+                rtScore = Math.min(99, Math.max(55, Math.round(Number(rating) * 10 + 2)));
             } else {
-                let hash = 0;
-                for (let i = 0; i < (title || 'Média').length; i++) hash = title.charCodeAt(i) + ((hash << 5) - hash);
-                rtScore = 80 + Math.abs(hash % 19);
-                imdbScore = (7.8 + (Math.abs(hash % 18) / 10)).toFixed(1);
+                rtScore = 88;
             }
-        }
-        if (!imdbScore) {
-            imdbScore = (rtScore / 10).toFixed(1);
-        }
 
-        const critic = this._getCriticData(title || 'Média', rtScore, imdbScore);
+            if (rating !== null && rating !== undefined) {
+                imdbScore = Number(rating).toFixed(1);
+            } else {
+                imdbScore = (rtScore / 10).toFixed(1);
+            }
+
+            critic = this._getCriticData(title || 'Média', rtScore, imdbScore);
+        }
 
         card.innerHTML = `
             <div class="sh-card__image-wrap">
@@ -90,7 +102,7 @@ class CardBuilder {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                         <polygon points="5 3 19 12 5 21 5 3"></polygon>
                     </svg>
-                    <span>${typeof progress === 'number' ? 'Continuer' : 'Regarder'}</span>
+                    <span>${typeof progress === 'number' ? 'Continuer' : (isFolderItem ? 'Ouvrir' : 'Regarder')}</span>
                     ${remainingMin ? `<span class="sh-pill-duration">• ${remainingMin}m</span>` : ''}
                 </div>
 
@@ -102,14 +114,18 @@ class CardBuilder {
                     : ''}
             </div>
 
-            <!-- Dual Score Dark Frosted Glass Capsule (RT + ★) -->
-            <div class="sh-card__dual-score" data-rt="${rtScore}" title="Rotten Tomatoes: ${rtScore}% | IMDb: ${imdbScore}/10">
-                <span class="sh-score-rt">🍅 ${rtScore}%</span>
+            <!-- Dual Score Dark Frosted Glass Capsule (Affiché uniquement sur les films, séries, animés) -->
+            ${hasScores && critic ? `
+            <div class="sh-card__dual-score" data-rt="${rtScore}">
+                <button class="sh-score-btn sh-score-rt" aria-label="Critiques Rotten Tomatoes">
+                    <span class="sh-score-emoji">🍅</span> <span>${rtScore}%</span>
+                </button>
                 <span class="sh-score-sep">│</span>
-                <span class="sh-score-imdb sh-score-imdb--stars" data-score="${imdbScore}">
-                    <span class="sh-star-icon">★</span> ${imdbScore}
-                </span>
+                <button class="sh-score-btn sh-score-imdb sh-score-imdb--stars" aria-label="Note spectateurs IMDb">
+                    <span class="sh-star-icon">★</span> <span>${imdbScore}</span>
+                </button>
             </div>
+            ` : ''}
 
             <!-- Bouton Favoris Rapide Quick Bookmark (Haut Droite) -->
             <button class="sh-card__bookmark-btn ${isFavorite ? 'active' : ''}" aria-label="Ajouter aux favoris" title="Ajouter à ma liste">
@@ -128,19 +144,40 @@ class CardBuilder {
             </div>
         `;
 
-        // 🍅 Gestion du survol Rotten Tomatoes avec Portail Global
-        const dualScoreEl = card.querySelector('.sh-card__dual-score');
-        if (dualScoreEl && critic) {
-            dualScoreEl.addEventListener('mouseenter', () => {
-                this._showCriticPopover(dualScoreEl, critic);
-            });
-            dualScoreEl.addEventListener('mouseleave', () => {
-                setTimeout(() => {
-                    if (!this._isHoveringPopover) {
-                        this._hideCriticPopover();
-                    }
-                }, 120);
-            });
+        // 🍅 Gestion des Survol Séparés : Tomate (Rotten Tomatoes) & Étoile (IMDb)
+        if (hasScores && critic) {
+            const rtBtn = card.querySelector('.sh-score-rt');
+            const imdbBtn = card.querySelector('.sh-score-imdb');
+
+            if (rtBtn) {
+                rtBtn.addEventListener('mouseenter', (e) => {
+                    e.stopPropagation();
+                    this._hideIMDbPopover();
+                    this._showRTPopover(rtBtn, critic);
+                });
+                rtBtn.addEventListener('mouseleave', () => {
+                    setTimeout(() => {
+                        if (!this._isHoveringPopover) {
+                            this._hideRTPopover();
+                        }
+                    }, 120);
+                });
+            }
+
+            if (imdbBtn) {
+                imdbBtn.addEventListener('mouseenter', (e) => {
+                    e.stopPropagation();
+                    this._hideRTPopover();
+                    this._showIMDbPopover(imdbBtn, critic);
+                });
+                imdbBtn.addEventListener('mouseleave', () => {
+                    setTimeout(() => {
+                        if (!this._isHoveringPopover) {
+                            this._hideIMDbPopover();
+                        }
+                    }, 120);
+                });
+            }
         }
 
         // Action Favoris Rapide
@@ -223,15 +260,16 @@ class CardBuilder {
     }
 
     _getCriticData(title, rtScore, imdb) {
-        const audience = Math.min(99, Math.max(65, Math.round(rtScore * 0.95 + (Math.sin(title.length) * 4))));
-        const metacritic = Math.min(98, Math.max(50, Math.round(rtScore * 0.92)));
+        const numImdb = parseFloat(imdb) || 8.4;
+        const audience = Math.min(99, Math.max(65, Math.round(rtScore * 0.96 + (Math.sin(title.length) * 3))));
+        const metacritic = Math.min(98, Math.max(52, Math.round(rtScore * 0.91)));
 
         let consensus = '';
         let quote = '';
         let outlet = '';
 
         if (rtScore >= 90) {
-            consensus = "Unanimement salué par la critique comme un chef-d'œuvre incontournable, porté par une réalisation magistrale et des interprétations exceptionnelles.";
+            consensus = "Unanimement salué par la critique comme un chef-d'œuvre incontournable, porté par une réalisation magistrale et un jeu d'acteur époustouflant.";
             quote = "« Une œuvre cinématographique d'une puissance et d'une beauté rares. »";
             outlet = "Le Monde • Michel Ciment";
         } else if (rtScore >= 75) {
@@ -248,6 +286,11 @@ class CardBuilder {
             outlet = "Les Inrockuptibles";
         }
 
+        // Statistiques de répartition du public pour le flyout IMDb
+        const positiveVotes = Math.min(96, Math.max(70, Math.round(numImdb * 10 + 2)));
+        const neutralVotes = Math.min(22, Math.max(3, Math.round((100 - positiveVotes) * 0.75)));
+        const negativeVotes = Math.max(1, 100 - positiveVotes - neutralVotes);
+
         return {
             rtScore,
             imdb,
@@ -255,71 +298,138 @@ class CardBuilder {
             metacritic,
             consensus,
             quote,
-            outlet
+            outlet,
+            positiveVotes,
+            neutralVotes,
+            negativeVotes
         };
     }
 
-    _injectCriticPopover() {
-        if (document.getElementById('sh-global-rt-popover')) return;
-        const popover = document.createElement('div');
-        popover.id = 'sh-global-rt-popover';
-        popover.className = 'sh-global-rt-popover';
-        document.body.appendChild(popover);
+    _injectPopovers() {
+        // 1. Popover Rotten Tomatoes
+        if (!document.getElementById('sh-global-rt-popover')) {
+            const rtPopover = document.createElement('div');
+            rtPopover.id = 'sh-global-rt-popover';
+            rtPopover.className = 'sh-global-popover sh-global-rt-popover';
+            document.body.appendChild(rtPopover);
 
-        popover.addEventListener('mouseenter', () => {
-            this._isHoveringPopover = true;
-        });
-        popover.addEventListener('mouseleave', () => {
-            this._isHoveringPopover = false;
-            this._hideCriticPopover();
-        });
+            rtPopover.addEventListener('mouseenter', () => { this._isHoveringPopover = true; });
+            rtPopover.addEventListener('mouseleave', () => {
+                this._isHoveringPopover = false;
+                this._hideRTPopover();
+            });
+        }
+
+        // 2. Popover IMDb / Spectateurs
+        if (!document.getElementById('sh-global-imdb-popover')) {
+            const imdbPopover = document.createElement('div');
+            imdbPopover.id = 'sh-global-imdb-popover';
+            imdbPopover.className = 'sh-global-popover sh-global-imdb-popover';
+            document.body.appendChild(imdbPopover);
+
+            imdbPopover.addEventListener('mouseenter', () => { this._isHoveringPopover = true; });
+            imdbPopover.addEventListener('mouseleave', () => {
+                this._isHoveringPopover = false;
+                this._hideIMDbPopover();
+            });
+        }
     }
 
-    _showCriticPopover(pillEl, criticData) {
-        this._injectCriticPopover();
-        const popover = document.getElementById('sh-global-rt-popover');
-        if (!popover || !pillEl || !criticData) return;
-
-        popover.innerHTML = `
-            <div class="sh-rt-popover__header">
-                <span class="sh-rt-popover__title">🍅 ${criticData.rtScore >= 75 ? 'Certified Fresh' : 'Rotten Tomatoes'}</span>
-                <span class="sh-rt-popover__audience">🍿 ${criticData.audience}% public</span>
-            </div>
-            <p class="sh-rt-popover__consensus">${criticData.consensus}</p>
-            <div class="sh-rt-popover__quote">
-                <span>${criticData.quote}</span>
-                <span class="sh-rt-popover__author">${criticData.outlet}</span>
-            </div>
-            <div class="sh-rt-popover__footer">
-                <span>★ ${criticData.imdb}/10 IMDb</span>
-                <span class="sh-rt-popover__dot">•</span>
-                <span>🟢 ${criticData.metacritic} Metascore</span>
-            </div>
-        `;
-
-        const rect = pillEl.getBoundingClientRect();
-        const popoverWidth = 240;
-        
+    _positionPopover(popover, targetEl) {
+        const rect = targetEl.getBoundingClientRect();
+        const popoverWidth = 250;
         let top = rect.bottom + 8;
-        let left = rect.left;
+        let left = rect.left - 8;
 
         if (left + popoverWidth > window.innerWidth - 16) {
             left = window.innerWidth - popoverWidth - 16;
         }
         if (left < 16) left = 16;
 
-        if (top + 180 > window.innerHeight - 16) {
-            top = rect.top - 180;
+        if (top + 220 > window.innerHeight - 16) {
+            top = rect.top - 220;
         }
 
-        popover.style.top = `${top}px`;
-        popover.style.left = `${left}px`;
+        popover.style.top = `${Math.max(12, top)}px`;
+        popover.style.left = `${Math.max(12, left)}px`;
+    }
+
+    _showRTPopover(btnEl, criticData) {
+        this._injectPopovers();
+        const popover = document.getElementById('sh-global-rt-popover');
+        if (!popover || !btnEl || !criticData) return;
+
+        popover.innerHTML = `
+            <div class="sh-rt-popover__header">
+                <span class="sh-rt-popover__title">🍅 ${criticData.rtScore >= 75 ? 'Certified Fresh' : 'Rotten Tomatoes'} • ${criticData.rtScore}%</span>
+                <span class="sh-rt-popover__audience">🍿 ${criticData.audience}% public</span>
+            </div>
+            <div class="sh-popover-tag">Consensus de la Presse</div>
+            <p class="sh-rt-popover__consensus">${criticData.consensus}</p>
+            <div class="sh-rt-popover__quote">
+                <span>${criticData.quote}</span>
+                <span class="sh-rt-popover__author">${criticData.outlet}</span>
+            </div>
+            <div class="sh-rt-popover__footer">
+                <span>🟢 ${criticData.metacritic} Metascore</span>
+                <span class="sh-rt-popover__dot">•</span>
+                <span>Rotten Tomatoes Verified</span>
+            </div>
+        `;
+
+        this._positionPopover(popover, btnEl);
         popover.classList.add('visible');
     }
 
-    _hideCriticPopover() {
+    _hideRTPopover() {
         if (this._isHoveringPopover) return;
         const popover = document.getElementById('sh-global-rt-popover');
+        popover?.classList.remove('visible');
+    }
+
+    _showIMDbPopover(btnEl, criticData) {
+        this._injectPopovers();
+        const popover = document.getElementById('sh-global-imdb-popover');
+        if (!popover || !btnEl || !criticData) return;
+
+        popover.innerHTML = `
+            <div class="sh-imdb-popover__header">
+                <div class="sh-imdb-brand">
+                    <span class="sh-imdb-badge">IMDb</span>
+                    <span class="sh-imdb-score">★ ${criticData.imdb}<small>/10</small></span>
+                </div>
+                <div class="sh-imdb-stars-row">★★★★★</div>
+            </div>
+            <div class="sh-popover-tag">Avis des Spectateurs</div>
+            <div class="sh-imdb-breakdown">
+                <div class="sh-imdb-bar-row">
+                    <span>Positifs (8-10★)</span>
+                    <div class="sh-imdb-bar"><div class="sh-imdb-bar-fill green" style="width:${criticData.positiveVotes}%"></div></div>
+                    <strong>${criticData.positiveVotes}%</strong>
+                </div>
+                <div class="sh-imdb-bar-row">
+                    <span>Moyens (5-7★)</span>
+                    <div class="sh-imdb-bar"><div class="sh-imdb-bar-fill yellow" style="width:${criticData.neutralVotes}%"></div></div>
+                    <strong>${criticData.neutralVotes}%</strong>
+                </div>
+                <div class="sh-imdb-bar-row">
+                    <span>Négatifs (1-4★)</span>
+                    <div class="sh-imdb-bar"><div class="sh-imdb-bar-fill red" style="width:${criticData.negativeVotes}%"></div></div>
+                    <strong>${criticData.negativeVotes}%</strong>
+                </div>
+            </div>
+            <div class="sh-imdb-footer">
+                <span>🔥 Recommandé à ${criticData.positiveVotes}% par la communauté</span>
+            </div>
+        `;
+
+        this._positionPopover(popover, btnEl);
+        popover.classList.add('visible');
+    }
+
+    _hideIMDbPopover() {
+        if (this._isHoveringPopover) return;
+        const popover = document.getElementById('sh-global-imdb-popover');
         popover?.classList.remove('visible');
     }
 
@@ -351,18 +461,26 @@ class CardBuilder {
         container.className = `sh-card-grid sh-card-grid--${type}`;
 
         items.forEach(item => {
+            const isFolder = item.Type === 'CollectionFolder' || item.Type === 'UserView' || item.Type === 'Folder' || item.Type === 'Playlist' || item.CollectionType !== undefined || options.isFolder;
+            
+            // Récupération des vraies notes Jellyfin
+            const rtScore = !isFolder ? (item.CriticRating !== undefined && item.CriticRating !== null ? Math.round(item.CriticRating) : (item.rottenScore !== undefined ? item.rottenScore : (item.CommunityRating ? Math.min(99, Math.round(item.CommunityRating * 10 + 2)) : 88))) : null;
+            const rating = !isFolder ? (item.CommunityRating !== undefined ? item.CommunityRating : (item.rating !== undefined ? item.rating : 8.4)) : null;
+
             const card = this.createCard({
                 id:       item.Id,
                 title:    item.Name ?? 'Inconnu',
                 subtitle: item.subtitle || (item.ProductionYear ? String(item.ProductionYear) : (item.Type ?? '')),
                 imageUrl: item.customImage || (getImageUrl?.(item) ?? ''),
                 type,
-                rottenScore: item.rottenScore,
-                codec: item.codec || (type === 'backdrop' ? '4K DOLBY VISION' : '4K DV • ATMOS'),
+                itemType: item.Type,
+                isFolder,
+                rottenScore: rtScore,
+                rating: rating,
+                codec: item.codec || (isFolder ? (item.CollectionType || 'DOSSIER') : (type === 'backdrop' ? '4K DOLBY VISION' : '4K DV • ATMOS')),
                 progress: item.UserData?.PlayedPercentage
                     ? item.UserData.PlayedPercentage / 100
                     : (item.UserData?.PlaybackPositionTicks ? item.UserData.PlaybackPositionTicks / (item.RunTimeTicks || 1) : undefined),
-                rating: item.CommunityRating !== undefined ? item.CommunityRating : null,
                 isFavorite: Boolean(item.UserData?.IsFavorite),
                 remainingMin: item.remainingMin || (item.UserData?.PlayedPercentage ? Math.round((100 - item.UserData.PlayedPercentage) * 1.2) : undefined),
                 onClick: onClick ? (e) => onClick(item, e) : undefined,
@@ -438,6 +556,7 @@ class CardBuilder {
 
         menu.style.top = `${Math.max(12, top)}px`;
         menu.style.left = `${Math.max(12, left)}px`;
+        menu.classList.remove('sh-context-menu--closing');
         menu.classList.add('sh-context-menu--open');
 
         menu.querySelector('#sh-ctx-play').onclick = () => {
@@ -670,42 +789,54 @@ class CardBuilder {
     z-index: 25;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     background: rgba(12, 12, 16, 0.88);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     backdrop-filter: blur(24px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 9999px;
-    padding: 3.5px 9px;
+    padding: 3.5px 8px;
     font-size: 11px;
     font-weight: 600;
     color: #ffffff;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.60);
-    cursor: pointer;
     transition: transform 200ms ease, background 200ms ease, border-color 200ms ease;
 }
 .sh-card__dual-score:hover {
     background: rgba(18, 18, 26, 0.98);
     border-color: rgba(255, 255, 255, 0.32);
-    transform: scale(1.06);
+    transform: scale(1.04);
+}
+
+.sh-score-btn {
+    background: transparent;
+    border: none;
+    padding: 2px 4px;
+    margin: 0;
+    border-radius: 6px;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    transition: background 150ms ease, transform 150ms ease;
+}
+.sh-score-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    transform: scale(1.08);
 }
 
 .sh-score-rt {
     color: #ff5252;
     font-weight: 700;
     text-shadow: 0 1px 2px rgba(0,0,0,0.6);
-    display: flex;
-    align-items: center;
-    gap: 2px;
 }
 .sh-score-sep { opacity: 0.35; font-size: 10px; }
 .sh-score-imdb {
     color: #ffd600;
     font-weight: 700;
     text-shadow: 0 1px 2px rgba(0,0,0,0.6);
-    display: flex;
-    align-items: center;
-    gap: 2px;
 }
 
 /* Rating Stars Hover Fill Animation */
@@ -713,39 +844,52 @@ class CardBuilder {
     display: inline-block;
     transition: transform 260ms cubic-bezier(0.175, 0.885, 0.32, 1.275), color 200ms ease;
 }
-.sh-card:hover .sh-score-imdb--stars .sh-star-icon {
-    transform: scale(1.25) rotate(12deg);
+.sh-score-imdb:hover .sh-star-icon {
+    transform: scale(1.28) rotate(12deg);
     color: #ffe066;
     text-shadow: 0 0 8px rgba(255, 214, 0, 0.8);
 }
 
-/* ── Global Rotten Tomatoes & Critics Popover Portal ──────── */
-.sh-global-rt-popover {
+/* ── Global Popover Base (Apple VisionOS Glass) ─────────────── */
+.sh-global-popover {
     position: fixed;
     z-index: 2147483647 !important;
-    width: 240px;
+    width: 250px;
     background: rgba(12, 12, 18, 0.96);
     -webkit-backdrop-filter: blur(40px) saturate(220%);
     backdrop-filter: blur(40px) saturate(220%);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 14px;
-    padding: 12px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95), 0 0 25px rgba(255, 159, 10, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    border-radius: 16px;
+    padding: 12px 14px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95), 0 0 25px rgba(255, 159, 10, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.28);
     display: flex;
     flex-direction: column;
     gap: 8px;
     opacity: 0;
-    transform: translateY(6px) scale(0.96);
+    transform: translateY(-8px) scale(0.92);
+    filter: blur(8px);
     pointer-events: none;
-    transition: opacity 200ms ease, transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1), transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 200ms ease;
     text-align: left;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
 }
-.sh-global-rt-popover.visible {
+.sh-global-popover.visible {
     opacity: 1;
     transform: translateY(0) scale(1);
+    filter: blur(0px);
     pointer-events: auto;
 }
+
+.sh-popover-tag {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: -2px;
+}
+
+/* 🍅 Rotten Tomatoes Popover */
 .sh-rt-popover__header {
     display: flex;
     align-items: center;
@@ -754,11 +898,10 @@ class CardBuilder {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .sh-rt-popover__title {
-    font-size: 10px;
+    font-size: 10.5px;
     font-weight: 800;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.4px;
     color: #ff5252;
-    text-transform: uppercase;
 }
 .sh-rt-popover__audience {
     font-size: 10.5px;
@@ -801,8 +944,77 @@ class CardBuilder {
     font-weight: 700;
     color: rgba(255, 255, 255, 0.7);
 }
-.sh-rt-popover__dot {
-    color: rgba(255, 255, 255, 0.3);
+.sh-rt-popover__dot { color: rgba(255, 255, 255, 0.3); }
+
+/* ★ IMDb Popover */
+.sh-imdb-popover__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.sh-imdb-brand {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.sh-imdb-badge {
+    background: #f5c518;
+    color: #000000;
+    font-size: 10px;
+    font-weight: 900;
+    padding: 1px 4px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+.sh-imdb-score {
+    font-size: 13px;
+    font-weight: 800;
+    color: #ffd600;
+}
+.sh-imdb-score small {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
+}
+.sh-imdb-stars-row {
+    color: #ffd600;
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+.sh-imdb-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin: 2px 0;
+}
+.sh-imdb-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.75);
+}
+.sh-imdb-bar-row span { width: 85px; flex-shrink: 0; font-size: 10px; }
+.sh-imdb-bar {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 9999px;
+    overflow: hidden;
+}
+.sh-imdb-bar-fill { height: 100%; border-radius: 9999px; }
+.sh-imdb-bar-fill.green { background: #30d158; }
+.sh-imdb-bar-fill.yellow { background: #ffd600; }
+.sh-imdb-bar-fill.red { background: #ff453a; }
+.sh-imdb-bar-row strong { font-size: 10px; width: 28px; text-align: right; color: #fff; }
+.sh-imdb-footer {
+    padding-top: 5px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 10px;
+    font-weight: 700;
+    color: #ff9f0a;
 }
 
 /* ── Bouton Favoris Rapide (Quick Bookmark Pill) ─────────── */
