@@ -223,23 +223,23 @@ class ModalSlideUpSheet {
         const backBtnTitle = hasHistory ? `Retour à : ${this._escape(prevItemName)}` : 'Fermer la fiche et revenir';
 
         this._sheet.innerHTML = `
-            <!-- Bouton Retour Flottant Universel -->
-            <button class="sh-slideup-back-btn ${hasHistory ? 'visible' : ''}" id="sh-slideup-back" aria-label="Retour">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
-                <span class="sh-slideup-back-label">${backBtnLabel}</span>
-            </button>
-
-            <!-- Bouton Fermer Flottant Discret en Verre -->
-            <button class="sh-slideup-close-btn" id="sh-slideup-close" aria-label="Fermer">✕</button>
-
             <!-- 🎬 EN-TÊTE HERO CINÉMATIQUE ADAPTATIF -->
             <div class="sh-cinema-hero">
                 <div class="sh-cinema-hero-bg-container">
                     <div class="sh-cinema-hero-backdrop" style="background-image: url('${images.backdropUrl || posterUrl}');"></div>
                     <div class="sh-cinema-hero-gradient-bottom"></div>
                     <div class="sh-cinema-hero-gradient-left"></div>
+                </div>
+
+                <!-- Barre Supérieure d'En-tête Dédiée (Navigation Retour & Fermeture) -->
+                <div class="sh-cinema-hero-top-bar">
+                    <button class="sh-slideup-back-btn" id="sh-slideup-back" aria-label="Retour">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                        <span class="sh-slideup-back-label">${backBtnLabel}</span>
+                    </button>
+                    <button class="sh-slideup-close-btn" id="sh-slideup-close" aria-label="Fermer">✕</button>
                 </div>
 
                 <div class="sh-cinema-hero-content">

@@ -584,7 +584,20 @@ class HeroSpotlightComponent {
 .sh-kt-char { display: inline-block; animation: sh-kt-in 400ms cubic-bezier(0.3, 1.3, 0.6, 1) forwards; opacity: 0; transform: translateY(20px); }
 @keyframes sh-kt-in { to { opacity: 1; transform: translateY(0); } }
 .sh-hero-meta { display: flex; gap: 12px; color: #fff; margin-bottom: 20px; }
-.sh-hero-badge { background: rgba(255,255,255,0.15); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+.sh-hero-badge {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
 
 .sh-hero-badge--rt, .sh-hero-badge--imdb {
     position: relative;
@@ -592,17 +605,16 @@ class HeroSpotlightComponent {
     display: inline-flex !important;
     align-items: center !important;
     gap: 6px !important;
-    padding: 4px 10px !important;
-    border-radius: 9999px !important;
-    background: rgba(255, 255, 255, 0.12) !important;
-    border: 1px solid rgba(255, 255, 255, 0.18) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    font-weight: 750 !important;
-    font-size: 12.5px !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
     color: #ffffff !important;
     user-select: none !important;
-    overflow: hidden !important;
     transform: translateZ(0);
     transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
                 background 200ms ease,
@@ -612,35 +624,35 @@ class HeroSpotlightComponent {
 
 .sh-hero-badge--rt:hover {
     transform: scale(1.18) translateY(-2px) translateZ(0) !important;
-    background: rgba(255, 255, 255, 0.20) !important;
+    background: rgba(255, 255, 255, 0.22) !important;
     border-color: rgba(250, 50, 10, 0.85) !important;
-    box-shadow: 0 0 22px rgba(250, 50, 10, 0.90), 0 4px 14px rgba(0, 0, 0, 0.6) !important;
+    box-shadow: 0 0 18px rgba(250, 50, 10, 0.85), 0 4px 12px rgba(0, 0, 0, 0.5) !important;
     z-index: 50 !important;
 }
 .sh-hero-badge--rt .sh-rt-svg {
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
     transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .sh-hero-badge--rt:hover .sh-rt-svg {
-    transform: scale(1.25) rotate(-10deg);
+    transform: scale(1.25) rotate(-12deg);
     filter: drop-shadow(0 0 6px #fa320a) !important;
 }
 
 .sh-hero-badge--imdb:hover {
     transform: scale(1.18) translateY(-2px) translateZ(0) !important;
-    background: rgba(255, 255, 255, 0.20) !important;
+    background: rgba(255, 255, 255, 0.22) !important;
     border-color: rgba(245, 197, 24, 0.85) !important;
-    box-shadow: 0 0 22px rgba(245, 197, 24, 0.90), 0 4px 14px rgba(0, 0, 0, 0.6) !important;
+    box-shadow: 0 0 18px rgba(245, 197, 24, 0.85), 0 4px 12px rgba(0, 0, 0, 0.5) !important;
     z-index: 50 !important;
 }
 .sh-hero-badge--imdb .sh-imdb-star-svg {
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
     transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .sh-hero-badge--imdb:hover .sh-imdb-star-svg {
-    transform: scale(1.25) rotate(12deg);
+    transform: scale(1.25) rotate(14deg);
     filter: drop-shadow(0 0 6px #f5c518) !important;
 }
 .sh-hero-overview { color: rgba(255,255,255,0.8); line-height: 1.6; margin-bottom: 30px; }

@@ -876,28 +876,27 @@ class CardBuilder {
     display: inline-flex;
     align-items: center;
     gap: 2px;
-    background: rgba(0, 0, 0, 0.40) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
+    background: rgba(0, 0, 0, 0.38) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
     border: 1px solid rgba(255, 255, 255, 0.14) !important;
     border-radius: 9999px;
-    padding: 2.5px 5.5px;
+    padding: 2px 5px;
     font-size: 11px;
     font-weight: 750;
     color: #ffffff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
-    transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.40);
+    transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
 }
 .sh-card__dual-score:hover {
-    background: rgba(0, 0, 0, 0.60) !important;
+    background: rgba(0, 0, 0, 0.55) !important;
     border-color: rgba(255, 255, 255, 0.28) !important;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.65);
 }
 
 .sh-score-btn {
     background: transparent !important;
     border: none !important;
-    padding: 2px 4px !important;
+    padding: 2px 3.5px !important;
     margin: 0 !important;
     border-radius: 9999px !important;
     color: inherit !important;
@@ -906,20 +905,13 @@ class CardBuilder {
     pointer-events: auto !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 3.5px !important;
-    transition: all 160ms ease !important;
+    gap: 3px !important;
+    transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1), background 160ms ease !important;
     user-select: none !important;
 }
 .sh-score-btn:hover {
-    transform: scale(1.10) !important;
-}
-.sh-score-btn.sh-score-rt:hover {
-    background: rgba(250, 50, 10, 0.35) !important;
-    box-shadow: 0 0 10px rgba(250, 50, 10, 0.75) !important;
-}
-.sh-score-btn.sh-score-imdb:hover {
-    background: rgba(245, 197, 24, 0.35) !important;
-    box-shadow: 0 0 10px rgba(245, 197, 24, 0.75) !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    transform: scale(1.08) !important;
 }
 
 .sh-score-val {
@@ -948,10 +940,11 @@ class CardBuilder {
     display: inline-block;
     flex-shrink: 0;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
-    transition: transform 180ms ease;
+    transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.sh-score-rt:hover .sh-rt-svg {
-    transform: scale(1.20) rotate(-8deg);
+.sh-score-btn.sh-score-rt:hover .sh-rt-svg {
+    transform: scale(1.22) rotate(-14deg);
+    filter: drop-shadow(0 0 6px rgba(250, 50, 10, 0.8));
 }
 
 .sh-imdb-star-svg {
@@ -960,10 +953,11 @@ class CardBuilder {
     display: inline-block;
     flex-shrink: 0;
     filter: drop-shadow(0 1px 3px rgba(245, 197, 24, 0.5));
-    transition: transform 200ms ease;
+    transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.sh-score-imdb:hover .sh-imdb-star-svg {
-    transform: scale(1.20) rotate(14deg);
+.sh-score-btn.sh-score-imdb:hover .sh-imdb-star-svg {
+    transform: scale(1.22) rotate(16deg);
+    filter: drop-shadow(0 0 6px rgba(245, 197, 24, 0.8));
 }
 
 /* ── Global Popover Base (Apple VisionOS Glass) ─────────────── */
