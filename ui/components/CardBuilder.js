@@ -1,12 +1,12 @@
 /**
  * SpaceHub — CardBuilder (composant)
- * Version: 0.8.0
+ * Version: 0.9.0
  *
  * Constructeur de cartes médias SpaceHub avec :
+ *  - Capsule de notes ultra-compacte, fine et discrète (9.5px, n'encombre plus l'affiche)
  *  - Icônes vectorielles SVG officielles (Rotten Tomatoes Certified Fresh / Fresh / Rotten & IMDb Gold Star)
  *  - Vraies notes Jellyfin (item.CriticRating / item.CommunityRating)
  *  - Détection d'intention au survol (140ms intent delay) anti-pollution visuelle
- *  - Capsule verre liquide segmentée avec feedback tactile
  *  - Exclusion totale des notes sur dossiers racines, bibliothèques ou playlists
  *  - Sous-titre enrichi avec Année & Genres cinématographiques
  */
@@ -26,7 +26,7 @@ class CardBuilder {
         this._injectContextMenu();
         this._injectPopovers();
         this._setupGlobalHoverDelegation();
-        this._log.info('Initialisé avec icônes vectorielles SVG et détection d intention.');
+        this._log.info('Initialisé avec capsule ultra-compacte et détection d intention.');
     }
 
     // ─── SVG Icons Officielles ───────────────────────────────────────────────────
@@ -34,18 +34,18 @@ class CardBuilder {
     getRtIconSvg(score) {
         if (score >= 75) {
             // Certified Fresh
-            return `<svg class="sh-rt-svg" width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#00C05B"/></svg>`;
+            return `<svg class="sh-rt-svg" width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#00C05B"/></svg>`;
         } else if (score >= 60) {
             // Fresh Tomato
-            return `<svg class="sh-rt-svg" width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#388E3C"/></svg>`;
+            return `<svg class="sh-rt-svg" width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#388E3C"/></svg>`;
         } else {
             // Rotten Splat
-            return `<svg class="sh-rt-svg" width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 4C8 4 5 7 4 11C3 15 5 19 9 21C13 22 18 20 20 16C22 12 19 8 16 5C14 4 13 4 12 4Z" fill="#78B13F"/></svg>`;
+            return `<svg class="sh-rt-svg" width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 4C8 4 5 7 4 11C3 15 5 19 9 21C13 22 18 20 20 16C22 12 19 8 16 5C14 4 13 4 12 4Z" fill="#78B13F"/></svg>`;
         }
     }
 
     getImdbIconSvg() {
-        return `<svg class="sh-imdb-star-svg" width="13" height="13" viewBox="0 0 24 24" fill="#F5C518"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>`;
+        return `<svg class="sh-imdb-star-svg" width="11" height="11" viewBox="0 0 24 24" fill="#F5C518"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>`;
     }
 
     // ─── API Publique ────────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ class CardBuilder {
                     : ''}
             </div>
 
-            <!-- Dual Score Segmented Glass Capsule (Films, séries, animés uniquement) -->
+            <!-- Dual Score Micro-Capsule Délicate (Films, séries, animés uniquement) -->
             ${hasScores && critic ? `
             <div class="sh-card__dual-score" data-rt="${rtScore}">
                 <button class="sh-score-btn sh-score-rt" aria-label="Critiques Rotten Tomatoes" type="button" title="Consensus et avis Rotten Tomatoes">
@@ -236,7 +236,7 @@ class CardBuilder {
 
             if (rtBtn) {
                 if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
-                const containerEl = rtBtn.closest('.sh-card') || rtBtn.closest('.sh-hero-meta') || rtBtn.closest('.sh-cinema-hero-details') || rtBtn.closest('.sh-saga-movie-card') || rtBtn.closest('.sh-bento-card') || rtBtn.closest('.sh-episode-card');
+                const containerEl = rtBtn.closest('.sh-card') || rtBtn.closest('.sh-hero-meta') || rtBtn.closest('.sh-cinema-hero-details') || rtBtn.closest('.sh-saga-movie-card') || rtBtn.closest('.sh-bento-card');
                 const criticData = containerEl?._criticData || this._currentItemCriticData;
                 
                 if (criticData) {
@@ -252,7 +252,7 @@ class CardBuilder {
 
             if (imdbBtn) {
                 if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
-                const containerEl = imdbBtn.closest('.sh-card') || imdbBtn.closest('.sh-hero-meta') || imdbBtn.closest('.sh-cinema-hero-details') || imdbBtn.closest('.sh-saga-movie-card') || imdbBtn.closest('.sh-bento-card') || imdbBtn.closest('.sh-episode-card');
+                const containerEl = imdbBtn.closest('.sh-card') || imdbBtn.closest('.sh-hero-meta') || imdbBtn.closest('.sh-cinema-hero-details') || imdbBtn.closest('.sh-saga-movie-card') || imdbBtn.closest('.sh-bento-card');
                 const criticData = containerEl?._criticData || this._currentItemCriticData;
                 
                 if (criticData) {
@@ -839,39 +839,38 @@ class CardBuilder {
     100% { transform: translateX(100%); }
 }
 
-/* ── Dual-Pill Segmented Glass Capsule (Apple VisionOS / Infuse) ── */
+/* ── Dual-Pill Micro-Capsule Délicate (Infuse / Apple TV) ── */
 .sh-card__dual-score {
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: 8px;
+    left: 8px;
     z-index: 100 !important;
     pointer-events: auto !important;
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    background: rgba(10, 10, 14, 0.88) !important;
-    -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
-    backdrop-filter: blur(28px) saturate(200%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    gap: 1px;
+    background: rgba(8, 8, 12, 0.76) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    border: 0.5px solid rgba(255, 255, 255, 0.12) !important;
     border-radius: 9999px;
-    padding: 2.5px 4px;
-    font-size: 11px;
-    font-weight: 600;
+    padding: 1.5px 3.5px;
+    font-size: 9.5px;
+    font-weight: 700;
     color: #ffffff;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.70), inset 0 1px 0 rgba(255, 255, 255, 0.20);
-    transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.60), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
 }
 .sh-card__dual-score:hover {
-    background: rgba(14, 14, 20, 0.98) !important;
-    border-color: rgba(255, 255, 255, 0.35) !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85), 0 0 16px rgba(255, 159, 10, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.30);
+    background: rgba(12, 12, 18, 0.95) !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
     transform: scale(1.04);
 }
 
 .sh-score-btn {
     background: transparent !important;
     border: none !important;
-    padding: 3px 6px !important;
+    padding: 1.5px 3.5px !important;
     margin: 0 !important;
     border-radius: 9999px !important;
     color: inherit !important;
@@ -880,44 +879,56 @@ class CardBuilder {
     pointer-events: auto !important;
     display: inline-flex !important;
     align-items: center !important;
-    gap: 4.5px !important;
-    transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+    gap: 3px !important;
+    transition: all 140ms ease !important;
     user-select: none !important;
 }
 .sh-score-btn:hover {
-    background: rgba(255, 255, 255, 0.18) !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 8px rgba(0, 0, 0, 0.4);
-    transform: scale(1.08) !important;
+    background: rgba(255, 255, 255, 0.16) !important;
+    transform: scale(1.06) !important;
 }
 
+.sh-score-val {
+    font-size: 9.5px;
+    letter-spacing: -0.2px;
+}
 .sh-score-rt {
     color: #ff5252 !important;
     font-weight: 700 !important;
 }
-.sh-score-sep { opacity: 0.30; font-size: 10px; pointer-events: none; }
+.sh-score-sep {
+    opacity: 0.25;
+    font-size: 8px;
+    pointer-events: none;
+    margin: 0 -1px;
+}
 .sh-score-imdb {
     color: #f5c518 !important;
     font-weight: 700 !important;
 }
 
 .sh-rt-svg {
+    width: 10.5px;
+    height: 10.5px;
     display: inline-block;
     flex-shrink: 0;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
-    transition: transform 200ms ease;
+    transition: transform 180ms ease;
 }
 .sh-score-rt:hover .sh-rt-svg {
-    transform: scale(1.20) rotate(-6deg);
+    transform: scale(1.15) rotate(-6deg);
 }
 
 .sh-imdb-star-svg {
+    width: 10.5px;
+    height: 10.5px;
     display: inline-block;
     flex-shrink: 0;
     filter: drop-shadow(0 1px 3px rgba(245, 197, 24, 0.5));
-    transition: transform 240ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform 200ms ease;
 }
 .sh-score-imdb:hover .sh-imdb-star-svg {
-    transform: scale(1.25) rotate(12deg);
+    transform: scale(1.18) rotate(12deg);
 }
 
 /* ── Global Popover Base (Apple VisionOS Glass) ─────────────── */

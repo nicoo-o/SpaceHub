@@ -253,22 +253,8 @@ class ModalSlideUpSheet {
 
                         <h1 class="sh-cinema-title">${this._escape(title)}</h1>
 
-                        <!-- Ligne Typographique Épurée de Métadonnées avec Capsule Rotten Tomatoes & IMDb -->
+                        <!-- Ligne Typographique Épurée de Métadonnées -->
                         <div class="sh-cinema-meta-line">
-                            ${(!isMusic && (rating || rtScore)) ? `
-                            <div class="sh-card__dual-score sh-modal-dual-score" data-rt="${rtScore}">
-                                <button class="sh-score-btn sh-score-rt" aria-label="Critiques Rotten Tomatoes" type="button" title="Consensus Rotten Tomatoes">
-                                    ${window.SpaceHub?.ui?.components?.cardBuilder?.getRtIconSvg?.(rtScore) || '🍅'}
-                                    <span class="sh-score-val">${rtScore}%</span>
-                                </button>
-                                <span class="sh-score-sep">│</span>
-                                <button class="sh-score-btn sh-score-imdb sh-score-imdb--stars" aria-label="Note spectateurs IMDb" type="button" title="Note IMDb">
-                                    ${window.SpaceHub?.ui?.components?.cardBuilder?.getImdbIconSvg?.() || '★'}
-                                    <span class="sh-score-val">${imdbScore}</span>
-                                </button>
-                            </div>
-                            <span class="sh-meta-bullet">•</span>
-                            ` : ''}
                             ${year ? `<span class="sh-meta-text">${year}</span><span class="sh-meta-bullet">•</span>` : ''}
                             ${duration ? `<span class="sh-meta-text">${duration}</span><span class="sh-meta-bullet">•</span>` : ''}
                             <span class="sh-meta-text" id="sh-hero-genres">${this._escape(genres)}</span>
@@ -387,6 +373,49 @@ class ModalSlideUpSheet {
                     <!-- Panneau Universel : À propos -->
                     <div class="sh-tab-panel ${this._activeTab === 'synopsis' ? 'active' : ''}" id="sh-panel-synopsis">
                         <div class="sh-synopsis-layout">
+                            <!-- 🏆 Bandeau de Réputation Cinématographique & Critiques Presse / Public -->
+                            ${(!isMusic && (rating || rtScore)) ? `
+                            <div class="sh-cinema-critics-block">
+                                <div class="sh-critics-col sh-critics-col--rt">
+                                    <div class="sh-critics-top">
+                                        <div class="sh-critics-score-line">
+                                            ${cardBuilder?.getRtIconSvg?.(rtScore) || '<svg class="sh-rt-svg" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#00C05B"/></svg>'}
+                                            <span class="sh-critics-num">${rtScore}%</span>
+                                            <span class="sh-critics-verdict ${rtScore >= 75 ? 'certified' : (rtScore >= 60 ? 'fresh' : 'rotten')}">${rtScore >= 75 ? 'Certified Fresh' : (rtScore >= 60 ? 'Fresh' : 'Rotten')}</span>
+                                        </div>
+                                        <span class="sh-critics-sub">🍿 ${criticData?.audience || 91}% Score Public</span>
+                                    </div>
+                                    <p class="sh-critics-consensus">${criticData?.consensus || 'Consensus de la critique.'}</p>
+                                    <div class="sh-critics-quote">
+                                        <span>${criticData?.quote || ''}</span>
+                                        <cite>${criticData?.outlet || ''}</cite>
+                                    </div>
+                                </div>
+
+                                <div class="sh-critics-divider"></div>
+
+                                <div class="sh-critics-col sh-critics-col--imdb">
+                                    <div class="sh-critics-top">
+                                        <div class="sh-critics-score-line">
+                                            <span class="sh-imdb-badge-solid">IMDb</span>
+                                            <span class="sh-critics-num">${imdbScore}<small>/10</small></span>
+                                            <span class="sh-critics-stars">★★★★★</span>
+                                        </div>
+                                        <span class="sh-critics-sub">Metascore : <strong>${criticData?.metacritic || 84}</strong></span>
+                                    </div>
+                                    <div class="sh-critics-vote-stats">
+                                        <div class="sh-critics-bar-track">
+                                            <div class="sh-critics-bar-fill" style="width: ${criticData?.positiveVotes || 88}%;"></div>
+                                        </div>
+                                        <div class="sh-critics-bar-legend">
+                                            <span>🔥 ${criticData?.positiveVotes || 88}% d'avis favorables</span>
+                                            <span>Avis des spectateurs</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            ` : ''}
+
                             <div class="sh-synopsis-text-block">
                                 <p class="sh-panel-overview" id="sh-panel-overview">${this._escape(overview)}</p>
                             </div>
@@ -502,31 +531,20 @@ class ModalSlideUpSheet {
                             sagaGrid.innerHTML = sagaMovies.map((m, idx) => {
                                 const mImg = api?.getImageUrl?.(m.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || '';
                                 const mRating = m.CommunityRating ? Number(m.CommunityRating).toFixed(1) : '8.4';
-                                const mRtScore = m.CriticRating ? Math.round(m.CriticRating) : Math.min(99, Math.round(Number(mRating) * 10 + 2));
                                 return `
                                     <div class="sh-saga-movie-card" data-item-id="${m.Id}">
-                                        <div class="sh-saga-thumb-container">
+                                        <div class="sh-saga-thumb-container" data-action="play" title="▶ Lancer ${this._escape(m.Name)}">
                                             <img src="${mImg}" alt="${this._escape(m.Name)}" />
                                             <div class="sh-saga-quick-play">▶</div>
                                             <span class="sh-saga-num-badge">Film ${idx + 1}</span>
                                         </div>
-                                        <div class="sh-saga-card-content">
+                                        <div class="sh-saga-card-content" data-action="details" title="Détails du film">
                                             <div class="sh-saga-header-row">
                                                 <span class="sh-saga-title">${idx + 1}. ${this._escape(m.Name)}</span>
                                                 <button class="sh-saga-play-btn" data-item-id="${m.Id}">▶ Regarder</button>
                                             </div>
                                             <div class="sh-saga-meta-row">
-                                                <div class="sh-card__dual-score sh-saga-dual-score" data-rt="${mRtScore}">
-                                                    <button class="sh-score-btn sh-score-rt" aria-label="Critiques Rotten Tomatoes" type="button" title="Consensus Rotten Tomatoes">
-                                                        ${cardBuilder?.getRtIconSvg?.(mRtScore) || '🍅'}
-                                                        <span class="sh-score-val">${mRtScore}%</span>
-                                                    </button>
-                                                    <span class="sh-score-sep">│</span>
-                                                    <button class="sh-score-btn sh-score-imdb sh-score-imdb--stars" aria-label="Note spectateurs IMDb" type="button" title="Note IMDb">
-                                                        ${cardBuilder?.getImdbIconSvg?.() || '★'}
-                                                        <span class="sh-score-val">${mRating}</span>
-                                                    </button>
-                                                </div>
+                                                <span class="sh-bento-score">★ ${mRating}</span>
                                                 <span class="sh-bento-dot">•</span>
                                                 <span>${m.ProductionYear || ''}</span>
                                             </div>
@@ -537,23 +555,19 @@ class ModalSlideUpSheet {
                             }).join('');
 
                             sagaGrid.querySelectorAll('.sh-saga-movie-card').forEach(card => {
-                                const filmId = card.dataset.itemId;
-                                const targetFilm = sagaMovies.find(f => f.Id === filmId);
-                                if (targetFilm) {
-                                    const mRating = targetFilm.CommunityRating ? Number(targetFilm.CommunityRating).toFixed(1) : '8.4';
-                                    const mRtScore = targetFilm.CriticRating ? Math.round(targetFilm.CriticRating) : Math.min(99, Math.round(Number(mRating) * 10 + 2));
-                                    card._criticData = cardBuilder?.getCriticData?.(targetFilm.Name, mRtScore, mRating);
-
-                                    card.addEventListener('click', (e) => {
-                                        if (e.target.closest('.sh-card__dual-score')) return;
-                                        if (e.target.closest('.sh-saga-play-btn') || e.target.closest('.sh-saga-quick-play')) {
+                                card.addEventListener('click', (e) => {
+                                    const filmId = card.dataset.itemId;
+                                    const targetFilm = sagaMovies.find(f => f.Id === filmId);
+                                    if (targetFilm) {
+                                        const isPlay = e.target.closest('.sh-saga-play-btn') || e.target.closest('.sh-saga-quick-play') || e.target.closest('.sh-saga-thumb-container');
+                                        if (isPlay) {
                                             this.close();
                                             window.SpaceHub?.player?.play?.(targetFilm);
                                         } else {
                                             this.open(targetFilm);
                                         }
-                                    });
-                                }
+                                    }
+                                });
                             });
                         } else {
                             sagaGrid.innerHTML = '<div style="color:rgba(255,255,255,0.4); padding:20px;">Aucun film trouvé dans cette saga.</div>';
@@ -572,29 +586,18 @@ class ModalSlideUpSheet {
                             bentoGrid.innerHTML = similarItems.map(sim => {
                                 const simImg = api?.getImageUrl?.(sim.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || '';
                                 const simRating = sim.CommunityRating ? Number(sim.CommunityRating).toFixed(1) : '8.2';
-                                const simRtScore = sim.CriticRating ? Math.round(sim.CriticRating) : Math.min(99, Math.round(Number(simRating) * 10 + 2));
                                 return `
                                     <div class="sh-bento-card" data-item-id="${sim.Id}">
-                                        <div class="sh-bento-poster-wrap">
+                                        <div class="sh-bento-poster-wrap" data-action="play" title="▶ Lancer ${this._escape(sim.Name)}">
                                             <img src="${simImg}" alt="${this._escape(sim.Name)}" />
                                             <div class="sh-bento-quick-play">▶</div>
                                         </div>
-                                        <div class="sh-bento-content">
+                                        <div class="sh-bento-content" data-action="details" title="Détails du titre">
                                             <div class="sh-bento-header-row">
                                                 <span class="sh-bento-title">${this._escape(sim.Name)}</span>
                                             </div>
                                             <div class="sh-bento-meta-row">
-                                                <div class="sh-card__dual-score sh-bento-dual-score" data-rt="${simRtScore}">
-                                                    <button class="sh-score-btn sh-score-rt" aria-label="Critiques Rotten Tomatoes" type="button" title="Consensus Rotten Tomatoes">
-                                                        ${cardBuilder?.getRtIconSvg?.(simRtScore) || '🍅'}
-                                                        <span class="sh-score-val">${simRtScore}%</span>
-                                                    </button>
-                                                    <span class="sh-score-sep">│</span>
-                                                    <button class="sh-score-btn sh-score-imdb" aria-label="Note spectateurs IMDb" type="button" title="Note IMDb">
-                                                        ${cardBuilder?.getImdbIconSvg?.() || '★'}
-                                                        <span class="sh-score-val">${simRating}</span>
-                                                    </button>
-                                                </div>
+                                                <span class="sh-bento-score">★ ${simRating}</span>
                                                 <span class="sh-bento-dot">•</span>
                                                 <span>${sim.ProductionYear || ''}</span>
                                             </div>
@@ -605,23 +608,19 @@ class ModalSlideUpSheet {
                             }).join('');
 
                             bentoGrid.querySelectorAll('.sh-bento-card').forEach(card => {
-                                const simId = card.dataset.itemId;
-                                const targetSim = similarItems.find(s => s.Id === simId);
-                                if (targetSim) {
-                                    const simRating = targetSim.CommunityRating ? Number(targetSim.CommunityRating).toFixed(1) : '8.2';
-                                    const simRtScore = targetSim.CriticRating ? Math.round(targetSim.CriticRating) : Math.min(99, Math.round(Number(simRating) * 10 + 2));
-                                    card._criticData = cardBuilder?.getCriticData?.(targetSim.Name, simRtScore, simRating);
-
-                                    card.addEventListener('click', (e) => {
-                                        if (e.target.closest('.sh-card__dual-score')) return;
-                                        if (e.target.closest('.sh-bento-quick-play')) {
+                                card.addEventListener('click', (e) => {
+                                    const simId = card.dataset.itemId;
+                                    const targetSim = similarItems.find(s => s.Id === simId);
+                                    if (targetSim) {
+                                        const isPlay = e.target.closest('.sh-bento-quick-play') || e.target.closest('.sh-bento-poster-wrap');
+                                        if (isPlay) {
                                             this.close();
                                             window.SpaceHub?.player?.play?.(targetSim);
                                         } else {
                                             this.open(targetSim);
                                         }
-                                    });
-                                }
+                                    }
+                                });
                             });
                         } else {
                             bentoGrid.innerHTML = '<div style="color:rgba(255,255,255,0.4); padding:20px;">Aucun titre similaire disponible.</div>';
@@ -755,12 +754,10 @@ class ModalSlideUpSheet {
             const epImg = api?.getImageUrl?.(ep.Id, 'Primary', { maxWidth: 500, maxHeight: 280 }) || api?.getImageUrl?.(ep.Id, 'Thumb', { maxWidth: 500, maxHeight: 280 }) || '';
             const progress = Math.round(ep.UserData?.PlayedPercentage || 0);
             const durationMin = ep.RunTimeTicks ? Math.round(ep.RunTimeTicks / 10000000 / 60) + ' min' : '';
-            const epRating = ep.CommunityRating ? Number(ep.CommunityRating).toFixed(1) : null;
-            const epRtScore = ep.CriticRating ? Math.round(ep.CriticRating) : (epRating ? Math.min(99, Math.round(Number(epRating) * 10 + 2)) : 88);
 
             return `
                 <div class="sh-episode-card" data-ep-id="${ep.Id}">
-                    <div class="sh-episode-thumb-wrap" title="▶ Lancer l'Épisode ${ep.IndexNumber || (idx + 1)}">
+                    <div class="sh-episode-thumb-wrap" data-action="play" title="▶ Lancer l'Épisode ${ep.IndexNumber || (idx + 1)}">
                         ${epImg ? `<img src="${epImg}" alt="${this._escape(ep.Name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.IndexNumber || (idx + 1)}</div>`}
                         <div class="sh-episode-overlay-play">▶</div>
                         <span class="sh-episode-badge-num">EP ${ep.IndexNumber || (idx + 1)}</span>
@@ -771,18 +768,12 @@ class ModalSlideUpSheet {
                             </div>
                         ` : ''}
                     </div>
-                    <div class="sh-episode-info">
+                    <div class="sh-episode-info" data-action="details" title="Voir les détails et le synopsis complet">
                         <div class="sh-episode-title-row">
                             <span class="sh-episode-title">${ep.IndexNumber || (idx + 1)}. ${this._escape(ep.Name)}</span>
-                            ${epRating ? `
-                            <div class="sh-card__dual-score sh-episode-dual-score" data-rt="${epRtScore}">
-                                <button class="sh-score-btn sh-score-imdb" type="button" title="Note spectateurs de l'épisode">
-                                    ${cardBuilder?.getImdbIconSvg?.() || '★'}
-                                    <span class="sh-score-val">${epRating}</span>
-                                </button>
-                            </div>` : ''}
+                            <span class="sh-episode-chevron">›</span>
                         </div>
-                        <p class="sh-episode-synopsis">${this._escape(ep.Overview || 'Aucun synopsis disponible.')}</p>
+                        <p class="sh-episode-synopsis">${this._escape(ep.Overview || 'Aucun synopsis disponible pour cet épisode.')}</p>
                     </div>
                 </div>
             `;
@@ -792,14 +783,16 @@ class ModalSlideUpSheet {
             const epId = card.dataset.epId;
             const ep = episodes.find(e => e.Id === epId);
             if (ep) {
-                const epRating = ep.CommunityRating ? Number(ep.CommunityRating).toFixed(1) : '8.5';
-                const epRtScore = ep.CriticRating ? Math.round(ep.CriticRating) : Math.min(99, Math.round(Number(epRating) * 10 + 2));
-                card._criticData = cardBuilder?.getCriticData?.(ep.Name, epRtScore, epRating);
-
                 card.addEventListener('click', (e) => {
-                    if (e.target.closest('.sh-card__dual-score')) return;
-                    this.close();
-                    window.SpaceHub?.player?.play?.(ep);
+                    const isPlay = e.target.closest('.sh-episode-thumb-wrap') || e.target.closest('.sh-episode-overlay-play');
+                    if (isPlay) {
+                        // Clic sur la vignette 16:9 ou ▶ : Lance immédiatement la lecture
+                        this.close();
+                        window.SpaceHub?.player?.play?.(ep);
+                    } else {
+                        // Clic sur le texte / informations de l'épisode : Ouvre la fiche détaillée de l'épisode avec navigation retour
+                        this.open(ep);
+                    }
                 });
             }
         });
