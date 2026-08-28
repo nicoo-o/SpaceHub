@@ -333,6 +333,61 @@ class JellyfinAPI {
     }
 
     /**
+     * Récupère le prochain épisode à regarder (NextUp) pour une série donnée.
+     * @param {string} seriesId
+     * @returns {Promise<Object|null>}
+     */
+    async getNextUp(seriesId) {
+        if (!seriesId) return null;
+        const userId = this.getUserId();
+
+        if (this._rawApiClient?.getNextUp) {
+            try {
+                const res = await this._rawApiClient.getNextUp({
+                    SeriesId: seriesId,
+                    UserId: userId || '',
+                    fields: 'MediaStreams,Overview,UserData,RunTimeTicks,PrimaryImageAspectRatio'
+                });
+                const items = res?.Items || (Array.isArray(res) ? res : []);
+                if (items.length > 0) return items[0];
+            } catch (e) {
+                this._log.debug('getNextUp rawApiClient fallback:', e);
+            }
+        }
+
+        if (this._rawApiClient?.getJSON && this._rawApiClient?.getUrl) {
+            try {
+                const url = this._rawApiClient.getUrl('Shows/NextUp', {
+                    seriesId: seriesId,
+                    userId: userId || '',
+                    fields: 'MediaStreams,Overview,UserData,RunTimeTicks,PrimaryImageAspectRatio'
+                });
+                const res = await this._rawApiClient.getJSON(url);
+                const items = res?.Items || (Array.isArray(res) ? res : []);
+                if (items.length > 0) return items[0];
+            } catch (e) {
+                this._log.debug('getNextUp rawApiClient getUrl fallback:', e);
+            }
+        }
+
+        const params = new URLSearchParams({
+            seriesId: seriesId,
+            userId: userId || '',
+            fields: 'MediaStreams,Overview,UserData,RunTimeTicks,PrimaryImageAspectRatio'
+        });
+
+        try {
+            const data = await this._client.get(`/Shows/NextUp?${params.toString()}`);
+            const items = data?.Items || [];
+            return items.length > 0 ? items[0] : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+
+
+    /**
      * Récupère les titres similaires recommandés par Jellyfin.
      * @param {string} itemId
      * @param {number} [limit=6]

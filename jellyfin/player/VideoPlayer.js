@@ -65,6 +65,14 @@ class VideoPlayer {
     }
 
     play(item, startPositionTicks = 0) {
+        if (!item) return;
+
+        // Si une Série entière est envoyée directement au player, résolution automatique de l'épisode
+        if (item.Type === 'Series') {
+            this._resolveAndPlaySeries(item);
+            return;
+        }
+
         this._currentItem = item;
         this._nextEpCancelled = false;
         const itemId = item.Id || item.id;

@@ -121,13 +121,31 @@ class CardBuilder {
                 <div class="sh-card__codec-tag">${this._escape(codec)}</div>
 
                 <!-- Liquid Action Pill (Apparaît au survol en bas de carte) -->
-                <div class="sh-card__action-pill">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg>
-                    <span>${typeof progress === 'number' ? 'Continuer' : (isFolderItem ? 'Ouvrir' : 'Regarder')}</span>
-                    ${remainingMin ? `<span class="sh-pill-duration">• ${remainingMin}m</span>` : ''}
-                </div>
+                ${(() => {
+                    let label = 'Regarder';
+                    if (isFolderItem) {
+                        label = 'Ouvrir';
+                    } else if (itemType === 'Series') {
+                        const raw = options.rawItem;
+                        const hasStarted = (typeof progress === 'number' && progress > 0) || 
+                            (raw?.UserData?.PlaybackPositionTicks > 0) || 
+                            (raw?.UserData?.UnplayedItemCount !== undefined && raw?.ChildCount !== undefined && raw.UserData.UnplayedItemCount < raw.ChildCount) ||
+                            (raw?.UserData?.PlayedPercentage > 0);
+                        label = hasStarted ? 'Continuer' : 'Regarder S01E01';
+                    } else if (typeof progress === 'number' && progress > 0) {
+                        label = 'Continuer';
+                    }
+
+                    return `
+                        <div class="sh-card__action-pill">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            <span>${label}</span>
+                            ${remainingMin ? `<span class="sh-pill-duration">• ${remainingMin}m</span>` : ''}
+                        </div>
+                    `;
+                })()}
 
                 <!-- Barre de progression Glass avec lueur -->
                 ${typeof progress === 'number'
@@ -192,32 +210,59 @@ class CardBuilder {
             );
         });
 
-        // 🎬 Action Clic Direct sur la Pilule [ ▶ Regarder ] / [ ▶ Continuer ]
+        // 🎬 Action Clic Direct sur la Pilule [ ▶ Continuer ] / [ ▶ Regarder S01E01 ]
         const actionPill = card.querySelector('.sh-card__action-pill');
         if (actionPill) {
             actionPill.addEventListener('mousedown', (e) => { e.stopPropagation(); });
-            actionPill.addEventListener('click', (e) => {
+            actionPill.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 if (isFolderItem) {
                     onClick?.(e);
                     return;
                 }
-                const targetMedia = options.rawItem || { Id: id, id, Name: title, title, Type: itemType };
+
                 const api = window.SpaceHub?.jellyfin?.api;
-                if (window.SpaceHub?.player?.play) {
-                    if (api && id) {
-                        api.getItem(id).then(fullItem => {
-                            window.SpaceHub.player.play(fullItem || targetMedia);
-                        }).catch(() => {
-                            window.SpaceHub.player.play(targetMedia);
-                        });
-                    } else {
-                        window.SpaceHub.player.play(targetMedia);
-                    }
-                } else if (window.Emby?.Page?.showItem) {
-                    window.Emby.Page.showItem(id);
-                } else {
+                const player = window.SpaceHub?.player;
+                if (!player?.play) {
                     onClick?.(e);
+                    return;
+                }
+
+                // 📺 Traitement spécifique pour les Séries : Reprise NextUp ou S01E01
+                if (itemType === 'Series') {
+                    try {
+                        // 1. Chercher si un épisode est en cours de visionnage ou suivant (NextUp)
+                        if (api?.getNextUp) {
+                            const nextUp = await api.getNextUp(id);
+                            if (nextUp) {
+                                player.play(nextUp);
+                                return;
+                            }
+                        }
+                        // 2. Sinon, prendre le 1er épisode de la série (S01E01)
+                        if (api?.getEpisodes) {
+                            const episodes = await api.getEpisodes(id);
+                            if (episodes && episodes.length > 0) {
+                                const sorted = episodes.sort((a, b) => ((a.ParentIndexNumber || 1) - (b.ParentIndexNumber || 1)) || ((a.IndexNumber || 1) - (b.IndexNumber || 1)));
+                                player.play(sorted[0]);
+                                return;
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('[CardBuilder] Erreur résolution épisode série:', err);
+                    }
+                }
+
+                // 🎬 Pour les Films ou Épisodes individuels
+                const targetMedia = options.rawItem || { Id: id, id, Name: title, title, Type: itemType };
+                if (api && id) {
+                    api.getItem(id).then(fullItem => {
+                        player.play(fullItem || targetMedia);
+                    }).catch(() => {
+                        player.play(targetMedia);
+                    });
+                } else {
+                    player.play(targetMedia);
                 }
             });
         }
