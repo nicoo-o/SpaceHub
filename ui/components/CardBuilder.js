@@ -432,8 +432,9 @@ class CardBuilder {
         popover.classList.add('visible');
     }
 
-    _hideRTPopover() {
-        if (this._isHoveringPopover) return;
+    _hideRTPopover(force = false) {
+        if (!force && this._isHoveringPopover) return;
+        this._isHoveringPopover = false;
         const popover = document.getElementById('sh-global-rt-popover');
         popover?.classList.remove('visible');
     }
@@ -478,10 +479,17 @@ class CardBuilder {
         popover.classList.add('visible');
     }
 
-    _hideIMDbPopover() {
-        if (this._isHoveringPopover) return;
+    _hideIMDbPopover(force = false) {
+        if (!force && this._isHoveringPopover) return;
+        this._isHoveringPopover = false;
         const popover = document.getElementById('sh-global-imdb-popover');
         popover?.classList.remove('visible');
+    }
+
+    hideAllPopovers() {
+        this._isHoveringPopover = false;
+        document.getElementById('sh-global-rt-popover')?.classList.remove('visible');
+        document.getElementById('sh-global-imdb-popover')?.classList.remove('visible');
     }
 
     createSkeleton(type = 'poster') {

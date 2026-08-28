@@ -1579,18 +1579,190 @@ class ModalSlideUpSheet {
     to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Onglet 1 : Synopsis Layout */
+/* ── 📖 Onglet 1 : Synopsis & Structure Éditoriale 3 Niveaux ── */
 .sh-synopsis-layout {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 22px;
+    padding-bottom: 20px;
+}
+
+.sh-synopsis-text-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.sh-section-subtitle {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.45);
 }
 .sh-panel-overview {
-    font-size: 14px;
-    line-height: 1.65;
-    color: rgba(255, 255, 255, 0.85);
-    margin: 0;
+    font-size: 14.5px !important;
+    line-height: 1.7 !important;
+    color: rgba(255, 255, 255, 0.92) !important;
+    margin: 0 !important;
+    font-weight: 400;
+    letter-spacing: 0.1px;
 }
+
+/* ── 🏆 Section Réputation Cinéma : 2 Boîtes Bento Smoked Glass ─ */
+.sh-cinema-critics-block {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px !important;
+    margin: 2px 0 !important;
+}
+@media (max-width: 820px) {
+    .sh-cinema-critics-block { grid-template-columns: 1fr !important; }
+}
+
+.sh-critics-bento-card {
+    background: rgba(20, 20, 28, 0.75) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(190%) !important;
+    backdrop-filter: blur(30px) saturate(190%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 16px !important;
+    padding: 16px 18px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+    transition: border-color 220ms ease, transform 220ms ease, box-shadow 220ms ease;
+}
+.sh-critics-bento-card:hover {
+    border-color: rgba(255, 255, 255, 0.28) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+}
+
+.sh-critics-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.sh-critics-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.sh-critics-title-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.85);
+    letter-spacing: -0.2px;
+}
+.sh-critics-badge {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 7px;
+    border-radius: 6px;
+}
+.sh-critics-badge.certified {
+    background: rgba(250, 50, 10, 0.22);
+    color: #ff5252;
+    border: 1px solid rgba(250, 50, 10, 0.45);
+}
+.sh-critics-badge.fresh {
+    background: rgba(56, 142, 60, 0.22);
+    color: #4caf50;
+    border: 1px solid rgba(56, 142, 60, 0.45);
+}
+.sh-critics-badge.rotten {
+    background: rgba(120, 177, 63, 0.22);
+    color: #8bc34a;
+    border: 1px solid rgba(120, 177, 63, 0.45);
+}
+
+.sh-critics-score-val-large {
+    font-size: 22px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+}
+.sh-critics-score-val-large.imdb-gold {
+    color: #f5c518;
+}
+.sh-critics-score-val-large small {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 600;
+}
+
+.sh-critics-consensus-text {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 400;
+}
+
+.sh-critics-quote-box {
+    background: rgba(255, 255, 255, 0.04);
+    border-left: 3px solid #ff9f0a;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.88);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.sh-critics-quote-box cite {
+    font-style: normal;
+    font-weight: 700;
+    color: #ff9f0a;
+    font-size: 10.5px;
+    text-align: right;
+}
+
+.sh-critics-stars-display {
+    color: #f5c518;
+    font-size: 15px;
+    letter-spacing: 2px;
+}
+
+.sh-critics-stat-section {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+.sh-critics-bar-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 9999px;
+    overflow: hidden;
+}
+.sh-critics-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f5c518 0%, #30d158 100%);
+    border-radius: 9999px;
+}
+.sh-critics-legend-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.sh-critics-footer-meta {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.45);
+    padding-top: 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── ⚙️ Fiche Technique & Métadonnées (Grille 4 cases) ──────── */
 .sh-panel-meta-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
