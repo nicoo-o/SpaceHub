@@ -149,12 +149,15 @@ class ModalSlideUpSheet {
         setTimeout(() => this._updateTabSlider(), 50);
 
         const heroDetailsEl = this._sheet?.querySelector('.sh-cinema-hero-details');
-        if (heroDetailsEl) {
+        const metaLineEl = this._sheet?.querySelector('.sh-cinema-meta-line');
+        if (heroDetailsEl || metaLineEl) {
             const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
             const rating = item.CommunityRating ? Number(item.CommunityRating) : null;
             const rtScore = item.CriticRating ? Math.round(item.CriticRating) : (rating ? Math.min(99, Math.round(rating * 10 + 2)) : 88);
             const imdbScore = rating ? rating.toFixed(1) : (rtScore / 10).toFixed(1);
-            heroDetailsEl._criticData = cardBuilder?.getCriticData?.(item.Name || item.title || 'Média', rtScore, imdbScore);
+            const criticData = cardBuilder?.getCriticData?.(item.Name || item.title || 'Média', rtScore, imdbScore);
+            if (heroDetailsEl) heroDetailsEl._criticData = criticData;
+            if (metaLineEl) metaLineEl._criticData = criticData;
         }
 
         // 2. Chargement asynchrone des métadonnées réelles enrichies
@@ -268,10 +271,21 @@ class ModalSlideUpSheet {
 
                         <h1 class="sh-cinema-title">${this._escape(title)}</h1>
 
-                        <!-- Ligne Typographique Épurée de Métadonnées -->
+                        <!-- Ligne Typographique Épurée de Métadonnées avec Badges Critiques Officiels -->
                         <div class="sh-cinema-meta-line">
-                            ${year ? `<span class="sh-meta-text">${year}</span><span class="sh-meta-bullet">•</span>` : ''}
-                            ${duration ? `<span class="sh-meta-text">${duration}</span><span class="sh-meta-bullet">•</span>` : ''}
+                            ${!isMusic ? `
+                            <span class="sh-hero-badge sh-hero-badge--rt sh-score-rt" role="button" tabindex="0" title="Consensus Rotten Tomatoes">
+                                \${cardBuilder?.getRtIconSvg?.(rtScore) || '<svg class="sh-rt-svg" width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#00C05B"/></svg>'}
+                                <span>\${rtScore}%</span>
+                            </span>
+                            <span class="sh-hero-badge sh-hero-badge--imdb sh-score-imdb" role="button" tabindex="0" title="Note des spectateurs IMDb">
+                                \${cardBuilder?.getImdbIconSvg?.() || '<svg class="sh-imdb-star-svg" width="12" height="12" viewBox="0 0 24 24" fill="#F5C518"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>'}
+                                <span>\${imdbScore}</span>
+                            </span>
+                            ` : ''}
+                            ${year ? `<span class="sh-meta-bullet">•</span><span class="sh-meta-text">${year}</span>` : ''}
+                            ${duration ? `<span class="sh-meta-bullet">•</span><span class="sh-meta-text">${duration}</span>` : ''}
+                            <span class="sh-meta-bullet">•</span>
                             <span class="sh-meta-text" id="sh-hero-genres">${this._escape(genres)}</span>
                         </div>
 
