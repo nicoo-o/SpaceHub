@@ -259,24 +259,24 @@ class VideoPlayer {
             <!-- Zones Gestuelles Gauche / Droite (Double-Tap Ripple) -->
             <div class="sh-gesture-zone sh-gesture-zone--left" id="sh-zone-left">
                 <div class="sh-ripple-badge" id="sh-ripple-left">
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>
                     <span>-10s</span>
                 </div>
             </div>
             <div class="sh-gesture-zone sh-gesture-zone--right" id="sh-zone-right">
                 <div class="sh-ripple-badge" id="sh-ripple-right">
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
                     <span>+10s</span>
                 </div>
             </div>
 
-            <!-- 🍏 TOP BAR : EN-TÊTE CINÉMA APPLE TV+ INTÉGRÉ À GAUCHE -->
+            <!-- 🍏 TOP BAR : EN-TÊTE CINÉMA TRANSLUCIDE ÉPURÉ (Sans badges techniques) -->
             <header class="sh-cinema-topbar">
                 
                 <!-- Bloc Gauche : Capsule Titre Tout-en-un -->
                 <div class="sh-topbar-brand-capsule">
                     <button class="sh-back-btn" id="sh-btn-back" title="Quitter la lecture (Échap)">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                         <span>Quitter</span>
                     </button>
 
@@ -290,23 +290,18 @@ class VideoPlayer {
                         <span class="sh-media-dot">•</span>
                         <span class="sh-media-sub">${isEpisode ? `${episodeNumber} « ${this._escape(episodeTitle)} »` : (year ? `${year} · Film` : 'Cinéma')}</span>
                     </div>
-
-                    <div class="sh-capsule-badges">
-                        <span class="sh-badge-amber">4K DOLBY VISION</span>
-                        <span class="sh-badge-ice">ATMOS 7.1</span>
-                    </div>
                 </div>
 
                 <!-- Bloc Droite : Actions Secondaires Flottantes -->
                 <div class="sh-topbar-actions-pill">
-                    <button class="sh-top-icon-btn" id="sh-btn-aspect" title="Format d'image (16:9, 21:9)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
+                    <button class="sh-top-icon-btn" id="sh-btn-aspect" title="Format d'image (16:9, 21:9, Plein écran)">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
                     </button>
                     <button class="sh-top-icon-btn" id="sh-btn-pip" title="Fenêtre flottante (PiP)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><rect width="8" height="6" x="12" y="12" rx="1" fill="currentColor"/></svg>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><rect width="8" height="6" x="12" y="12" rx="1" fill="currentColor"/></svg>
                     </button>
                     <button class="sh-top-icon-btn" id="sh-btn-fullscreen" title="Plein écran (F)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
                     </button>
                 </div>
 
@@ -325,7 +320,7 @@ class VideoPlayer {
 
             <!-- ⏭️ Smart Skip Intro Pill -->
             <button class="sh-smart-skip-pill" id="sh-smart-skip-btn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="3"/></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="3"/></svg>
                 <span>Passer l'intro</span>
             </button>
 
@@ -347,95 +342,88 @@ class VideoPlayer {
                 </div>
             </div>
 
-            <!-- 🍏 GRAND CINEMA LIQUID DOCK (Capsule Ultra-Fine 52px) -->
+            <!-- 🍏 GRAND CINEMA LIQUID DOCK (Disposition Studio Apple TV+ Rééquilibrée) -->
             <div class="sh-cinema-dock-anchor">
-                
-                <!-- Halo Ambré Respirant sous le Dock -->
                 <div class="sh-dock-amber-glow"></div>
 
                 <div class="sh-liquid-ribbon-dock">
                     
-                    <!-- Ligne 1 : Timeline Intégrée en Bordure Supérieure -->
-                    <div class="sh-ribbon-timeline" id="sh-timeline-track">
-                        <div class="sh-ribbon-timeline-bg"></div>
-                        <div class="sh-ribbon-timeline-buffered" id="sh-timeline-buffer"></div>
-                        <div class="sh-ribbon-timeline-played" id="sh-timeline-played"></div>
-                        <div class="sh-ribbon-timeline-thumb" id="sh-timeline-handle"></div>
-                        
-                        <div class="sh-timeline-tooltip" id="sh-timeline-tooltip">
-                            <span id="sh-tooltip-time">00:00:00</span>
-                        </div>
+                    <!-- Section Gauche : Commandes Transport Proportionnées & Temps Écoulé -->
+                    <div class="sh-ribbon-group sh-ribbon-group--left">
+                        <!-- Play / Pause Master Pearl (34px) -->
+                        <button class="sh-pearl-play-btn" id="sh-btn-play-pause" title="Lecture / Pause (Espace)">
+                            <svg class="sh-icon-play" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                            <svg class="sh-icon-pause" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                        </button>
+
+                        <!-- Sauts ±10s (30px) -->
+                        <button class="sh-micro-btn" id="sh-btn-skip-back" title="Reculer de 10s (←)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                            <span class="sh-micro-num">10</span>
+                        </button>
+                        <button class="sh-micro-btn" id="sh-btn-skip-fwd" title="Avancer de 10s (→)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                            <span class="sh-micro-num">10</span>
+                        </button>
+
+                        <!-- Horodatage Écoulé -->
+                        <span class="sh-time-elapsed-label" id="sh-time-elapsed">00:00:00</span>
                     </div>
 
-                    <!-- Ligne 2 : Rangée de Commandes Épurée & Aérodynamique -->
-                    <div class="sh-ribbon-controls-row">
-                        
-                        <!-- Groupe Gauche : Transport & Horodatage -->
-                        <div class="sh-ribbon-group sh-ribbon-group--left">
-                            <!-- Play / Pause Master Pearl -->
-                            <button class="sh-pearl-play-btn" id="sh-btn-play-pause" title="Lecture / Pause (Espace)">
-                                <svg class="sh-icon-play" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
-                                <svg class="sh-icon-pause" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-                            </button>
-
-                            <!-- Sauts ±10s -->
-                            <button class="sh-micro-btn" id="sh-btn-skip-back" title="Reculer de 10s (←)">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                                <span class="sh-micro-num">10</span>
-                            </button>
-                            <button class="sh-micro-btn" id="sh-btn-skip-fwd" title="Avancer de 10s (→)">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-                                <span class="sh-micro-num">10</span>
-                            </button>
-
-                            <!-- Volume Slider Coulissant -->
-                            <div class="sh-volume-flow-box">
-                                <button class="sh-micro-btn" id="sh-btn-volume" title="Volume / Muet (M)">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-                                </button>
-                                <div class="sh-volume-track">
-                                    <input type="range" class="sh-volume-range" id="sh-volume-range" min="0" max="1" step="0.02" value="${this._volume}">
-                                </div>
-                            </div>
-
-                            <!-- Horodatage Élégant -->
-                            <div class="sh-time-flow-label">
-                                <span id="sh-time-elapsed">00:00:00</span>
-                                <span class="sh-time-slash">/</span>
-                                <span class="sh-time-total" id="sh-time-total">00:00:00</span>
-                            </div>
-                        </div>
-
-                        <!-- Groupe Droite : Tiroirs & Réglages Épurés -->
-                        <div class="sh-ribbon-group sh-ribbon-group--right">
+                    <!-- Section Centrale : Timeline Scrubber Étendu (Zéro Vide) -->
+                    <div class="sh-ribbon-timeline-wrapper">
+                        <div class="sh-ribbon-timeline" id="sh-timeline-track">
+                            <div class="sh-ribbon-timeline-bg"></div>
+                            <div class="sh-ribbon-timeline-buffered" id="sh-timeline-buffer"></div>
+                            <div class="sh-ribbon-timeline-played" id="sh-timeline-played"></div>
+                            <div class="sh-ribbon-timeline-thumb" id="sh-timeline-handle"></div>
                             
-                            <!-- Épisode Précédent / Suivant (Séries) -->
-                            <button class="sh-micro-btn" id="sh-btn-prev-ep" title="Épisode précédent" style="display:none;">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
-                            </button>
-                            <button class="sh-micro-btn" id="sh-btn-next-ep" title="Épisode suivant" style="display:none;">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
-                            </button>
-
-                            <!-- Bouton Tiroir Épisodes (Séries) -->
-                            <button class="sh-dock-pill-btn" id="sh-btn-open-episodes" title="Liste des épisodes" style="display:none;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
-                                <span>Épisodes</span>
-                            </button>
-
-                            <!-- Bouton Tiroir Audio & Sous-titres avec Icône SF Pro Stylisée -->
-                            <button class="sh-dock-pill-btn" id="sh-btn-open-audio-subs" title="Pistes Audio & Sous-Titres (S)">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
-                                <span>Audio & Subs</span>
-                            </button>
-
-                            <!-- Bouton Tiroir Vitesse & Réglages avec Icône Sliders SF Pro -->
-                            <button class="sh-dock-pill-btn" id="sh-btn-open-settings" title="Vitesse & Réglages (C)">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-                                <span id="sh-speed-indicator">${this._playbackRate}x</span>
-                            </button>
-
+                            <div class="sh-timeline-tooltip" id="sh-timeline-tooltip">
+                                <span id="sh-tooltip-time">00:00:00</span>
+                            </div>
                         </div>
+                        <!-- Horodatage Restant -->
+                        <span class="sh-time-remaining-label" id="sh-time-remaining">-00:00:00</span>
+                    </div>
+
+                    <!-- Section Droite : Volume Compact & Tiroirs Rapides -->
+                    <div class="sh-ribbon-group sh-ribbon-group--right">
+                        
+                        <!-- Volume Coulissant Compact -->
+                        <div class="sh-volume-flow-box">
+                            <button class="sh-micro-btn" id="sh-btn-volume" title="Volume / Muet (M)">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                            </button>
+                            <div class="sh-volume-track">
+                                <input type="range" class="sh-volume-range" id="sh-volume-range" min="0" max="1" step="0.02" value="${this._volume}">
+                            </div>
+                        </div>
+
+                        <!-- Épisode Précédent / Suivant (Séries) -->
+                        <button class="sh-micro-btn" id="sh-btn-prev-ep" title="Épisode précédent" style="display:none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+                        </button>
+                        <button class="sh-micro-btn" id="sh-btn-next-ep" title="Épisode suivant" style="display:none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                        </button>
+
+                        <!-- Bouton Tiroir Épisodes (Séries) -->
+                        <button class="sh-dock-pill-btn" id="sh-btn-open-episodes" title="Liste des épisodes" style="display:none;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
+                            <span>Épisodes</span>
+                        </button>
+
+                        <!-- Bouton Tiroir Audio & Sous-titres -->
+                        <button class="sh-dock-pill-btn" id="sh-btn-open-audio-subs" title="Pistes Audio & Sous-Titres (S)">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+                            <span>Audio & Subs</span>
+                        </button>
+
+                        <!-- Bouton Tiroir Vitesse & Réglages -->
+                        <button class="sh-dock-pill-btn" id="sh-btn-open-settings" title="Vitesse & Réglages (C)">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                            <span id="sh-speed-indicator">${this._playbackRate}x</span>
+                        </button>
 
                     </div>
 
@@ -452,7 +440,9 @@ class VideoPlayer {
                         <button class="sh-drawer-tab-btn ${this._activeDrawerTab === 'settings' ? 'active' : ''}" data-tab="settings">Réglages</button>
                         <button class="sh-drawer-tab-btn ${this._activeDrawerTab === 'episodes' ? 'active' : ''}" data-tab="episodes" id="sh-drawer-tab-episodes-btn" style="${this._seasonEpisodes.length > 0 ? '' : 'display:none;'}">Épisodes</button>
                     </div>
-                    <button class="sh-drawer-close-btn" id="sh-drawer-close" title="Fermer le volet">✕</button>
+                    <button class="sh-drawer-close-btn" id="sh-drawer-close" title="Fermer le volet">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                 </div>
 
                 <div class="sh-drawer-body sh-scrollbar" id="sh-drawer-content">
@@ -856,6 +846,18 @@ class VideoPlayer {
                     `).join('')}
                 </div>
             </div>
+
+            <div class="sh-drawer-section">
+                <h4 class="sh-drawer-kicker">SYNCHRONISATION DES SOUS-TITRES</h4>
+                <div class="sh-sync-grid">
+                    <button class="sh-sync-btn" data-offset="-0.5">-0.5s</button>
+                    <button class="sh-sync-btn" data-offset="-0.1">-0.1s</button>
+                    <button class="sh-sync-btn sh-sync-btn--reset" data-offset="0">0.0s (Réinit)</button>
+                    <button class="sh-sync-btn" data-offset="+0.1">+0.1s</button>
+                    <button class="sh-sync-btn" data-offset="+0.5">+0.5s</button>
+                </div>
+                <p class="sh-sync-label">Décalage actif : <strong id="sh-drawer-offset-val-settings">${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s</strong></p>
+            </div>
         `;
 
         container.querySelectorAll('[data-speed]').forEach(btn => {
@@ -864,7 +866,8 @@ class VideoPlayer {
                 this._playbackRate = spd;
                 this._video.playbackRate = spd;
                 localStorage.setItem('SpaceHub_playback_speed', String(spd));
-                this._el.querySelector('#sh-speed-indicator').textContent = `${spd}x`;
+                const speedInd = this._el.querySelector('#sh-speed-indicator');
+                if (speedInd) speedInd.textContent = `${spd}x`;
                 this._renderSettingsTab(container);
                 this._showFlashOSD('⚡', `Vitesse : ${spd}x`);
             });
@@ -878,6 +881,19 @@ class VideoPlayer {
                 this._video.style.objectFit = mode;
                 this._renderSettingsTab(container);
                 this._showFlashOSD('📐', aspectLabels[mode] || mode);
+            });
+        });
+
+        container.querySelectorAll('.sh-sync-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const delta = parseFloat(btn.dataset.offset);
+                if (delta === 0) this._subOffset = 0;
+                else this._subOffset = Math.round((this._subOffset + delta) * 10) / 10;
+
+                this._applySubtitleOffset();
+                const label = container.querySelector('#sh-drawer-offset-val-settings');
+                if (label) label.textContent = `${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s`;
+                this._showFlashOSD('⏱️', `Sous-titres ${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s`);
             });
         });
     }
@@ -1057,11 +1073,14 @@ class VideoPlayer {
         if (!this._video || this._isScrubbing) return;
         const cur = this._video.currentTime || 0;
         const dur = this._video.duration || 0;
+        const rem = Math.max(0, dur - cur);
 
         const elElapsed = this._el?.querySelector('#sh-time-elapsed');
         const elTotal = this._el?.querySelector('#sh-time-total');
+        const elRemaining = this._el?.querySelector('#sh-time-remaining');
         if (elElapsed) elElapsed.textContent = this._formatTime(cur);
         if (elTotal) elTotal.textContent = this._formatTime(dur);
+        if (elRemaining) elRemaining.textContent = `-${this._formatTime(rem)}`;
 
         const pct = dur > 0 ? (cur / dur) * 100 : 0;
         const elPlayed = this._el?.querySelector('#sh-timeline-played');
@@ -1374,7 +1393,7 @@ class VideoPlayer {
         style.id = 'sh-grand-cinema-styles-v3';
         style.textContent = `
 /* ═══════════════════════════════════════════════════════════════════════════
-   SpaceHub — Grand Cinema Video Player v3.1.0 (Apple TV Ultra-Sleek Ribbon)
+   SpaceHub — Grand Cinema Video Player v3.2.0 (Apple TV+ Studio Layout)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Neutralisation Absolue des Éléments Parasites */
@@ -1434,7 +1453,7 @@ body.sh-cinema-active .dialogBackdrop {
 .sh-ambient-halo {
     position: absolute;
     inset: -10%;
-    background: radial-gradient(circle at center, rgba(255, 159, 10, 0.07) 0%, transparent 70%);
+    background: radial-gradient(circle at center, rgba(255, 159, 10, 0.06) 0%, transparent 70%);
     pointer-events: none;
     z-index: 2;
 }
@@ -1444,8 +1463,8 @@ body.sh-cinema-active .dialogBackdrop {
     top: 0;
     left: 0;
     right: 0;
-    height: 160px;
-    background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 65%, transparent 100%);
+    height: 140px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 65%, transparent 100%);
     pointer-events: none;
     z-index: 4;
     transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1455,8 +1474,8 @@ body.sh-cinema-active .dialogBackdrop {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 200px;
-    background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 65%, transparent 100%);
+    height: 180px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 65%, transparent 100%);
     pointer-events: none;
     z-index: 4;
     transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1486,7 +1505,7 @@ body.sh-cinema-active .dialogBackdrop {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     z-index: 40;
     opacity: 0;
     pointer-events: none;
@@ -1495,23 +1514,23 @@ body.sh-cinema-active .dialogBackdrop {
 .sh-cinema-buffering.visible { opacity: 1; }
 .sh-buffering-glass {
     position: relative;
-    width: 54px;
-    height: 54px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
-    background: rgba(12, 12, 16, 0.85);
+    background: rgba(14, 14, 20, 0.65);
     backdrop-filter: blur(30px);
     border: 1px solid rgba(255, 255, 255, 0.15);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 16px 40px rgba(0,0,0,0.8), 0 0 25px rgba(255, 159, 10, 0.35);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.8), 0 0 20px rgba(255, 159, 10, 0.35);
 }
 .sh-buffering-dot {
-    width: 7px;
-    height: 7px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: #ff9f0a;
-    box-shadow: 0 0 8px #ff9f0a, 0 0 14px rgba(255, 159, 10, 0.9);
+    box-shadow: 0 0 8px #ff9f0a, 0 0 12px rgba(255, 159, 10, 0.9);
 }
 .sh-buffering-ring {
     position: absolute;
@@ -1527,7 +1546,7 @@ body.sh-cinema-active .dialogBackdrop {
     100% { transform: rotate(360deg); }
 }
 .sh-buffering-label {
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.75);
     letter-spacing: 0.3px;
@@ -1553,14 +1572,14 @@ body.sh-cinema-active .dialogBackdrop {
     align-items: center;
     justify-content: center;
     gap: 4px;
-    width: 76px;
-    height: 76px;
+    width: 72px;
+    height: 72px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.16);
+    background: rgba(14, 14, 20, 0.65);
     backdrop-filter: blur(28px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     color: #fff;
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 700;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 159, 10, 0.4);
     opacity: 0;
@@ -1580,12 +1599,12 @@ body.sh-cinema-active .dialogBackdrop {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   🍏 TOP BAR : EN-TÊTE CINÉMA APPLE TV+ TOUT-EN-UN À GAUCHE
+   🍏 TOP BAR : EN-TÊTE CINÉMA TRANSLUCIDE ÉPURÉ
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .sh-cinema-topbar {
     position: absolute;
-    top: 24px;
+    top: 22px;
     left: 28px;
     right: 28px;
     display: flex;
@@ -1598,21 +1617,21 @@ body.sh-cinema-active .dialogBackdrop {
 .sh-topbar-brand-capsule {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 6px 16px 6px 8px;
-    background: rgba(12, 12, 16, 0.85);
-    backdrop-filter: blur(50px) saturate(220%);
-    -webkit-backdrop-filter: blur(50px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    gap: 10px;
+    padding: 5px 16px 5px 6px;
+    background: rgba(14, 14, 20, 0.48);
+    backdrop-filter: blur(36px) saturate(190%);
+    -webkit-backdrop-filter: blur(36px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 999px;
-    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .sh-back-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
+    padding: 5px 12px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -1624,13 +1643,13 @@ body.sh-cinema-active .dialogBackdrop {
 }
 .sh-back-btn:hover {
     background: rgba(255, 255, 255, 0.18);
-    transform: scale(1.04);
+    transform: scale(1.03);
 }
 
 .sh-capsule-divider {
     width: 1px;
-    height: 18px;
-    background: rgba(255, 255, 255, 0.14);
+    height: 16px;
+    background: rgba(255, 255, 255, 0.12);
 }
 
 .sh-media-meta-group {
@@ -1654,8 +1673,8 @@ body.sh-cinema-active .dialogBackdrop {
     background: #ffb340;
 }
 .sh-media-title {
-    font-size: 14px;
-    font-weight: 800;
+    font-size: 13.5px;
+    font-weight: 700;
     color: #ffffff;
     letter-spacing: -0.2px;
 }
@@ -1665,36 +1684,8 @@ body.sh-cinema-active .dialogBackdrop {
 }
 .sh-media-sub {
     font-size: 12px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.65);
-}
-
-.sh-capsule-badges {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-left: 4px;
-}
-.sh-badge-amber {
-    font-size: 8.5px;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-    padding: 2px 6px;
-    border-radius: 5px;
-    background: rgba(255, 159, 10, 0.16);
-    border: 1px solid rgba(255, 159, 10, 0.4);
-    color: #ff9f0a;
-    box-shadow: 0 0 10px rgba(255, 159, 10, 0.2);
-}
-.sh-badge-ice {
-    font-size: 8.5px;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-    padding: 2px 6px;
-    border-radius: 5px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #ffffff;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
 }
 
 /* Actions Droite */
@@ -1703,19 +1694,19 @@ body.sh-cinema-active .dialogBackdrop {
     align-items: center;
     gap: 4px;
     padding: 4px 6px;
-    background: rgba(12, 12, 16, 0.85);
-    backdrop-filter: blur(50px) saturate(220%);
-    -webkit-backdrop-filter: blur(50px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(14, 14, 20, 0.48);
+    backdrop-filter: blur(36px) saturate(190%);
+    -webkit-backdrop-filter: blur(36px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 999px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 .sh-top-icon-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     background: transparent;
     border: none;
@@ -1726,7 +1717,7 @@ body.sh-cinema-active .dialogBackdrop {
 .sh-top-icon-btn:hover {
     color: #ffffff;
     background: rgba(255, 255, 255, 0.16);
-    transform: scale(1.1);
+    transform: scale(1.08);
 }
 
 /* ── Flash OSD Jauge ─────────────────────────────────────────────────── */
@@ -1735,16 +1726,16 @@ body.sh-cinema-active .dialogBackdrop {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0.85);
-    background: rgba(12, 12, 16, 0.92);
-    backdrop-filter: blur(50px) saturate(220%);
-    -webkit-backdrop-filter: blur(50px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.9), 0 0 35px rgba(255, 159, 10, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    border-radius: 24px;
-    padding: 14px 24px;
+    background: rgba(14, 14, 20, 0.85);
+    backdrop-filter: blur(40px) saturate(200%);
+    -webkit-backdrop-filter: blur(40px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 159, 10, 0.2);
+    border-radius: 20px;
+    padding: 12px 22px;
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     z-index: 50;
     opacity: 0;
     pointer-events: none;
@@ -1754,12 +1745,12 @@ body.sh-cinema-active .dialogBackdrop {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
 }
-.sh-osd-icon-wrap { font-size: 22px; }
+.sh-osd-icon-wrap { font-size: 20px; }
 .sh-osd-info { display: flex; flex-direction: column; gap: 4px; }
-.sh-osd-text { font-size: 14px; font-weight: 700; color: #fff; }
+.sh-osd-text { font-size: 13.5px; font-weight: 700; color: #fff; }
 .sh-osd-gauge {
     width: 120px;
-    height: 5px;
+    height: 4px;
     background: rgba(255, 255, 255, 0.18);
     border-radius: 999px;
     overflow: hidden;
@@ -1780,11 +1771,11 @@ body.sh-cinema-active .dialogBackdrop {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 18px;
-    background: rgba(12, 12, 16, 0.92);
-    backdrop-filter: blur(36px) saturate(220%);
-    -webkit-backdrop-filter: blur(36px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    padding: 9px 16px;
+    background: rgba(14, 14, 20, 0.82);
+    backdrop-filter: blur(36px) saturate(200%);
+    -webkit-backdrop-filter: blur(36px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 999px;
     color: #fff;
     font-size: 12px;
@@ -1805,7 +1796,7 @@ body.sh-cinema-active .dialogBackdrop {
 .sh-smart-skip-pill:hover {
     background: rgba(255, 159, 10, 0.25);
     border-color: #ff9f0a;
-    transform: scale(1.05);
+    transform: scale(1.04);
 }
 
 .sh-next-ep-card {
@@ -1813,11 +1804,11 @@ body.sh-cinema-active .dialogBackdrop {
     bottom: 95px;
     right: 32px;
     width: 360px;
-    background: rgba(12, 12, 16, 0.96);
-    backdrop-filter: blur(48px) saturate(220%);
-    -webkit-backdrop-filter: blur(48px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 20px;
+    background: rgba(14, 14, 20, 0.90);
+    backdrop-filter: blur(48px) saturate(200%);
+    -webkit-backdrop-filter: blur(48px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 18px;
     box-shadow: 0 30px 80px rgba(0,0,0,0.9);
     z-index: 15;
     padding: 12px;
@@ -1854,11 +1845,11 @@ body.sh-cinema-active .dialogBackdrop {
     font-size: 18px;
 }
 .sh-next-ep-meta { flex: 1; min-width: 0; }
-.sh-next-ep-kicker { font-size: 9.5px; font-weight: 800; color: #ff9f0a; letter-spacing: 0.5px; }
+.sh-next-ep-kicker { font-size: 9px; font-weight: 800; color: #ff9f0a; letter-spacing: 0.5px; }
 .sh-next-ep-name { margin: 2px 0 0; font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sh-next-ep-btns { display: flex; align-items: center; gap: 6px; }
 .sh-next-ep-play-btn {
-    padding: 7px 14px;
+    padding: 6px 13px;
     background: #ff9f0a;
     border: none;
     border-radius: 999px;
@@ -1869,7 +1860,7 @@ body.sh-cinema-active .dialogBackdrop {
     box-shadow: 0 4px 15px rgba(255, 159, 10, 0.4);
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.45, 1);
 }
-.sh-next-ep-play-btn:hover { transform: scale(1.08); }
+.sh-next-ep-play-btn:hover { transform: scale(1.06); }
 .sh-next-ep-close-btn {
     width: 26px;
     height: 26px;
@@ -1881,7 +1872,7 @@ body.sh-cinema-active .dialogBackdrop {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   🍏 GRAND CINEMA LIQUID DOCK (Capsule Ultra-Fine 52px)
+   🍏 GRAND CINEMA LIQUID DOCK (Disposition Studio Apple TV+ Rééquilibrée)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .sh-cinema-dock-anchor {
@@ -1902,8 +1893,8 @@ body.sh-cinema-active .dialogBackdrop {
     left: 50%;
     transform: translateX(-50%);
     width: min(860px, 90vw);
-    height: 32px;
-    background: radial-gradient(ellipse at center, rgba(255, 159, 10, 0.25) 0%, transparent 70%);
+    height: 30px;
+    background: radial-gradient(ellipse at center, rgba(255, 159, 10, 0.20) 0%, transparent 70%);
     pointer-events: none;
     filter: blur(14px);
     z-index: 19;
@@ -1911,38 +1902,113 @@ body.sh-cinema-active .dialogBackdrop {
 
 .sh-liquid-ribbon-dock {
     position: relative;
-    width: min(920px, 100%);
+    width: min(1040px, 100%);
     height: 52px;
-    background: rgba(12, 12, 16, 0.85);
-    backdrop-filter: blur(50px) saturate(220%);
-    -webkit-backdrop-filter: blur(50px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(14, 14, 20, 0.48);
+    backdrop-filter: blur(36px) saturate(190%);
+    -webkit-backdrop-filter: blur(36px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 999px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.18);
     display: flex;
     align-items: center;
-    padding: 0 14px 0 8px;
+    justify-content: space-between;
+    padding: 0 12px 0 8px;
     z-index: 21;
+    gap: 12px;
 }
 
-/* ── Timeline Intégrée en Bordure Supérieure ─────────────────────────── */
-.sh-ribbon-timeline {
+/* ── Section Gauche : Commandes Transport Proportionnées ──────────────── */
+.sh-ribbon-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+/* Master Play/Pause Button (34px Proportionné) */
+.sh-pearl-play-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: none;
+    color: #000000;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(255, 255, 255, 0.40), 0 0 16px rgba(255, 159, 10, 0.30);
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.45, 1), box-shadow 0.22s ease;
+    flex-shrink: 0;
+}
+.sh-pearl-play-btn:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.65), 0 0 20px rgba(255, 159, 10, 0.45);
+}
+.sh-pearl-play-btn:active { transform: scale(0.94); }
+
+/* Micro Boutons Transport (30px) */
+.sh-micro-btn {
+    position: relative;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.85);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+}
+.sh-micro-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+    transform: scale(1.06);
+}
+.sh-micro-num {
     position: absolute;
-    top: -3px;
-    left: 20px;
-    right: 20px;
-    height: 8px;
+    font-size: 7px;
+    font-weight: 800;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.sh-time-elapsed-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.90);
+    font-variant-numeric: tabular-nums;
+    margin: 0 4px 0 6px;
+}
+
+/* ── Section Centrale : Timeline Scrubber Étendu ─────────────────────── */
+.sh-ribbon-timeline-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 160px;
+}
+
+.sh-ribbon-timeline {
+    position: relative;
+    flex: 1;
+    height: 18px;
     display: flex;
     align-items: center;
     cursor: pointer;
-    z-index: 25;
 }
 
 .sh-ribbon-timeline-bg {
     position: absolute;
     left: 0;
     right: 0;
-    height: 3px;
+    height: 4px;
     background: rgba(255, 255, 255, 0.16);
     border-radius: 999px;
     transition: height 0.18s cubic-bezier(0.34, 1.56, 0.45, 1);
@@ -1952,9 +2018,9 @@ body.sh-cinema-active .dialogBackdrop {
 .sh-ribbon-timeline-buffered {
     position: absolute;
     left: 0;
-    height: 3px;
+    height: 4px;
     width: 0%;
-    background: rgba(255, 255, 255, 0.32);
+    background: rgba(255, 255, 255, 0.30);
     border-radius: 999px;
     pointer-events: none;
     transition: height 0.18s;
@@ -1964,12 +2030,12 @@ body.sh-cinema-active .dialogBackdrop {
 .sh-ribbon-timeline-played {
     position: absolute;
     left: 0;
-    height: 3px;
+    height: 4px;
     width: 0%;
     background: linear-gradient(90deg, #ff9f0a 0%, #ffc04d 100%);
     border-radius: 999px;
     pointer-events: none;
-    box-shadow: 0 0 12px rgba(255, 159, 10, 0.85);
+    box-shadow: 0 0 10px rgba(255, 159, 10, 0.85);
     transition: height 0.18s;
 }
 .sh-ribbon-timeline:hover .sh-ribbon-timeline-played { height: 6px; }
@@ -1991,13 +2057,13 @@ body.sh-cinema-active .dialogBackdrop {
 
 .sh-timeline-tooltip {
     position: absolute;
-    bottom: 18px;
+    bottom: 22px;
     left: 0%;
     transform: translateX(-50%);
     padding: 3px 7px;
-    background: rgba(12, 12, 16, 0.98);
+    background: rgba(14, 14, 20, 0.95);
     backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.20);
     border-radius: 6px;
     color: #fff;
     font-size: 10.5px;
@@ -2010,73 +2076,15 @@ body.sh-cinema-active .dialogBackdrop {
 }
 .sh-ribbon-timeline:hover .sh-timeline-tooltip { opacity: 1; }
 
-/* ── Rangée de Commandes ─────────────────────────────────────────────── */
-.sh-ribbon-controls-row {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+.sh-time-remaining-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.65);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
-.sh-ribbon-group {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-/* Master Play/Pause Button */
-.sh-pearl-play-btn {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    background: #ffffff;
-    border: none;
-    color: #000000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 18px rgba(255, 255, 255, 0.45), 0 0 20px rgba(255, 159, 10, 0.35);
-    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.45, 1), box-shadow 0.22s ease;
-    flex-shrink: 0;
-}
-.sh-pearl-play-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 24px rgba(255, 255, 255, 0.7), 0 0 25px rgba(255, 159, 10, 0.5);
-}
-.sh-pearl-play-btn:active { transform: scale(0.92); }
-
-/* Micro Boutons Transport */
-.sh-micro-btn {
-    position: relative;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.85);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-micro-btn:hover {
-    background: rgba(255, 255, 255, 0.14);
-    color: #fff;
-    transform: scale(1.08);
-}
-.sh-micro-num {
-    position: absolute;
-    font-size: 7.5px;
-    font-weight: 800;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-/* Volume Slider Box */
+/* ── Section Droite : Volume Compact & Tiroirs ───────────────────────── */
 .sh-volume-flow-box {
     display: flex;
     align-items: center;
@@ -2084,45 +2092,31 @@ body.sh-cinema-active .dialogBackdrop {
     padding-right: 4px;
 }
 .sh-volume-track {
-    width: 54px;
+    width: 46px;
     display: flex;
     align-items: center;
 }
 .sh-volume-range {
-    width: 54px;
+    width: 46px;
     height: 3px;
     accent-color: #ff9f0a;
     cursor: pointer;
 }
 
-/* Time Label */
-.sh-time-flow-label {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.85);
-    font-variant-numeric: tabular-nums;
-    margin-left: 6px;
-}
-.sh-time-slash { color: rgba(255, 255, 255, 0.35); }
-.sh-time-total { color: rgba(255, 255, 255, 0.55); }
-
-/* Boutons Pills Droite */
 .sh-dock-pill-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
+    padding: 5px 12px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.90);
     font-size: 11.5px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
 }
 .sh-dock-pill-btn:hover {
     background: rgba(255, 255, 255, 0.18);
@@ -2139,7 +2133,7 @@ body.sh-cinema-active .dialogBackdrop {
     position: absolute;
     inset: 0;
     background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px);
     z-index: 95;
     opacity: 0;
     pointer-events: none;
@@ -2156,10 +2150,10 @@ body.sh-cinema-active .dialogBackdrop {
     right: 0;
     bottom: 0;
     width: min(390px, 90vw);
-    background: rgba(12, 12, 16, 0.96);
-    backdrop-filter: blur(50px) saturate(220%);
-    -webkit-backdrop-filter: blur(50px) saturate(220%);
-    border-left: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(14, 14, 20, 0.88);
+    backdrop-filter: blur(50px) saturate(200%);
+    -webkit-backdrop-filter: blur(50px) saturate(200%);
+    border-left: 1px solid rgba(255, 255, 255, 0.14);
     box-shadow: -24px 0 70px rgba(0, 0, 0, 0.95);
     z-index: 100;
     display: flex;
@@ -2176,7 +2170,7 @@ body.sh-cinema-active .dialogBackdrop {
     align-items: center;
     justify-content: space-between;
     padding: 16px 18px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
     gap: 10px;
 }
 
@@ -2190,21 +2184,21 @@ body.sh-cinema-active .dialogBackdrop {
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .sh-drawer-tab-btn {
-    padding: 5px 11px;
+    padding: 5px 12px;
     border-radius: 999px;
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.70);
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.18s ease;
 }
 .sh-drawer-tab-btn:hover { color: #fff; }
 .sh-drawer-tab-btn.active {
-    background: #ff9f0a;
-    color: #000000;
-    box-shadow: 0 2px 10px rgba(255, 159, 10, 0.35);
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
 }
 
 .sh-drawer-close-btn {
@@ -2215,13 +2209,15 @@ body.sh-cinema-active .dialogBackdrop {
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: #fff;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    line-height: 0 !important;
     transition: all 0.2s ease;
 }
 .sh-drawer-close-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.20);
     transform: scale(1.08);
 }
 
@@ -2267,7 +2263,7 @@ body.sh-cinema-active .dialogBackdrop {
     transition: all 0.18s ease;
 }
 .sh-drawer-item:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.10);
     color: #fff;
     transform: translateX(2px);
 }
@@ -2295,7 +2291,7 @@ body.sh-cinema-active .dialogBackdrop {
     font-weight: 800;
     padding: 2px 5px;
     border-radius: 4px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.10);
 }
 
 .sh-sync-grid {
@@ -2319,7 +2315,7 @@ body.sh-cinema-active .dialogBackdrop {
 .sh-sync-label {
     margin: 4px 0 0;
     font-size: 10.5px;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.60);
 }
 
 .sh-btn-search-online {
@@ -2339,7 +2335,7 @@ body.sh-cinema-active .dialogBackdrop {
     transition: all 0.2s ease;
 }
 .sh-btn-search-online:hover {
-    background: rgba(255, 159, 10, 0.2);
+    background: rgba(255, 159, 10, 0.20);
     border-color: #ff9f0a;
 }
 
@@ -2361,10 +2357,10 @@ body.sh-cinema-active .dialogBackdrop {
 }
 .sh-chip-btn:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
 .sh-chip-btn.active {
-    background: #ff9f0a;
-    color: #000;
-    border-color: #ff9f0a;
-    box-shadow: 0 2px 10px rgba(255, 159, 10, 0.35);
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
 }
 
 .sh-episodes-grid {
@@ -2383,7 +2379,7 @@ body.sh-cinema-active .dialogBackdrop {
     transition: all 0.2s ease;
 }
 .sh-episode-card:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.10);
     transform: translateY(-2px);
 }
 .sh-episode-card.active {
@@ -2400,58 +2396,11 @@ body.sh-cinema-active .dialogBackdrop {
     background: #000;
 }
 .sh-episode-card__thumb img { width: 100%; height: 100%; object-fit: cover; }
-.sh-episode-card__badge {
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    background: rgba(0,0,0,0.8);
-    padding: 2px 5px;
-    border-radius: 3px;
-    font-size: 9px;
-    font-weight: 700;
-}
-.sh-episode-card__playing {
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 159, 10, 0.75);
-    color: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 800;
-}
-.sh-episode-card__meta {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 3px;
-}
-.sh-episode-card__title {
-    margin: 0;
-    font-size: 12px;
-    font-weight: 600;
-    color: #fff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.sh-episode-card__runtime {
-    font-size: 10.5px;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.sh-drawer-empty {
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 12px;
-    padding: 14px;
-}
-
-.sh-scrollbar::-webkit-scrollbar { width: 4px; }
-.sh-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
-        `;
+.sh-episode-card__body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.sh-episode-card__kicker { font-size: 9.5px; font-weight: 800; color: #ff9f0a; }
+.sh-episode-card__title { margin: 0; font-size: 11.5px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh-episode-card__duration { font-size: 10px; color: rgba(255,255,255,0.5); }
+`;
         document.head.appendChild(style);
     }
 }
