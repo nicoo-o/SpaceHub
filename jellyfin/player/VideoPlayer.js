@@ -1,11 +1,11 @@
 /**
- * SpaceHub — Standalone Cinema Video Player (Apple VisionOS & Apple TV+ Pro)
- * Version: 2.1.0
+ * SpaceHub — Standalone Cinema Video Player (Apple VisionOS & SpaceHub Grand Cinema)
+ * Version: 2.2.0
  *
- * Lecteur vidéo plein écran cinématique de nouvelle génération :
- *  - Lancement instantané (0ms latency DOM mount avec spinner cinématique VisionOS)
+ * Lecteur vidéo plein écran cinématique parfaitement harmonisé avec SpaceHub :
  *  - Design System Apple VisionOS : Verre dépoli 48px blur, reflets spéculaires 1px, noir OLED profond
- *  - Unified Floating Glass Dock : Timeline liquide et commandes fusionnées dans un dock ergonomique
+ *  - Top Bar en Îlots de Verre (Glass Islands) : Pastille Retour, Capsule Titre Cinéma & Badges 4K/Atmos
+ *  - Unified Floating Glass Dock : Timeline liquide électrique, contrôles ergonomiques et halo d'ambiance
  *  - Micro-interactions & Spring Physics : Rebond élastique du bouton Play/Pause, rotation des sauts 10s
  *  - Double-clic / Double-tap Ripple Waves : Sauts temporels avec ondes visuelles fluides
  *  - Tiroir d'Épisodes Rapide (Episode Quick Picker) : Changement d'épisode instantané sans quitter la vidéo
@@ -68,7 +68,7 @@ class VideoPlayer {
     }
 
     /**
-     * Lance la lecture d'un média Jellyfin avec affichage immédiat 0ms.
+     * Lance la lecture d'un média Jellyfin avec affichage instantané 0ms.
      * @param {Object} item - Média (Film, Épisode, Vidéo)
      * @param {number} [startPositionTicks=0]
      */
@@ -78,7 +78,7 @@ class VideoPlayer {
         const itemId = item.Id || item.id;
         this._log.info(`🎬 Lancement Apple VisionOS Player pour "${item.Name || item.title}" (ID: ${itemId})...`);
 
-        // 1. Montage DOM instantané (0ms) pour un retour visuel immédiat
+        // 1. Montage DOM instantané (0ms)
         this._createPlayerDOM(item);
         this._initMediaStreams(item);
 
@@ -94,7 +94,7 @@ class VideoPlayer {
         this._startProgressReporting();
         this._resetIdleTimer();
 
-        // 2. Chargement asynchrone en arrière-plan sans bloquer l'affichage
+        // 2. Enrichissement asynchrone des métadonnées
         this._enrichMediaData(item, itemId);
     }
 
@@ -212,14 +212,14 @@ class VideoPlayer {
         const drawerBtn = this._el?.querySelector('#sh-btn-episodes-drawer');
 
         if (this._seasonEpisodes.length > 0) {
-            if (drawerBtn) drawerBtn.style.display = 'flex';
+            if (drawerBtn) drawerBtn.style.display = 'inline-flex';
             if (prevBtn) {
-                prevBtn.style.display = 'flex';
+                prevBtn.style.display = 'inline-flex';
                 prevBtn.disabled = !this._prevEpisode;
                 prevBtn.style.opacity = this._prevEpisode ? '1' : '0.35';
             }
             if (nextBtn) {
-                nextBtn.style.display = 'flex';
+                nextBtn.style.display = 'inline-flex';
                 nextBtn.disabled = !this._nextEpisode;
                 nextBtn.style.opacity = this._nextEpisode ? '1' : '0.35';
             }
@@ -238,9 +238,7 @@ class VideoPlayer {
         const seriesName = item.SeriesName || (isEpisode ? title : '');
         const episodeNumber = isEpisode ? `S${String(item.ParentIndexNumber || 1).padStart(2, '0')}E${String(item.IndexNumber || 1).padStart(2, '0')}` : '';
         const episodeTitle = isEpisode ? (item.Name || title) : '';
-        const metaSubtitle = isEpisode 
-            ? `${episodeNumber} · « ${episodeTitle} »` 
-            : (item.ProductionYear ? `${item.ProductionYear} · ${item.OfficialRating || '4K Ultra HD'}` : 'Film');
+        const year = item.ProductionYear || '';
 
         this._el = document.createElement('div');
         this._el.id = 'sh-cinema-player';
@@ -262,50 +260,62 @@ class VideoPlayer {
             <!-- Zones Interactives Gauche / Droite pour Double-Tap Ripple -->
             <div class="sh-gesture-tap-zone sh-gesture-left" id="sh-zone-left">
                 <div class="sh-ripple-indicator" id="sh-ripple-left">
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>
                     <span>-10s</span>
                 </div>
             </div>
             <div class="sh-gesture-tap-zone sh-gesture-right" id="sh-zone-right">
                 <div class="sh-ripple-indicator" id="sh-ripple-right">
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 17l5-5-5-5M6 17l5-5-5-5"/></svg>
                     <span>+10s</span>
                 </div>
             </div>
 
-            <!-- 🍏 Top Bar : Apple VisionOS Floating Pill -->
-            <header class="sh-player-topbar">
-                <button class="sh-player-back-pill" id="sh-player-back-btn" title="Quitter la lecture (Échap)">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                    <span>Quitter</span>
-                </button>
-
-                <div class="sh-player-title-block">
-                    <div class="sh-player-primary-title">${this._escape(isEpisode ? seriesName : title)}</div>
-                    <div class="sh-player-secondary-title">${this._escape(metaSubtitle)}</div>
-                </div>
-
-                <div class="sh-player-badges-strip">
-                    <span class="sh-pbadge-vision sh-pbadge--gold">4K DOLBY VISION</span>
-                    <span class="sh-pbadge-vision sh-pbadge--blue">ATMOS 7.1</span>
-                    <span class="sh-pbadge-vision">IMAX ENHANCED</span>
-                </div>
-
-                <div class="sh-player-top-actions">
-                    <button class="sh-top-glass-btn" id="sh-btn-episodes-drawer" title="Liste des épisodes" style="display:none;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                        <span>Épisodes</span>
-                    </button>
-                    <button class="sh-top-glass-btn" id="sh-btn-aspect" title="Format d'image (16:9, 21:9)">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
-                    </button>
-                    <button class="sh-top-glass-btn" id="sh-btn-pip" title="Fenêtre flottante (PiP)">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><rect width="8" height="6" x="12" y="12" rx="1" fill="currentColor"/></svg>
-                    </button>
-                    <button class="sh-top-glass-btn" id="sh-btn-fullscreen" title="Plein écran (F)">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+            <!-- 🍏 Top Bar : Apple VisionOS Floating Islands -->
+            <header class="sh-player-topbar-islands">
+                
+                <!-- Îlot Gauche : Quitter -->
+                <div class="sh-topbar-island sh-topbar-island--left">
+                    <button class="sh-player-back-pill" id="sh-player-back-btn" title="Quitter la lecture (Échap)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                        <span>Quitter</span>
                     </button>
                 </div>
+
+                <!-- Îlot Central : Capsule Titre & Badges 4K/Atmos -->
+                <div class="sh-topbar-island sh-topbar-island--center">
+                    <div class="sh-cinema-header-capsule">
+                        <div class="sh-header-capsule-meta">
+                            <span class="sh-header-main-title">${this._escape(isEpisode ? seriesName : title)}</span>
+                            <span class="sh-header-meta-dot">•</span>
+                            <span class="sh-header-sub-title">${isEpisode ? `${episodeNumber} « ${this._escape(episodeTitle)} »` : (year ? `${year} · Film` : 'Cinéma')}</span>
+                        </div>
+                        <div class="sh-header-badges-row">
+                            <span class="sh-chip-vision sh-chip--gold">4K DOLBY VISION</span>
+                            <span class="sh-chip-vision sh-chip--blue">ATMOS 7.1</span>
+                            <span class="sh-chip-vision">IMAX</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Îlot Droite : Actions Rapides -->
+                <div class="sh-topbar-island sh-topbar-island--right">
+                    <div class="sh-header-actions-pill">
+                        <button class="sh-island-icon-btn" id="sh-btn-episodes-drawer" title="Liste des épisodes" style="display:none;">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                        </button>
+                        <button class="sh-island-icon-btn" id="sh-btn-aspect" title="Format d'image (16:9, 21:9)">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
+                        </button>
+                        <button class="sh-island-icon-btn" id="sh-btn-pip" title="Fenêtre flottante (PiP)">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><rect width="8" height="6" x="12" y="12" rx="1" fill="currentColor"/></svg>
+                        </button>
+                        <button class="sh-island-icon-btn" id="sh-btn-fullscreen" title="Plein écran (F)">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                        </button>
+                    </div>
+                </div>
+
             </header>
 
             <!-- 🌟 Centre Flash OSD (Overlay dynamique à jauge circulaire) -->
@@ -358,13 +368,13 @@ class VideoPlayer {
                 </div>
             </aside>
 
-            <!-- 🍏 Unified VisionOS Floating Glass Dock -->
+            <!-- 🍏 UNIFIED VISIONOS LUXURY GLASS DOCK -->
             <div class="sh-player-dock-container">
                 <div class="sh-vision-unified-dock">
                     
                     <!-- Ligne 1 : Timeline Liquide Multi-couches -->
                     <div class="sh-dock-timeline-row">
-                        <span class="sh-dock-time" id="sh-time-elapsed">00:00:00</span>
+                        <div class="sh-dock-time-pill" id="sh-time-elapsed">00:00:00</div>
                         
                         <div class="sh-dock-track-wrap" id="sh-timeline-track">
                             <div class="sh-dock-track-bg"></div>
@@ -378,7 +388,7 @@ class VideoPlayer {
                             </div>
                         </div>
 
-                        <span class="sh-dock-time sh-dock-time--rem" id="sh-time-remaining">-00:00:00</span>
+                        <div class="sh-dock-time-pill sh-dock-time-pill--rem" id="sh-time-remaining">-00:00:00</div>
                     </div>
 
                     <!-- Ligne 2 : Commandes Ergonomiques & Transport -->
@@ -386,44 +396,45 @@ class VideoPlayer {
                         
                         <!-- Gauche : Contrôle Volume Coulissant -->
                         <div class="sh-dock-group sh-dock-group--left">
-                            <div class="sh-volume-expand-pill">
-                                <button class="sh-glass-icon-btn" id="sh-btn-volume" title="Volume / Muet (M)">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                            <div class="sh-volume-luxury-pill">
+                                <button class="sh-glass-round-btn" id="sh-btn-volume" title="Volume / Muet (M)">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
                                 </button>
                                 <div class="sh-volume-track-container">
                                     <input type="range" class="sh-vision-slider" id="sh-volume-range" min="0" max="1" step="0.02" value="${this._volume}">
                                 </div>
+                                <span class="sh-volume-pct-label" id="sh-volume-pct-label">${Math.round(this._volume * 100)}%</span>
                             </div>
                         </div>
 
                         <!-- Centre : Transport Principal & Spring Play/Pause -->
                         <div class="sh-dock-group sh-dock-group--center">
                             <!-- Épisode Précédent -->
-                            <button class="sh-glass-icon-btn sh-btn-nav-ep" id="sh-btn-prev-ep" title="Épisode précédent" style="display:none;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+                            <button class="sh-glass-round-btn sh-btn-nav-ep" id="sh-btn-prev-ep" title="Épisode précédent" style="display:none;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
                             </button>
 
                             <!-- Saut -10s -->
-                            <button class="sh-glass-icon-btn sh-btn-skip-spring" id="sh-btn-skip-back" title="Reculer de 10s (← ou J)">
+                            <button class="sh-glass-round-btn sh-btn-skip-spring" id="sh-btn-skip-back" title="Reculer de 10s (← ou J)">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                                 <span class="sh-skip-tag">10</span>
                             </button>
 
-                            <!-- Play/Pause Géant avec Spring Physics & Halo -->
+                            <!-- 🌟 Play/Pause Géant avec Spring Physics & Halo -->
                             <button class="sh-vision-play-pause-btn" id="sh-btn-play-pause" title="Lecture / Pause (Espace)">
-                                <svg class="sh-icon-play" width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
-                                <svg class="sh-icon-pause" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                                <svg class="sh-icon-play" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+                                <svg class="sh-icon-pause" width="26" height="26" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
                             </button>
 
                             <!-- Saut +10s -->
-                            <button class="sh-glass-icon-btn sh-btn-skip-spring" id="sh-btn-skip-fwd" title="Avancer de 10s (→ ou L)">
+                            <button class="sh-glass-round-btn sh-btn-skip-spring" id="sh-btn-skip-fwd" title="Avancer de 10s (→ ou L)">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
                                 <span class="sh-skip-tag">10</span>
                             </button>
 
                             <!-- Épisode Suivant -->
-                            <button class="sh-glass-icon-btn sh-btn-nav-ep" id="sh-btn-next-ep" title="Épisode suivant" style="display:none;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                            <button class="sh-glass-round-btn sh-btn-nav-ep" id="sh-btn-next-ep" title="Épisode suivant" style="display:none;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
                             </button>
                         </div>
 
@@ -432,8 +443,8 @@ class VideoPlayer {
                             
                             <!-- Bouton & Popover Audio & Sous-titres -->
                             <div class="sh-popover-anchor">
-                                <button class="sh-glass-pill-btn" id="sh-btn-audio-sub-toggle" title="Pistes Audio & Sous-Titres (S)">
-                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                <button class="sh-luxury-pill-btn" id="sh-btn-audio-sub-toggle" title="Pistes Audio & Sous-Titres (S)">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                     <span>Audio & Subs</span>
                                 </button>
 
@@ -484,7 +495,7 @@ class VideoPlayer {
 
                             <!-- Vitesse de lecture -->
                             <div class="sh-popover-anchor">
-                                <button class="sh-glass-pill-btn sh-glass-pill-btn--speed" id="sh-btn-speed-toggle" title="Vitesse de lecture (C)">
+                                <button class="sh-luxury-pill-btn sh-luxury-pill-btn--speed" id="sh-btn-speed-toggle" title="Vitesse de lecture (C)">
                                     <span id="sh-speed-badge">${this._playbackRate}x</span>
                                 </button>
                                 <div class="sh-vision-popover sh-vision-popover--speed" id="sh-popover-speed">
@@ -653,12 +664,14 @@ class VideoPlayer {
 
         // Volume
         const volumeRange = el.querySelector('#sh-volume-range');
+        const volumePctLabel = el.querySelector('#sh-volume-pct-label');
         volumeRange?.addEventListener('input', (e) => {
             const v = parseFloat(e.target.value);
             video.volume = v;
             video.muted = false;
             this._volume = v;
             localStorage.setItem('SpaceHub_player_volume', String(v));
+            if (volumePctLabel) volumePctLabel.textContent = `${Math.round(v * 100)}%`;
             this._showFlashOSD(v === 0 ? '🔇' : '🔊', `${Math.round(v * 100)}%`, v);
         });
 
@@ -666,8 +679,10 @@ class VideoPlayer {
             video.muted = !video.muted;
             if (video.muted) {
                 this._showFlashOSD('🔇', 'Muet');
+                if (volumePctLabel) volumePctLabel.textContent = '0%';
             } else {
                 this._showFlashOSD('🔊', `${Math.round(video.volume * 100)}%`, video.volume);
+                if (volumePctLabel) volumePctLabel.textContent = `${Math.round(video.volume * 100)}%`;
             }
         });
 
@@ -676,7 +691,7 @@ class VideoPlayer {
             this._aspectRatioIndex = (this._aspectRatioIndex + 1) % this._aspectRatios.length;
             const mode = this._aspectRatios[this._aspectRatioIndex];
             video.style.objectFit = mode;
-            const labels = { contain: '16:9 / Adapté', cover: '21:9 / Cinéma Zoom', fill: 'Plein écran Étiré' };
+            const labels = { contain: '16:9 Adapté', cover: '21:9 Cinéma Zoom', fill: 'Plein écran Étiré' };
             this._showFlashOSD('📐', labels[mode] || mode);
         });
 
@@ -760,7 +775,7 @@ class VideoPlayer {
 
         // Fermer popovers et drawer au clic en dehors
         document.addEventListener('click', this._onDocClick = (e) => {
-            if (!e.target.closest('.sh-vision-popover') && !e.target.closest('.sh-glass-pill-btn') && !e.target.closest('.sh-episodes-drawer-vision') && !e.target.closest('#sh-btn-episodes-drawer')) {
+            if (!e.target.closest('.sh-vision-popover') && !e.target.closest('.sh-luxury-pill-btn') && !e.target.closest('.sh-episodes-drawer-vision') && !e.target.closest('#sh-btn-episodes-drawer')) {
                 this._closeAllPopovers();
                 if (this._isEpisodeDrawerOpen) {
                     this._isEpisodeDrawerOpen = false;
@@ -1165,7 +1180,7 @@ class VideoPlayer {
 
     _closeAllPopovers() {
         this._el?.querySelectorAll('.sh-vision-popover').forEach(p => p.classList.remove('open'));
-        this._el?.querySelectorAll('.sh-glass-pill-btn').forEach(b => b.classList.remove('active'));
+        this._el?.querySelectorAll('.sh-luxury-pill-btn').forEach(b => b.classList.remove('active'));
         this._activePopover = null;
     }
 
@@ -1242,6 +1257,8 @@ class VideoPlayer {
         this._volume = newVol;
         const slider = this._el?.querySelector('#sh-volume-range');
         if (slider) slider.value = String(newVol);
+        const volumePctLabel = this._el?.querySelector('#sh-volume-pct-label');
+        if (volumePctLabel) volumePctLabel.textContent = `${Math.round(newVol * 100)}%`;
         this._showFlashOSD(newVol === 0 ? '🔇' : '🔊', `${Math.round(newVol * 100)}%`, newVol);
     }
 
@@ -1355,7 +1372,7 @@ class VideoPlayer {
         style.id = 'sh-cinema-player-vision-styles';
         style.textContent = `
 /* ═══════════════════════════════════════════════════════════════════════════
-   SpaceHub — Apple VisionOS & Apple TV+ Cinema Player Style System
+   SpaceHub — Apple VisionOS & Grand Cinema Video Player Style System
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .sh-cinema-player {
@@ -1363,12 +1380,13 @@ class VideoPlayer {
     inset: 0;
     width: 100vw;
     height: 100vh;
-    background: #000;
+    background: #000000;
     z-index: 100000;
     overflow: hidden;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-    color: #fff;
+    color: #ffffff;
     user-select: none;
+    -webkit-font-smoothing: antialiased;
 }
 
 .sh-cinema-video {
@@ -1399,14 +1417,14 @@ class VideoPlayer {
     opacity: 1;
 }
 .sh-spinner-glass-ring {
-    width: 54px;
-    height: 54px;
+    width: 58px;
+    height: 58px;
     border-radius: 50%;
-    border: 3px solid rgba(255, 255, 255, 0.12);
+    border: 3px solid rgba(255, 255, 255, 0.14);
     border-top-color: #00d2ff;
-    border-right-color: #0084ff;
+    border-right-color: #0077ff;
     animation: shSpinVision 0.85s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-    box-shadow: 0 0 20px rgba(0, 168, 255, 0.4);
+    box-shadow: 0 0 25px rgba(0, 168, 255, 0.45);
 }
 @keyframes shSpinVision {
     0% { transform: rotate(0deg); }
@@ -1415,8 +1433,9 @@ class VideoPlayer {
 .sh-spinner-label {
     font-size: 13px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.7);
-    letter-spacing: 0.2px;
+    color: rgba(255, 255, 255, 0.75);
+    letter-spacing: 0.3px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
 }
 
 /* ── Dégradés Cinématiques Supérieur & Inférieur ───────────────────────── */
@@ -1425,8 +1444,8 @@ class VideoPlayer {
     top: 0;
     left: 0;
     right: 0;
-    height: 180px;
-    background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, transparent 100%);
+    height: 190px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 55%, transparent 100%);
     pointer-events: none;
     z-index: 5;
     transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1437,8 +1456,8 @@ class VideoPlayer {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 240px;
-    background: linear-gradient(0deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.45) 50%, transparent 100%);
+    height: 250px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.94) 0%, rgba(0,0,0,0.5) 55%, transparent 100%);
     pointer-events: none;
     z-index: 5;
     transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1448,16 +1467,16 @@ class VideoPlayer {
 .sh-cinema-player.hud-hidden {
     cursor: none;
 }
-.sh-cinema-player.hud-hidden .sh-player-topbar,
+.sh-cinema-player.hud-hidden .sh-player-topbar-islands,
 .sh-cinema-player.hud-hidden .sh-player-dock-container,
 .sh-cinema-player.hud-hidden .sh-player-gradient-top,
 .sh-cinema-player.hud-hidden .sh-player-gradient-bottom {
     opacity: 0;
     pointer-events: none;
-    transform: translateY(16px);
+    transform: translateY(18px);
 }
-.sh-cinema-player.hud-hidden .sh-player-topbar {
-    transform: translateY(-16px);
+.sh-cinema-player.hud-hidden .sh-player-topbar-islands {
+    transform: translateY(-18px);
 }
 
 /* ── Zones de Double-Tap Gauche / Droite (Ripple Waves) ───────────────── */
@@ -1481,17 +1500,17 @@ class VideoPlayer {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    width: 90px;
-    height: 90px;
+    width: 88px;
+    height: 88px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(255, 255, 255, 0.32);
     color: #fff;
     font-size: 13px;
     font-weight: 700;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.7);
     opacity: 0;
     transform: scale(0.6);
     pointer-events: none;
@@ -1508,8 +1527,11 @@ class VideoPlayer {
     100% { opacity: 0; transform: scale(1.3); }
 }
 
-/* ── 🍏 Top Bar : Apple VisionOS Floating Style ───────────────────────── */
-.sh-player-topbar {
+/* ═══════════════════════════════════════════════════════════════════════════
+   🍏 TOP BAR : ÎLOTS DE VERRE FLOTTANTS (Apple Glass Islands)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sh-player-topbar-islands {
     position: absolute;
     top: 24px;
     left: 28px;
@@ -1521,104 +1543,130 @@ class VideoPlayer {
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.sh-topbar-island {
+    display: flex;
+    align-items: center;
+}
+
+/* Pastille Quitter */
 .sh-player-back-pill {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 8px 18px;
-    background: rgba(25, 25, 35, 0.72);
-    backdrop-filter: blur(32px) saturate(200%);
-    -webkit-backdrop-filter: blur(32px) saturate(200%);
+    background: rgba(22, 22, 32, 0.72);
+    backdrop-filter: blur(36px) saturate(220%);
+    -webkit-backdrop-filter: blur(36px) saturate(220%);
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 999px;
-    color: #fff;
+    color: #ffffff;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25);
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .sh-player-back-pill:hover {
     background: rgba(255, 255, 255, 0.18);
     transform: scale(1.04);
-    border-color: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.32);
 }
 
-.sh-player-title-block {
+/* 🎬 Capsule Centrale Titre & Badges */
+.sh-cinema-header-capsule {
     display: flex;
     flex-direction: column;
     align-items: center;
-    text-align: center;
-    gap: 3px;
-}
-.sh-player-primary-title {
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: -0.2px;
-    color: #ffffff;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
-}
-.sh-player-secondary-title {
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.65);
-    text-shadow: 0 1px 6px rgba(0,0,0,0.8);
-}
-
-/* Badges 4K VisionOS */
-.sh-player-badges-strip {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.sh-pbadge-vision {
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.6px;
-    padding: 3px 8px;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.08);
+    gap: 6px;
+    padding: 8px 22px;
+    background: rgba(18, 18, 28, 0.75);
+    backdrop-filter: blur(48px) saturate(220%);
+    -webkit-backdrop-filter: blur(48px) saturate(220%);
     border: 1px solid rgba(255, 255, 255, 0.16);
-    color: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(16px);
-}
-.sh-pbadge-vision.sh-pbadge--gold {
-    background: rgba(255, 184, 0, 0.15);
-    border-color: rgba(255, 184, 0, 0.35);
-    color: #ffb800;
-}
-.sh-pbadge-vision.sh-pbadge--blue {
-    background: rgba(0, 168, 255, 0.15);
-    border-color: rgba(0, 168, 255, 0.35);
-    color: #00d2ff;
+    border-radius: 999px;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
-.sh-player-top-actions {
+.sh-header-capsule-meta {
     display: flex;
     align-items: center;
     gap: 8px;
 }
-.sh-top-glass-btn {
+.sh-header-main-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.2px;
+}
+.sh-header-meta-dot {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+}
+.sh-header-sub-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.sh-header-badges-row {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 12px;
-    background: rgba(25, 25, 35, 0.72);
-    backdrop-filter: blur(32px) saturate(200%);
-    -webkit-backdrop-filter: blur(32px) saturate(200%);
+}
+.sh-chip-vision {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.85);
+}
+.sh-chip-vision.sh-chip--gold {
+    background: rgba(255, 184, 0, 0.16);
+    border-color: rgba(255, 184, 0, 0.4);
+    color: #ffb800;
+    box-shadow: 0 0 10px rgba(255, 184, 0, 0.2);
+}
+.sh-chip-vision.sh-chip--blue {
+    background: rgba(0, 168, 255, 0.16);
+    border-color: rgba(0, 168, 255, 0.4);
+    color: #00d2ff;
+    box-shadow: 0 0 10px rgba(0, 168, 255, 0.2);
+}
+
+/* Actions Droite Groupées */
+.sh-header-actions-pill {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    background: rgba(22, 22, 32, 0.72);
+    backdrop-filter: blur(36px) saturate(220%);
+    -webkit-backdrop-filter: blur(36px) saturate(220%);
     border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 999px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.sh-island-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
     color: rgba(255, 255, 255, 0.85);
-    font-size: 12px;
-    font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.sh-top-glass-btn:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.18);
-    transform: scale(1.05);
+.sh-island-icon-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.16);
+    transform: scale(1.1);
 }
 
 /* ── Centre Vision Flash OSD ─────────────────────────────────────────── */
@@ -1627,11 +1675,11 @@ class VideoPlayer {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0.85);
-    background: rgba(18, 18, 26, 0.88);
-    backdrop-filter: blur(48px) saturate(200%);
-    -webkit-backdrop-filter: blur(48px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    background: rgba(18, 18, 28, 0.90);
+    backdrop-filter: blur(48px) saturate(220%);
+    -webkit-backdrop-filter: blur(48px) saturate(220%);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.85), 0 0 35px rgba(0, 168, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
     border-radius: 28px;
     padding: 16px 28px;
     display: flex;
@@ -1669,9 +1717,9 @@ class VideoPlayer {
 .sh-osd-progress-fill {
     height: 100%;
     width: 70%;
-    background: linear-gradient(90deg, #0084ff, #00d2ff);
+    background: linear-gradient(90deg, #0077ff, #00d2ff);
     border-radius: 999px;
-    box-shadow: 0 0 10px rgba(0, 168, 255, 0.8);
+    box-shadow: 0 0 12px rgba(0, 168, 255, 0.85);
 }
 
 /* ── Smart Skip Intro Pill ───────────────────────────────────────────── */
@@ -1683,16 +1731,16 @@ class VideoPlayer {
     align-items: center;
     gap: 10px;
     padding: 12px 22px;
-    background: rgba(20, 20, 30, 0.9);
-    backdrop-filter: blur(36px) saturate(200%);
-    -webkit-backdrop-filter: blur(36px) saturate(200%);
+    background: rgba(20, 20, 32, 0.92);
+    backdrop-filter: blur(36px) saturate(220%);
+    -webkit-backdrop-filter: blur(36px) saturate(220%);
     border: 1px solid rgba(255, 255, 255, 0.25);
     border-radius: 999px;
     color: #fff;
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 16px 40px rgba(0,0,0,0.7), 0 0 20px rgba(0, 168, 255, 0.3);
+    box-shadow: 0 16px 45px rgba(0,0,0,0.75), 0 0 25px rgba(0, 168, 255, 0.35);
     z-index: 12;
     opacity: 0;
     pointer-events: none;
@@ -1705,8 +1753,8 @@ class VideoPlayer {
     transform: translateY(0);
 }
 .sh-vision-skip-intro-btn:hover {
-    background: rgba(0, 168, 255, 0.25);
-    border-color: #00a8ff;
+    background: rgba(0, 168, 255, 0.28);
+    border-color: #00d2ff;
     transform: scale(1.05);
 }
 
@@ -1716,9 +1764,9 @@ class VideoPlayer {
     bottom: 125px;
     right: 36px;
     width: 390px;
-    background: rgba(18, 18, 26, 0.94);
-    backdrop-filter: blur(48px) saturate(200%);
-    -webkit-backdrop-filter: blur(48px) saturate(200%);
+    background: rgba(18, 18, 28, 0.95);
+    backdrop-filter: blur(48px) saturate(220%);
+    -webkit-backdrop-filter: blur(48px) saturate(220%);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 24px;
     box-shadow: 0 30px 80px rgba(0,0,0,0.85);
@@ -1817,7 +1865,7 @@ class VideoPlayer {
     right: 0;
     bottom: 0;
     width: 360px;
-    background: rgba(14, 14, 20, 0.96);
+    background: rgba(14, 14, 22, 0.96);
     backdrop-filter: blur(48px) saturate(220%);
     -webkit-backdrop-filter: blur(48px) saturate(220%);
     border-left: 1px solid rgba(255, 255, 255, 0.16);
@@ -1939,7 +1987,7 @@ class VideoPlayer {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   🍏 UNIFIED VISIONOS FLOATING GLASS DOCK
+   🍏 UNIFIED VISIONOS LUXURY GLASS DOCK
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .sh-player-dock-container {
@@ -1955,43 +2003,47 @@ class VideoPlayer {
 }
 
 .sh-vision-unified-dock {
-    width: min(880px, 100%);
-    background: rgba(16, 16, 24, 0.78);
+    width: min(840px, 100%);
+    background: rgba(14, 14, 22, 0.75);
     backdrop-filter: blur(48px) saturate(220%);
     -webkit-backdrop-filter: blur(48px) saturate(220%);
     border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 28px;
-    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-    padding: 14px 20px;
+    border-radius: 26px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.9), 0 0 35px rgba(0, 168, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    padding: 14px 22px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
 /* ── Ligne 1 : Timeline Liquide Multi-couches ────────────────────────── */
 .sh-dock-timeline-row {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     width: 100%;
 }
 
-.sh-dock-time {
-    font-size: 12px;
-    font-weight: 600;
+.sh-dock-time-pill {
+    font-size: 11px;
+    font-weight: 700;
     color: rgba(255, 255, 255, 0.85);
     font-variant-numeric: tabular-nums;
-    width: 60px;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    min-width: 58px;
+    text-align: center;
 }
-.sh-dock-time--rem {
-    text-align: right;
+.sh-dock-time-pill--rem {
     color: rgba(255, 255, 255, 0.6);
 }
 
 .sh-dock-track-wrap {
     position: relative;
     flex: 1;
-    height: 20px;
+    height: 22px;
     display: flex;
     align-items: center;
     cursor: pointer;
@@ -2001,53 +2053,53 @@ class VideoPlayer {
     position: absolute;
     left: 0;
     right: 0;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.2);
+    height: 6px;
+    background: rgba(255, 255, 255, 0.18);
     border-radius: 999px;
     transition: height 0.2s cubic-bezier(0.34, 1.56, 0.45, 1);
 }
 .sh-dock-track-wrap:hover .sh-dock-track-bg {
-    height: 7px;
+    height: 9px;
 }
 
 .sh-dock-track-buffer {
     position: absolute;
     left: 0;
-    height: 4px;
+    height: 6px;
     width: 0%;
-    background: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.38);
     border-radius: 999px;
     pointer-events: none;
     transition: height 0.2s;
 }
 .sh-dock-track-wrap:hover .sh-dock-track-buffer {
-    height: 7px;
+    height: 9px;
 }
 
 .sh-dock-track-played {
     position: absolute;
     left: 0;
-    height: 4px;
+    height: 6px;
     width: 0%;
-    background: linear-gradient(90deg, #0084ff 0%, #00d2ff 100%);
+    background: linear-gradient(90deg, #0077ff 0%, #00d2ff 100%);
     border-radius: 999px;
     pointer-events: none;
-    box-shadow: 0 0 14px rgba(0, 168, 255, 0.9);
+    box-shadow: 0 0 16px rgba(0, 210, 255, 0.85);
     transition: height 0.2s;
 }
 .sh-dock-track-wrap:hover .sh-dock-track-played {
-    height: 7px;
+    height: 9px;
 }
 
 .sh-dock-track-handle {
     position: absolute;
     top: 50%;
     left: 0%;
-    width: 14px;
-    height: 14px;
+    width: 15px;
+    height: 15px;
     border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 0 12px rgba(0, 168, 255, 1), 0 2px 8px rgba(0,0,0,0.6);
+    background: #ffffff;
+    box-shadow: 0 0 14px rgba(0, 210, 255, 1), 0 2px 8px rgba(0,0,0,0.7);
     transform: translate(-50%, -50%) scale(0);
     pointer-events: none;
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.45, 1);
@@ -2058,13 +2110,13 @@ class VideoPlayer {
 
 .sh-dock-time-tooltip {
     position: absolute;
-    bottom: 26px;
+    bottom: 28px;
     left: 0%;
     transform: translateX(-50%);
     padding: 4px 8px;
-    background: rgba(18, 18, 26, 0.96);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(18, 18, 28, 0.98);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.24);
     border-radius: 8px;
     color: #fff;
     font-size: 11px;
@@ -2073,7 +2125,7 @@ class VideoPlayer {
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.15s ease;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.7);
 }
 .sh-dock-track-wrap:hover .sh-dock-time-tooltip {
     opacity: 1;
@@ -2089,41 +2141,47 @@ class VideoPlayer {
 .sh-dock-group {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 .sh-dock-group--center {
-    gap: 14px;
+    gap: 12px;
 }
 
-/* Volume Pill */
-.sh-volume-expand-pill {
+/* Volume Luxury Pill */
+.sh-volume-luxury-pill {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 6px;
+    padding: 3px 8px 3px 4px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 .sh-volume-track-container {
-    width: 0;
-    overflow: hidden;
-    transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-volume-expand-pill:hover .sh-volume-track-container {
-    width: 75px;
+    width: 65px;
+    display: flex;
+    align-items: center;
 }
 .sh-vision-slider {
-    width: 70px;
+    width: 65px;
     height: 4px;
     accent-color: #00d2ff;
     cursor: pointer;
 }
+.sh-volume-pct-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.6);
+    min-width: 26px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
 
 /* Boutons Icones Glass */
-.sh-glass-icon-btn {
+.sh-glass-round-btn {
     position: relative;
-    background: transparent;
-    border: none;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: rgba(255, 255, 255, 0.85);
     display: flex;
     align-items: center;
@@ -2134,12 +2192,13 @@ class VideoPlayer {
     border-radius: 50%;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.sh-glass-icon-btn:hover {
+.sh-glass-round-btn:hover {
     color: #fff;
-    background: rgba(255, 255, 255, 0.14);
-    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.24);
+    transform: scale(1.08);
 }
-.sh-glass-icon-btn.spring-active {
+.sh-glass-round-btn.spring-active {
     animation: shButtonSpring 0.35s cubic-bezier(0.34, 1.56, 0.45, 1);
 }
 @keyframes shButtonSpring {
@@ -2172,25 +2231,25 @@ class VideoPlayer {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 4px 22px rgba(255, 255, 255, 0.45), 0 0 20px rgba(0, 168, 255, 0.3);
+    box-shadow: 0 4px 24px rgba(255, 255, 255, 0.5), 0 0 25px rgba(0, 168, 255, 0.35);
     transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.45, 1), box-shadow 0.25s ease;
 }
 .sh-vision-play-pause-btn:hover {
-    transform: scale(1.14);
-    box-shadow: 0 6px 28px rgba(255, 255, 255, 0.65), 0 0 25px rgba(0, 168, 255, 0.5);
+    transform: scale(1.12);
+    box-shadow: 0 6px 30px rgba(255, 255, 255, 0.75), 0 0 30px rgba(0, 168, 255, 0.55);
 }
 .sh-vision-play-pause-btn:active {
     transform: scale(0.92);
 }
 
 /* Boutons Pills Droite */
-.sh-glass-pill-btn {
+.sh-luxury-pill-btn {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 14px;
+    padding: 7px 14px;
     background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 999px;
     color: rgba(255, 255, 255, 0.9);
     font-size: 12px;
@@ -2198,18 +2257,19 @@ class VideoPlayer {
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.sh-glass-pill-btn:hover {
+.sh-luxury-pill-btn:hover {
     color: #fff;
-    background: rgba(255, 255, 255, 0.16);
-    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: scale(1.03);
 }
-.sh-glass-pill-btn.active {
-    background: rgba(0, 168, 255, 0.22);
-    border-color: rgba(0, 168, 255, 0.5);
+.sh-luxury-pill-btn.active {
+    background: rgba(0, 168, 255, 0.24);
+    border-color: rgba(0, 168, 255, 0.55);
     color: #00d2ff;
 }
-.sh-glass-pill-btn--speed {
-    padding: 6px 10px;
+.sh-luxury-pill-btn--speed {
+    padding: 7px 10px;
     font-weight: 700;
 }
 
@@ -2220,15 +2280,15 @@ class VideoPlayer {
 
 .sh-vision-popover {
     position: absolute;
-    bottom: 54px;
+    bottom: 56px;
     right: 0;
     width: 320px;
-    background: rgba(16, 16, 24, 0.96);
+    background: rgba(16, 16, 26, 0.98);
     backdrop-filter: blur(48px) saturate(220%);
     -webkit-backdrop-filter: blur(48px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: 22px;
-    box-shadow: 0 24px 70px rgba(0,0,0,0.9);
+    box-shadow: 0 24px 70px rgba(0,0,0,0.92);
     padding: 16px;
     z-index: 200;
     opacity: 0;
@@ -2301,7 +2361,7 @@ class VideoPlayer {
     color: #fff;
 }
 .sh-vision-stream-item.selected {
-    background: rgba(0, 168, 255, 0.18);
+    background: rgba(0, 168, 255, 0.2);
     color: #00d2ff;
     font-weight: 700;
 }
