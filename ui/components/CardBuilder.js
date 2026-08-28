@@ -1,25 +1,12 @@
 /**
  * SpaceHub — CardBuilder (composant)
- * Version: 0.3.0
+ * Version: 0.4.0
  *
- * Constructeur de cartes médias SpaceHub.
- * Wraps le cardBuilder existant (scripts/cardBuilder.js) et ajoute
- * les styles SpaceHub via les design tokens.
- *
- * Usage:
- *   const builder = new CardBuilder();
- *   const card = builder.createCard({
- *       id: item.Id,
- *       title: item.Name,
- *       subtitle: String(item.ProductionYear ?? ''),
- *       imageUrl: SpaceHub.core.api.getClient('jellyfin').getImageUrl(item.Id),
- *       type: 'poster',    // 'poster' | 'backdrop' | 'thumb'
- *       badge: 'HD',
- *       progress: 0.65,    // 0..1 (barre de progression)
- *       rating: 8.4,
- *       onClick: () => navigateTo(item),
- *   });
- *   container.appendChild(card);
+ * Constructeur de cartes médias SpaceHub avec :
+ *  - Design System Apple TV & VisionOS
+ *  - Capsule double-note Rotten Tomatoes + IMDb
+ *  - Portail global de critiques et consensus presse au survol (100% visible, non-rogné)
+ *  - Actions rapides (Favoris, Lecture immédiate, Menu contextuel latéral)
  */
 
 'use strict';
@@ -31,8 +18,10 @@ import Logger from '../../core/Logger.js';
 class CardBuilder {
     constructor() {
         this._log = new Logger('CardBuilder');
+        this._isHoveringPopover = false;
         this._injectStyles();
         this._injectContextMenu();
+        this._injectCriticPopover();
         this._log.info('Initialisé.');
     }
 
@@ -61,11 +50,25 @@ class CardBuilder {
         const fallbackSvg = this._generateSvgPoster(title, type);
         const encodedFallback = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(fallbackSvg)}`;
 
-        // Score Rotten Tomatoes calculé ou fourni (null si dossier / bibliothèque)
-        const hasScores = (rottenScore !== null && rottenScore !== undefined) || (rating !== null && rating !== undefined);
-        const rtScore = hasScores ? (rottenScore || (rating ? Math.min(99, Math.round(rating * 10 + 5)) : 92)) : null;
-        const imdbScore = hasScores ? (rating ? Number(rating).toFixed(1) : '8.6') : null;
-        const critic = hasScores ? this._getCriticData(title, rtScore, rating) : null;
+        // Score Rotten Tomatoes & IMDb garanti pour tous les médias
+        let rtScore = (rottenScore !== null && rottenScore !== undefined) ? rottenScore : null;
+        let imdbScore = (rating !== null && rating !== undefined) ? Number(rating).toFixed(1) : null;
+
+        if (!rtScore) {
+            if (rating) {
+                rtScore = Math.min(99, Math.max(60, Math.round(rating * 10 + 4)));
+            } else {
+                let hash = 0;
+                for (let i = 0; i < (title || 'Média').length; i++) hash = title.charCodeAt(i) + ((hash << 5) - hash);
+                rtScore = 80 + Math.abs(hash % 19);
+                imdbScore = (7.8 + (Math.abs(hash % 18) / 10)).toFixed(1);
+            }
+        }
+        if (!imdbScore) {
+            imdbScore = (rtScore / 10).toFixed(1);
+        }
+
+        const critic = this._getCriticData(title || 'Média', rtScore, imdbScore);
 
         card.innerHTML = `
             <div class="sh-card__image-wrap">
@@ -87,7 +90,7 @@ class CardBuilder {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                         <polygon points="5 3 19 12 5 21 5 3"></polygon>
                     </svg>
-                    <span>${typeof progress === 'number' ? 'Continuer' : (hasScores ? 'Regarder' : 'Ouvrir')}</span>
+                    <span>${typeof progress === 'number' ? 'Continuer' : 'Regarder'}</span>
                     ${remainingMin ? `<span class="sh-pill-duration">• ${remainingMin}m</span>` : ''}
                 </div>
 
@@ -99,36 +102,16 @@ class CardBuilder {
                     : ''}
             </div>
 
-            <!-- Dual Score Dark Frosted Glass Capsule (RT + ★) Positionné sur la carte pour échapper au clipping -->
-            ${hasScores && critic ? `
-            <div class="sh-card__dual-score" data-rt="${rtScore}">
+            <!-- Dual Score Dark Frosted Glass Capsule (RT + ★) -->
+            <div class="sh-card__dual-score" data-rt="${rtScore}" title="Rotten Tomatoes: ${rtScore}% | IMDb: ${imdbScore}/10">
                 <span class="sh-score-rt">🍅 ${rtScore}%</span>
                 <span class="sh-score-sep">│</span>
                 <span class="sh-score-imdb sh-score-imdb--stars" data-score="${imdbScore}">
                     <span class="sh-star-icon">★</span> ${imdbScore}
                 </span>
-                
-                <!-- RT Consensus & Critics Flyout (Non-Clipped) -->
-                <div class="sh-rt-popover">
-                    <div class="sh-rt-popover__header">
-                        <span class="sh-rt-popover__title">🍅 ${rtScore >= 75 ? 'Certified Fresh' : 'Rotten Tomatoes'}</span>
-                        <span class="sh-rt-popover__audience">🍿 ${critic.audience}% public</span>
-                    </div>
-                    <p class="sh-rt-popover__consensus">${critic.consensus}</p>
-                    <div class="sh-rt-popover__quote">
-                        <span>${critic.quote}</span>
-                        <span class="sh-rt-popover__author">${critic.outlet}</span>
-                    </div>
-                    <div class="sh-rt-popover__footer">
-                        <span>★ ${critic.imdb}/10 IMDb</span>
-                        <span class="sh-rt-popover__dot">•</span>
-                        <span>🟢 ${critic.metacritic} Metascore</span>
-                    </div>
-                </div>
             </div>
-            ` : ''}
 
-            <!-- Bouton Favoris Rapide Quick Bookmark (Haut Droite, Non-Clipped) -->
+            <!-- Bouton Favoris Rapide Quick Bookmark (Haut Droite) -->
             <button class="sh-card__bookmark-btn ${isFavorite ? 'active' : ''}" aria-label="Ajouter aux favoris" title="Ajouter à ma liste">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
@@ -145,6 +128,22 @@ class CardBuilder {
             </div>
         `;
 
+        // 🍅 Gestion du survol Rotten Tomatoes avec Portail Global
+        const dualScoreEl = card.querySelector('.sh-card__dual-score');
+        if (dualScoreEl && critic) {
+            dualScoreEl.addEventListener('mouseenter', () => {
+                this._showCriticPopover(dualScoreEl, critic);
+            });
+            dualScoreEl.addEventListener('mouseleave', () => {
+                setTimeout(() => {
+                    if (!this._isHoveringPopover) {
+                        this._hideCriticPopover();
+                    }
+                }, 120);
+            });
+        }
+
+        // Action Favoris Rapide
         const bookmarkBtn = card.querySelector('.sh-card__bookmark-btn');
         bookmarkBtn?.addEventListener('mousedown', (e) => { e.stopPropagation(); });
         bookmarkBtn?.addEventListener('pointerdown', (e) => { e.stopPropagation(); });
@@ -152,7 +151,7 @@ class CardBuilder {
             e.stopPropagation();
             bookmarkBtn.classList.toggle('active');
             bookmarkBtn.classList.remove('sh-bookmark-btn--pulse');
-            void bookmarkBtn.offsetWidth; // reflow
+            void bookmarkBtn.offsetWidth;
             bookmarkBtn.classList.add('sh-bookmark-btn--pulse');
             const isFav = bookmarkBtn.classList.contains('active');
             const api = window.SpaceHub?.jellyfin?.api;
@@ -168,9 +167,9 @@ class CardBuilder {
             );
         });
 
-        // Effet Tilt 3D + Magnetic Pull Cursor (Approche < 40px → légère attraction)
+        // Effet Tilt 3D + Magnetic Pull Cursor
         card.addEventListener('mousemove', (e) => {
-            if (e.target.closest('.sh-card__bookmark-btn')) return;
+            if (e.target.closest('.sh-card__bookmark-btn') || e.target.closest('.sh-card__dual-score')) return;
             const rect = card.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
@@ -186,14 +185,14 @@ class CardBuilder {
             card.style.transform = '';
         });
 
-        // Tactile Spring Press Physics — compression organique au clic
+        // Tactile Spring Press
         card.addEventListener('mousedown', (e) => {
-            if (e.target.closest('.sh-card__bookmark-btn')) return;
+            if (e.target.closest('.sh-card__bookmark-btn') || e.target.closest('.sh-card__dual-score')) return;
             card.style.transition = 'transform 80ms ease';
             card.style.transform = 'scale(0.97)';
         });
         card.addEventListener('mouseup', (e) => {
-            if (e.target.closest('.sh-card__bookmark-btn')) return;
+            if (e.target.closest('.sh-card__bookmark-btn') || e.target.closest('.sh-card__dual-score')) return;
             card.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
             card.style.transform = '';
         });
@@ -201,19 +200,19 @@ class CardBuilder {
         // Événements de clic
         if (onClick) {
             card.addEventListener('click', (e) => {
-                if (e.target.closest('.sh-card__bookmark-btn')) return;
+                if (e.target.closest('.sh-card__bookmark-btn') || e.target.closest('.sh-card__dual-score')) return;
                 onClick(e);
             });
             card.addEventListener('keydown', e => { 
                 if (e.key === 'Enter' || e.key === ' ') { 
-                    if (e.target.closest('.sh-card__bookmark-btn')) return;
+                    if (e.target.closest('.sh-card__bookmark-btn') || e.target.closest('.sh-card__dual-score')) return;
                     e.preventDefault(); 
                     onClick(e); 
                 } 
             });
         }
 
-        // Clic-droit : Side-Flyout Popover Menu (À côté de la carte sans la cacher)
+        // Clic-droit : Context Menu
         card.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             this._showContextMenu(e, { id, title, type }, card);
@@ -223,226 +222,7 @@ class CardBuilder {
         return card;
     }
 
-    /**
-     * Crée un skeleton (placeholder de chargement) pour une carte.
-     * @param {'poster'|'backdrop'|'thumb'} [type]
-     * @returns {HTMLElement}
-     */
-    createSkeleton(type = 'poster') {
-        const el = document.createElement('div');
-        el.className = `sh-card sh-card--${type} sh-card--skeleton`;
-        el.innerHTML = `
-            <div class="sh-card__image-wrap">
-                <div class="sh-card__image sh-skeleton-block"></div>
-            </div>
-            <div class="sh-card__info">
-                <div class="sh-skeleton-block" style="height:14px;width:80%;border-radius:4px;margin-bottom:6px"></div>
-                <div class="sh-skeleton-block" style="height:11px;width:50%;border-radius:4px"></div>
-            </div>
-        `;
-        return el;
-    }
-
-    /**
-     * Crée une grille de N skeletons (état de chargement).
-     * @param {number} count
-     * @param {CardType} [type]
-     * @returns {HTMLElement}
-     */
-    createSkeletonGrid(count = 8, type = 'poster') {
-        const grid = document.createElement('div');
-        grid.className = `sh-card-grid sh-card-grid--${type}`;
-        for (let i = 0; i < count; i++) grid.appendChild(this.createSkeleton(type));
-        return grid;
-    }
-
-    /**
-     * Remplit une grille de cartes à partir d'un tableau d'items.
-     */
-    renderGrid(container, items, options = {}) {
-        const { type = 'poster', getImageUrl, onClick } = options;
-        container.innerHTML = '';
-        container.className = `sh-card-grid sh-card-grid--${type}`;
-
-        items.forEach(item => {
-            const card = this.createCard({
-                id:       item.Id,
-                title:    item.Name ?? 'Inconnu',
-                subtitle: item.subtitle || (item.ProductionYear ? String(item.ProductionYear) : (item.Type ?? '')),
-                imageUrl: item.customImage || (getImageUrl?.(item) ?? ''),
-                type,
-                rottenScore: item.rottenScore,
-                codec: item.codec || (type === 'backdrop' ? '4K DOLBY VISION' : '4K DV • ATMOS'),
-                progress: item.UserData?.PlayedPercentage
-                    ? item.UserData.PlayedPercentage / 100
-                    : (item.UserData?.PlaybackPositionTicks ? item.UserData.PlaybackPositionTicks / (item.RunTimeTicks || 1) : undefined),
-                rating: item.rottenScore === null && item.CommunityRating === null ? null : (item.CommunityRating !== undefined ? item.CommunityRating : null),
-                isFavorite: Boolean(item.UserData?.IsFavorite),
-                remainingMin: item.remainingMin || (item.UserData?.PlayedPercentage ? Math.round((100 - item.UserData.PlayedPercentage) * 1.2) : undefined),
-                onClick: onClick ? (e) => onClick(item, e) : undefined,
-            });
-            container.appendChild(card);
-        });
-
-        // Attachement automatique du défilement et des chevrons de navigation
-        setTimeout(() => {
-            if (window.SpaceHub?.ui?.gooeyScroller) {
-                window.SpaceHub.ui.gooeyScroller.attach(container);
-            }
-        }, 60);
-    }
-
-    // ─── Side-Flyout Context Menu (Arc / Linear Style) ──────────────────────────
-
-    _injectContextMenu() {
-        if (document.getElementById('sh-context-menu')) return;
-        const menu = document.createElement('div');
-        menu.id = 'sh-context-menu';
-        menu.className = 'sh-context-menu';
-        menu.innerHTML = `
-            <div class="sh-context-menu__header sh-truncate" id="sh-ctx-title">Média</div>
-            <hr class="sh-ctx-sep"/>
-            <button class="sh-ctx-item" id="sh-ctx-play">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                <span>Lire maintenant</span>
-            </button>
-            <button class="sh-ctx-item" id="sh-ctx-watchlist">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                <span>Ajouter à ma liste</span>
-            </button>
-            <button class="sh-ctx-item" id="sh-ctx-trailer">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>
-                <span>Bande-annonce</span>
-            </button>
-            <button class="sh-ctx-item" id="sh-ctx-details">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                <span>Détails & Casting</span>
-            </button>
-            <hr class="sh-ctx-sep"/>
-            <button class="sh-ctx-item" id="sh-ctx-watched">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                <span>Marquer comme vu</span>
-            </button>
-        `;
-        document.body.appendChild(menu);
-
-        // Fermeture au clic extérieur avec animation fluide
-        document.addEventListener('click', (e) => {
-            if (!menu.contains(e.target)) {
-                this._hideContextMenu();
-            }
-        });
-    }
-
-    _showContextMenu(e, item, card) {
-        const menu = document.getElementById('sh-context-menu');
-        if (!menu) return;
-
-        const titleEl = menu.querySelector('#sh-ctx-title');
-        if (titleEl) titleEl.textContent = item.title;
-
-        // Positionnement latéral Side-Flyout (ne cache jamais l'affiche)
-        const cardRect = card ? card.getBoundingClientRect() : { right: e.clientX, left: e.clientX, top: e.clientY };
-        const menuWidth = 220;
-        const menuHeight = 250;
-
-        let left = cardRect.right + 14;
-        // Si débordement sur la droite de l'écran, bascule sur le côté gauche de la carte
-        if (left + menuWidth > window.innerWidth - 20) {
-            left = Math.max(10, cardRect.left - menuWidth - 14);
-        }
-
-        let top = Math.max(20, Math.min(cardRect.top, window.innerHeight - menuHeight - 20));
-
-        menu.style.left = `${left}px`;
-        menu.style.top = `${top}px`;
-
-        // Animation en cascade décalée pour chaque item
-        const items = menu.querySelectorAll('.sh-ctx-item');
-        items.forEach((it, idx) => {
-            it.style.setProperty('--idx', idx);
-        });
-
-        // Réinitialisation forcée de l'animation pour rejouer à chaque clic-droit consécutif
-        menu.classList.remove('sh-context-menu--open');
-        void menu.offsetWidth; // Force DOM reflow
-        menu.classList.add('sh-context-menu--open');
-
-        // Actions
-        menu.querySelector('#sh-ctx-play').onclick = () => {
-            this._hideContextMenu();
-            if (window.Emby?.Page?.showItem) window.Emby.Page.showItem(item.id);
-            else window.location.hash = `#/details?id=${item.id}`;
-        };
-        menu.querySelector('#sh-ctx-watchlist').onclick = () => {
-            this._hideContextMenu();
-            window.SpaceHub?.ui?.components?.toaster?.success(`"${item.title}" ajouté à votre liste.`);
-        };
-        menu.querySelector('#sh-ctx-trailer').onclick = () => {
-            this._hideContextMenu();
-            this._showTrailerLightbox(item.title);
-        };
-        menu.querySelector('#sh-ctx-details').onclick = () => {
-            this._hideContextMenu();
-            if (window.SpaceHub?.ui?.modalSlideUpSheet) {
-                window.SpaceHub.ui.modalSlideUpSheet.open(item);
-            } else {
-                window.location.hash = `#/details?id=${item.id}`;
-            }
-        };
-        menu.querySelector('#sh-ctx-watched').onclick = () => {
-            this._hideContextMenu();
-            window.SpaceHub?.ui?.components?.toaster?.info(`"${item.title}" marqué comme vu.`);
-        };
-    }
-
-    _hideContextMenu() {
-        const menu = document.getElementById('sh-context-menu');
-        if (menu) {
-            menu.classList.remove('sh-context-menu--open');
-        }
-    }
-
-    // ─── Lightbox Bande-Annonce Vidéo ───────────────────────────────────────────
-
-    _showTrailerLightbox(title) {
-        let lightbox = document.getElementById('sh-trailer-lightbox');
-        if (!lightbox) {
-            lightbox = document.createElement('div');
-            lightbox.id = 'sh-trailer-lightbox';
-            lightbox.className = 'sh-trailer-lightbox';
-            lightbox.innerHTML = `
-                <div class="sh-trailer-box">
-                    <button class="sh-trailer-close" id="sh-trailer-close" aria-label="Fermer">✕</button>
-                    <div class="sh-trailer-content">
-                        <iframe id="sh-trailer-iframe" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(lightbox);
-
-            lightbox.querySelector('#sh-trailer-close').onclick = () => {
-                lightbox.classList.remove('sh-lightbox--open');
-                lightbox.querySelector('#sh-trailer-iframe').src = '';
-            };
-            lightbox.onclick = (e) => {
-                if (e.target === lightbox) {
-                    lightbox.classList.remove('sh-lightbox--open');
-                    lightbox.querySelector('#sh-trailer-iframe').src = '';
-                }
-            };
-        }
-
-        const iframe = lightbox.querySelector('#sh-trailer-iframe');
-        iframe.src = `https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(title + ' official trailer')}&autoplay=1`;
-        lightbox.classList.add('sh-lightbox--open');
-    }
-
-    // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-
-    _getCriticData(title, rtScore, rating) {
-        const imdb = rating ? Number(rating).toFixed(1) : '8.6';
+    _getCriticData(title, rtScore, imdb) {
         const audience = Math.min(99, Math.max(65, Math.round(rtScore * 0.95 + (Math.sin(title.length) * 4))));
         const metacritic = Math.min(98, Math.max(50, Math.round(rtScore * 0.92)));
 
@@ -479,6 +259,251 @@ class CardBuilder {
         };
     }
 
+    _injectCriticPopover() {
+        if (document.getElementById('sh-global-rt-popover')) return;
+        const popover = document.createElement('div');
+        popover.id = 'sh-global-rt-popover';
+        popover.className = 'sh-global-rt-popover';
+        document.body.appendChild(popover);
+
+        popover.addEventListener('mouseenter', () => {
+            this._isHoveringPopover = true;
+        });
+        popover.addEventListener('mouseleave', () => {
+            this._isHoveringPopover = false;
+            this._hideCriticPopover();
+        });
+    }
+
+    _showCriticPopover(pillEl, criticData) {
+        this._injectCriticPopover();
+        const popover = document.getElementById('sh-global-rt-popover');
+        if (!popover || !pillEl || !criticData) return;
+
+        popover.innerHTML = `
+            <div class="sh-rt-popover__header">
+                <span class="sh-rt-popover__title">🍅 ${criticData.rtScore >= 75 ? 'Certified Fresh' : 'Rotten Tomatoes'}</span>
+                <span class="sh-rt-popover__audience">🍿 ${criticData.audience}% public</span>
+            </div>
+            <p class="sh-rt-popover__consensus">${criticData.consensus}</p>
+            <div class="sh-rt-popover__quote">
+                <span>${criticData.quote}</span>
+                <span class="sh-rt-popover__author">${criticData.outlet}</span>
+            </div>
+            <div class="sh-rt-popover__footer">
+                <span>★ ${criticData.imdb}/10 IMDb</span>
+                <span class="sh-rt-popover__dot">•</span>
+                <span>🟢 ${criticData.metacritic} Metascore</span>
+            </div>
+        `;
+
+        const rect = pillEl.getBoundingClientRect();
+        const popoverWidth = 240;
+        
+        let top = rect.bottom + 8;
+        let left = rect.left;
+
+        if (left + popoverWidth > window.innerWidth - 16) {
+            left = window.innerWidth - popoverWidth - 16;
+        }
+        if (left < 16) left = 16;
+
+        if (top + 180 > window.innerHeight - 16) {
+            top = rect.top - 180;
+        }
+
+        popover.style.top = `${top}px`;
+        popover.style.left = `${left}px`;
+        popover.classList.add('visible');
+    }
+
+    _hideCriticPopover() {
+        if (this._isHoveringPopover) return;
+        const popover = document.getElementById('sh-global-rt-popover');
+        popover?.classList.remove('visible');
+    }
+
+    createSkeleton(type = 'poster') {
+        const el = document.createElement('div');
+        el.className = `sh-card sh-card--${type} sh-card--skeleton`;
+        el.innerHTML = `
+            <div class="sh-card__image-wrap">
+                <div class="sh-card__image sh-skeleton-block"></div>
+            </div>
+            <div class="sh-card__info">
+                <div class="sh-skeleton-block" style="height:14px;width:80%;border-radius:4px;margin-bottom:6px"></div>
+                <div class="sh-skeleton-block" style="height:11px;width:50%;border-radius:4px"></div>
+            </div>
+        `;
+        return el;
+    }
+
+    createSkeletonGrid(count = 8, type = 'poster') {
+        const grid = document.createElement('div');
+        grid.className = `sh-card-grid sh-card-grid--${type}`;
+        for (let i = 0; i < count; i++) grid.appendChild(this.createSkeleton(type));
+        return grid;
+    }
+
+    renderGrid(container, items, options = {}) {
+        const { type = 'poster', getImageUrl, onClick } = options;
+        container.innerHTML = '';
+        container.className = `sh-card-grid sh-card-grid--${type}`;
+
+        items.forEach(item => {
+            const card = this.createCard({
+                id:       item.Id,
+                title:    item.Name ?? 'Inconnu',
+                subtitle: item.subtitle || (item.ProductionYear ? String(item.ProductionYear) : (item.Type ?? '')),
+                imageUrl: item.customImage || (getImageUrl?.(item) ?? ''),
+                type,
+                rottenScore: item.rottenScore,
+                codec: item.codec || (type === 'backdrop' ? '4K DOLBY VISION' : '4K DV • ATMOS'),
+                progress: item.UserData?.PlayedPercentage
+                    ? item.UserData.PlayedPercentage / 100
+                    : (item.UserData?.PlaybackPositionTicks ? item.UserData.PlaybackPositionTicks / (item.RunTimeTicks || 1) : undefined),
+                rating: item.CommunityRating !== undefined ? item.CommunityRating : null,
+                isFavorite: Boolean(item.UserData?.IsFavorite),
+                remainingMin: item.remainingMin || (item.UserData?.PlayedPercentage ? Math.round((100 - item.UserData.PlayedPercentage) * 1.2) : undefined),
+                onClick: onClick ? (e) => onClick(item, e) : undefined,
+            });
+            container.appendChild(card);
+        });
+
+        setTimeout(() => {
+            if (window.SpaceHub?.ui?.gooeyScroller) {
+                window.SpaceHub.ui.gooeyScroller.attach(container);
+            }
+        }, 60);
+    }
+
+    _injectContextMenu() {
+        if (document.getElementById('sh-context-menu')) return;
+        const menu = document.createElement('div');
+        menu.id = 'sh-context-menu';
+        menu.className = 'sh-context-menu';
+        menu.innerHTML = `
+            <div class="sh-context-menu__header sh-truncate" id="sh-ctx-title">Média</div>
+            <hr class="sh-ctx-sep"/>
+            <button class="sh-ctx-item" id="sh-ctx-play">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <span>Lire maintenant</span>
+            </button>
+            <button class="sh-ctx-item" id="sh-ctx-watchlist">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>Ajouter à ma liste</span>
+            </button>
+            <button class="sh-ctx-item" id="sh-ctx-trailer">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>
+                <span>Bande-annonce</span>
+            </button>
+            <button class="sh-ctx-item" id="sh-ctx-details">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                <span>Détails & Casting</span>
+            </button>
+            <hr class="sh-ctx-sep"/>
+            <button class="sh-ctx-item" id="sh-ctx-watched">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>Marquer comme vu</span>
+            </button>
+        `;
+        document.body.appendChild(menu);
+
+        document.addEventListener('click', (e) => {
+            if (!menu.contains(e.target)) {
+                this._hideContextMenu();
+            }
+        });
+    }
+
+    _showContextMenu(e, item, card) {
+        const menu = document.getElementById('sh-context-menu');
+        if (!menu) return;
+
+        const titleEl = menu.querySelector('#sh-ctx-title');
+        if (titleEl) titleEl.textContent = item.title;
+
+        const cardRect = card ? card.getBoundingClientRect() : { right: e.clientX, left: e.clientX, top: e.clientY };
+        const menuWidth = 220;
+
+        let left = cardRect.right + 14;
+        if (left + menuWidth > window.innerWidth) {
+            left = cardRect.left - menuWidth - 14;
+        }
+
+        let top = cardRect.top;
+        if (top + 260 > window.innerHeight) {
+            top = window.innerHeight - 270;
+        }
+
+        menu.style.top = `${Math.max(12, top)}px`;
+        menu.style.left = `${Math.max(12, left)}px`;
+        menu.classList.add('sh-context-menu--open');
+
+        menu.querySelector('#sh-ctx-play').onclick = () => {
+            this._hideContextMenu();
+            const api = window.SpaceHub?.jellyfin?.api;
+            if (api && item.id) {
+                api.getItem(item.id).then(fullItem => {
+                    window.SpaceHub?.player?.play?.(fullItem || item);
+                });
+            }
+        };
+
+        menu.querySelector('#sh-ctx-details').onclick = () => {
+            this._hideContextMenu();
+            const api = window.SpaceHub?.jellyfin?.api;
+            if (api && item.id) {
+                api.getItem(item.id).then(fullItem => {
+                    window.SpaceHub?.ui?.modalSlideUpSheet?.open?.(fullItem || item);
+                });
+            }
+        };
+
+        menu.querySelector('#sh-ctx-trailer').onclick = () => {
+            this._hideContextMenu();
+            this._showTrailerLightbox(item.title);
+        };
+    }
+
+    _hideContextMenu() {
+        const menu = document.getElementById('sh-context-menu');
+        menu?.classList.remove('sh-context-menu--open');
+    }
+
+    _showTrailerLightbox(title) {
+        let lightbox = document.getElementById('sh-trailer-lightbox');
+        if (!lightbox) {
+            lightbox = document.createElement('div');
+            lightbox.id = 'sh-trailer-lightbox';
+            lightbox.className = 'sh-trailer-lightbox';
+            lightbox.innerHTML = `
+                <div class="sh-trailer-box">
+                    <button class="sh-trailer-close" id="sh-trailer-close" aria-label="Fermer">✕</button>
+                    <div class="sh-trailer-content">
+                        <iframe id="sh-trailer-iframe" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(lightbox);
+
+            lightbox.querySelector('#sh-trailer-close').onclick = () => {
+                lightbox.classList.remove('sh-lightbox--open');
+                lightbox.querySelector('#sh-trailer-iframe').src = '';
+            };
+            lightbox.onclick = (e) => {
+                if (e.target === lightbox) {
+                    lightbox.classList.remove('sh-lightbox--open');
+                    lightbox.querySelector('#sh-trailer-iframe').src = '';
+                }
+            };
+        }
+
+        const iframe = lightbox.querySelector('#sh-trailer-iframe');
+        iframe.src = `https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(title + ' official trailer')}&autoplay=1`;
+        lightbox.classList.add('sh-lightbox--open');
+    }
+
     _generateSvgPoster(title = 'Média', type = 'poster') {
         const width = type === 'backdrop' ? 500 : 300;
         const height = type === 'backdrop' ? 280 : 450;
@@ -512,9 +537,12 @@ class CardBuilder {
     }
 
     _escape(str) {
-        const d = document.createElement('div');
-        d.textContent = String(str);
-        return d.innerHTML;
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
     }
 
     _injectStyles() {
@@ -634,16 +662,16 @@ class CardBuilder {
     position: absolute;
     top: 10px;
     left: 10px;
-    z-index: 10;
+    z-index: 25;
     display: flex;
     align-items: center;
     gap: 5px;
-    background: rgba(12, 12, 16, 0.82);
+    background: rgba(12, 12, 16, 0.88);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     backdrop-filter: blur(24px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 9999px;
-    padding: 3.5px 8px;
+    padding: 3.5px 9px;
     font-size: 11px;
     font-weight: 600;
     color: #ffffff;
@@ -652,9 +680,9 @@ class CardBuilder {
     transition: transform 200ms ease, background 200ms ease, border-color 200ms ease;
 }
 .sh-card__dual-score:hover {
-    background: rgba(18, 18, 26, 0.94);
-    border-color: rgba(255, 255, 255, 0.28);
-    transform: scale(1.04);
+    background: rgba(18, 18, 26, 0.98);
+    border-color: rgba(255, 255, 255, 0.32);
+    transform: scale(1.06);
 }
 
 .sh-score-rt {
@@ -686,30 +714,29 @@ class CardBuilder {
     text-shadow: 0 0 8px rgba(255, 214, 0, 0.8);
 }
 
-/* ── RT Consensus & Critics Flyout (Non-Clipped & Grand Format) ── */
-.sh-rt-popover {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    z-index: 99999;
+/* ── Global Rotten Tomatoes & Critics Popover Portal ──────── */
+.sh-global-rt-popover {
+    position: fixed;
+    z-index: 2147483647 !important;
     width: 240px;
     background: rgba(12, 12, 18, 0.96);
-    -webkit-backdrop-filter: blur(36px) saturate(220%);
-    backdrop-filter: blur(36px) saturate(220%);
+    -webkit-backdrop-filter: blur(40px) saturate(220%);
+    backdrop-filter: blur(40px) saturate(220%);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 14px;
     padding: 12px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.95), 0 0 20px rgba(255, 159, 10, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.95), 0 0 25px rgba(255, 159, 10, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.28);
     display: flex;
     flex-direction: column;
     gap: 8px;
     opacity: 0;
-    transform: translateY(6px) scale(0.95);
+    transform: translateY(6px) scale(0.96);
     pointer-events: none;
-    transition: opacity 220ms ease, transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: opacity 200ms ease, transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
     text-align: left;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
 }
-.sh-card__dual-score:hover .sh-rt-popover {
+.sh-global-rt-popover.visible {
     opacity: 1;
     transform: translateY(0) scale(1);
     pointer-events: auto;
@@ -778,7 +805,7 @@ class CardBuilder {
     position: absolute;
     top: 10px;
     right: 10px;
-    z-index: 10;
+    z-index: 25;
     width: 28px;
     height: 28px;
     border-radius: 50%;
@@ -801,7 +828,7 @@ class CardBuilder {
     transform: scale(1);
 }
 .sh-card__bookmark-btn:hover {
-    background: rgba(255, 255, 255, 0.20);
+    background: rgba(255, 255, 255, 0.22);
     color: #ffffff;
     border-color: rgba(255, 255, 255, 0.35);
 }
@@ -919,7 +946,7 @@ class CardBuilder {
     color: rgba(255,255,255,0.80);
 }
 
-/* ── Side-Flyout Context Menu (Déroulement Volet & Cascade) ── */
+/* ── Side-Flyout Context Menu ─────────────────────────────── */
 .sh-context-menu {
     position: fixed;
     z-index: 9999;
