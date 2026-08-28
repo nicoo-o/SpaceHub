@@ -280,7 +280,7 @@ class ModalSlideUpSheet {
                             </span>
                             <span class="sh-modal-header-badge sh-modal-header-badge--imdb" role="button" tabindex="0" title="Cliquer pour voir la critique complète">
                                 ${cardBuilder?.getImdbIconSvg?.() || '<svg class="sh-imdb-star-svg" width="12" height="12" viewBox="0 0 24 24" fill="#F5C518"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>'}
-                                <span>★ ${imdbScore}</span>
+                                <span>${imdbScore}</span>
                             </span>
                             ` : ''}
                             ${year ? `<span class="sh-meta-bullet">•</span><span class="sh-meta-text">${year}</span>` : ''}
@@ -1136,39 +1136,61 @@ class ModalSlideUpSheet {
 }
 
 /* Bouton Retour Épuré & Fondu (Seamless Ghost Style, Sans Capsule) */
-.sh-slideup-back-btn {
+/* ── 🎬 En-tête Hero Backdrop 16:9 avec Affiche 2:3 & Barre Supérieure Dédiée ── */
+.sh-cinema-hero {
+    position: relative;
+    min-height: 255px;
+    flex-shrink: 0;
+    overflow: visible;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 56px 32px 14px;
+    box-sizing: border-box;
+}
+
+.sh-cinema-hero-top-bar {
     position: absolute;
-    top: 18px;
+    top: 16px;
     left: 28px;
-    z-index: 120 !important;
-    height: 36px;
-    padding: 6px 14px 6px 8px;
-    border-radius: 10px;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.85);
-    cursor: pointer;
-    display: none !important;
+    right: 28px;
+    height: 38px;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    font-size: 14px;
+    z-index: 120 !important;
+    pointer-events: none;
+}
+
+/* Bouton Retour Flottant Universel (Toujours affiché dans la barre d'en-tête, sans chevauchement) */
+.sh-slideup-back-btn {
+    pointer-events: auto !important;
+    height: 32px;
+    padding: 5px 14px 5px 10px;
+    border-radius: 9999px;
+    background: rgba(14, 14, 22, 0.65);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: rgba(255, 255, 255, 0.90);
+    cursor: pointer;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: -0.1px;
-    box-shadow: none;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.90);
-    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.85));
-    transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.40);
+    transition: all 180ms ease;
     white-space: nowrap;
     max-width: 280px;
     overflow: hidden;
 }
-.sh-slideup-back-btn.visible {
-    display: inline-flex !important;
-}
 .sh-slideup-back-btn svg {
     flex-shrink: 0;
     color: rgba(255, 255, 255, 0.90);
-    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 180ms ease;
 }
 .sh-slideup-back-label {
     overflow: hidden;
@@ -1177,46 +1199,40 @@ class ModalSlideUpSheet {
     color: inherit;
 }
 .sh-slideup-back-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.30);
     color: #ffffff;
-    transform: translateX(-3px);
+    transform: scale(1.03);
 }
 .sh-slideup-back-btn:hover svg {
     transform: translateX(-2px);
-    color: #ffffff;
 }
 .sh-slideup-back-btn:active {
-    transform: scale(0.96) translateX(-3px);
+    transform: scale(0.97);
 }
-
 
 /* Bouton Fermer Flottant Discret en Verre */
 .sh-slideup-close-btn {
-    position: absolute;
-    top: 22px;
-    right: 24px;
-    z-index: 120 !important;
-    width: 36px;
-    height: 36px;
+    pointer-events: auto !important;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.10);
+    background: rgba(14, 14, 22, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     color: #ffffff;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 13px;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.50);
-    transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.40);
+    transition: all 180ms ease;
 }
 .sh-slideup-close-btn:hover {
-    background: rgba(255, 255, 255, 0.16);
-    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.20);
+    border-color: rgba(255, 255, 255, 0.30);
     transform: scale(1.06);
 }
 
