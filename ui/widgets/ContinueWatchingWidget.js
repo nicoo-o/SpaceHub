@@ -86,9 +86,26 @@ class ContinueWatchingWidget {
                 cardBuilder.renderGrid(contentEl, enrichedItems, {
                     type: 'backdrop',
                     getImageUrl: (item) => {
-                        const imageItemId = item.BackdropImageTags?.length ? item.Id : (item.SeriesId || item.Id);
-                        const imageType = item.BackdropImageTags?.length ? 'Backdrop' : 'Primary';
-                        return api?.getImageUrl?.(imageItemId, imageType, { maxWidth: 500, maxHeight: 280 }) || '';
+                        const isEpisode = item.Type === 'Episode' || item.SeriesName;
+
+                        if (isEpisode) {
+                            // 1. Si l'épisode dispose de sa propre vignette 16:9 native (screenshot de l'épisode)
+                            if (item.ImageTags?.Primary || item.PrimaryImageTag) {
+                                return api?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 1000, quality: 90 }) || '';
+                            }
+                            // 2. Sinon, Backdrop horizontal 16:9 de la Série / Saison (jamais l'affiche verticale !)
+                            const seriesOrParentId = item.SeriesId || item.ParentBackdropItemId || item.SeasonId || item.Id;
+                            return api?.getImageUrl?.(seriesOrParentId, 'Backdrop', { maxWidth: 1280, quality: 90 }) || '';
+                        } else {
+                            // Pour les films : Backdrop 16:9 en priorité haute résolution
+                            if (item.BackdropImageTags && item.BackdropImageTags.length > 0) {
+                                return api?.getImageUrl?.(item.Id, 'Backdrop', { maxWidth: 1280, quality: 90 }) || '';
+                            }
+                            if (item.ImageTags?.Thumb) {
+                                return api?.getImageUrl?.(item.Id, 'Thumb', { maxWidth: 1000, quality: 90 }) || '';
+                            }
+                            return api?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 1000, quality: 90 }) || '';
+                        }
                     },
                     onClick: (item) => {
                         if (window.SpaceHub?.ui?.modalSlideUpSheet) {

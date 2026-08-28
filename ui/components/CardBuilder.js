@@ -920,6 +920,7 @@ class CardBuilder {
 
 .sh-card--poster   .sh-card__image-wrap { aspect-ratio: 2/3; }
 .sh-card--backdrop .sh-card__image-wrap { aspect-ratio: 16/9; }
+.sh-card--backdrop .sh-card__image { image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
 .sh-card--thumb    .sh-card__image-wrap { aspect-ratio: 4/3; }
 
 .sh-card__image {
