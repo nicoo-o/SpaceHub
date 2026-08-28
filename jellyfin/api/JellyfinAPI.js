@@ -572,7 +572,7 @@ class JellyfinAPI {
         const userId = this.getUserId();
         if (!userId) return [];
         try {
-            const data = await this._client.get(`/Users/${userId}/Items/Resume?Limit=${limit}&MediaTypes=Video&Fields=PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData`);
+            const data = await this._client.get(`/Users/${userId}/Items/Resume?Limit=${limit}&MediaTypes=Video&Fields=PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,RunTimeTicks,SeriesName,SeriesId,SeasonId,IndexNumber,ParentIndexNumber`);
             return data?.Items || [];
         } catch (err) {
             this._log.warn('Erreur getResumeItems:', err);
@@ -610,7 +610,7 @@ class JellyfinAPI {
         const sortBy = options.sortBy || 'DateCreated';
         const sortOrder = options.sortOrder || 'Descending';
         try {
-            const data = await this._client.get(`/Items?userId=${userId || ''}&IncludeItemTypes=Movie&Recursive=true&SortBy=${sortBy}&SortOrder=${sortOrder}&Limit=${limit}&Fields=PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating`);
+            const data = await this._client.get(`/Items?userId=${userId || ''}&IncludeItemTypes=Movie&Recursive=true&SortBy=${sortBy}&SortOrder=${sortOrder}&Limit=${limit}&Fields=PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,RunTimeTicks,OfficialRating,CriticRating`);
             return data?.Items || [];
         } catch (err) {
             this._log.warn('Erreur getMovies:', err);
@@ -629,7 +629,7 @@ class JellyfinAPI {
         const sortBy = options.sortBy || 'DateCreated';
         const sortOrder = options.sortOrder || 'Descending';
         try {
-            const data = await this._client.get(`/Items?userId=${userId || ''}&IncludeItemTypes=Series&Recursive=true&SortBy=${sortBy}&SortOrder=${sortOrder}&Limit=${limit}&Fields=PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating`);
+            const data = await this._client.get(`/Items?userId=${userId || ''}&IncludeItemTypes=Series&Recursive=true&SortBy=${sortBy}&SortOrder=${sortOrder}&Limit=${limit}&Fields=PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,ChildCount,RecursiveItemCount,ItemCounts,OfficialRating,CriticRating,RunTimeTicks`);
             return data?.Items || [];
         } catch (err) {
             this._log.warn('Erreur getSeries:', err);

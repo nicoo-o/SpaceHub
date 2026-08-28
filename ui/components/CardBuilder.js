@@ -127,10 +127,15 @@ class CardBuilder {
                         label = 'Ouvrir';
                     } else if (itemType === 'Series') {
                         const raw = options.rawItem;
-                        const hasStarted = (typeof progress === 'number' && progress > 0) || 
-                            (raw?.UserData?.PlaybackPositionTicks > 0) || 
-                            (raw?.UserData?.UnplayedItemCount !== undefined && raw?.ChildCount !== undefined && raw.UserData.UnplayedItemCount < raw.ChildCount) ||
-                            (raw?.UserData?.PlayedPercentage > 0);
+                        const uData = raw?.UserData || options.userData;
+                        const unplayed = uData?.UnplayedItemCount;
+                        const total = raw?.ChildCount || raw?.RecursiveItemCount || raw?.ItemCounts?.ItemCount || raw?.ItemCounts?.EpisodeCount;
+                        const isPlayed = Boolean(uData?.Played);
+                        const hasPos = Boolean(uData?.PlaybackPositionTicks && uData.PlaybackPositionTicks > 0);
+                        const hasPct = Boolean(uData?.PlayedPercentage && uData.PlayedPercentage > 0);
+                        const hasStartedCount = (unplayed !== undefined && total !== undefined && unplayed < total);
+
+                        const hasStarted = (typeof progress === 'number' && progress > 0) || hasPos || hasPct || isPlayed || hasStartedCount;
                         label = hasStarted ? 'Continuer' : 'Regarder S01E01';
                     } else if (typeof progress === 'number' && progress > 0) {
                         label = 'Continuer';
@@ -638,7 +643,11 @@ class CardBuilder {
                 codec: item.codec || (isFolder ? (item.CollectionType || 'DOSSIER') : (type === 'backdrop' ? '4K DOLBY VISION' : '4K DV • ATMOS')),
                 progress: item.UserData?.PlayedPercentage
                     ? item.UserData.PlayedPercentage / 100
-                    : (item.UserData?.PlaybackPositionTicks ? item.UserData.PlaybackPositionTicks / (item.RunTimeTicks || 1) : undefined),
+                    : (item.UserData?.PlaybackPositionTicks 
+                        ? item.UserData.PlaybackPositionTicks / (item.RunTimeTicks || 1) 
+                        : (item.UserData?.UnplayedItemCount !== undefined && (item.ChildCount || item.RecursiveItemCount) && item.UserData.UnplayedItemCount < (item.ChildCount || item.RecursiveItemCount)
+                            ? (1 - (item.UserData.UnplayedItemCount / (item.ChildCount || item.RecursiveItemCount)))
+                            : (item.UserData?.Played ? 1 : undefined))),
                 isFavorite: Boolean(item.UserData?.IsFavorite),
                 remainingMin: item.remainingMin || (item.UserData?.PlayedPercentage ? Math.round((100 - item.UserData.PlayedPercentage) * 1.2) : undefined),
                 onClick: onClick ? (e) => onClick(item, e) : undefined,
