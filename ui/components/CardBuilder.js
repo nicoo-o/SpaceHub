@@ -192,15 +192,45 @@ class CardBuilder {
             );
         });
 
-        // Événements de clic
+        // 🎬 Action Clic Direct sur la Pilule [ ▶ Regarder ] / [ ▶ Continuer ]
+        const actionPill = card.querySelector('.sh-card__action-pill');
+        if (actionPill) {
+            actionPill.addEventListener('mousedown', (e) => { e.stopPropagation(); });
+            actionPill.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (isFolderItem) {
+                    onClick?.(e);
+                    return;
+                }
+                const targetMedia = options.rawItem || { Id: id, id, Name: title, title, Type: itemType };
+                const api = window.SpaceHub?.jellyfin?.api;
+                if (window.SpaceHub?.player?.play) {
+                    if (api && id) {
+                        api.getItem(id).then(fullItem => {
+                            window.SpaceHub.player.play(fullItem || targetMedia);
+                        }).catch(() => {
+                            window.SpaceHub.player.play(targetMedia);
+                        });
+                    } else {
+                        window.SpaceHub.player.play(targetMedia);
+                    }
+                } else if (window.Emby?.Page?.showItem) {
+                    window.Emby.Page.showItem(id);
+                } else {
+                    onClick?.(e);
+                }
+            });
+        }
+
+        // Événements de clic sur la carte globale
         if (onClick) {
             card.addEventListener('click', (e) => {
-                if (e.target.closest('.sh-card__bookmark-btn') || e.target.closest('.sh-card__dual-score')) return;
+                if (e.target.closest('.sh-card__bookmark-btn') || e.target.closest('.sh-card__dual-score') || e.target.closest('.sh-card__action-pill')) return;
                 onClick(e);
             });
             card.addEventListener('keydown', e => { 
                 if (e.key === 'Enter' || e.key === ' ') { 
-                    if (e.target.closest('.sh-card__bookmark-btn') || e.target.closest('.sh-card__dual-score')) return;
+                    if (e.target.closest('.sh-card__bookmark-btn') || e.target.closest('.sh-card__dual-score') || e.target.closest('.sh-card__action-pill')) return;
                     e.preventDefault(); 
                     onClick(e); 
                 } 
@@ -550,6 +580,7 @@ class CardBuilder {
             const subtitleText = isFolder ? (item.CollectionType || 'Dossier racine') : (item.subtitle || (item.ProductionYear ? `${item.ProductionYear}${genresText ? ' • ' + genresText : ''}` : (genresText || item.Type || '')));
 
             const card = this.createCard({
+                rawItem:  item,
                 id:       item.Id,
                 title:    item.Name ?? 'Inconnu',
                 subtitle: subtitleText,
@@ -1214,22 +1245,31 @@ class CardBuilder {
     position: absolute;
     bottom: 12px;
     left: 50%;
-    transform: translateX(-50%) translateY(30px);
+    transform: translateX(-50%) translateY(8px);
     opacity: 0;
-    z-index: 12;
+    z-index: 10;
     display: flex;
     align-items: center;
     gap: 6px;
-    background: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.95);
     color: #000000;
     padding: 7px 16px;
     border-radius: 9999px;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 750;
     box-shadow: 0 8px 24px rgba(0,0,0,0.60);
-    transition: all 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
-    pointer-events: none;
+    transition: all 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: auto !important;
+    cursor: pointer !important;
     white-space: nowrap;
+}
+.sh-card__action-pill:hover {
+    transform: translateX(-50%) translateY(0) scale(1.06) !important;
+    background: #ffffff !important;
+    box-shadow: 0 10px 30px rgba(255, 255, 255, 0.45) !important;
+}
+.sh-card__action-pill:active {
+    transform: translateX(-50%) translateY(0) scale(0.95) !important;
 }
 .sh-card:hover .sh-card__action-pill {
     transform: translateX(-50%) translateY(0);
