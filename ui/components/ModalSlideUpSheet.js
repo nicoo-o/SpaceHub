@@ -239,7 +239,12 @@ class ModalSlideUpSheet {
                         </svg>
                         <span class="sh-slideup-back-label">${backBtnLabel}</span>
                     </button>
-                    <button class="sh-slideup-close-btn" id="sh-slideup-close" aria-label="Fermer">✕</button>
+                    <button class="sh-slideup-close-btn" id="sh-slideup-close" aria-label="Fermer" title="Fermer">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
                 </div>
 
                 <div class="sh-cinema-hero-content">
@@ -1206,8 +1211,9 @@ class ModalSlideUpSheet {
     transform: scale(0.97);
 }
 
-/* Bouton Fermer Flottant Discret en Verre */
+/* Bouton Fermer Flottant Discret en Verre (Centrage Géométrique SVG Parfait) */
 .sh-slideup-close-btn {
+    pointer-events: auto !important;
     width: 34px;
     height: 34px;
     border-radius: 50%;
@@ -1215,14 +1221,21 @@ class ModalSlideUpSheet {
     border: 1px solid rgba(255, 255, 255, 0.16);
     color: #ffffff;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    line-height: 0 !important;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.40);
     transition: all 180ms ease;
+}
+.sh-slideup-close-btn svg {
+    display: block;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
 }
 .sh-slideup-close-btn:hover {
     background: rgba(255, 255, 255, 0.20);

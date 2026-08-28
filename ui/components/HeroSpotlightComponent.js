@@ -519,7 +519,12 @@ class HeroSpotlightComponent {
             lightbox.className = 'sh-trailer-lightbox';
             lightbox.innerHTML = `
                 <div class="sh-trailer-box">
-                    <button class="sh-trailer-close" id="sh-trailer-close" aria-label="Fermer">✕</button>
+                    <button class="sh-trailer-close" id="sh-trailer-close" aria-label="Fermer" title="Fermer">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
                     <div class="sh-trailer-content">
                         <iframe id="sh-trailer-iframe" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
                     </div>
@@ -673,9 +678,11 @@ class HeroSpotlightComponent {
     border: 1px solid rgba(255, 255, 255, 0.16);
     color: rgba(255, 255, 255, 0.85);
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    line-height: 0 !important;
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     opacity: 0;
@@ -820,9 +827,16 @@ class HeroSpotlightComponent {
     position: absolute; top: 14px; right: 14px; z-index: 10;
     width: 38px; height: 38px; border-radius: 50%;
     background: rgba(14, 14, 20, 0.75); border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #fff; font-size: 16px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
+    color: #fff; cursor: pointer;
+    display: inline-flex !important; align-items: center !important; justify-content: center !important;
+    padding: 0 !important; line-height: 0 !important;
     transition: all 180ms ease;
+}
+.sh-trailer-close svg {
+    display: block;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
 }
 .sh-trailer-close:hover { background: rgba(255, 255, 255, 0.25); transform: scale(1.1); }
 .sh-trailer-content { width: 100%; height: 100%; }

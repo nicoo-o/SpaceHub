@@ -1149,9 +1149,11 @@ class CardBuilder {
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.14);
     color: rgba(255, 255, 255, 0.75);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    line-height: 0 !important;
     cursor: pointer;
     opacity: 0;
     transform: scale(0.85);
