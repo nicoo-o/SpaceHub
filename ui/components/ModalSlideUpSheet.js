@@ -271,14 +271,14 @@ class ModalSlideUpSheet {
 
                         <h1 class="sh-cinema-title">${this._escape(title)}</h1>
 
-                        <!-- Ligne Typographique Épurée de Métadonnées avec Badges Critiques Officiels -->
+                        <!-- Ligne Typographique Épurée de Métadonnées avec Badges Critiques Officiels (Navigation Onglet À Propos) -->
                         <div class="sh-cinema-meta-line">
                             ${!isMusic ? `
-                            <span class="sh-hero-badge sh-hero-badge--rt sh-score-rt" role="button" tabindex="0" title="Consensus Rotten Tomatoes">
+                            <span class="sh-modal-header-badge sh-modal-header-badge--rt" role="button" tabindex="0" title="Cliquer pour voir la critique complète">
                                 ${cardBuilder?.getRtIconSvg?.(rtScore) || '<svg class="sh-rt-svg" width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#00C05B"/></svg>'}
                                 <span>${rtScore}%</span>
                             </span>
-                            <span class="sh-hero-badge sh-hero-badge--imdb sh-score-imdb" role="button" tabindex="0" title="Note des spectateurs IMDb">
+                            <span class="sh-modal-header-badge sh-modal-header-badge--imdb" role="button" tabindex="0" title="Cliquer pour voir la critique complète">
                                 ${cardBuilder?.getImdbIconSvg?.() || '<svg class="sh-imdb-star-svg" width="12" height="12" viewBox="0 0 24 24" fill="#F5C518"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>'}
                                 <span>★ ${imdbScore}</span>
                             </span>
@@ -995,6 +995,17 @@ class ModalSlideUpSheet {
             window.SpaceHub?.ui?.components?.cardBuilder?._showTrailerLightbox(title);
         });
 
+        // ── Clic sur les Badges de Notes de l'En-tête -> Bascule vers l'onglet À Propos ──
+        this._sheet.querySelectorAll('.sh-modal-header-badge').forEach(badge => {
+            badge.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const aboutBtn = this._sheet.querySelector('.sh-tab-btn[data-tab="synopsis"]');
+                if (aboutBtn) {
+                    aboutBtn.click();
+                }
+            });
+        });
+
         // ── Gestion des Onglets avec Spring Slider ──
         const tabBtns = this._sheet.querySelectorAll('.sh-tab-btn');
         const panels = this._sheet.querySelectorAll('.sh-tab-panel');
@@ -1314,6 +1325,30 @@ class ModalSlideUpSheet {
     flex-wrap: wrap;
     font-size: 13px;
     font-weight: 600;
+}
+.sh-modal-header-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 3px 9px !important;
+    border-radius: 9999px !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    font-size: 11.5px !important;
+    font-weight: 800 !important;
+    cursor: pointer !important;
+    transition: all 180ms ease !important;
+}
+.sh-modal-header-badge:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    transform: scale(1.05) !important;
+}
+.sh-modal-header-badge--rt {
+    color: #ff5252 !important;
+}
+.sh-modal-header-badge--imdb {
+    color: #f5c518 !important;
 }
 .sh-meta-score-rt { color: #ff5252; font-weight: 800; }
 .sh-meta-score-imdb { color: #ffd600; font-weight: 800; }
