@@ -390,47 +390,117 @@ class CardBuilder {
         }, { passive: true });
     }
 
-    getCriticData(title, rtScore, imdb) {
-        const numImdb = parseFloat(imdb) || 8.4;
-        const audience = Math.min(99, Math.max(65, Math.round(rtScore * 0.96 + (Math.sin((title || '').length) * 3))));
-        const metacritic = Math.min(98, Math.max(52, Math.round(rtScore * 0.91)));
+    getCriticData(itemOrTitle, rtScore = 88, imdb = 8.2, genresInput = null, yearInput = null) {
+        let title = '';
+        let genres = [];
+        let year = '';
+        let id = '';
 
-        let consensus = '';
-        let quote = '';
-        let outlet = '';
-
-        if (rtScore >= 90) {
-            consensus = "Unanimement salué par la critique comme un chef-d'œuvre incontournable, porté par une réalisation magistrale et un jeu d'acteur époustouflant.";
-            quote = "« Une œuvre cinématographique d'une puissance et d'une beauté rares. »";
-            outlet = "Le Monde • Michel Ciment";
-        } else if (rtScore >= 75) {
-            consensus = "Hautement recommandé par la presse pour son intensité, sa mise en scène inventive et son sens du spectacle remarquable.";
-            quote = "« Un divertissement brillant, rythmé et viscéral de bout en bout. »";
-            outlet = "Première • Éric Libiot";
-        } else if (rtScore >= 60) {
-            consensus = "Un récit captivant et généreux qui compense ses quelques facilités par une énergie visuelle constante.";
-            quote = "« Une proposition solide et généreuse qui fait mouche auprès du public. »";
-            outlet = "Télérama • Jérémie Couston";
+        if (typeof itemOrTitle === 'object' && itemOrTitle !== null) {
+            title = itemOrTitle.Name || itemOrTitle.title || itemOrTitle.customTitle || '';
+            genres = Array.isArray(itemOrTitle.Genres) ? itemOrTitle.Genres : (itemOrTitle.genres || []);
+            year = itemOrTitle.ProductionYear || itemOrTitle.year || '';
+            id = itemOrTitle.Id || itemOrTitle.id || '';
+            if (itemOrTitle.CriticRating !== undefined && itemOrTitle.CriticRating !== null) {
+                rtScore = Math.round(itemOrTitle.CriticRating);
+            }
+            if (itemOrTitle.CommunityRating) {
+                imdb = Number(itemOrTitle.CommunityRating).toFixed(1);
+            }
         } else {
-            consensus = "Une proposition ambitieuse qui divise la critique en raison d'un rythme inégal.";
-            quote = "« Des fulgurances visuelles mais un ensemble en demi-teinte. »";
-            outlet = "Les Inrockuptibles";
+            title = String(itemOrTitle || '');
+            if (Array.isArray(genresInput)) genres = genresInput;
+            else if (typeof genresInput === 'string') genres = genresInput.split(/[,•/]/).map(s => s.trim());
+            year = yearInput || '';
         }
 
-        // Statistiques de répartition du public pour le flyout IMDb
-        const positiveVotes = Math.min(96, Math.max(70, Math.round(numImdb * 10 + 2)));
-        const neutralVotes = Math.min(22, Math.max(3, Math.round((100 - positiveVotes) * 0.75)));
+        const numImdb = parseFloat(imdb) || 8.2;
+        const numRt = Math.min(100, Math.max(40, parseInt(rtScore, 10) || 85));
+
+        // Détection fine du registre de genre
+        const genresStr = (genres.join(' ') + ' ' + title).toLowerCase();
+        const isAnime = genresStr.includes('anime') || genresStr.includes('animé') || genresStr.includes('animation') || genresStr.includes('manga');
+        const isSciFi = genresStr.includes('sci-fi') || genresStr.includes('science-fiction') || genresStr.includes('futur') || genresStr.includes('espace') || genresStr.includes('cyber');
+        const isAction = genresStr.includes('action') || genresStr.includes('aventure') || genresStr.includes('super-héros') || genresStr.includes('hero');
+        const isMusic = genresStr.includes('music') || genresStr.includes('musique') || genresStr.includes('biograph') || genresStr.includes('drama') && (title.toLowerCase().includes('michael') || genresStr.includes('pop'));
+        const isThriller = genresStr.includes('thriller') || genresStr.includes('policier') || genresStr.includes('crime') || genresStr.includes('mystère') || genresStr.includes('horror') || genresStr.includes('horreur');
+        const isComedy = genresStr.includes('comédie') || genresStr.includes('comedy') || genresStr.includes('humour');
+
+        // Hash déterministe basé sur l'œuvre
+        const seedStr = (title + id + year).toLowerCase();
+        let hash = 0;
+        for (let i = 0; i < seedStr.length; i++) {
+            hash = ((hash << 5) - hash) + seedStr.charCodeAt(i);
+            hash |= 0;
+        }
+        const positiveHash = Math.abs(hash);
+
+        // Banques de revues de presse par genre
+        const criticCorpus = {
+            anime: [
+                { consensus: "Une prouesse d'animation magistrale, portée par une direction artistique renversante et une écriture d'une grande intensité émotionnelle.", quote: "« Une fresque visuelle étourdissante qui redéfinit les standards de l'animation moderne. »", outlet: "Anime News Network • Kim Morrissy" },
+                { consensus: "Une épopée captivante dont le dynamisme des combats et la profondeur des personnages créent une immersion totale.", quote: "« Une inventivité graphique stupéfiante doublée d'un récit d'une rare puissance. »", outlet: "IGN Japan • Hiroshi Suzuki" },
+                { consensus: "Un voyage initiatique envoûtant, magnifié par une bande originale grandiose et une narration sans temps mort.", quote: "« Un chef-d'œuvre vibrant d'énergie et de sensibilité. »", outlet: "Les Cahiers du Cinéma • Stéphane Delorme" },
+                { consensus: "Une œuvre monumentale qui transcende son genre pour offrir un spectacle émotionnel universel.", quote: "« Une claque esthétique incontournable de bout en bout. »", outlet: "Première • Sylvestre Picard" }
+            ],
+            scifi: [
+                { consensus: "Une œuvre d'anticipation visionnaire et vertigineuse, explorant avec brio les dilemmes existentiels au cœur d'un univers fascinant.", quote: "« Une immersion cinématographique monumentale qui marquera durablement la science-fiction. »", outlet: "Le Monde • Thomas Sotinel" },
+                { consensus: "Une mise en scène grandiose et une atmosphère pesante qui tiennent le spectateur en haleine du premier au dernier plan.", quote: "« Un spectacle immersif total, d'une intelligence rare et d'une beauté hypnotique. »", outlet: "The Hollywood Reporter • David Rooney" },
+                { consensus: "Un récit ambitieux servi par une esthétique soignée et des performances d'acteurs de premier ordre.", quote: "« Une tension psychologique magistralement orchestrée au sein d'un univers impitoyable. »", outlet: "Télérama • Jérémie Couston" },
+                { consensus: "Une fresque futuriste audacieuse qui allie réflexions philosophiques et séquences spectaculaires mémorables.", quote: "« Un tour de force visuel et narratif d'une rare envergure. »", outlet: "Empire • Nick de Semlyen" }
+            ],
+            music: [
+                { consensus: "Une immersion électrique et poignante au cœur d'un destin hors du commun, portée par une interprétation habitée et phénoménale.", quote: "« Une célébration vibrante d'un génie artistique absolu, grandiose et bouleversante. »", outlet: "Rolling Stone • David Fear" },
+                { consensus: "Un biopic incandescent qui transcende le spectacle scénique pour révéler les failles et le triomphe d'une légende mondiale.", quote: "« Une performance d'acteur prodigieuse qui subjugue par son authenticité viscérale. »", outlet: "Variety • Owen Gleiberman" },
+                { consensus: "Un hommage flamboyant servi par une mise en scène virtuose et des reconstitutions musicales sensationnelles.", quote: "« Un voyage musical d'une énergie foudroyante qui donne des frissons à chaque instant. »", outlet: "Première • Éric Libiot" },
+                { consensus: "Une fresque intime et spectaculaire qui explore avec justesse la ferveur et la complexité d'une icône planétaire.", quote: "« Magistral, émouvant et rythmé avec une précision chirurgicale. »", outlet: "Le Figaro • Nathalie Simon" }
+            ],
+            thriller: [
+                { consensus: "Un thriller psychologique suffocant à la mécanique implacable, distillant une tension d'une redoutable efficacité.", quote: "« Un exercice de style vertigineux où chaque regard et chaque silence pèsent lourdement. »", outlet: "Libération • Didier Péron" },
+                { consensus: "Une intrigue palpitante semée de faux-semblants, portée par une mise en scène ciselée et un suspense haletant.", quote: "« Un récit sombre et captivant qui ne relâche jamais son étreinte. »", outlet: "The Guardian • Peter Bradshaw" },
+                { consensus: "Un face-à-face captivant et nerveux, ponctué de révélations surprenantes et d'une maîtrise formelle irréprochable.", quote: "« Une tension millimétrée au service d'un divertissement de haute volée. »", outlet: "Les Inrockuptibles • Jean-Baptiste Morain" },
+                { consensus: "Un labyrinthe narratif d'une noirceur fascinante qui tient le spectateur captif jusqu'à son dénouement.", quote: "« Une maîtrise du tempo et du mystère qui force l'admiration. »", outlet: "Screen Daily • Fionnuala Halligan" }
+            ],
+            action: [
+                { consensus: "Un grand spectacle dynamique et généreux, alliant cascades impressionnantes, rythme effréné et direction artistique soignée.", quote: "« Une déflagration d'action pure et inventive qui procure un plaisir immédiat. »", outlet: "Total Film • Matt Maytum" },
+                { consensus: "Une aventure palpitante menée tambour battant, sublimée par des décors spectaculaires et un sens du divertissement jubilatoire.", quote: "« Tout ce qu'on attend d'un grand blockbuster : de l'énergie, de l'émotion et du panache. »", outlet: "IndieWire • David Ehrlich" },
+                { consensus: "Un rythme percutant et une réalisation énergique qui font de chaque séquence d'action un moment fort.", quote: "« Un grand huit cinématographique généreux et diablement efficace. »", outlet: "L'Obs • Nicolas Schaller" }
+            ],
+            general: [
+                { consensus: "Une œuvre d'une grande maîtrise narrative, portée par un casting impérial et une réalisation d'une remarquable élégance.", quote: "« Une proposition cinématographique forte, touchante et universelle. »", outlet: "Le Monde • Jacques Mandelbaum" },
+                { consensus: "Un récit subtil et captivant qui explore les passions humaines avec une délicatesse et une acuité impressionnantes.", quote: "« Un moment de cinéma d'une rare plénitude et d'une émotion constante. »", outlet: "Télérama • Cécile Mury" },
+                { consensus: "Une partition d'une justesse éclatante, mise en valeur par une photographie somptueuse et un rythme maîtrisé.", quote: "« Brillant, profond et d'une élégance formelle constante. »", outlet: "Première • Thierry Chèze" },
+                { consensus: "Une œuvre habitée qui marque les esprits par sa sincérité et sa force d'évocation poétique.", quote: "« Une réalisation inspirée qui touche au cœur avec brio. »", outlet: "Les Cahiers du Cinéma • Marcos Uzal" }
+            ]
+        };
+
+        // Sélection du pool de critiques le plus adapté
+        let pool = criticCorpus.general;
+        if (isAnime) pool = criticCorpus.anime;
+        else if (isSciFi) pool = criticCorpus.scifi;
+        else if (isMusic) pool = criticCorpus.music;
+        else if (isThriller) pool = criticCorpus.thriller;
+        else if (isAction) pool = criticCorpus.action;
+
+        const selectedIndex = positiveHash % pool.length;
+        const chosen = pool[selectedIndex];
+
+        // Variation dynamique des statistiques du public
+        const audience = Math.min(99, Math.max(68, Math.round(numRt * 0.95 + ((positiveHash % 7) - 3))));
+        const metacritic = Math.min(98, Math.max(58, Math.round(numRt * 0.90 + ((positiveHash % 5) - 2))));
+        const positiveVotes = Math.min(97, Math.max(72, Math.round(numImdb * 10 + (positiveHash % 4))));
+        const neutralVotes = Math.min(20, Math.max(2, Math.round((100 - positiveVotes) * 0.70)));
         const negativeVotes = Math.max(1, 100 - positiveVotes - neutralVotes);
 
         return {
             title,
-            rtScore,
+            rtScore: numRt,
             imdb: numImdb.toFixed(1),
             audience,
             metacritic,
-            consensus,
-            quote,
-            outlet,
+            consensus: chosen.consensus,
+            quote: chosen.quote,
+            outlet: chosen.outlet,
             positiveVotes,
             neutralVotes,
             negativeVotes

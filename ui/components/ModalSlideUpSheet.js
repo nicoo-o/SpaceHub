@@ -665,11 +665,13 @@ class ModalSlideUpSheet {
                                     const simId = card.dataset.itemId;
                                     const targetSim = similarItems.find(s => s.Id === simId);
                                     if (targetSim) {
-                                        const isPlay = e.target.closest('.sh-bento-quick-play') || e.target.closest('.sh-bento-poster-wrap');
-                                        if (isPlay) {
+                                        const isQuickPlay = e.target.closest('.sh-bento-quick-play');
+                                        if (isQuickPlay) {
+                                            e.stopPropagation();
                                             this.close();
                                             window.SpaceHub?.player?.play?.(targetSim);
                                         } else {
+                                            // Clic sur l'affiche ou la carte : Ouvre la fiche détaillée avec navigation retour
                                             this.open(targetSim);
                                         }
                                     }

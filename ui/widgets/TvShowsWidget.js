@@ -53,14 +53,14 @@ class TvShowsWidget {
 
             if (api?.getSeries) {
                 try {
-                    items = await api.getSeries({ limit: 18 });
+                    items = await api.getSeries({ limit: 48 });
                 } catch (e) {
                     console.warn('[TvShowsWidget] Erreur api.getSeries:', e);
                 }
             }
             if ((!items || items.length === 0) && apiClient?.getItems) {
                 try {
-                    const response = await apiClient.getItems({ IncludeItemTypes: 'Series', Recursive: true, Limit: 18, SortBy: 'DateCreated', SortOrder: 'Descending' });
+                    const response = await apiClient.getItems({ IncludeItemTypes: 'Series', Recursive: true, Limit: 48, SortBy: 'DateCreated', SortOrder: 'Descending' });
                     items = response?.Items || [];
                 } catch (e) {
                     console.warn('[TvShowsWidget] Erreur apiClient.getItems:', e);

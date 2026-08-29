@@ -102,7 +102,7 @@ class AnimeWidget {
                 if (api?.getItemsWithTotal) {
                     try {
                         const res = await api.getItemsWithTotal(animeLibraryId, {
-                            limit: 24,
+                            limit: 48,
                             sortBy: 'DateCreated',
                             sortOrder: 'Descending',
                             includeItemTypes: 'Series'
@@ -117,7 +117,7 @@ class AnimeWidget {
                 if ((!items || items.length === 0) && api?.getItemsWithTotal) {
                     try {
                         const res = await api.getItemsWithTotal(animeLibraryId, {
-                            limit: 24,
+                            limit: 48,
                             sortBy: 'DateCreated',
                             sortOrder: 'Descending'
                         });
@@ -131,7 +131,7 @@ class AnimeWidget {
                 if ((!items || items.length === 0) && api?.getItems) {
                     try {
                         items = await api.getItems(animeLibraryId, {
-                            limit: 24,
+                            limit: 48,
                             sortBy: 'DateCreated',
                             sortOrder: 'Descending',
                             includeItemTypes: 'Series'
@@ -147,7 +147,7 @@ class AnimeWidget {
                         const response = await apiClient.getItems({
                             ParentId: animeLibraryId,
                             Recursive: true,
-                            Limit: 24,
+                            Limit: 48,
                             SortBy: 'DateCreated',
                             SortOrder: 'Descending',
                             IncludeItemTypes: 'Series'
@@ -161,7 +161,7 @@ class AnimeWidget {
                 // 5. Essai api.getLatestItems avec parentId
                 if ((!items || items.length === 0) && api?.getLatestItems) {
                     try {
-                        items = await api.getLatestItems({ parentId: animeLibraryId, limit: 24 });
+                        items = await api.getLatestItems({ parentId: animeLibraryId, limit: 48 });
                     } catch (e) {
                         console.warn('[AnimeWidget] Erreur api.getLatestItems:', e);
                     }
@@ -171,7 +171,7 @@ class AnimeWidget {
                 if (api?.getItemsWithTotal) {
                     try {
                         const res = await api.getItemsWithTotal('', {
-                            limit: 24,
+                            limit: 48,
                             sortBy: 'DateCreated',
                             sortOrder: 'Descending',
                             includeItemTypes: 'Series',
@@ -187,7 +187,7 @@ class AnimeWidget {
                     try {
                         const response = await apiClient.getItems({
                             Recursive: true,
-                            Limit: 24,
+                            Limit: 48,
                             SortBy: 'DateCreated',
                             SortOrder: 'Descending',
                             IncludeItemTypes: 'Series',

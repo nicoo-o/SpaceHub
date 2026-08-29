@@ -1,3 +1,105 @@
+
+/**
+ * Ouvre le menu modal interactif de demande Jellyseerr avec profils et sélection de saisons.
+ * @param {Object} item - Média TMDB/Jellyseerr
+ * @param {Object} jellyseerr - Instance du service Jellyseerr
+ */
+function openJellyseerrRequestModal(item, jellyseerr) {
+    const title = item.title || item.name || 'Média';
+    const type = item.mediaType || (item.firstAirDate ? 'tv' : 'movie');
+    const typeLabel = type === 'tv' ? 'Série TV' : 'Long-Métrage';
+    const poster = item.posterPath ? `https://image.tmdb.org/t/p/w400${item.posterPath}` : '';
+    const dateStr = item.releaseDate || item.firstAirDate || '';
+    const year = dateStr ? new Date(dateStr).getFullYear() : '';
+    const overview = item.overview || 'Aucune description disponible.';
+
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'sh-jellyseerr-modal-overlay';
+    modalOverlay.innerHTML = `
+        <div class="sh-jellyseerr-modal-card">
+            <button class="sh-jellyseerr-modal-close" id="sh-jellyseerr-close" title="Fermer">✕</button>
+            <div class="sh-jellyseerr-modal-header">
+                <div class="sh-jellyseerr-modal-poster-wrap">
+                    ${poster ? `<img src="${poster}" alt="${title}" />` : '<div class="sh-jellyseerr-modal-poster-fallback">🎬</div>'}
+                </div>
+                <div class="sh-jellyseerr-modal-header-info">
+                    <div class="sh-jellyseerr-modal-type-tag">${typeLabel} • ${year}</div>
+                    <h3 class="sh-jellyseerr-modal-title">${title}</h3>
+                    <div class="sh-jellyseerr-modal-status-badge" id="sh-req-status-badge">
+                        <span class="sh-status-dot"></span>
+                        <span class="sh-status-text">Prêt pour la demande</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sh-jellyseerr-modal-body">
+                <p class="sh-jellyseerr-modal-desc">${overview}</p>
+
+                <div class="sh-jellyseerr-form-row">
+                    <label class="sh-jellyseerr-form-label">Profil de Qualité</label>
+                    <select class="sh-jellyseerr-form-select" id="sh-jellyseerr-profile-select">
+                        <option value="1" selected>4K UHD • Dolby Vision & HDR</option>
+                        <option value="2">1080p HD • Qualité Standard</option>
+                        <option value="3">720p • Économie d'espace</option>
+                    </select>
+                </div>
+
+                ${type === 'tv' ? `
+                    <div class="sh-jellyseerr-form-row">
+                        <label class="sh-jellyseerr-form-label">Saisons à demander</label>
+                        <div class="sh-jellyseerr-seasons-checkboxes">
+                            <label class="sh-checkbox-pill"><input type="checkbox" name="seasons" value="all" checked /> <span>Toutes les saisons</span></label>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <div class="sh-jellyseerr-modal-actions">
+                    <button class="sh-jellyseerr-btn-submit" id="sh-btn-submit-request">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        <span>Confirmer la demande</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modalOverlay);
+    requestAnimationFrame(() => modalOverlay.classList.add('open'));
+
+    const closeModal = () => {
+        modalOverlay.classList.remove('open');
+        setTimeout(() => modalOverlay.remove(), 240);
+    };
+
+    modalOverlay.querySelector('#sh-jellyseerr-close')?.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) closeModal();
+    });
+
+    const submitBtn = modalOverlay.querySelector('#sh-btn-submit-request');
+    submitBtn?.addEventListener('click', async () => {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="sh-spinner-inline"></span><span>Transmission à Jellyseerr...</span>';
+        try {
+            await jellyseerr.requestMedia(type, item.id);
+            submitBtn.classList.add('success');
+            submitBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Demande validée !</span>';
+            const badge = modalOverlay.querySelector('#sh-req-status-badge');
+            if (badge) {
+                badge.className = 'sh-jellyseerr-modal-status-badge status-requested';
+                badge.querySelector('.sh-status-text').textContent = 'Demandé • En attente';
+            }
+            window.SpaceHub?.ui?.components?.toaster?.success(`Demande transmise avec succès pour "${title}" !`);
+            setTimeout(closeModal, 1200);
+        } catch (err) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<span>Réessayer</span>';
+            window.SpaceHub?.ui?.components?.toaster?.error(`Erreur: ${err.message || 'Impossible d envoyer la demande'}`);
+        }
+    });
+}
+
+
 /**
  * SpaceHub — Jellyseerr Dashboard & Discovery Widgets
  * Version: 1.0.0 (Apple VisionOS Glass Bento)
@@ -61,6 +163,27 @@ function renderJellyseerrMediaCard(item) {
  * @param {Object} jellyseerr
  */
 function bindJellyseerrRequestButtons(container, jellyseerr) {
+    // 1. Clic sur la carte globale pour ouvrir la modal de demande complète
+    container.querySelectorAll('.sh-jellyseerr-bento-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('.sh-jellyseerr-req-action-btn')) return;
+            const mediaId = card.dataset.mediaId;
+            const mediaType = card.dataset.mediaType;
+            const title = card.querySelector('.sh-jellyseerr-bento-card__title')?.textContent || 'Média';
+            const posterImg = card.querySelector('.sh-jellyseerr-bento-card__img')?.src || '';
+            const year = card.querySelector('.sh-jellyseerr-bento-card__year')?.textContent || '';
+
+            openJellyseerrRequestModal({
+                id: mediaId,
+                title,
+                mediaType,
+                posterPath: posterImg ? posterImg.replace('https://image.tmdb.org/t/p/w300', '') : '',
+                releaseDate: year
+            }, jellyseerr);
+        });
+    });
+
+    // 2. Clic sur le bouton de demande rapide
     container.querySelectorAll('.sh-jellyseerr-req-action-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -88,6 +211,183 @@ function injectJellyseerrSharedStyles() {
     const style = document.createElement('style');
     style.id = 'sh-jellyseerr-shared-styles';
     style.textContent = `
+
+/* ── Modale de Demande Jellyseerr Ultra-Glass ── */
+.sh-jellyseerr-modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.65) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    z-index: 999999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 240ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.sh-jellyseerr-modal-overlay.open {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+.sh-jellyseerr-modal-card {
+    width: 480px !important;
+    max-width: 92vw !important;
+    background: rgba(20, 20, 28, 0.88) !important;
+    backdrop-filter: blur(40px) saturate(190%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 24px !important;
+    padding: 24px !important;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.06) inset !important;
+    position: relative !important;
+    transform: scale(0.94) translateY(12px) !important;
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.sh-jellyseerr-modal-overlay.open .sh-jellyseerr-modal-card {
+    transform: scale(1) translateY(0) !important;
+}
+.sh-jellyseerr-modal-close {
+    position: absolute !important;
+    top: 18px !important;
+    right: 18px !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #fff !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s !important;
+}
+.sh-jellyseerr-modal-close:hover {
+    background: rgba(255, 255, 255, 0.18) !important;
+    transform: scale(1.08) !important;
+}
+.sh-jellyseerr-modal-header {
+    display: flex !important;
+    gap: 18px !important;
+    margin-bottom: 20px !important;
+}
+.sh-jellyseerr-modal-poster-wrap {
+    width: 100px !important;
+    height: 145px !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    background: #111 !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6) !important;
+    flex-shrink: 0 !important;
+}
+.sh-jellyseerr-modal-poster-wrap img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+.sh-jellyseerr-modal-header-info {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+}
+.sh-jellyseerr-modal-type-tag {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    color: #a1a1aa !important;
+    margin-bottom: 4px !important;
+}
+.sh-jellyseerr-modal-title {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    color: #fff !important;
+    margin: 0 0 10px 0 !important;
+    line-height: 1.25 !important;
+}
+.sh-jellyseerr-modal-status-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 4px 10px !important;
+    background: rgba(99, 102, 241, 0.14) !important;
+    border: 1px solid rgba(99, 102, 241, 0.28) !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #a5b4fc !important;
+    width: fit-content !important;
+}
+.sh-jellyseerr-modal-status-badge.status-requested {
+    background: rgba(34, 197, 94, 0.14) !important;
+    border-color: rgba(34, 197, 94, 0.3) !important;
+    color: #86efac !important;
+}
+.sh-status-dot {
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    background: currentColor !important;
+}
+.sh-jellyseerr-modal-desc {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    color: rgba(255, 255, 255, 0.72) !important;
+    margin-bottom: 18px !important;
+    max-height: 72px !important;
+    overflow-y: auto !important;
+}
+.sh-jellyseerr-form-row {
+    margin-bottom: 16px !important;
+}
+.sh-jellyseerr-form-label {
+    display: block !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #e4e4e7 !important;
+    margin-bottom: 6px !important;
+}
+.sh-jellyseerr-form-select {
+    width: 100% !important;
+    padding: 10px 12px !important;
+    border-radius: 12px !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    color: #fff !important;
+    font-size: 13px !important;
+    outline: none !important;
+}
+.sh-jellyseerr-modal-actions {
+    margin-top: 24px !important;
+}
+.sh-jellyseerr-btn-submit {
+    width: 100% !important;
+    padding: 12px 18px !important;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 14px !important;
+    color: #fff !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4) !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.sh-jellyseerr-btn-submit:hover:not(:disabled) {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 12px 30px rgba(99, 102, 241, 0.6) !important;
+}
+.sh-jellyseerr-btn-submit.success {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
+    box-shadow: 0 8px 24px rgba(34, 197, 94, 0.4) !important;
+}
+
+
 .sh-jellyseerr-carousel {
     display: flex !important;
     flex-direction: row !important;

@@ -59,14 +59,14 @@ class MoviesWidget {
 
             if (api?.getMovies) {
                 try {
-                    items = await api.getMovies({ limit: 18, sortBy: 'DateCreated', sortOrder: 'Descending' });
+                    items = await api.getMovies({ limit: 48, sortBy: 'DateCreated', sortOrder: 'Descending' });
                 } catch (e) {
                     console.warn('[MoviesWidget] Erreur api.getMovies:', e);
                 }
             }
             if ((!items || items.length === 0) && apiClient?.getItems) {
                 try {
-                    const response = await apiClient.getItems({ IncludeItemTypes: 'Movie', Recursive: true, Limit: 18, SortBy: 'DateCreated', SortOrder: 'Descending' });
+                    const response = await apiClient.getItems({ IncludeItemTypes: 'Movie', Recursive: true, Limit: 48, SortBy: 'DateCreated', SortOrder: 'Descending' });
                     items = response?.Items || [];
                 } catch (e) {
                     console.warn('[MoviesWidget] Erreur apiClient.getItems:', e);
