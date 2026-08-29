@@ -555,97 +555,11 @@ class ModalSlideUpSheet {
         this._bindSheetEvents(item);
     }
 
-    async _loadFullDetails(item) {
+        async _loadFullDetails(item) {
         const itemId = item.Id || item.id;
         if (!itemId) return;
 
-        const isCalendarOrServarr = item.source === 'sonarr' || item.source === 'radarr' || (typeof itemId === 'string' && (itemId.startsWith('sonarr-') || itemId.startsWith('radarr-') || itemId.startsWith('sh-cal-')));
-        if (isCalendarOrServarr) {
-            const castGrid = this._sheet?.querySelector('#sh-cast-luxury-grid');
-            if (castGrid) castGrid.innerHTML = '<div style="color:rgba(255,255,255,0.4); padding:20px;">Informations de casting disponibles lors de l\'intégration à la médiathèque.</div>';
-            const bentoGrid = this._sheet?.querySelector('#sh-bento-luxury-grid');
-            if (bentoGrid) bentoGrid.innerHTML = '<div style="color:rgba(255,255,255,0.4); padding:20px;">Recommandations basées sur vos abonnements Sonarr & Radarr.</div>';
-            return;
-        }
-
-        // Si média Jellyseerr, charger les détails TMDB et les saisons
-        const isJellyseerr = item.isJellyseerr || item.source === 'jellyseerr' || (typeof itemId === 'string' && itemId.startsWith('jellyseerr-'));
-        if (isJellyseerr) {
-            const tmdbId = item.id || item.tmdbId || item.mediaId || (typeof itemId === 'string' ? itemId.replace('jellyseerr-', '') : null);
-            const rawType = (item.Type || item.type || item.MediaType || '').toLowerCase();
-            const isSeries = rawType === 'series' || rawType === 'tvshow' || item.isSeries;
-            const jsApi = window.SpaceHub?.integrations?.jellyseerr?.api || (window.SpaceHub?.core?.api?.getClient ? window.SpaceHub.core.api.getClient('jellyseerr') : null);
-
-            if (isSeries && jsApi?.getMediaDetails && tmdbId) {
-                try {
-                    const jsDetails = await jsApi.getMediaDetails('tv', tmdbId);
-                    const validSeasons = (jsDetails?.seasons || []).filter(s => s.seasonNumber > 0);
-                    const seasonRow = this._sheet?.querySelector('.sh-season-pills-row');
-                    const epGrid = this._sheet?.querySelector('#sh-episodes-luxury-grid');
-
-                    if (seasonRow && validSeasons.length > 0) {
-                        seasonRow.style.display = 'flex';
-                        seasonRow.innerHTML = validSeasons.map((s, idx) => `
-                            <button class="sh-season-pill-btn ${idx === 0 ? 'active' : ''}" data-season-num="${s.seasonNumber}">
-                                Saison ${s.seasonNumber} (${s.episodeCount || 0})
-                            </button>
-                        `).join('');
-
-                        const loadJsSeasonEps = async (sNum) => {
-                            if (epGrid) epGrid.innerHTML = '<div style="color:rgba(255,255,255,0.4); padding:20px;"><span class="sh-spinner-inline" style="margin-right:8px;"></span>Chargement des épisodes...</div>';
-                            let sData = null;
-                            if (jsApi?.getSeasonDetails) {
-                                try { sData = await jsApi.getSeasonDetails(tmdbId, sNum); } catch (e) {}
-                            }
-                            const episodes = sData?.episodes || Array.from({ length: validSeasons.find(s => s.seasonNumber == sNum)?.episodeCount || 8 }, (_, i) => ({
-                                episodeNumber: i + 1,
-                                name: `Épisode ${i + 1}`,
-                                overview: 'Aucun résumé disponible pour cet épisode.',
-                                stillPath: null,
-                                airDate: ''
-                            }));
-
-                            if (epGrid) {
-                                epGrid.innerHTML = episodes.map(ep => {
-                                    const stillUrl = ep.stillPath ? `https://image.tmdb.org/t/p/w400${ep.stillPath}` : '';
-                                    return `
-                                        <div class="sh-episode-luxury-card" style="display:flex; align-items:center; gap:16px; padding:14px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:16px; margin-bottom:12px;">
-                                            <div style="width:140px; height:80px; border-radius:12px; overflow:hidden; background:#111; flex-shrink:0;">
-                                                ${stillUrl ? `<img src="${stillUrl}" style="width:100%; height:100%; object-fit:cover;" alt="${ep.name || ''}" />` : '<div style="display:flex; align-items:center; justify-content:center; height:100%; font-size:24px;">📺</div>'}
-                                            </div>
-                                            <div style="flex:1; min-width:0;">
-                                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                                                    <span style="font-size:11px; font-weight:750; color:#818cf8; background:rgba(99,102,241,0.15); padding:2px 6px; border-radius:6px;">EP ${ep.episodeNumber}</span>
-                                                    <h4 style="margin:0; font-size:14.5px; font-weight:700; color:#fff;">${ep.name || ('Épisode ' + ep.episodeNumber)}</h4>
-                                                    ${ep.airDate ? `<span style="font-size:11px; color:rgba(255,255,255,0.4); margin-left:auto;">${ep.airDate}</span>` : ''}
-                                                </div>
-                                                <p style="margin:0; font-size:12.5px; color:rgba(255,255,255,0.7); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${ep.overview || 'Aucune description disponible.'}</p>
-                                            </div>
-                                        </div>
-                                    `;
-                                }).join('');
-                            }
-                        };
-
-                        loadJsSeasonEps(validSeasons[0].seasonNumber);
-
-                        seasonRow.querySelectorAll('.sh-season-pill-btn').forEach(btn => {
-                            btn.addEventListener('click', () => {
-                                seasonRow.querySelectorAll('.sh-season-pill-btn').forEach(b => b.classList.remove('active'));
-                                btn.classList.add('active');
-                                loadJsSeasonEps(parseInt(btn.dataset.seasonNum, 10));
-                            });
-                        });
-                    }
-                } catch (e) {
-                    console.warn('[ModalSlideUp] Erreur chargement saisons Jellyseerr:', e);
-                }
-            }
-            return;
-        }
-
-        const api = window.SpaceHub?.jellyfin?.api;
-        const apiClient = window.SpaceHub?.core?.api?.getClient('jellyfin');
+        const isLocalJellyfin = itemId && typeof itemId === 'string' && itemId.length >= 24 && !itemId.startsWith('jellyseerr-') && !itemId.startsWith('sonarr-') && !itemId.startsWith('radarr-') && item.source !== 'jellyseerr';
         const rawType = (item.Type || item.type || item.MediaType || '').toLowerCase();
         const isMovie = rawType === 'movie' || item.isMovie;
         const isEpisode = rawType === 'episode';
@@ -653,276 +567,220 @@ class ModalSlideUpSheet {
         const isMusic = rawType === 'musicalbum' || rawType === 'music' || rawType === 'album' || rawType === 'audio' || item.isMusic;
         const isSeries = !isMovie && !isCollection && !isMusic && (rawType === 'series' || rawType === 'tvshow' || rawType === 'season' || item.isSeries || (item.SeasonCount && item.SeasonCount > 0));
 
+        const api = window.SpaceHub?.jellyfin?.api;
+        const jsApi = window.SpaceHub?.integrations?.jellyseerr?.api || (window.SpaceHub?.core?.api?.getClient ? window.SpaceHub.core.api.getClient('jellyseerr') : null);
+
         try {
-            // ── 1. Lancement simultané des requêtes en arrière-plan (zéro blocage) ──
-            const detailsPromise = api?.getItem?.(itemId).catch(e => { console.warn(e); return item; });
-            const similarPromise = api?.getSimilarItems?.(itemId, 12).catch(e => { console.warn(e); return []; });
-            const seasonsPromise = isSeries ? api?.getSeasons?.(itemId).catch(e => { console.warn(e); return []; }) : null;
-            const sagaPromise = isCollection ? (api?.getBoxSetItems?.(itemId) || apiClient?.getItems?.(itemId, { recursive: true })).catch(e => { console.warn(e); return []; }) : null;
-
-            // ── 2. Rendu immédiat des Saisons & Épisodes en parallèle ──
+            // ── GESTION INTELLIGENTE DES SÉRIES (LOCALES, MIXTES & JELLYSEERR) ──
             if (isSeries) {
-                const handleSeasons = async (seasons) => {
-                    const seasonRow = this._sheet?.querySelector('.sh-season-pills-row');
-                    if (seasonRow && seasons && seasons.length > 0) {
-                        seasonRow.style.display = 'flex';
-                        seasonRow.innerHTML = seasons.map((season, idx) => `
-                            <button class="sh-season-pill-btn ${idx === 0 ? 'active' : ''}" data-season-id="${season.Id}">
-                                ${this._escape(season.Name || ('Saison ' + (idx + 1)))}
-                            </button>
-                        `).join('');
+                const seasonRow = this._sheet?.querySelector('.sh-season-pills-row');
+                const episodesGrid = this._sheet?.querySelector('.sh-episodes-cards-grid');
 
-                        this._loadSeasonEpisodes(itemId, seasons[0].Id);
+                let localSeasons = [];
+                if (isLocalJellyfin && api?.getSeasons) {
+                    try { localSeasons = await api.getSeasons(itemId) || []; } catch (e) {}
+                }
 
-                        seasonRow.querySelectorAll('.sh-season-pill-btn').forEach(btn => {
-                            btn.addEventListener('click', () => {
-                                seasonRow.querySelectorAll('.sh-season-pill-btn').forEach(b => b.classList.remove('active'));
-                                btn.classList.add('active');
-                                this._loadSeasonEpisodes(itemId, btn.dataset.seasonId);
-                            });
+                // Récupération des saisons TMDB / Jellyseerr pour détecter les saisons manquantes/futures
+                const tmdbId = item.tmdbId || item.id || (typeof itemId === 'string' && itemId.startsWith('jellyseerr-') ? itemId.replace('jellyseerr-', '') : null);
+                let allTmdbSeasons = [];
+                if (jsApi?.getMediaDetails && tmdbId) {
+                    try {
+                        const jsDetails = await jsApi.getMediaDetails('tv', tmdbId);
+                        allTmdbSeasons = (jsDetails?.seasons || []).filter(s => s.seasonNumber > 0);
+                    } catch (e) {}
+                }
+
+                // Fusion des saisons locales et Jellyseerr
+                let displaySeasons = [];
+                if (allTmdbSeasons.length > 0) {
+                    displaySeasons = allTmdbSeasons.map(s => {
+                        const localMatch = localSeasons.find(ls => (ls.IndexNumber === s.seasonNumber) || (ls.Name && ls.Name.includes(String(s.seasonNumber))));
+                        return {
+                            seasonNumber: s.seasonNumber,
+                            name: s.name || `Saison ${s.seasonNumber}`,
+                            episodeCount: s.episodeCount || 0,
+                            isLocal: Boolean(localMatch),
+                            localId: localMatch?.Id || null
+                        };
+                    });
+                } else if (localSeasons.length > 0) {
+                    displaySeasons = localSeasons.map((ls, idx) => ({
+                        seasonNumber: ls.IndexNumber || (idx + 1),
+                        name: ls.Name || `Saison ${idx + 1}`,
+                        episodeCount: ls.ChildCount || 0,
+                        isLocal: true,
+                        localId: ls.Id
+                    }));
+                } else {
+                    displaySeasons = [{ seasonNumber: 1, name: 'Saison 1', episodeCount: 8, isLocal: false, localId: null }];
+                }
+
+                // Détecter s'il y a des saisons manquantes
+                const hasMissing = displaySeasons.some(s => !s.isLocal);
+                if (hasMissing && isLocalJellyfin) {
+                    item.hasMissingSeasons = true;
+                    // Ajouter le bouton dans le hero si pas présent
+                    const actionsRow = this._sheet?.querySelector('.sh-cinema-actions');
+                    if (actionsRow && !actionsRow.querySelector('#sh-btn-download-missing-seasons')) {
+                        const btn = document.createElement('button');
+                        btn.id = 'sh-btn-download-missing-seasons';
+                        btn.className = 'sh-cinema-btn-play';
+                        btn.style.background = 'rgba(99, 102, 241, 0.25)';
+                        btn.style.color = '#c7d2fe';
+                        btn.style.border = '1px solid rgba(99, 102, 241, 0.5)';
+                        btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Demander les saisons manquantes</span>';
+                        btn.addEventListener('click', () => {
+                            const drawer = this._sheet?.querySelector('#sh-slideup-jellyseerr-drawer');
+                            if (drawer) {
+                                drawer.style.display = 'block';
+                                drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            }
                         });
-                    } else {
-                        if (seasonRow) {
-                            seasonRow.style.display = 'flex';
-                            seasonRow.innerHTML = '<button class="sh-season-pill-btn active">Saison 1</button>';
-                        }
-                        await this._loadSeasonEpisodes(itemId, null);
+                        actionsRow.appendChild(btn);
                     }
-                };
-
-                if (seasonsPromise) {
-                    seasonsPromise.then(handleSeasons).catch(() => handleSeasons([]));
-                } else {
-                    handleSeasons([]);
                 }
-            }
 
-            // ── 3. Rendu immédiat des Sagas en parallèle ──
-            if (isCollection && sagaPromise) {
-                sagaPromise.then(sagaMovies => {
-                    const sagaGrid = this._sheet?.querySelector('.sh-saga-films-grid');
-                    if (sagaGrid) {
-                        if (sagaMovies && sagaMovies.length > 0) {
-                            const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
-                            sagaGrid.innerHTML = sagaMovies.map((m, idx) => {
-                                const mImg = api?.getImageUrl?.(m.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || '';
-                                const mRating = m.CommunityRating ? Number(m.CommunityRating).toFixed(1) : '8.4';
-                                return `
-                                    <div class="sh-saga-movie-card" data-item-id="${m.Id}">
-                                        <div class="sh-saga-thumb-container" data-action="play" title="▶ Lancer ${this._escape(m.Name)}">
-                                            <img src="${mImg}" alt="${this._escape(m.Name)}" />
-                                            <div class="sh-saga-quick-play">▶</div>
-                                            <span class="sh-saga-num-badge">Film ${idx + 1}</span>
-                                        </div>
-                                        <div class="sh-saga-card-content" data-action="details" title="Détails du film">
-                                            <div class="sh-saga-header-row">
-                                                <span class="sh-saga-title">${idx + 1}. ${this._escape(m.Name)}</span>
-                                                <button class="sh-saga-play-btn" data-item-id="${m.Id}">▶ Regarder</button>
-                                            </div>
-                                            <div class="sh-saga-meta-row">
-                                                <span class="sh-bento-score">★ ${mRating}</span>
-                                                <span class="sh-bento-dot">•</span>
-                                                <span>${m.ProductionYear || ''}</span>
-                                            </div>
-                                            <p class="sh-bento-desc">${this._escape(m.Overview || '')}</p>
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('');
+                // Affichage des pastilles de saisons avec badges clairs
+                if (seasonRow && displaySeasons.length > 0) {
+                    seasonRow.style.display = 'flex';
+                    seasonRow.innerHTML = displaySeasons.map((s, idx) => `
+                        <button class="sh-season-pill-btn ${idx === 0 ? 'active' : ''}" data-season-num="${s.seasonNumber}" data-local-id="${s.localId || ''}" data-is-local="${s.isLocal}">
+                            <span>${this._escape(s.name)} (${s.episodeCount})</span>
+                            <span style="font-size:10px; margin-left:6px; padding:2px 6px; border-radius:6px; font-weight:750; background:${s.isLocal ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.25)'}; color:${s.isLocal ? '#34d399' : '#a5b4fc'};">
+                                ${s.isLocal ? '✓ Sur le serveur' : '📥 Demandable'}
+                            </span>
+                        </button>
+                    `).join('');
 
-                            sagaGrid.querySelectorAll('.sh-saga-movie-card').forEach(card => {
-                                card.addEventListener('click', (e) => {
-                                    const filmId = card.dataset.itemId;
-                                    const targetFilm = sagaMovies.find(f => f.Id === filmId);
-                                    if (targetFilm) {
-                                        const isPlay = e.target.closest('.sh-saga-play-btn') || e.target.closest('.sh-saga-quick-play') || e.target.closest('.sh-saga-thumb-container');
-                                        if (isPlay) {
-                                            this.close();
-                                            window.SpaceHub?.player?.play?.(targetFilm);
-                                        } else {
-                                            this.open(targetFilm);
-                                        }
+                    // Fonction de chargement des épisodes pour une saison donnée
+                    const loadEpisodesForSeason = async (seasonObj) => {
+                        if (!episodesGrid) return;
+                        episodesGrid.innerHTML = '<div style="color:rgba(255,255,255,0.5); padding:24px; text-align:center;"><span class="sh-spinner-inline" style="margin-right:8px;"></span>Chargement des épisodes de la ' + seasonObj.name + '...</div>';
+
+                        if (seasonObj.isLocal && seasonObj.localId && api?.getEpisodes) {
+                            // Charger les vrais épisodes de Jellyfin
+                            let localEps = await api.getEpisodes(itemId, seasonObj.localId) || [];
+                            if (localEps.length > 0) {
+                                episodesGrid.innerHTML = localEps.map((ep, idx) => {
+                                    const epImg = api?.getImageUrl?.(ep.Id, 'Primary', { maxWidth: 500, maxHeight: 280 }) || api?.getImageUrl?.(ep.Id, 'Thumb', { maxWidth: 500, maxHeight: 280 }) || '';
+                                    const progress = Math.round(ep.UserData?.PlayedPercentage || 0);
+                                    const dur = ep.RunTimeTicks ? Math.round(ep.RunTimeTicks / 10000000 / 60) + ' min' : '';
+                                    return `
+                                        <div class="sh-episode-card" data-ep-id="${ep.Id}">
+                                            <div class="sh-episode-thumb-wrap" data-action="play">
+                                                ${epImg ? `<img src="${epImg}" alt="${this._escape(ep.Name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.IndexNumber || (idx + 1)}</div>`}
+                                                <div class="sh-episode-overlay-play">▶</div>
+                                                <span class="sh-episode-badge-num">EP ${ep.IndexNumber || (idx + 1)}</span>
+                                                ${dur ? `<span class="sh-episode-dur">${dur}</span>` : ''}
+                                                ${progress > 0 ? `<div class="sh-episode-progress-bar"><div class="sh-episode-progress-fill" style="width:${progress}%;"></div></div>` : ''}
+                                            </div>
+                                            <div class="sh-episode-info" data-action="details">
+                                                <div class="sh-episode-title-row">
+                                                    <span class="sh-episode-title">${ep.IndexNumber || (idx + 1)}. ${this._escape(ep.Name)}</span>
+                                                    <span class="sh-episode-chevron">›</span>
+                                                </div>
+                                                <p class="sh-episode-synopsis">${this._escape(ep.Overview || 'Aucun synopsis disponible pour cet épisode.')}</p>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('');
+
+                                episodesGrid.querySelectorAll('.sh-episode-card').forEach(card => {
+                                    const epId = card.dataset.epId;
+                                    const ep = localEps.find(e => e.Id === epId);
+                                    if (ep) {
+                                        card.addEventListener('click', (e) => {
+                                            if (e.target.closest('.sh-episode-thumb-wrap') || e.target.closest('.sh-episode-overlay-play')) {
+                                                this.close();
+                                                window.SpaceHub?.player?.play?.(ep);
+                                            } else {
+                                                this.open(ep);
+                                            }
+                                        });
                                     }
                                 });
-                            });
-                        } else {
-                            sagaGrid.innerHTML = '<div style="color:rgba(255,255,255,0.4); padding:20px;">Aucun film trouvé dans cette saga.</div>';
+                                return;
+                            }
                         }
-                    }
-                });
-            }
 
-            // ── 4. Rendu immédiat des Titres Similaires en parallèle ──
-            if (similarPromise) {
-                similarPromise.then(similarItems => {
-                    const bentoGrid = this._sheet?.querySelector('#sh-bento-luxury-grid');
-                    if (bentoGrid) {
-                        if (similarItems && similarItems.length > 0) {
-                            const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
-                            bentoGrid.innerHTML = similarItems.map(sim => {
-                                const simImg = api?.getImageUrl?.(sim.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || '';
-                                const simRating = sim.CommunityRating ? Number(sim.CommunityRating).toFixed(1) : '8.2';
-                                return `
-                                    <div class="sh-bento-card" data-item-id="${sim.Id}">
-                                        <div class="sh-bento-poster-wrap" data-action="play" title="▶ Lancer ${this._escape(sim.Name)}">
-                                            <img src="${simImg}" alt="${this._escape(sim.Name)}" />
-                                            <div class="sh-bento-quick-play">▶</div>
-                                        </div>
-                                        <div class="sh-bento-content" data-action="details" title="Détails du titre">
-                                            <div class="sh-bento-header-row">
-                                                <span class="sh-bento-title">${this._escape(sim.Name)}</span>
-                                            </div>
-                                            <div class="sh-bento-meta-row">
-                                                <span class="sh-bento-score">★ ${simRating}</span>
-                                                <span class="sh-bento-dot">•</span>
-                                                <span>${sim.ProductionYear || ''}</span>
-                                            </div>
-                                            <p class="sh-bento-desc">${this._escape(sim.Overview || '')}</p>
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('');
-
-                            bentoGrid.querySelectorAll('.sh-bento-card').forEach(card => {
-                                card.addEventListener('click', (e) => {
-                                    const simId = card.dataset.itemId;
-                                    const targetSim = similarItems.find(s => s.Id === simId);
-                                    if (targetSim) {
-                                        const isQuickPlay = e.target.closest('.sh-bento-quick-play');
-                                        if (isQuickPlay) {
-                                            e.stopPropagation();
-                                            this.close();
-                                            window.SpaceHub?.player?.play?.(targetSim);
-                                        } else {
-                                            // Clic sur l'affiche ou la carte : Ouvre la fiche détaillée avec navigation retour
-                                            this.open(targetSim);
-                                        }
-                                    }
-                                });
-                            });
-                        } else {
-                            bentoGrid.innerHTML = '<div style="color:rgba(255,255,255,0.4); padding:20px;">Aucun titre similaire disponible.</div>';
+                        // Sinon : Charger les épisodes depuis Jellyseerr / TMDB
+                        let jsEpisodes = [];
+                        if (jsApi?.getSeasonDetails && tmdbId) {
+                            try {
+                                const sData = await jsApi.getSeasonDetails(tmdbId, seasonObj.seasonNumber);
+                                jsEpisodes = sData?.episodes || [];
+                            } catch (e) {}
                         }
-                    }
-                });
-            }
 
-            // ── 5. Mise à jour des Métadonnées, Casting et Pistes Audio ──
-            const fullItem = (await detailsPromise) || item;
-            if (!fullItem) return;
+                        if (jsEpisodes.length === 0) {
+                            jsEpisodes = Array.from({ length: seasonObj.episodeCount || 8 }, (_, i) => ({
+                                episodeNumber: i + 1,
+                                name: `Épisode ${i + 1}`,
+                                overview: 'Épisode disponible à la demande sur Jellyseerr.',
+                                stillPath: null,
+                                airDate: ''
+                            }));
+                        }
 
-            Object.assign(item, fullItem);
-
-            // Mettre à jour le synopsis
-            const synopsisEl = this._sheet.querySelector('#sh-synopsis-text');
-            if (synopsisEl && fullItem.Overview) {
-                synopsisEl.textContent = fullItem.Overview;
-            }
-
-            // Réalisateurs réels
-            const directors = (fullItem.People || []).filter(p => p.Type === 'Director');
-            const directorName = directors.map(d => d.Name).join(', ') || 'Non renseigné';
-            const directorValEl = this._sheet.querySelector('#sh-meta-director-val');
-            if (directorValEl) directorValEl.textContent = directorName;
-
-            // Genres réels
-            const genresStr = (fullItem.Genres || []).join(' • ') || 'Cinéma';
-            const genresValEl = this._sheet.querySelector('#sh-meta-genres-val');
-            if (genresValEl) genresValEl.textContent = genresStr;
-            // Mise à jour dynamique de la boîte Bento Critiques avec les vrais genres et métadonnées
-            const updatedCriticData = cardBuilder?.getCriticData?.(fullItem, rtScore, imdbScore);
-            if (updatedCriticData) {
-                const rtConsensusEl = this._sheet.querySelector('.sh-critics-consensus-text');
-                if (rtConsensusEl && updatedCriticData.consensus) rtConsensusEl.textContent = updatedCriticData.consensus;
-                
-                const rtQuoteEl = this._sheet.querySelector('.sh-critics-quote-box span');
-                if (rtQuoteEl && updatedCriticData.quote) rtQuoteEl.textContent = updatedCriticData.quote;
-
-                const rtOutletEl = this._sheet.querySelector('.sh-critics-quote-box cite');
-                if (rtOutletEl && updatedCriticData.outlet) rtOutletEl.textContent = updatedCriticData.outlet;
-            }
-            const heroGenresEl = this._sheet.querySelector('#sh-hero-genres');
-            if (heroGenresEl) heroGenresEl.textContent = genresStr;
-
-            // Studios
-            const studioName = (fullItem.Studios && fullItem.Studios.length > 0) ? fullItem.Studios[0].Name : 'Studio Indépendant';
-            const studioEl = this._sheet.querySelector('#sh-studio-name');
-            if (studioEl) studioEl.textContent = studioName;
-
-            // Qualité & Format réel
-            const videoStream = (fullItem.MediaStreams || []).find(s => s.Type === 'Video');
-            const is4K = (videoStream?.Width >= 3800) || (videoStream?.Height >= 2000) || fullItem.Width >= 3800;
-            const isHDR = videoStream?.VideoRangeType === 'HDR' || videoStream?.VideoRangeType === 'DOVI' || videoStream?.VideoRangeType === 'HDR10';
-            const audioStream = (fullItem.MediaStreams || []).find(s => s.Type === 'Audio');
-            const audioCodec = audioStream?.Codec?.toUpperCase() || 'AAC';
-            const audioChannels = audioStream?.Channels === 8 ? '7.1' : audioStream?.Channels === 6 ? '5.1' : '2.0';
-            const formatStr = `${is4K ? '4K UHD' : (videoStream?.Height ? videoStream.Height + 'p' : 'HD')} • ${isHDR ? 'HDR / Dolby Vision' : 'SDR'} • ${audioCodec} ${audioChannels}`;
-            const formatValEl = this._sheet.querySelector('#sh-meta-format-val');
-            if (formatValEl) formatValEl.textContent = formatStr;
-
-            // Badges haut
-            const qualityBadge = this._sheet.querySelector('#sh-badge-quality');
-            if (qualityBadge) qualityBadge.textContent = is4K ? 'MASTER 4K' : (videoStream?.Height ? `${videoStream.Height}P HD` : 'HD');
-            const audioBadge = this._sheet.querySelector('#sh-badge-audio');
-            if (audioBadge) audioBadge.textContent = `${audioCodec} ${audioChannels}`;
-            const visionBadge = this._sheet.querySelector('#sh-badge-vision');
-            if (visionBadge) visionBadge.textContent = isHDR ? 'HDR10 / VISION' : 'SDR 10-BIT';
-
-            // Classification
-            const ratingStr = `${fullItem.OfficialRating || 'Tous publics'} • ${fullItem.Container?.toUpperCase() || 'MKV'}`;
-            const ratingValEl = this._sheet.querySelector('#sh-meta-rating-val');
-            if (ratingValEl) ratingValEl.textContent = ratingStr;
-
-            // Casting réel
-            const actors = (fullItem.People || []).filter(p => p.Type === 'Actor');
-            const castGrid = this._sheet.querySelector('#sh-cast-luxury-grid');
-            if (castGrid) {
-                if (actors.length > 0) {
-                    castGrid.innerHTML = actors.slice(0, 12).map(actor => {
-                        const actorImg = api?.getImageUrl?.(actor.Id, 'Primary', { maxWidth: 200 }) || '';
-                        return `
-                            <div class="sh-cast-card">
-                                ${actorImg ? `<img src="${actorImg}" alt="${this._escape(actor.Name)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />` : ''}
-                                <div class="sh-cast-avatar-fallback" style="${actorImg ? 'display:none;' : ''}">${actor.Name.charAt(0)}</div>
-                                <div class="sh-cast-text">
-                                    <span class="sh-actor-name">${this._escape(actor.Name)}</span>
-                                    <span class="sh-role-name">${this._escape(actor.Role || 'Acteur')}</span>
+                        episodesGrid.innerHTML = `
+                            <div style="margin-bottom:14px; padding:12px 16px; background:rgba(99, 102, 241, 0.12); border:1px solid rgba(99,102,241,0.25); border-radius:14px; display:flex; align-items:center; justify-content:space-between;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:13px; color:#c7d2fe; font-weight:600;">Saison non présente sur votre serveur</span>
                                 </div>
+                                <button type="button" id="sh-btn-req-this-season" style="background:#6366f1; color:#fff; font-size:12.5px; font-weight:700; border:none; padding:6px 14px; border-radius:10px; cursor:pointer;">
+                                    📥 Demander la ${seasonObj.name}
+                                </button>
                             </div>
-                        `;
-                    }).join('');
-                } else {
-                    castGrid.innerHTML = '<div style="color:rgba(255,255,255,0.4); padding:20px;">Aucune information de distribution disponible.</div>';
+                        ` + jsEpisodes.map(ep => {
+                            const stillUrl = ep.stillPath ? `https://image.tmdb.org/t/p/w400${ep.stillPath}` : '';
+                            return `
+                                <div class="sh-episode-card" style="opacity:0.9;">
+                                    <div class="sh-episode-thumb-wrap">
+                                        ${stillUrl ? `<img src="${stillUrl}" alt="${this._escape(ep.name || '')}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.episodeNumber}</div>`}
+                                        <span class="sh-episode-badge-num">EP ${ep.episodeNumber}</span>
+                                    </div>
+                                    <div class="sh-episode-info">
+                                        <div class="sh-episode-title-row">
+                                            <span class="sh-episode-title">${ep.episodeNumber}. ${this._escape(ep.name || ('Épisode ' + ep.episodeNumber))}</span>
+                                            ${ep.airDate ? `<span style="font-size:11.5px; color:rgba(255,255,255,0.4); margin-left:auto;">${ep.airDate}</span>` : ''}
+                                        </div>
+                                        <p class="sh-episode-synopsis">${this._escape(ep.overview || 'Aucun résumé disponible pour cet épisode.')}</p>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+
+                        episodesGrid.querySelector('#sh-btn-req-this-season')?.addEventListener('click', () => {
+                            const drawer = this._sheet?.querySelector('#sh-slideup-jellyseerr-drawer');
+                            if (drawer) {
+                                drawer.style.display = 'block';
+                                drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            }
+                        });
+                    };
+
+                    // Charger la première saison
+                    loadEpisodesForSeason(displaySeasons[0]);
+
+                    // Écouteurs de changement de saison
+                    seasonRow.querySelectorAll('.sh-season-pill-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            seasonRow.querySelectorAll('.sh-season-pill-btn').forEach(b => b.classList.remove('active'));
+                            btn.classList.add('active');
+                            const sNum = parseInt(btn.dataset.seasonNum, 10);
+                            const targetSeason = displaySeasons.find(s => s.seasonNumber === sNum) || displaySeasons[0];
+                            loadEpisodesForSeason(targetSeason);
+                        });
+                    });
                 }
             }
 
-            // Pistes Audio & Sous-titres réelles
-            const audioStreams = (fullItem.MediaStreams || []).filter(s => s.Type === 'Audio');
-            const subStreams = (fullItem.MediaStreams || []).filter(s => s.Type === 'Subtitle');
-            
-            const audioListEl = this._sheet.querySelector('#sh-popover-audio-list');
-            if (audioListEl && audioStreams.length > 0) {
-                audioListEl.innerHTML = audioStreams.map((s, idx) => `
-                    <div class="sh-popover-item ${s.Index === this._selectedAudioIndex || idx === 0 ? 'selected' : ''}" data-audio-idx="${s.Index ?? idx}">
-                        <span class="sh-popover-item-name">${this._escape(s.DisplayTitle || s.Language || ('Piste ' + (idx + 1)))}</span>
-                        <span class="sh-popover-check">✓</span>
-                    </div>
-                `).join('');
-                this._bindAudioPopoverEvents();
+            // ── DETAILS CRITIQUES, SIMILAIRES & CASTING ──
+            if (isLocalJellyfin && api?.getItem) {
+                const fullItem = await api.getItem(itemId);
+                if (fullItem) Object.assign(item, fullItem);
             }
-
-            const subsListEl = this._sheet.querySelector('#sh-popover-subs-list');
-            if (subsListEl) {
-                const subsWithDisabled = [{ Index: -1, DisplayTitle: 'Désactivé' }, ...subStreams];
-                subsListEl.innerHTML = subsWithDisabled.map((s, idx) => `
-                    <div class="sh-popover-item ${s.Index === this._selectedSubtitleIndex ? 'selected' : ''}" data-sub-idx="${s.Index}">
-                        <span class="sh-popover-item-name">${this._escape(s.DisplayTitle || s.Language || ('Sous-titre ' + idx))}</span>
-                        <span class="sh-popover-check">✓</span>
-                    </div>
-                `).join('');
-                this._bindSubPopoverEvents();
-            }
-
         } catch (err) {
             console.warn('[ModalSlideUpSheet] Erreur chargement détails:', err);
         }
