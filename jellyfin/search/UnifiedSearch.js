@@ -1032,8 +1032,13 @@ class UnifiedSearch {
                         .map(item => ({
                             ...item,
                             isJellyseerr: true,
+                            isDemandable: true,
+                            source: 'jellyseerr',
                             title: item.title || item.name,
+                            Name: item.title || item.name,
                             Type: item.mediaType === 'tv' ? 'Series' : 'Movie',
+                            isSeries: item.mediaType === 'tv',
+                            isMovie: item.mediaType !== 'tv',
                             imageUrl: item.posterPath ? `https://image.tmdb.org/t/p/w300${item.posterPath}` : '',
                             ProductionYear: (item.releaseDate || item.firstAirDate || '').slice(0, 4),
                             sub: 'Disponible sur Jellyseerr • Cliquer pour demander'
