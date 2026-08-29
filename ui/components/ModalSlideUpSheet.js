@@ -88,12 +88,23 @@ class ModalSlideUpSheet {
         }
         this._currentItem = item;
         
-        const rawType = (item.Type || item.type || item.MediaType || '').toLowerCase();
+        const rawType = (item.Type || item.type || item.MediaType || item.mediaType || '').toLowerCase();
+        const isMovie = rawType === 'movie' || item.isMovie;
         const isEpisode = rawType === 'episode';
-        const isCalendarOrServarr = item.source === 'sonarr' || item.source === 'radarr' || item.source === 'jellyseerr' || (typeof item.Id === 'string' && (item.Id.startsWith('sonarr-') || item.Id.startsWith('radarr-') || item.Id.startsWith('sh-cal-')));
-        const isSeries = !isCalendarOrServarr && !isEpisode && (rawType === 'series' || rawType === 'tvshow' || rawType === 'season' || item.isSeries || (Boolean(item.SeriesName) && !isEpisode) || (item.SeasonCount && item.SeasonCount > 0));
-        const isCollection = !isCalendarOrServarr && (rawType === 'boxset' || rawType === 'collection' || rawType === 'saga' || item.isCollection);
-        const isMusic = !isCalendarOrServarr && (rawType === 'musicalbum' || rawType === 'music' || rawType === 'album' || rawType === 'audio' || item.isMusic);
+        const isCollection = rawType === 'boxset' || rawType === 'collection' || rawType === 'saga' || item.isCollection;
+        const isMusic = rawType === 'musicalbum' || rawType === 'music' || rawType === 'album' || rawType === 'audio' || item.isMusic;
+        const isSeries = !isMovie && !isCollection && !isMusic && (
+            rawType === 'series' || 
+            rawType === 'tv' || 
+            rawType === 'tvshow' || 
+            rawType === 'season' || 
+            Boolean(item.firstAirDate) || 
+            Boolean(item.name && !item.title) || 
+            Boolean(item.seasons) || 
+            item.isSeries === true || 
+            (Boolean(item.SeriesName) && !isEpisode) || 
+            (item.SeasonCount && item.SeasonCount > 0)
+        );
 
         if (isSeries) this._activeTab = 'episodes';
         else if (isCollection) this._activeTab = 'sagafilms';
@@ -185,12 +196,23 @@ class ModalSlideUpSheet {
     }
 
     _renderContent(item, images = {}) {
-        const rawType = (item.Type || item.type || item.MediaType || '').toLowerCase();
+        const rawType = (item.Type || item.type || item.MediaType || item.mediaType || '').toLowerCase();
         const isMovie = rawType === 'movie' || item.isMovie;
         const isEpisode = rawType === 'episode';
         const isCollection = rawType === 'boxset' || rawType === 'collection' || rawType === 'saga' || item.isCollection;
         const isMusic = rawType === 'musicalbum' || rawType === 'music' || rawType === 'album' || rawType === 'audio' || item.isMusic;
-        const isSeries = !isMovie && !isCollection && !isMusic && (rawType === 'series' || rawType === 'tvshow' || rawType === 'season' || item.isSeries || (item.SeasonCount && item.SeasonCount > 0));
+        const isSeries = !isMovie && !isCollection && !isMusic && (
+            rawType === 'series' || 
+            rawType === 'tv' || 
+            rawType === 'tvshow' || 
+            rawType === 'season' || 
+            Boolean(item.firstAirDate) || 
+            Boolean(item.name && !item.title) || 
+            Boolean(item.seasons) || 
+            item.isSeries === true || 
+            (Boolean(item.SeriesName) && !isEpisode) || 
+            (item.SeasonCount && item.SeasonCount > 0)
+        );
 
         const title = item.Name || item.title || 'Média';
         const year = item.ProductionYear || item.year || '';
