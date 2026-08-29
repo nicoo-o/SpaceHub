@@ -101,7 +101,7 @@ class CardBuilder {
                 imdbScore = (rtScore / 10).toFixed(1);
             }
 
-            critic = this.getCriticData(title || 'Média', rtScore, imdbScore);
+            critic = this.getCriticData(options.rawItem || { Name: title, title, Genres: [], ProductionYear: '' }, rtScore, imdbScore);
             card._criticData = critic; // Attaché directement pour la délégation de survol
         }
 

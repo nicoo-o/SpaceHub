@@ -698,79 +698,124 @@ class JellyfinAPI {
      */
     async getMovies(options = {}) {
         const userId = this.getUserId();
-        const limit = options.limit || 20;
+        const limit = options.limit || 48;
         const sortBy = options.sortBy || 'DateCreated';
         const sortOrder = options.sortOrder || 'Descending';
+        const endpoint = userId ? `/Users/${userId}/Items` : '/Items';
+        const params = new URLSearchParams({
+            IncludeItemTypes: 'Movie',
+            Recursive: 'true',
+            SortBy: sortBy,
+            SortOrder: sortOrder,
+            Limit: String(limit),
+            Fields: 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,RunTimeTicks,OfficialRating,CriticRating'
+        });
+        if (userId) params.set('userId', userId);
+
+        if (this._rawApiClient?.getJSON && this._rawApiClient?.getUrl) {
+            try {
+                const url = this._rawApiClient.getUrl(endpoint.replace(/^\//, ''), Object.fromEntries(params));
+                const res = await this._rawApiClient.getJSON(url);
+                return res?.Items || (Array.isArray(res) ? res : []);
+            } catch (e) {
+                this._log.debug('getMovies rawApiClient fallback:', e);
+            }
+        }
+
         try {
-            const data = await this._client.get(`/Items?userId=${userId || ''}&IncludeItemTypes=Movie&Recursive=true&SortBy=${sortBy}&SortOrder=${sortOrder}&Limit=${limit}&Fields=PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,RunTimeTicks,OfficialRating,CriticRating`);
-            return data?.Items || [];
+            const data = await this._client.get(`${endpoint}?${params.toString()}`);
+            return data?.Items || (Array.isArray(data) ? data : []);
         } catch (err) {
             this._log.warn('Erreur getMovies:', err);
             return [];
         }
     }
 
-    /**
-     * Récupère les séries triées.
-     * @param {Object} [options]
-     * @returns {Promise<Array<Object>>}
-     */
     async getSeries(options = {}) {
         const userId = this.getUserId();
-        const limit = options.limit || 20;
+        const limit = options.limit || 48;
         const sortBy = options.sortBy || 'DateCreated';
         const sortOrder = options.sortOrder || 'Descending';
+        const endpoint = userId ? `/Users/${userId}/Items` : '/Items';
+        const params = new URLSearchParams({
+            IncludeItemTypes: 'Series',
+            Recursive: 'true',
+            SortBy: sortBy,
+            SortOrder: sortOrder,
+            Limit: String(limit),
+            Fields: 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,ChildCount,RecursiveItemCount,ItemCounts,OfficialRating,CriticRating,RunTimeTicks'
+        });
+        if (userId) params.set('userId', userId);
+
+        if (this._rawApiClient?.getJSON && this._rawApiClient?.getUrl) {
+            try {
+                const url = this._rawApiClient.getUrl(endpoint.replace(/^\//, ''), Object.fromEntries(params));
+                const res = await this._rawApiClient.getJSON(url);
+                return res?.Items || (Array.isArray(res) ? res : []);
+            } catch (e) {
+                this._log.debug('getSeries rawApiClient fallback:', e);
+            }
+        }
+
         try {
-            const data = await this._client.get(`/Items?userId=${userId || ''}&IncludeItemTypes=Series&Recursive=true&SortBy=${sortBy}&SortOrder=${sortOrder}&Limit=${limit}&Fields=PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,ChildCount,RecursiveItemCount,ItemCounts,OfficialRating,CriticRating,RunTimeTicks`);
-            return data?.Items || [];
+            const data = await this._client.get(`${endpoint}?${params.toString()}`);
+            return data?.Items || (Array.isArray(data) ? data : []);
         } catch (err) {
             this._log.warn('Erreur getSeries:', err);
             return [];
         }
     }
 
-    /**
-     * Récupère les sagas et coffrets (BoxSet).
-     * @param {Object} [options]
-     * @returns {Promise<Array<Object>>}
-     */
     async getBoxSets(options = {}) {
         const userId = this.getUserId();
-        const limit = options.limit || 20;
+        const limit = options.limit || 36;
         const sortBy = options.sortBy || 'SortName';
         const sortOrder = options.sortOrder || 'Ascending';
+        const endpoint = userId ? `/Users/${userId}/Items` : '/Items';
+        const params = new URLSearchParams({
+            IncludeItemTypes: 'BoxSet',
+            Recursive: 'true',
+            SortBy: sortBy,
+            SortOrder: sortOrder,
+            Limit: String(limit),
+            Fields: 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,ItemCounts,ChildCount'
+        });
+        if (userId) params.set('userId', userId);
+
         try {
-            const data = await this._client.get(`/Items?userId=${userId || ''}&IncludeItemTypes=BoxSet&Recursive=true&SortBy=${sortBy}&SortOrder=${sortOrder}&Limit=${limit}&Fields=PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating`);
-            return data?.Items || [];
+            const data = await this._client.get(`${endpoint}?${params.toString()}`);
+            return data?.Items || (Array.isArray(data) ? data : []);
         } catch (err) {
             this._log.warn('Erreur getBoxSets:', err);
             return [];
         }
     }
 
-    /**
-     * Récupère les albums de musique (MusicAlbum).
-     * @param {Object} [options]
-     * @returns {Promise<Array<Object>>}
-     */
     async getMusicAlbums(options = {}) {
         const userId = this.getUserId();
-        const limit = options.limit || 20;
+        const limit = options.limit || 36;
         const sortBy = options.sortBy || 'SortName';
         const sortOrder = options.sortOrder || 'Ascending';
+        const endpoint = userId ? `/Users/${userId}/Items` : '/Items';
+        const params = new URLSearchParams({
+            IncludeItemTypes: 'MusicAlbum',
+            Recursive: 'true',
+            SortBy: sortBy,
+            SortOrder: sortOrder,
+            Limit: String(limit),
+            Fields: 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData'
+        });
+        if (userId) params.set('userId', userId);
+
         try {
-            const data = await this._client.get(`/Items?userId=${userId || ''}&IncludeItemTypes=MusicAlbum&Recursive=true&SortBy=${sortBy}&SortOrder=${sortOrder}&Limit=${limit}&Fields=PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating`);
-            return data?.Items || [];
+            const data = await this._client.get(`${endpoint}?${params.toString()}`);
+            return data?.Items || (Array.isArray(data) ? data : []);
         } catch (err) {
             this._log.warn('Erreur getMusicAlbums:', err);
             return [];
         }
     }
 
-    /**
-     * Récupère les éléments vedettes (Hero Spotlight) avec backdrops haute résolution.
-     * @returns {Promise<Array<Object>>}
-     */
     async getFeaturedHeroItems() {
         const userId = this.getUserId();
         try {

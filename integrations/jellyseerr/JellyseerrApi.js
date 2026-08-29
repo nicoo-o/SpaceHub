@@ -198,6 +198,48 @@ class JellyseerrApi extends BaseApiClient {
      * @param {Array<number>} [seasons]
      * @returns {Promise<Object>}
      */
+        /**
+     * Récupère la configuration des serveurs Radarr (profils de qualité et dossiers racines).
+     * @returns {Promise<Array<Object>>}
+     */
+    async getRadarrServers() {
+        try {
+            return await this.get('/api/v1/service/radarr') || [];
+        } catch (e) {
+            this._log.debug('getRadarrServers non disponible:', e);
+            return [];
+        }
+    }
+
+    /**
+     * Récupère la configuration des serveurs Sonarr (profils de qualité et dossiers racines).
+     * @returns {Promise<Array<Object>>}
+     */
+    async getSonarrServers() {
+        try {
+            return await this.get('/api/v1/service/sonarr') || [];
+        } catch (e) {
+            this._log.debug('getSonarrServers non disponible:', e);
+            return [];
+        }
+    }
+
+    /**
+     * Récupère les détails d'un média depuis Jellyseerr/TMDB.
+     * @param {'movie'|'tv'} mediaType
+     * @param {number|string} mediaId
+     * @returns {Promise<Object|null>}
+     */
+    async getMediaDetails(mediaType, mediaId) {
+        try {
+            const endpoint = mediaType === 'tv' ? `/api/v1/tv/${mediaId}` : `/api/v1/movie/${mediaId}`;
+            return await this.get(endpoint);
+        } catch (e) {
+            this._log.debug('getMediaDetails erreur:', e);
+            return null;
+        }
+    }
+
     async requestMedia(type, mediaId, seasons = null) {
         const payload = {
             mediaType: type === 'tv' ? 'tv' : 'movie',

@@ -706,6 +706,18 @@ class ModalSlideUpSheet {
             const genresStr = (fullItem.Genres || []).join(' • ') || 'Cinéma';
             const genresValEl = this._sheet.querySelector('#sh-meta-genres-val');
             if (genresValEl) genresValEl.textContent = genresStr;
+            // Mise à jour dynamique de la boîte Bento Critiques avec les vrais genres et métadonnées
+            const updatedCriticData = cardBuilder?.getCriticData?.(fullItem, rtScore, imdbScore);
+            if (updatedCriticData) {
+                const rtConsensusEl = this._sheet.querySelector('.sh-critics-consensus-text');
+                if (rtConsensusEl && updatedCriticData.consensus) rtConsensusEl.textContent = updatedCriticData.consensus;
+                
+                const rtQuoteEl = this._sheet.querySelector('.sh-critics-quote-box span');
+                if (rtQuoteEl && updatedCriticData.quote) rtQuoteEl.textContent = updatedCriticData.quote;
+
+                const rtOutletEl = this._sheet.querySelector('.sh-critics-quote-box cite');
+                if (rtOutletEl && updatedCriticData.outlet) rtOutletEl.textContent = updatedCriticData.outlet;
+            }
             const heroGenresEl = this._sheet.querySelector('#sh-hero-genres');
             if (heroGenresEl) heroGenresEl.textContent = genresStr;
 
