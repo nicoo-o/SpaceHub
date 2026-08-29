@@ -719,19 +719,20 @@ class UnifiedSearch {
         const tabBtns = this._spotlight.querySelectorAll('.sh-spotlight-tab-btn');
 
         input?.addEventListener('input', (e) => {
-            const val = e.target.value;
-            this._query = val.trim();
-            if (clearBtn) clearBtn.style.display = this._query ? 'flex' : 'none';
+            const val = e.target.value || '';
+            this._query = val;
+            const queryClean = val.trim();
+            if (clearBtn) clearBtn.style.display = queryClean ? 'flex' : 'none';
 
             clearTimeout(this._debounceTimer);
-            if (!this._query) {
+            if (queryClean.length < 2) {
                 this._renderInitialView();
                 return;
             }
 
             this._debounceTimer = setTimeout(() => {
                 this._performSearch();
-            }, 140);
+            }, 100);
         });
 
         clearBtn?.addEventListener('click', () => {
