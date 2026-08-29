@@ -684,14 +684,17 @@ class ModalSlideUpSheet {
                 // Affichage des pastilles de saisons avec badges clairs
                 if (seasonRow && displaySeasons.length > 0) {
                     seasonRow.style.display = 'flex';
-                    seasonRow.innerHTML = displaySeasons.map((s, idx) => `
-                        <button class="sh-season-pill-btn ${idx === 0 ? 'active' : ''}" data-season-num="${s.seasonNumber}" data-local-id="${s.localId || ''}" data-is-local="${s.isLocal}">
-                            <span>${this._escape(s.name)} (${s.episodeCount})</span>
-                            <span style="font-size:10px; margin-left:6px; padding:2px 6px; border-radius:6px; font-weight:750; background:${s.isLocal ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.25)'}; color:${s.isLocal ? '#34d399' : '#a5b4fc'};">
-                                ${s.isLocal ? '✓ Sur le serveur' : '📥 Demandable'}
-                            </span>
-                        </button>
-                    `).join('');
+                    seasonRow.innerHTML = displaySeasons.map((s, idx) => {
+                        const countStr = s.episodeCount && s.episodeCount > 0 ? ` (${s.episodeCount})` : '';
+                        return `
+                            <button class="sh-season-pill-btn ${idx === 0 ? 'active' : ''}" data-season-num="${s.seasonNumber}" data-local-id="${s.localId || ''}" data-is-local="${s.isLocal}">
+                                <span class="sh-season-pill-title">${this._escape(s.name)}${countStr}</span>
+                                <span style="font-size:10px; margin-left:6px; padding:2px 6px; border-radius:6px; font-weight:750; background:${s.isLocal ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.25)'}; color:${s.isLocal ? '#34d399' : '#a5b4fc'};">
+                                    ${s.isLocal ? '✓ Sur le serveur' : '📥 Demandable'}
+                                </span>
+                            </button>
+                        `;
+                    }).join('');
 
                     const loadEpisodesForSeason = async (seasonObj) => {
                         if (!episodesGrid) return;
@@ -700,6 +703,9 @@ class ModalSlideUpSheet {
                         if (seasonObj.isLocal && seasonObj.localId && api?.getEpisodes) {
                             let localEps = await api.getEpisodes(localJellyfinId, seasonObj.localId) || [];
                             if (localEps.length > 0) {
+                                const pillTitle = seasonRow?.querySelector(`.sh-season-pill-btn[data-season-num="${seasonObj.seasonNumber}"] .sh-season-pill-title`);
+                                if (pillTitle) pillTitle.textContent = `${seasonObj.name} (${localEps.length})`;
+
                                 episodesGrid.innerHTML = localEps.map((ep, idx) => {
                                     const epImg = api?.getImageUrl?.(ep.Id, 'Primary', { maxWidth: 500, maxHeight: 280 }) || api?.getImageUrl?.(ep.Id, 'Thumb', { maxWidth: 500, maxHeight: 280 }) || '';
                                     const progress = Math.round(ep.UserData?.PlayedPercentage || 0);
@@ -750,6 +756,9 @@ class ModalSlideUpSheet {
                                 jsEpisodes = sData?.episodes || [];
                             } catch (e) {}
                         }
+
+                        const pillTitle = seasonRow?.querySelector(`.sh-season-pill-btn[data-season-num="${seasonObj.seasonNumber}"] .sh-season-pill-title`);
+                        if (pillTitle && jsEpisodes.length > 0) pillTitle.textContent = `${seasonObj.name} (${jsEpisodes.length})`;
 
                         if (jsEpisodes.length === 0) {
                             jsEpisodes = Array.from({ length: seasonObj.episodeCount || 8 }, (_, i) => ({
