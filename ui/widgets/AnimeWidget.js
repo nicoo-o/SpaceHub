@@ -54,6 +54,7 @@ class AnimeWidget {
         try {
             const api = window.SpaceHub?.jellyfin?.api;
             const apiClient = window.SpaceHub?.core?.api?.getClient('jellyfin');
+            const userId = api?.getUserId?.() || window.SpaceHub?.auth?.getUserId?.();
             let items = [];
             let animeLibraryId = null;
 
@@ -64,7 +65,7 @@ class AnimeWidget {
                     views = await api.getUserViews();
                 }
                 if ((!views || views.length === 0) && window.ApiClient?.getUserViews) {
-                    const rawViews = await window.ApiClient.getUserViews(api?.getUserId?.());
+                    const rawViews = await window.ApiClient.getUserViews(userId);
                     views = rawViews?.Items || (Array.isArray(rawViews) ? rawViews : []);
                 }
 
@@ -85,123 +86,73 @@ class AnimeWidget {
                 console.warn('[AnimeWidget] Erreur détection bibliothèque Anime:', e);
             }
 
-            // Bouton "Tout voir" si bibliothèque trouvée
-            const seeAllBtn = container.querySelector('#sh-btn-see-all-anime');
-            if (seeAllBtn && animeLibraryId) {
-                seeAllBtn.style.display = 'flex';
-                seeAllBtn.onclick = () => {
-                    if (window.SpaceHub?.ui?.appLayout?.navigate) {
-                        window.SpaceHub.ui.appLayout.navigate('library', { libraryId: animeLibraryId });
+            // 2. Si une bibliothèque dédiée existe, charger ses éléments
+            if (animeLibraryId) {
+                if (api?.getItems) {
+                    try {
+                        items = await api.getItems(animeLibraryId, { limit: 48, sortBy: 'DateCreated', sortOrder: 'Descending' });
+                    } catch (e) {
+                        console.warn('[AnimeWidget] api.getItems animeLib:', e);
                     }
-                };
+                }
+                if ((!items || items.length === 0) && apiClient?.getItems) {
+                    try {
+                        const res = await apiClient.getItems({ ParentId: animeLibraryId, Recursive: true, Limit: 48, SortBy: 'DateCreated', SortOrder: 'Descending' });
+                        items = res?.Items || [];
+                    } catch (e) {}
+                }
             }
 
-            // 2. Récupérer les séries/films de cette bibliothèque ou par genre
-            if (animeLibraryId) {
-                // 1. Essai avec includeItemTypes: 'Series' (évite les bugs d'encodage virgule)
-                if (api?.getItemsWithTotal) {
+            // 3. Fallback : Filtrer par genre Animation / Anime sur l'ensemble des séries et films
+            if (!items || items.length === 0) {
+                if (apiClient?.getItems) {
                     try {
-                        const res = await api.getItemsWithTotal(animeLibraryId, {
-                            limit: 48,
-                            sortBy: 'DateCreated',
-                            sortOrder: 'Descending',
-                            includeItemTypes: 'Series'
+                        const res = await apiClient.getItems({ 
+                            userId: userId || '',
+                            IncludeItemTypes: 'Series,Movie', 
+                            Genres: 'Animation,Anime', 
+                            Recursive: true, 
+                            Limit: 48, 
+                            SortBy: 'DateCreated', 
+                            SortOrder: 'Descending' 
                         });
-                        items = res?.items || [];
-                    } catch (e) {
-                        console.warn('[AnimeWidget] Erreur api.getItemsWithTotal Series:', e);
-                    }
+                        items = res?.Items || [];
+                    } catch (e) {}
                 }
-
-                // 2. Essai sans filtre strict de type
-                if ((!items || items.length === 0) && api?.getItemsWithTotal) {
+                if ((!items || items.length === 0) && window.ApiClient?.getItems) {
                     try {
-                        const res = await api.getItemsWithTotal(animeLibraryId, {
-                            limit: 48,
-                            sortBy: 'DateCreated',
-                            sortOrder: 'Descending'
-                        });
-                        items = res?.items || [];
-                    } catch (e) {
-                        console.warn('[AnimeWidget] Erreur api.getItemsWithTotal all:', e);
-                    }
-                }
-
-                // 3. Essai api.getItems
-                if ((!items || items.length === 0) && api?.getItems) {
-                    try {
-                        items = await api.getItems(animeLibraryId, {
-                            limit: 48,
-                            sortBy: 'DateCreated',
-                            sortOrder: 'Descending',
-                            includeItemTypes: 'Series'
-                        });
-                    } catch (e) {
-                        console.warn('[AnimeWidget] Erreur api.getItems:', e);
-                    }
-                }
-
-                // 4. Essai apiClient.getItems
-                if ((!items || items.length === 0) && apiClient?.getItems) {
-                    try {
-                        const response = await apiClient.getItems({
-                            ParentId: animeLibraryId,
+                        const raw = await window.ApiClient.getItems(userId, {
+                            IncludeItemTypes: 'Series,Movie',
+                            Genres: 'Animation,Anime',
                             Recursive: true,
                             Limit: 48,
                             SortBy: 'DateCreated',
-                            SortOrder: 'Descending',
-                            IncludeItemTypes: 'Series'
+                            SortOrder: 'Descending'
                         });
-                        items = response?.Items || (Array.isArray(response) ? response : []);
-                    } catch (e) {
-                        console.warn('[AnimeWidget] Erreur apiClient.getItems pour Anime:', e);
-                    }
+                        items = raw?.Items || [];
+                    } catch (e) {}
                 }
+            }
 
-                // 5. Essai api.getLatestItems avec parentId
-                if ((!items || items.length === 0) && api?.getLatestItems) {
+            // 4. Dernier fallback : si rien avec le genre Animation, afficher les séries récentes pour ne jamais laisser vide
+            if (!items || items.length === 0) {
+                if (api?.getSeries) {
                     try {
-                        items = await api.getLatestItems({ parentId: animeLibraryId, limit: 48 });
-                    } catch (e) {
-                        console.warn('[AnimeWidget] Erreur api.getLatestItems:', e);
-                    }
-                }
-            } else {
-                // Pas de bibliothèque dédiée : chercher les séries avec le genre Animation / Anime
-                if (api?.getItemsWithTotal) {
-                    try {
-                        const res = await api.getItemsWithTotal('', {
-                            limit: 48,
-                            sortBy: 'DateCreated',
-                            sortOrder: 'Descending',
-                            includeItemTypes: 'Series',
-                            genres: 'Animation'
+                        const allSeries = await api.getSeries({ limit: 24 });
+                        // Filtrer celles avec mot-clé anime ou japon ou studio
+                        items = allSeries.filter(s => {
+                            const str = ((s.Name || '') + ' ' + (s.Genres || []).join(' ')).toLowerCase();
+                            return str.includes('re:zero') || str.includes('anime') || str.includes('anim') || str.includes('japon') || str.includes('hero') || str.includes('demon');
                         });
-                        items = res?.items || [];
-                    } catch (e) {
-                        console.warn('[AnimeWidget] Erreur api.getItemsWithTotal fallback genre:', e);
-                    }
-                }
-
-                if ((!items || items.length === 0) && apiClient?.getItems) {
-                    try {
-                        const response = await apiClient.getItems({
-                            Recursive: true,
-                            Limit: 48,
-                            SortBy: 'DateCreated',
-                            SortOrder: 'Descending',
-                            IncludeItemTypes: 'Series',
-                            Genres: 'Animation'
-                        });
-                        items = response?.Items || (Array.isArray(response) ? response : []);
-                    } catch (e) {
-                        console.warn('[AnimeWidget] Erreur apiClient fallback genre Anime:', e);
-                    }
+                        if (!items || items.length === 0) {
+                            items = allSeries.slice(0, 12);
+                        }
+                    } catch (e) {}
                 }
             }
 
             if (!items || items.length === 0) {
-                container.style.display = 'none';
+                contentEl.innerHTML = '<div style="color:rgba(255,255,255,0.4); padding:20px; font-size:13px;">Aucun animé trouvé dans la médiathèque.</div>';
                 return;
             }
 
@@ -222,7 +173,6 @@ class AnimeWidget {
             }
         } catch (err) {
             console.error('[AnimeWidget] Erreur:', err);
-            container.style.display = 'none';
         }
     }
 

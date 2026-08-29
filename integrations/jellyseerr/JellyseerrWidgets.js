@@ -117,7 +117,9 @@ function openJellyseerrRequestModal(item, jellyseerr) {
 
     // ── CHARGEMENT ASYNCHRONE DES DÉTAILS ET CONFIGURATIONS SERVEUR ──
     (async () => {
-        const api = jellyseerr?.api || window.SpaceHub?.core?.api?.getClient('jellyseerr');
+        const api = (jellyseerr && typeof jellyseerr.createRequest === 'function') 
+            ? jellyseerr 
+            : (jellyseerr?.api || window.SpaceHub?.integrations?.jellyseerr?.api || (window.SpaceHub?.core?.api?.getClient ? window.SpaceHub.core.api.getClient('jellyseerr') : null));
         
         // 1. Récupération des détails complets (Synopsis, saisons, épisodes)
         try {
@@ -255,7 +257,13 @@ function openJellyseerrRequestModal(item, jellyseerr) {
         };
 
         try {
-            const api = jellyseerr?.api || window.SpaceHub?.core?.api?.getClient('jellyseerr');
+            const api = (jellyseerr && typeof jellyseerr.createRequest === 'function') 
+                ? jellyseerr 
+                : (jellyseerr?.api || window.SpaceHub?.integrations?.jellyseerr?.api || (window.SpaceHub?.core?.api?.getClient ? window.SpaceHub.core.api.getClient('jellyseerr') : null));
+            
+            if (!api || typeof api.createRequest !== 'function') {
+                throw new Error('API Jellyseerr non disponible');
+            }
             await api.createRequest(payload);
 
             submitBtn.classList.add('success');
@@ -307,7 +315,7 @@ function renderJellyseerrMediaCard(item) {
     const rating = item.voteAverage ? Number(item.voteAverage).toFixed(1) : null;
 
     return `
-        <div class="sh-jellyseerr-bento-card" data-media-id="${item.id}" data-media-type="${type}">
+        <div class="sh-jellyseerr-bento-card" data-media-id="${item.id}" data-media-type="${type}" data-overview="${encodeURIComponent(item.overview || '')}">
             <div class="sh-jellyseerr-bento-card__poster-wrap">
                 ${poster 
                     ? `<img class="sh-jellyseerr-bento-card__img" src="${poster}" alt="${title}" loading="lazy" />` 
@@ -351,7 +359,13 @@ function bindJellyseerrRequestButtons(container, jellyseerr) {
             const posterImg = card.querySelector('.sh-jellyseerr-bento-card__img')?.src || '';
             const year = card.querySelector('.sh-jellyseerr-bento-card__year')?.textContent || '';
 
-            const overviewText = card.querySelector('.sh-jellyseerr-bento-card__desc')?.textContent || '';
+            let overviewText = '';
+            try {
+                overviewText = decodeURIComponent(card.dataset.overview || '');
+            } catch (e) {
+                overviewText = card.dataset.overview || '';
+            }
+
             openJellyseerrRequestModal({
                 id: mediaId,
                 title,

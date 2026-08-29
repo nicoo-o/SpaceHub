@@ -691,6 +691,10 @@ class CardBuilder {
         items.forEach(item => {
             const isFolder = item.Type === 'CollectionFolder' || item.Type === 'UserView' || item.Type === 'Folder' || item.Type === 'Playlist' || item.CollectionType !== undefined || options.isFolder;
             
+            // Récupération et formatage des genres
+            const genresArr = Array.isArray(item.Genres) ? item.Genres : (typeof item.Genres === 'string' ? item.Genres.split(/[,•/]/).map(s => s.trim()) : []);
+            const genresText = genresArr.slice(0, 2).join(' • ');
+
             // Récupération des vraies notes Jellyfin
             const rtScore = !isFolder ? (item.CriticRating !== undefined && item.CriticRating !== null ? Math.round(item.CriticRating) : (item.rottenScore !== undefined ? item.rottenScore : (item.CommunityRating ? Math.min(99, Math.round(item.CommunityRating * 10 + 2)) : 88))) : null;
             const rating = !isFolder ? (item.CommunityRating !== undefined ? item.CommunityRating : (item.rating !== undefined ? item.rating : 8.4)) : null;
