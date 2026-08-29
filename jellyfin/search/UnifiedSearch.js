@@ -26,6 +26,7 @@ class UnifiedSearch {
         this._selectedIndex = 0;
         this._visibleItems = [];
         this._recentSearches = this._loadRecentSearches();
+        this._currentSearchSeq = 0;
 
         this._setupKeyboardShortcut();
         this._injectStyles();
@@ -931,174 +932,228 @@ class UnifiedSearch {
         this._updateActiveSelection();
     }
 
-    async _performSearch() {
+        async _performSearch() {
         const resultsPane = this._spotlight.querySelector('#sh-spotlight-results-pane');
         if (!resultsPane) return;
+
+        const currentSeq = ++this._currentSearchSeq;
+        const queryClean = (this._query || '').trim();
+        const queryLower = queryClean.toLowerCase();
+
+        if (queryClean.length < 2) {
+            this._renderInitialView();
+            return;
+        }
 
         resultsPane.innerHTML = `
             <div class="sh-spotlight-loading">
                 <div class="sh-spotlight-spinner"></div>
-                <p>Recherche en cours...</p>
+                <p>Recherche de "${this._escape(queryClean)}"...</p>
             </div>
         `;
 
-        const queryLower = this._query.toLowerCase();
-        
-        let navMatches = this._getNavigationItems().filter(n => 
-            n.Name.toLowerCase().includes(queryLower) || n.sub.toLowerCase().includes(queryLower)
-        );
+        const queryTerms = queryLower.split(/\s+/).filter(t => t.length > 0);
 
-        let commands = this._getSystemCommands().filter(c => 
-            c.Name.toLowerCase().includes(queryLower) || c.sub.toLowerCase().includes(queryLower)
-        );
+        // 1. Navigation & Commandes : Uniquement si correspondance directe et précise
+        let navMatches = [];
+        let commands = [];
+        if (this._activeFilter === 'All' || this._activeFilter === 'Navigation') {
+            navMatches = this._getNavigationItems().filter(n => {
+                const nameLower = n.Name.toLowerCase();
+                return queryTerms.every(term => nameLower.includes(term));
+            });
+        }
+        if (this._activeFilter === 'All' || this._activeFilter === 'Command') {
+            commands = this._getSystemCommands().filter(c => {
+                const nameLower = c.Name.toLowerCase();
+                return queryTerms.every(term => nameLower.includes(term));
+            });
+        }
 
+        // 2. Recherche Jellyfin avec FILTRE DE PERTINENCE STRICT
         let mediaResults = [];
+        if (this._activeFilter === 'All' || this._activeFilter === 'Movie' || this._activeFilter === 'Series') {
+            try {
+                const api = window.SpaceHub?.jellyfin?.api;
+                if (api) {
+                    const typeParam = this._activeFilter === 'Movie' ? 'Movie' :
+                                      this._activeFilter === 'Series' ? 'Series' : 'Movie,Series,BoxSet';
 
-        // 1. Recherche directe sur l'API Jellyfin
-        try {
-            const api = window.SpaceHub?.jellyfin?.api;
-            if (api) {
-                const typeParam = this._activeFilter === 'All' ? 'Movie,Series,Episode,MusicAlbum' :
-                                  this._activeFilter === 'Movie' ? 'Movie' :
-                                  this._activeFilter === 'Series' ? 'Series' : '';
+                    const rawItems = await api.search(queryClean, { limit: 20, includeItemTypes: typeParam });
+                    
+                    if (this._currentSearchSeq !== currentSeq) return; // Requête obsolète annulée
 
-                const rawItems = await api.search(this._query, { limit: 18, includeItemTypes: typeParam });
-                if (rawItems && rawItems.length > 0) {
-                    mediaResults = rawItems.map(item => ({
-                        ...item,
-                        title: item.Name,
-                        imageUrl: api.getImageUrl(item.Id, 'Primary', { maxWidth: 200, maxHeight: 300 }),
-                        backdropUrl: api.getImageUrl(item.Id, 'Backdrop', { maxWidth: 1200 }),
-                        duration: item.RunTimeTicks ? Math.round(item.RunTimeTicks / 10000000 / 60) + ' min' : '',
-                        format: item.MediaStreams?.some(s => s.Width >= 3800) ? '4K UHD' : '1080p HD'
-                    }));
+                    if (rawItems && rawItems.length > 0) {
+                        mediaResults = rawItems
+                            .filter(item => {
+                                const title = (item.Name || item.OriginalTitle || '').toLowerCase();
+                                const seriesName = (item.SeriesName || '').toLowerCase();
+                                // Le titre ou la série DOIT contenir les termes de recherche
+                                return queryTerms.every(t => title.includes(t) || seriesName.includes(t)) ||
+                                       (queryTerms.length > 1 && queryTerms.some(t => t.length >= 4 && (title.includes(t) || seriesName.includes(t))));
+                            })
+                            .map(item => ({
+                                ...item,
+                                title: item.Name,
+                                imageUrl: api.getImageUrl(item.Id, 'Primary', { maxWidth: 200, maxHeight: 300 }),
+                                backdropUrl: api.getImageUrl(item.Id, 'Backdrop', { maxWidth: 1200 }),
+                                duration: item.RunTimeTicks ? Math.round(item.RunTimeTicks / 10000000 / 60) + ' min' : '',
+                                format: item.MediaStreams?.some(s => s.Width >= 3800) ? '4K UHD' : '1080p HD'
+                            }));
+                    }
                 }
+            } catch (err) {
+                this._log.warn('Erreur recherche Jellyfin:', err);
             }
-        } catch (err) {
-            this._log.warn('Erreur recherche Jellyfin:', err);
         }
 
-        // 2. Recherche complémentaire sur l'API Jellyseerr (Découverte & Demande)
+        // 3. Recherche complémentaire sur Jellyseerr (Découvertes & Demandes)
         let jellyseerrResults = [];
-        try {
-            const jellyseerrApi = window.SpaceHub?.integrations?.jellyseerr?.api;
-            if (jellyseerrApi?.search) {
-                const jsData = await jellyseerrApi.search(this._query);
-                const rawJsItems = jsData?.results || [];
-                
-                // Exclure les médias déjà présents dans Jellyfin (par nom et année)
-                const existingTitles = new Set(mediaResults.map(m => (m.title || m.Name || '').toLowerCase().trim()));
-                
-                jellyseerrResults = rawJsItems.filter(item => {
-                    const jsTitle = (item.title || item.name || '').toLowerCase().trim();
-                    return jsTitle && !existingTitles.has(jsTitle);
-                }).slice(0, 8).map(item => ({
-                    ...item,
-                    isJellyseerr: true,
-                    title: item.title || item.name,
-                    Type: item.mediaType === 'tv' ? 'Series' : 'Movie',
-                    imageUrl: item.posterPath ? `https://image.tmdb.org/t/p/w300${item.posterPath}` : '',
-                    ProductionYear: (item.releaseDate || item.firstAirDate || '').slice(0, 4),
-                    sub: `Disponible sur Jellyseerr • Cliquer pour demander`
-                }));
+        if (this._activeFilter === 'All' || this._activeFilter === 'Movie' || this._activeFilter === 'Series') {
+            try {
+                const jellyseerrApi = window.SpaceHub?.integrations?.jellyseerr?.api;
+                if (jellyseerrApi?.search) {
+                    const jsData = await jellyseerrApi.search(queryClean);
+                    
+                    if (this._currentSearchSeq !== currentSeq) return; // Requête obsolète annulée
+
+                    const rawJsItems = jsData?.results || [];
+                    const existingTitles = new Set(mediaResults.map(m => (m.title || m.Name || '').toLowerCase().trim()));
+
+                    jellyseerrResults = rawJsItems
+                        .filter(item => {
+                            const jsTitle = (item.title || item.name || '').toLowerCase().trim();
+                            if (!jsTitle) return false;
+                            // Doit correspondre aux termes recherchés
+                            const matchesQuery = queryTerms.every(t => jsTitle.includes(t)) || queryTerms.some(t => t.length >= 3 && jsTitle.includes(t));
+                            return matchesQuery && !existingTitles.has(jsTitle);
+                        })
+                        .slice(0, 10)
+                        .map(item => ({
+                            ...item,
+                            isJellyseerr: true,
+                            title: item.title || item.name,
+                            Type: item.mediaType === 'tv' ? 'Series' : 'Movie',
+                            imageUrl: item.posterPath ? `https://image.tmdb.org/t/p/w300${item.posterPath}` : '',
+                            ProductionYear: (item.releaseDate || item.firstAirDate || '').slice(0, 4),
+                            sub: 'Disponible sur Jellyseerr • Cliquer pour demander'
+                        }));
+                }
+            } catch (jsErr) {
+                this._log.debug('Erreur recherche Jellyseerr:', jsErr);
             }
-        } catch (jsErr) {
-            this._log.debug('Erreur recherche Jellyseerr:', jsErr);
         }
 
-        if (this._activeFilter === 'Navigation') {
-            mediaResults = [];
-            commands = [];
-        } else if (this._activeFilter === 'Command') {
-            mediaResults = [];
-            navMatches = [];
-        } else if (this._activeFilter === 'Movie' || this._activeFilter === 'Series') {
-            navMatches = [];
-            commands = [];
-        }
+        if (this._currentSearchSeq !== currentSeq) return;
 
-        this._visibleItems = [...navMatches, ...mediaResults, ...jellyseerrResults, ...commands];
+        this._visibleItems = [...mediaResults, ...jellyseerrResults, ...navMatches, ...commands];
         this._selectedIndex = 0;
 
         if (this._visibleItems.length === 0) {
             resultsPane.innerHTML = `
                 <div class="sh-spotlight-empty">
-                    <p>Aucun résultat pour "<strong>${this._escape(this._query)}</strong>"</p>
-                    <span>Vérifiez l'orthographe ou essayez un autre mot-clé</span>
+                    <p>Aucun résultat pour "<strong>${this._escape(queryClean)}</strong>"</p>
+                    <span>Vérifiez l'orthographe ou tentez un autre mot-clé</span>
                 </div>
             `;
             return;
         }
 
-        this._saveRecentSearch(this._query);
+        this._saveRecentSearch(queryClean);
 
-        let html = `
-            <div class="sh-spotlight-section-header">
-                <span>RÉSULTATS DE RECHERCHE (${this._visibleItems.length})</span>
-            </div>
-            <div class="sh-spotlight-items-list">
-        `;
+        let html = '';
 
-        this._visibleItems.forEach((item, index) => {
-            const isSelected = index === this._selectedIndex;
-            if (item.Type === 'Navigation' || item.Type === 'Command') {
+        // Section 1 : Vos médias sur le serveur Jellyfin
+        if (mediaResults.length > 0) {
+            html += `
+                <div class="sh-spotlight-section-header">
+                    <span>SUR VOTRE SERVEUR (${mediaResults.length})</span>
+                </div>
+                <div class="sh-spotlight-items-list">
+            `;
+            mediaResults.forEach((item) => {
+                const globalIndex = this._visibleItems.indexOf(item);
+                const isSelected = globalIndex === this._selectedIndex;
+                const sub = `${item.ProductionYear || ''} · ${item.Type === 'Movie' ? 'Film' : item.Type === 'Series' ? 'Série' : 'Média'} · ${item.format || 'HD'}`;
                 html += `
-                    <div class="sh-spotlight-item ${isSelected ? 'active' : ''}" data-index="${index}" style="--idx: ${index}">
+                    <div class="sh-spotlight-item ${isSelected ? 'active' : ''}" data-index="${globalIndex}" style="--idx: ${globalIndex}">
+                        <div class="sh-spotlight-thumb-wrap">
+                            ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${this._escape(item.title)}" />` : '<div class="sh-spotlight-thumb-fallback">🎬</div>'}
+                        </div>
+                        <div class="sh-spotlight-item-text">
+                            <span class="sh-spotlight-item-title">${this._highlightQuery(item.title, queryClean)}</span>
+                            <span class="sh-spotlight-item-sub">${sub}</span>
+                        </div>
+                        <div class="sh-spotlight-action-hint">
+                            <span>Ouvrir la fiche ↵</span>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+        }
+
+        // Section 2 : Découvertes & Demandes Jellyseerr
+        if (jellyseerrResults.length > 0) {
+            html += `
+                <div class="sh-spotlight-section-header" style="margin-top: 16px;">
+                    <span>DÉCOUVERTES & DEMANDES (JELLYSEERR) (${jellyseerrResults.length})</span>
+                </div>
+                <div class="sh-spotlight-items-list">
+            `;
+            jellyseerrResults.forEach((item) => {
+                const globalIndex = this._visibleItems.indexOf(item);
+                const isSelected = globalIndex === this._selectedIndex;
+                html += `
+                    <div class="sh-spotlight-item sh-spotlight-item--jellyseerr ${isSelected ? 'active' : ''}" data-index="${globalIndex}" style="--idx: ${globalIndex}">
+                        <div class="sh-spotlight-thumb-wrap">
+                            ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${this._escape(item.title)}" />` : '<div class="sh-spotlight-thumb-fallback">🎬</div>'}
+                        </div>
+                        <div class="sh-spotlight-item-text">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span class="sh-spotlight-item-title">${this._highlightQuery(item.title, queryClean)}</span>
+                                <span class="sh-jellyseerr-search-badge">Jellyseerr</span>
+                            </div>
+                            <span class="sh-spotlight-item-sub">${item.ProductionYear || ''} • Non présent sur le serveur • Demander</span>
+                        </div>
+                        <div class="sh-spotlight-action-hint">
+                            <span style="color:#64d2ff; font-weight:700;">Demander ↵</span>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+        }
+
+        // Section 3 : Navigation & Actions
+        const otherItems = [...navMatches, ...commands];
+        if (otherItems.length > 0) {
+            html += `
+                <div class="sh-spotlight-section-header" style="margin-top: 16px;">
+                    <span>NAVIGATION & ACTIONS</span>
+                </div>
+                <div class="sh-spotlight-items-list">
+            `;
+            otherItems.forEach((item) => {
+                const globalIndex = this._visibleItems.indexOf(item);
+                const isSelected = globalIndex === this._selectedIndex;
+                html += `
+                    <div class="sh-spotlight-item ${isSelected ? 'active' : ''}" data-index="${globalIndex}" style="--idx: ${globalIndex}">
                         <div class="sh-spotlight-icon-wrap">${item.icon}</div>
                         <div class="sh-spotlight-item-text">
-                            <span class="sh-spotlight-item-title">${this._highlightQuery(item.Name, this._query)}</span>
-                            <span class="sh-spotlight-item-sub">${this._escape(item.sub || item.Overview || '')}</span>
+                            <span class="sh-spotlight-item-title">${this._highlightQuery(item.Name, queryClean)}</span>
+                            <span class="sh-spotlight-item-sub">${this._escape(item.sub || '')}</span>
                         </div>
                         <div class="sh-spotlight-action-hint">
                             <span>${item.Type === 'Navigation' ? 'Accéder ↵' : 'Exécuter ↵'}</span>
                         </div>
                     </div>
                 `;
-            } else {
-                if (item.isJellyseerr) {
-                    html += `
-                        <div class="sh-spotlight-item sh-spotlight-item--jellyseerr ${isSelected ? 'active' : ''}" data-index="${index}" style="--idx: ${index}">
-                            <div class="sh-spotlight-thumb-wrap">
-                                ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${this._escape(item.title || item.Name)}" />` : `<div class="sh-spotlight-thumb-fallback">🎬</div>`}
-                            </div>
-                            <div class="sh-spotlight-item-text">
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <span class="sh-spotlight-item-title">${this._highlightQuery(item.title || item.Name, this._query)}</span>
-                                    <span class="sh-jellyseerr-search-badge">Jellyseerr</span>
-                                </div>
-                                <span class="sh-spotlight-item-sub">${item.ProductionYear || ''} • Non présent sur le serveur • Demander</span>
-                            </div>
-                            <div class="sh-spotlight-action-hint">
-                                <span style="color:#64d2ff;">Demander ↵</span>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    const sub = `${item.ProductionYear || ''} · ${item.Type === 'Movie' ? 'Film' : item.Type === 'Series' ? 'Série' : item.Type === 'Episode' ? 'Épisode' : 'Média'} · ${item.format || 'HD'}`;
-                    html += `
-                        <div class="sh-spotlight-item ${isSelected ? 'active' : ''}" data-index="${index}" style="--idx: ${index}">
-                            <div class="sh-spotlight-thumb-wrap">
-                                ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${this._escape(item.title || item.Name)}" />` : `<div class="sh-spotlight-thumb-fallback"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg></div>`}
-                            </div>
-                            <div class="sh-spotlight-item-text">
-                                <span class="sh-spotlight-item-title">${this._highlightQuery(item.title || item.Name, this._query)}</span>
-                                <span class="sh-spotlight-item-sub">${sub}</span>
-                            </div>
-                            <div class="sh-spotlight-action-hint">
-                                <span>Ouvrir la fiche ↵</span>
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-        });
+            });
+            html += `</div>`;
+        }
 
-        html += `</div>`;
-        resultsPane.innerHTML = `
-            <div class="sh-spotlight-active-indicator" id="sh-spotlight-active-indicator"></div>
-            ${html}
-        `;
-
+        resultsPane.innerHTML = html;
         this._bindItemClicks(resultsPane);
         this._updateActiveSelection();
     }
@@ -1141,25 +1196,16 @@ class UnifiedSearch {
         });
     }
 
-    _updateActiveSelection() {
-        if (!this._spotlight) return;
-        const items = this._spotlight.querySelectorAll('.sh-spotlight-item');
-        const indicator = this._spotlight.querySelector('#sh-spotlight-active-indicator');
-        const resultsPane = this._spotlight.querySelector('#sh-spotlight-results-pane');
+        _updateActiveSelection() {
+        const items = this._spotlight?.querySelectorAll('.sh-spotlight-item');
+        if (!items || items.length === 0) return;
 
-        items.forEach((itemEl, idx) => {
-            const isActive = idx === this._selectedIndex;
-            itemEl.classList.toggle('active', isActive);
-            if (isActive) {
-                if (indicator && resultsPane) {
-                    const itemRect = itemEl.getBoundingClientRect();
-                    const paneRect = resultsPane.getBoundingClientRect();
-                    const top = itemRect.top - paneRect.top + resultsPane.scrollTop;
-                    indicator.style.display = 'block';
-                    indicator.style.transform = `translateY(${top}px)`;
-                    indicator.style.height = `${itemRect.height}px`;
-                }
-                itemEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        items.forEach((el, i) => {
+            if (i === this._selectedIndex) {
+                el.classList.add('active');
+                el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            } else {
+                el.classList.remove('active');
             }
         });
     }

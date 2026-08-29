@@ -596,6 +596,162 @@ function injectJellyseerrSharedStyles() {
 
 
 
+
+/* ── Hub Multimédia Master Panorama 1200px Apple TV VisionOS ── */
+.sh-jellyseerr-modal-card,
+.sh-jellyseerr-modal-card--panorama,
+.sh-jellyseerr-modal-card--wide {
+    width: 1200px !important;
+    max-width: 95vw !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+    padding: 32px !important;
+    border-radius: 28px !important;
+    background: rgba(14, 14, 18, 0.94) !important;
+    backdrop-filter: blur(50px) saturate(220%) !important;
+    -webkit-backdrop-filter: blur(50px) saturate(220%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 40px 120px rgba(0,0,0,0.95), 0 0 0 1px rgba(255,255,255,0.08) inset !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    box-sizing: border-box !important;
+}
+
+.sh-jellyseerr-modal-card::-webkit-scrollbar,
+.sh-jellyseerr-modal-card--panorama::-webkit-scrollbar,
+.sh-jellyseerr-modal-card--wide::-webkit-scrollbar,
+.sh-jellyseerr-episodes-list::-webkit-scrollbar,
+.sh-jellyseerr-season-tabs::-webkit-scrollbar,
+.sh-jellyseerr-modal-desc::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.sh-jellyseerr-panorama-dual-pane {
+    display: grid !important;
+    grid-template-columns: 420px 1fr !important;
+    gap: 32px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-top: 20px !important;
+}
+
+@media (max-width: 1024px) {
+    .sh-jellyseerr-panorama-dual-pane {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+.sh-jellyseerr-pane-left {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 18px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.sh-jellyseerr-pane-right {
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.sh-jellyseerr-synopsis-box {
+    background: rgba(255,255,255,0.03) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    border-radius: 20px !important;
+    padding: 20px !important;
+}
+
+.sh-jellyseerr-modal-desc {
+    font-size: 13.5px !important;
+    line-height: 1.6 !important;
+    color: rgba(255,255,255,0.8) !important;
+    margin: 0 !important;
+}
+
+.sh-jellyseerr-settings-box {
+    background: rgba(255,255,255,0.03) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    border-radius: 20px !important;
+    padding: 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+}
+
+.sh-jellyseerr-episodes-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    max-height: 420px !important;
+    overflow-y: auto !important;
+    scrollbar-width: none !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.sh-episode-rich-card {
+    display: flex !important;
+    align-items: center !important;
+    gap: 16px !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.07) !important;
+    border-radius: 16px !important;
+    padding: 12px 16px !important;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.sh-episode-rich-card:hover {
+    background: rgba(255, 255, 255, 0.07) !important;
+    border-color: rgba(99, 102, 241, 0.4) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.5) !important;
+}
+
+.sh-ep-thumb-wrap {
+    width: 140px !important;
+    height: 78px !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    background: #111 !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+}
+
+.sh-ep-thumb-wrap img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+.sh-ep-info-wrap {
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+
+.sh-ep-title {
+    font-size: 14.5px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    margin: 0 !important;
+    white-space: normal !important;
+}
+
+.sh-ep-overview {
+    font-size: 12.5px !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    line-height: 1.45 !important;
+    margin-top: 4px !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+}
+
 /* ── Hub Panorama 1200px Dual-Pane Apple TV VisionOS ── */
 .sh-jellyseerr-modal-card--panorama {
     width: 1200px !important;
@@ -783,16 +939,6 @@ function injectJellyseerrSharedStyles() {
     overflow: hidden !important;
 }
 
-/* ── Hub Multimédia Grand Format 960px & Scrollbars Dark Glass ── */
-.sh-jellyseerr-modal-card--wide {
-    width: 960px !important;
-    max-width: 95vw !important;
-    max-height: 90vh !important;
-    overflow-y: auto !important;
-    scrollbar-width: thin !important;
-    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.02) !important;
-}
-
 .sh-jellyseerr-modal-card--wide::-webkit-scrollbar,
 .sh-jellyseerr-episodes-list::-webkit-scrollbar {
     width: 6px !important;
@@ -857,210 +1003,6 @@ function injectJellyseerrSharedStyles() {
     border: 1px solid rgba(255,255,255,0.25) !important;
     color: #fff !important;
     font-size: 15px !important;
-    cursor: pointer !important;
-    z-index: 10 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-/* ── Hub Multimédia Grand Format 820px & Fiches Épisodes Riches ── */
-.sh-jellyseerr-modal-card--wide {
-    width: 820px !important;
-    max-width: 94vw !important;
-    max-height: 88vh !important;
-    overflow-y: auto !important;
-}
-.sh-jellyseerr-modal-meta-top {
-    display: flex !important;
-    align-items: center !important;
-    gap: 12px !important;
-    margin-bottom: 6px !important;
-}
-.sh-jellyseerr-modal-header-actions {
-    margin-top: 10px !important;
-}
-.sh-jellyseerr-btn-trailer {
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    padding: 7px 14px !important;
-    border-radius: 12px !important;
-    background: rgba(255, 255, 255, 0.08) !important;
-    border: 1px solid rgba(255, 255, 255, 0.16) !important;
-    color: #ffffff !important;
-    font-size: 12.5px !important;
-    font-weight: 600 !important;
-    cursor: pointer !important;
-    backdrop-filter: blur(16px) !important;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-.sh-jellyseerr-btn-trailer:hover {
-    background: rgba(255, 255, 255, 0.18) !important;
-    transform: translateY(-1px) !important;
-}
-.sh-jellyseerr-season-tabs {
-    display: flex !important;
-    gap: 8px !important;
-    overflow-x: auto !important;
-    padding: 4px 0 10px 0 !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    margin-bottom: 12px !important;
-}
-.sh-season-tab {
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.10) !important;
-    color: rgba(255, 255, 255, 0.7) !important;
-    padding: 6px 14px !important;
-    border-radius: 10px !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    cursor: pointer !important;
-    white-space: nowrap !important;
-    transition: all 0.2s !important;
-}
-.sh-season-tab:hover {
-    color: #fff !important;
-    background: rgba(255, 255, 255, 0.1) !important;
-}
-.sh-season-tab.active {
-    background: #6366f1 !important;
-    border-color: #818cf8 !important;
-    color: #ffffff !important;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4) !important;
-}
-.sh-jellyseerr-episodes-list {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 10px !important;
-    max-height: 280px !important;
-    overflow-y: auto !important;
-    padding-right: 4px !important;
-}
-.sh-episode-rich-card {
-    display: flex !important;
-    align-items: center !important;
-    gap: 12px !important;
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.06) !important;
-    border-radius: 12px !important;
-    padding: 8px 12px !important;
-    transition: all 0.2s !important;
-}
-.sh-episode-rich-card:hover {
-    background: rgba(255, 255, 255, 0.06) !important;
-    border-color: rgba(255, 255, 255, 0.14) !important;
-}
-.sh-ep-checkbox-wrap input {
-    accent-color: #6366f1 !important;
-    width: 16px !important;
-    height: 16px !important;
-    cursor: pointer !important;
-}
-.sh-ep-thumb-wrap {
-    width: 110px !important;
-    height: 62px !important;
-    border-radius: 8px !important;
-    overflow: hidden !important;
-    background: #111 !important;
-    flex-shrink: 0 !important;
-}
-.sh-ep-thumb-wrap img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
-}
-.sh-ep-thumb-fallback {
-    width: 100% !important;
-    height: 100% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-size: 20px !important;
-    background: rgba(255, 255, 255, 0.02) !important;
-}
-.sh-ep-info-wrap {
-    flex: 1 !important;
-    min-width: 0 !important;
-}
-.sh-ep-header-line {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    margin-bottom: 3px !important;
-}
-.sh-ep-number-tag {
-    font-size: 11px !important;
-    font-weight: 750 !important;
-    color: #818cf8 !important;
-    background: rgba(99, 102, 241, 0.14) !important;
-    padding: 2px 6px !important;
-    border-radius: 6px !important;
-}
-.sh-ep-title {
-    font-size: 13px !important;
-    font-weight: 650 !important;
-    color: #ffffff !important;
-    margin: 0 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}
-.sh-ep-date {
-    font-size: 11px !important;
-    color: rgba(255, 255, 255, 0.4) !important;
-    margin-left: auto !important;
-}
-.sh-ep-overview {
-    font-size: 12px !important;
-    color: rgba(255, 255, 255, 0.65) !important;
-    line-height: 1.35 !important;
-    margin: 0 !important;
-    display: -webkit-box !important;
-    -webkit-line-clamp: 2 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-}
-.sh-trailer-player-overlay {
-    position: fixed !important;
-    inset: 0 !important;
-    background: rgba(0,0,0,0.85) !important;
-    backdrop-filter: blur(25px) !important;
-    z-index: 1000000 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    opacity: 0 !important;
-    transition: opacity 0.24s ease !important;
-}
-.sh-trailer-player-overlay.open {
-    opacity: 1 !important;
-}
-.sh-trailer-player-box {
-    width: 880px !important;
-    max-width: 94vw !important;
-    aspect-ratio: 16/9 !important;
-    background: #000 !important;
-    border-radius: 20px !important;
-    overflow: hidden !important;
-    position: relative !important;
-    box-shadow: 0 30px 90px rgba(0,0,0,0.9) !important;
-    border: 1px solid rgba(255,255,255,0.15) !important;
-}
-.sh-trailer-player-box iframe {
-    width: 100% !important;
-    height: 100% !important;
-}
-.sh-trailer-close-btn {
-    position: absolute !important;
-    top: 14px !important;
-    right: 14px !important;
-    width: 34px !important;
-    height: 34px !important;
-    border-radius: 50% !important;
-    background: rgba(0,0,0,0.65) !important;
-    border: 1px solid rgba(255,255,255,0.2) !important;
-    color: #fff !important;
     cursor: pointer !important;
     z-index: 10 !important;
     display: flex !important;
