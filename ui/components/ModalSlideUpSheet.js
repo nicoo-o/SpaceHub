@@ -115,6 +115,7 @@ class ModalSlideUpSheet {
         const api = window.SpaceHub?.jellyfin?.api;
         const apiClient = window.SpaceHub?.core?.api?.getClient('jellyfin');
         const itemId = item.Id || item.id;
+        const isCalendarOrServarr = item.source === 'sonarr' || item.source === 'radarr' || item.source === 'jellyseerr' || (typeof item.Id === 'string' && (item.Id.startsWith('sonarr-') || item.Id.startsWith('radarr-') || item.Id.startsWith('sh-cal-') || item.Id.startsWith('jellyseerr-')));
         
         let posterUrl = '';
         let backdropUrl = '';
