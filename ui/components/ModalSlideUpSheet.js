@@ -622,14 +622,23 @@ class ModalSlideUpSheet {
                 }
             }
 
-            // ── 2. GESTION DES SÉRIES AVEC CODE COULEUR VERT / ORANGE / ROUGE ──
+                        // ── 2. GESTION DES SÉRIES AVEC DÉTECTION EXHAUSTIVE DE TOUS LES ÉPISODES LOCAUX ──
             if (isSeries) {
                 const seasonRow = this._sheet?.querySelector('.sh-season-pills-row');
                 const episodesGrid = this._sheet?.querySelector('.sh-episodes-cards-grid');
 
                 let localSeasons = [];
-                if (localJellyfinId && api?.getSeasons) {
-                    try { localSeasons = await api.getSeasons(localJellyfinId) || []; } catch (e) {}
+                let allLocalEpisodes = [];
+                if (localJellyfinId) {
+                    if (api?.getSeasons) {
+                        try { localSeasons = await api.getSeasons(localJellyfinId) || []; } catch (e) {}
+                    }
+                    if (api?.getEpisodes) {
+                        try { allLocalEpisodes = await api.getEpisodes(localJellyfinId) || []; } catch (e) {}
+                    }
+                    if (allLocalEpisodes.length === 0 && api?.getItems) {
+                        try { allLocalEpisodes = await api.getItems(localJellyfinId, { includeItemTypes: 'Episode', recursive: true }) || []; } catch (e) {}
+                    }
                 }
 
                 // Récupération de TOUTES les saisons existantes sur TMDB (ex: True Detective 1, 2, 3, 4)
@@ -641,53 +650,64 @@ class ModalSlideUpSheet {
                     } catch (e) {}
                 }
 
-                // Pour chaque saison, récupérer le statut exact (Vert = Complète, Orange = Incomplète, Rouge = Manquante)
+                // Pour chaque saison, récupérer les épisodes locaux correspondants avec correspondance multiple (ParentIndexNumber, SeasonName, localId)
                 let displaySeasons = [];
-                const seasonsToProcess = allTmdbSeasons.length > 0 ? allTmdbSeasons : localSeasons;
 
                 if (allTmdbSeasons.length > 0) {
                     displaySeasons = await Promise.all(allTmdbSeasons.map(async (s) => {
                         const sNum = s.seasonNumber;
-                        const localMatch = localSeasons.find(ls => (ls.IndexNumber === sNum) || (ls.Name && ls.Name.toLowerCase().includes('saison ' + sNum) || ls.Name.toLowerCase().includes('season ' + sNum)));
+                        const localSeasonObj = localSeasons.find(ls => (ls.IndexNumber === sNum) || (ls.Name && (ls.Name.toLowerCase().includes('saison ' + sNum) || ls.Name.toLowerCase().includes('season ' + sNum))));
                         
-                        let localCount = 0;
-                        let localEpsList = [];
-                        if (localMatch && api?.getEpisodes && localJellyfinId) {
+                        // Récupérer tous les épisodes locaux appartenant à cette saison
+                        let seasonLocalEps = allLocalEpisodes.filter(ep => {
+                            if (ep.ParentIndexNumber !== undefined && ep.ParentIndexNumber !== null) {
+                                return ep.ParentIndexNumber === sNum;
+                            }
+                            if (ep.SeasonIndexNumber !== undefined && ep.SeasonIndexNumber !== null) {
+                                return ep.SeasonIndexNumber === sNum;
+                            }
+                            if (localSeasonObj && ep.SeasonId && ep.SeasonId === localSeasonObj.Id) {
+                                return true;
+                            }
+                            if (localSeasonObj && ep.ParentId && ep.ParentId === localSeasonObj.Id) {
+                                return true;
+                            }
+                            return false;
+                        });
+
+                        // Si aucun épisode filtré par liste globale mais localSeasonObj présent, requêter spécifiquement la saison
+                        if (seasonLocalEps.length === 0 && localSeasonObj && api?.getEpisodes && localJellyfinId) {
                             try {
-                                localEpsList = await api.getEpisodes(localJellyfinId, localMatch.Id) || [];
-                                localCount = localEpsList.length;
+                                seasonLocalEps = await api.getEpisodes(localJellyfinId, localSeasonObj.Id) || [];
                             } catch (e) {}
                         }
 
                         const tmdbCount = s.episodeCount || 0;
+                        const localCount = seasonLocalEps.length;
+
                         let status = 'red'; // 'green' | 'orange' | 'red'
                         let badgeText = '📥 Manquante';
                         let badgeBg = 'rgba(239, 68, 68, 0.2)';
                         let badgeColor = '#f87171';
 
-                        if (localCount > 0 && tmdbCount > 0 && localCount >= tmdbCount) {
+                        if (localCount > 0 && (tmdbCount === 0 || localCount >= tmdbCount)) {
                             status = 'green';
                             badgeText = '✓ Complète';
                             badgeBg = 'rgba(16, 185, 129, 0.2)';
                             badgeColor = '#34d399';
-                        } else if (localCount > 0 && (localCount < tmdbCount || tmdbCount === 0)) {
+                        } else if (localCount > 0 && localCount < tmdbCount) {
                             status = 'orange';
-                            badgeText = `⚠ Incomplète • ${localCount}/${tmdbCount || localCount}`;
+                            badgeText = `⚠ Incomplète • ${localCount}/${tmdbCount}`;
                             badgeBg = 'rgba(245, 158, 11, 0.2)';
                             badgeColor = '#fbbf24';
-                        } else if (localCount > 0) {
-                            status = 'green';
-                            badgeText = '✓ Sur le serveur';
-                            badgeBg = 'rgba(16, 185, 129, 0.2)';
-                            badgeColor = '#34d399';
                         }
 
                         return {
                             seasonNumber: sNum,
                             name: `Saison ${sNum}`,
-                            localId: localMatch?.Id || null,
-                            localEps: localEpsList,
-                            tmdbCount,
+                            localId: localSeasonObj?.Id || null,
+                            localEps: seasonLocalEps,
+                            tmdbCount: tmdbCount || localCount,
                             localCount,
                             status,
                             badgeText,
@@ -696,18 +716,22 @@ class ModalSlideUpSheet {
                         };
                     }));
                 } else if (localSeasons.length > 0) {
-                    displaySeasons = localSeasons.map((ls, idx) => ({
-                        seasonNumber: ls.IndexNumber || (idx + 1),
-                        name: `Saison ${ls.IndexNumber || (idx + 1)}`,
-                        localId: ls.Id,
-                        localEps: [],
-                        tmdbCount: ls.ChildCount || 8,
-                        localCount: ls.ChildCount || 8,
-                        status: 'green',
-                        badgeText: '✓ Sur le serveur',
-                        badgeBg: 'rgba(16, 185, 129, 0.2)',
-                        badgeColor: '#34d399'
-                    }));
+                    displaySeasons = localSeasons.map((ls, idx) => {
+                        const sNum = ls.IndexNumber || (idx + 1);
+                        const seasonLocalEps = allLocalEpisodes.filter(ep => ep.ParentIndexNumber === sNum || (ep.SeasonId && ep.SeasonId === ls.Id));
+                        return {
+                            seasonNumber: sNum,
+                            name: `Saison ${sNum}`,
+                            localId: ls.Id,
+                            localEps: seasonLocalEps,
+                            tmdbCount: ls.ChildCount || seasonLocalEps.length || 8,
+                            localCount: seasonLocalEps.length || ls.ChildCount || 8,
+                            status: 'green',
+                            badgeText: '✓ Sur le serveur',
+                            badgeBg: 'rgba(16, 185, 129, 0.2)',
+                            badgeColor: '#34d399'
+                        };
+                    });
                 } else {
                     displaySeasons = [{ seasonNumber: 1, name: 'Saison 1', localId: null, localEps: [], tmdbCount: 8, localCount: 0, status: 'red', badgeText: '📥 Manquante', badgeBg: 'rgba(239, 68, 68, 0.2)', badgeColor: '#f87171' }];
                 }
@@ -717,21 +741,7 @@ class ModalSlideUpSheet {
                 if (actionsRow) {
                     const hasMissingOrIncomplete = displaySeasons.some(s => s.status === 'red' || s.status === 'orange');
                     
-                    if (hasMissingOrIncomplete && !actionsRow.querySelector('#sh-btn-download-missing-seasons')) {
-                        const btn = document.createElement('button');
-                        btn.id = 'sh-btn-download-missing-seasons';
-                        btn.className = 'sh-cinema-btn-play';
-                        btn.style.cssText = 'background: rgba(99, 102, 241, 0.15) !important; color: #c7d2fe !important; border: 1px solid rgba(99, 102, 241, 0.35) !important; margin-left: 8px !important; backdrop-filter: blur(12px) !important;';
-                        btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Demander saisons manquantes</span>';
-                        btn.addEventListener('click', () => {
-                            const drawer = this._sheet?.querySelector('#sh-slideup-jellyseerr-drawer');
-                            if (drawer) {
-                                drawer.style.display = 'block';
-                                drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                            }
-                        });
-                        actionsRow.appendChild(btn);
-                    }
+                    // Bouton héroïque redondant supprimé selon demande utilisateur : la demande se fait directement et précisément sur les cartes d'épisodes manquants
 
                     if (!actionsRow.querySelector('#sh-btn-follow-series')) {
                         const followBtn = document.createElement('button');
@@ -772,18 +782,12 @@ class ModalSlideUpSheet {
                         </button>
                     `).join('');
 
-                    // Fonction de chargement des épisodes hybrides pour la saison
+                                        // Fonction de chargement des épisodes hybrides pour la saison
                     const loadEpisodesForSeason = async (seasonObj) => {
                         if (!episodesGrid) return;
                         episodesGrid.innerHTML = '<div style="color:rgba(255,255,255,0.5); padding:24px; text-align:center;"><span class="sh-spinner-inline" style="margin-right:8px;"></span>Chargement des épisodes de la ' + seasonObj.name + '...</div>';
 
-                        // 1. Récupérer les épisodes locaux
                         let localEps = seasonObj.localEps || [];
-                        if (localEps.length === 0 && seasonObj.localId && api?.getEpisodes && localJellyfinId) {
-                            try { localEps = await api.getEpisodes(localJellyfinId, seasonObj.localId) || []; } catch (e) {}
-                        }
-
-                        // 2. Récupérer les épisodes TMDB
                         let tmdbEps = [];
                         if (jsApi?.getSeasonDetails && tmdbId) {
                             try {
@@ -835,12 +839,12 @@ class ModalSlideUpSheet {
                             return;
                         }
 
-                        // Si saison Incomplète (Orange) ou Manquante (Rouge) : Fusion Hybride Épisode par Épisode
+                        // Sinon : Rendu hybride sans bandeau encombrant, avec boutons de demande animés directs
                         const totalEpsCount = Math.max(tmdbEps.length, localEps.length, seasonObj.tmdbCount || 8);
                         const hybridList = [];
 
                         for (let i = 1; i <= totalEpsCount; i++) {
-                            const localEp = localEps.find(e => (e.IndexNumber === i) || (e.Name && e.Name.includes('Episode ' + i)));
+                            const localEp = localEps.find(e => (e.IndexNumber === i) || (e.Name && (e.Name.includes('Episode ' + i) || e.Name.includes('Épisode ' + i))));
                             const tmdbEp = tmdbEps.find(e => e.episodeNumber === i);
 
                             hybridList.push({
@@ -848,38 +852,15 @@ class ModalSlideUpSheet {
                                 isLocal: Boolean(localEp),
                                 localData: localEp,
                                 name: localEp?.Name || tmdbEp?.name || `Épisode ${i}`,
-                                overview: localEp?.Overview || tmdbEp?.overview || 'Aucun résumé disponible.',
+                                overview: localEp?.Overview || tmdbEp?.overview || 'Aucun résumé disponible pour cet épisode.',
                                 stillUrl: localEp ? (api?.getImageUrl?.(localEp.Id, 'Primary', { maxWidth: 500 }) || '') : (tmdbEp?.stillPath ? `https://image.tmdb.org/t/p/w400${tmdbEp.stillPath}` : ''),
-                                airDate: tmdbEp?.airDate || '',
                                 duration: localEp?.RunTimeTicks ? Math.round(localEp.RunTimeTicks / 10000000 / 60) + ' min' : ''
                             });
                         }
 
-                        episodesGrid.innerHTML = `
-                            ${seasonObj.status === 'orange' ? `
-                                <div style="margin-bottom:16px; padding:14px 18px; background:rgba(245, 158, 11, 0.12); border:1px solid rgba(245, 158, 11, 0.3); border-radius:16px; display:flex; align-items:center; justify-content:space-between;">
-                                    <div>
-                                        <div style="font-size:13.5px; font-weight:700; color:#fbbf24;">Saison incomplète sur votre serveur (${localEps.length}/${totalEpsCount} épisodes)</div>
-                                        <div style="font-size:12px; color:rgba(255,255,255,0.6); margin-top:2px;">Les épisodes manquants peuvent être demandés individuellement ci-dessous.</div>
-                                    </div>
-                                    <button type="button" id="sh-btn-req-missing-in-season" style="background:#f59e0b; color:#000; font-size:12.5px; font-weight:750; border:none; padding:8px 16px; border-radius:10px; cursor:pointer;">
-                                        📥 Demander les épisodes manquants
-                                    </button>
-                                </div>
-                            ` : `
-                                <div style="margin-bottom:16px; padding:14px 18px; background:rgba(239, 68, 68, 0.12); border:1px solid rgba(239, 68, 68, 0.3); border-radius:16px; display:flex; align-items:center; justify-content:space-between;">
-                                    <div>
-                                        <div style="font-size:13.5px; font-weight:700; color:#f87171;">Saison entière non téléchargée</div>
-                                        <div style="font-size:12px; color:rgba(255,255,255,0.6); margin-top:2px;">Transmettre la demande de téléchargement de toute la ${seasonObj.name}.</div>
-                                    </div>
-                                    <button type="button" id="sh-btn-req-missing-in-season" style="background:#ef4444; color:#fff; font-size:12.5px; font-weight:750; border:none; padding:8px 16px; border-radius:10px; cursor:pointer;">
-                                        📥 Demander la ${seasonObj.name}
-                                    </button>
-                                </div>
-                            `}
-                        ` + hybridList.map(ep => {
+                        episodesGrid.innerHTML = hybridList.map(ep => {
                             return `
-                                <div class="sh-episode-card ${ep.isLocal ? '' : 'sh-episode-card--missing'}" style="${ep.isLocal ? '' : 'opacity:0.85; border:1px dashed rgba(255,255,255,0.15);'}">
+                                <div class="sh-episode-card ${ep.isLocal ? '' : 'sh-episode-card--missing'}" style="${ep.isLocal ? '' : 'opacity:0.88;'}">
                                     <div class="sh-episode-thumb-wrap" data-action="${ep.isLocal ? 'play' : 'request'}" data-ep-num="${ep.episodeNumber}">
                                         ${ep.stillUrl ? `<img src="${ep.stillUrl}" alt="${this._escape(ep.name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.episodeNumber}</div>`}
                                         <div class="sh-episode-overlay-play">${ep.isLocal ? '▶' : '📥'}</div>
@@ -890,9 +871,9 @@ class ModalSlideUpSheet {
                                         <div class="sh-episode-title-row">
                                             <span class="sh-episode-title">${ep.episodeNumber}. ${this._escape(ep.name)}</span>
                                             ${ep.isLocal ? `
-                                                <span style="font-size:10.5px; font-weight:700; color:#34d399; background:rgba(16,185,129,0.15); padding:2px 6px; border-radius:6px; margin-left:auto;">Disponible</span>
+                                                <span style="font-size:10.5px; font-weight:750; color:#34d399; background:rgba(16,185,129,0.15); padding:2px 8px; border-radius:6px; margin-left:auto;">Disponible</span>
                                             ` : `
-                                                <button type="button" class="sh-btn-request-single-ep" data-ep-num="${ep.episodeNumber}" style="margin-left:auto; background:rgba(99,102,241,0.25); border:1px solid rgba(99,102,241,0.5); color:#c7d2fe; font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:8px; cursor:pointer;">
+                                                <button type="button" class="sh-btn-request-single-ep" data-season="${seasonObj.seasonNumber}" data-ep-num="${ep.episodeNumber}" style="margin-left:auto; background:linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border:1px solid rgba(255,255,255,0.2); color:#ffffff; font-size:11.5px; font-weight:750; padding:5px 12px; border-radius:8px; cursor:pointer; box-shadow:0 2px 10px rgba(99,102,241,0.35); transition:all 0.2s ease;">
                                                     📥 Demander
                                                 </button>
                                             `}
@@ -903,25 +884,33 @@ class ModalSlideUpSheet {
                             `;
                         }).join('');
 
-                        // Clics sur le bouton global de la saison
-                        episodesGrid.querySelector('#sh-btn-req-missing-in-season')?.addEventListener('click', () => {
-                            const drawer = this._sheet?.querySelector('#sh-slideup-jellyseerr-drawer');
-                            if (drawer) {
-                                drawer.style.display = 'block';
-                                drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                            }
-                        });
-
-                        // Clics sur les boutons individuels d'épisodes
-                        episodesGrid.querySelectorAll('.sh-btn-request-single-ep').forEach(b => {
-                            b.addEventListener('click', (e) => {
+                        // Clics directs 1-clic animés sur les boutons de demande d'épisodes
+                        episodesGrid.querySelectorAll('.sh-btn-request-single-ep').forEach(btn => {
+                            btn.addEventListener('click', async (e) => {
                                 e.stopPropagation();
-                                const epNum = b.dataset.epNum;
-                                const drawer = this._sheet?.querySelector('#sh-slideup-jellyseerr-drawer');
-                                if (drawer) {
-                                    drawer.style.display = 'block';
-                                    drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                                    window.SpaceHub?.ui?.components?.toaster?.info(`Configuration de la demande pour l'épisode ${epNum}`);
+                                const sNum = parseInt(btn.dataset.season, 10);
+                                const epNum = parseInt(btn.dataset.epNum, 10);
+
+                                btn.disabled = true;
+                                btn.innerHTML = '<span class="sh-spinner-inline" style="width:12px; height:12px; border-width:2px;"></span>';
+                                
+                                try {
+                                    if (jsApi?.createRequest && tmdbId) {
+                                        await jsApi.createRequest({
+                                            mediaType: 'tv',
+                                            mediaId: Number(tmdbId),
+                                            seasons: [sNum]
+                                        });
+                                    }
+                                    btn.style.background = 'rgba(16, 185, 129, 0.25)';
+                                    btn.style.color = '#34d399';
+                                    btn.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                                    btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> Demandé';
+                                    window.SpaceHub?.ui?.components?.toaster?.success(`Demande envoyée pour la Saison ${sNum} • Épisode ${epNum} !`);
+                                } catch (err) {
+                                    btn.disabled = false;
+                                    btn.innerHTML = '📥 Réessayer';
+                                    window.SpaceHub?.ui?.components?.toaster?.error(`Erreur: ${err.message || 'Demande impossible'}`);
                                 }
                             });
                         });
