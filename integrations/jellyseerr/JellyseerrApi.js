@@ -240,6 +240,21 @@ class JellyseerrApi extends BaseApiClient {
         }
     }
 
+/**
+     * Récupère le détail complet d'une saison avec tous ses épisodes (photos, synopsis, durées).
+     * @param {number|string} tvId
+     * @param {number} seasonNumber
+     * @returns {Promise<Object|null>}
+     */
+    async getSeasonDetails(tvId, seasonNumber) {
+        try {
+            return await this.get(`/api/v1/tv/${tvId}/season/${seasonNumber}`);
+        } catch (e) {
+            this._log.debug('getSeasonDetails erreur:', e);
+            return null;
+        }
+    }
+
     async requestMedia(type, mediaId, seasons = null) {
         const payload = {
             mediaType: type === 'tv' ? 'tv' : 'movie',
