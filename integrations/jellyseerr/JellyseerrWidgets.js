@@ -4,13 +4,19 @@
  * @param {Object} item - Média TMDB/Jellyseerr
  * @param {Object} jellyseerr - Instance du service Jellyseerr
  */
+
+/**
+ * Ouvre le Hub Multimédia Complet de demande Jellyseerr (Remplacement Intégral de Jellyseerr).
+ * @param {Object} item - Média TMDB/Jellyseerr
+ * @param {Object} jellyseerr - Instance du service Jellyseerr
+ */
 function openJellyseerrRequestModal(item, jellyseerr) {
-    const tmdbId = item.id || item.tmdbId;
+    const tmdbId = item.id || item.tmdbId || item.mediaId;
     const type = item.mediaType || (item.firstAirDate ? 'tv' : 'movie');
     const typeLabel = type === 'tv' ? 'Série TV' : 'Long-Métrage';
     let title = item.title || item.name || 'Média';
-    let poster = item.posterPath ? `https://image.tmdb.org/t/p/w400${item.posterPath}` : '';
-    let year = (item.releaseDate || item.firstAirDate || '').slice(0, 4);
+    let poster = item.posterPath ? `https://image.tmdb.org/t/p/w400${item.posterPath}` : (item.poster || '');
+    let year = (item.releaseDate || item.firstAirDate || item.year || '').slice(0, 4);
     let overview = item.overview || '';
 
     const modalOverlay = document.createElement('div');
@@ -27,33 +33,61 @@ function openJellyseerrRequestModal(item, jellyseerr) {
                     <h3 class="sh-jellyseerr-modal-title">${title}</h3>
                     <div class="sh-jellyseerr-modal-status-badge" id="sh-req-status-badge">
                         <span class="sh-status-dot"></span>
-                        <span class="sh-status-text">Chargement du statut...</span>
+                        <span class="sh-status-text">Prêt pour la demande</span>
                     </div>
                 </div>
             </div>
 
             <div class="sh-jellyseerr-modal-body">
-                <p class="sh-jellyseerr-modal-desc" id="sh-jellyseerr-desc">${overview || 'Récupération du synopsis officiel...'}</p>
-
-                <div class="sh-jellyseerr-form-row">
-                    <label class="sh-jellyseerr-form-label">Profil de Qualité</label>
-                    <select class="sh-jellyseerr-form-select" id="sh-jellyseerr-profile-select">
-                        <option value="default">Chargement des profils du serveur...</option>
-                    </select>
+                <div class="sh-jellyseerr-synopsis-box">
+                    <div class="sh-jellyseerr-section-header">Synopsis Officiel</div>
+                    <p class="sh-jellyseerr-modal-desc" id="sh-jellyseerr-desc">${overview || 'Récupération du synopsis complet...'}</p>
                 </div>
 
-                <div class="sh-jellyseerr-form-row" id="sh-jellyseerr-folder-row">
-                    <label class="sh-jellyseerr-form-label">Dossier de Destination (Serveur)</label>
-                    <select class="sh-jellyseerr-form-select" id="sh-jellyseerr-folder-select">
-                        <option value="default">Dossier par défaut du serveur</option>
-                    </select>
+                <div class="sh-jellyseerr-grid-selectors">
+                    <div class="sh-jellyseerr-form-row">
+                        <label class="sh-jellyseerr-form-label">Profil de Qualité (Radarr / Sonarr)</label>
+                        <select class="sh-jellyseerr-form-select" id="sh-jellyseerr-profile-select">
+                            <option value="1" selected>4K UHD • Dolby Vision & HDR (Recommandé)</option>
+                            <option value="2">1080p HD • Qualité Maximale Remux</option>
+                            <option value="3">1080p HD • Standard WEB-DL</option>
+                            <option value="4">720p HD • Économie d'espace</option>
+                        </select>
+                    </div>
+
+                    <div class="sh-jellyseerr-form-row" id="sh-jellyseerr-folder-row">
+                        <label class="sh-jellyseerr-form-label">Dossier de Destination (Serveur)</label>
+                        <select class="sh-jellyseerr-form-select" id="sh-jellyseerr-folder-select">
+                            <option value="/data/media/${type === 'tv' ? 'series' : 'movies'}" selected>/data/media/${type === 'tv' ? 'series' : 'movies'}</option>
+                            <option value="/media/${type === 'tv' ? 'series' : 'movies'}">/media/${type === 'tv' ? 'series' : 'movies'}</option>
+                        </select>
+                    </div>
                 </div>
 
                 ${type === 'tv' ? `
-                    <div class="sh-jellyseerr-form-row" id="sh-jellyseerr-seasons-row">
-                        <label class="sh-jellyseerr-form-label">Saisons à demander</label>
-                        <div class="sh-jellyseerr-seasons-container" id="sh-jellyseerr-seasons-box">
-                            <label class="sh-checkbox-pill"><input type="checkbox" id="sh-season-all" value="all" checked /> <span>Toutes les saisons</span></label>
+                    <div class="sh-jellyseerr-seasons-master-section">
+                        <div class="sh-jellyseerr-seasons-header-bar">
+                            <span class="sh-jellyseerr-form-label">Saisons & Épisodes à Télécharger</span>
+                            <div class="sh-jellyseerr-seasons-quick-actions">
+                                <button type="button" class="sh-season-quick-btn" id="sh-btn-select-all-eps">Tout cocher</button>
+                                <span class="sh-quick-sep">•</span>
+                                <button type="button" class="sh-season-quick-btn" id="sh-btn-deselect-all-eps">Tout décocher</button>
+                            </div>
+                        </div>
+                        
+                        <div class="sh-jellyseerr-seasons-accordion-list" id="sh-jellyseerr-seasons-accordion">
+                            <div class="sh-season-card open" data-season="1">
+                                <div class="sh-season-card-header">
+                                    <label class="sh-checkbox-container" onclick="event.stopPropagation();">
+                                        <input type="checkbox" class="sh-master-season-chk" data-season="1" checked />
+                                        <span class="sh-season-title-text">Saison 1</span>
+                                    </label>
+                                    <span class="sh-season-badge">Chargement des épisodes...</span>
+                                </div>
+                                <div class="sh-season-episodes-grid" id="sh-season-1-eps">
+                                    <div class="sh-ep-chip-placeholder">Chargement...</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 ` : ''}
@@ -61,7 +95,7 @@ function openJellyseerrRequestModal(item, jellyseerr) {
                 <div class="sh-jellyseerr-modal-actions">
                     <button class="sh-jellyseerr-btn-submit" id="sh-btn-submit-request">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        <span>Confirmer la demande</span>
+                        <span>Confirmer la demande sur le serveur</span>
                     </button>
                 </div>
             </div>
@@ -81,92 +115,112 @@ function openJellyseerrRequestModal(item, jellyseerr) {
         if (e.target === modalOverlay) closeModal();
     });
 
-    // ── CHARGEMENT ASYNCHRONE DES VRAIES DONNÉES SERVEUR & TMDB ──
+    // ── CHARGEMENT ASYNCHRONE DES DÉTAILS ET CONFIGURATIONS SERVEUR ──
     (async () => {
         const api = jellyseerr?.api || window.SpaceHub?.core?.api?.getClient('jellyseerr');
-        if (!api) return;
-
-        // 1. Récupérer les détails TMDB réels (synopsis complet, saisons)
+        
+        // 1. Récupération des détails complets (Synopsis, saisons, épisodes)
         try {
-            const details = await api.getMediaDetails?.(type, tmdbId);
-            if (details) {
-                if (details.overview) {
-                    const descEl = modalOverlay.querySelector('#sh-jellyseerr-desc');
-                    if (descEl) descEl.textContent = details.overview;
-                }
-                const badge = modalOverlay.querySelector('#sh-req-status-badge');
-                if (badge) {
-                    const mediaStatus = details.mediaInfo?.status;
-                    if (mediaStatus === 5) {
-                        badge.className = 'sh-jellyseerr-modal-status-badge status-available';
-                        badge.querySelector('.sh-status-text').textContent = 'Disponible sur Jellyfin';
-                    } else if (mediaStatus === 3 || mediaStatus === 4) {
-                        badge.className = 'sh-jellyseerr-modal-status-badge status-requested';
-                        badge.querySelector('.sh-status-text').textContent = 'En cours de téléchargement';
-                    } else if (mediaStatus === 2) {
-                        badge.className = 'sh-jellyseerr-modal-status-badge status-requested';
-                        badge.querySelector('.sh-status-text').textContent = 'Demandé • En attente';
-                    } else {
-                        badge.className = 'sh-jellyseerr-modal-status-badge';
-                        badge.querySelector('.sh-status-text').textContent = 'Prêt pour la demande';
+            if (api?.getMediaDetails && tmdbId) {
+                const details = await api.getMediaDetails(type, tmdbId);
+                if (details) {
+                    if (details.overview) {
+                        const descEl = modalOverlay.querySelector('#sh-jellyseerr-desc');
+                        if (descEl) descEl.textContent = details.overview;
                     }
-                }
 
-                // Saisons détaillées
-                if (type === 'tv' && details.seasons && details.seasons.length > 0) {
-                    const seasonsBox = modalOverlay.querySelector('#sh-jellyseerr-seasons-box');
-                    if (seasonsBox) {
-                        const regularSeasons = details.seasons.filter(s => s.seasonNumber > 0);
-                        if (regularSeasons.length > 0) {
-                            seasonsBox.innerHTML = regularSeasons.map(s => `
-                                <label class="sh-checkbox-pill">
-                                    <input type="checkbox" class="sh-season-chk" value="${s.seasonNumber}" checked />
-                                    <span>Saison ${s.seasonNumber} (${s.episodeCount || 0} ép.)</span>
-                                </label>
-                            `).join('');
+                    // Statut de demande en temps réel
+                    const badge = modalOverlay.querySelector('#sh-req-status-badge');
+                    if (badge) {
+                        const mediaStatus = details.mediaInfo?.status;
+                        if (mediaStatus === 5) {
+                            badge.className = 'sh-jellyseerr-modal-status-badge status-available';
+                            badge.querySelector('.sh-status-text').textContent = '✓ Disponible sur Jellyfin';
+                        } else if (mediaStatus === 3 || mediaStatus === 4) {
+                            badge.className = 'sh-jellyseerr-modal-status-badge status-downloading';
+                            badge.querySelector('.sh-status-text').textContent = '↓ En cours de téléchargement';
+                        } else if (mediaStatus === 2) {
+                            badge.className = 'sh-jellyseerr-modal-status-badge status-requested';
+                            badge.querySelector('.sh-status-text').textContent = '⌛ Demandé • En attente';
+                        } else {
+                            badge.className = 'sh-jellyseerr-modal-status-badge';
+                            badge.querySelector('.sh-status-text').textContent = '● Prêt pour la demande';
+                        }
+                    }
+
+                    // Rendu interactif des saisons et de chaque épisode
+                    if (type === 'tv' && details.seasons && details.seasons.length > 0) {
+                        const accordionList = modalOverlay.querySelector('#sh-jellyseerr-seasons-accordion');
+                        if (accordionList) {
+                            const validSeasons = details.seasons.filter(s => s.seasonNumber > 0);
+                            accordionList.innerHTML = validSeasons.map(s => {
+                                const epCount = s.episodeCount || 8;
+                                const eps = Array.from({ length: epCount }, (_, i) => i + 1);
+                                return `
+                                    <div class="sh-season-card open" data-season="${s.seasonNumber}">
+                                        <div class="sh-season-card-header">
+                                            <label class="sh-checkbox-container" onclick="event.stopPropagation();">
+                                                <input type="checkbox" class="sh-master-season-chk" data-season="${s.seasonNumber}" checked />
+                                                <span class="sh-season-title-text">Saison ${s.seasonNumber}</span>
+                                            </label>
+                                            <span class="sh-season-badge">${epCount} épisodes</span>
+                                        </div>
+                                        <div class="sh-season-episodes-grid" id="sh-season-${s.seasonNumber}-eps">
+                                            ${eps.map(epNum => `
+                                                <label class="sh-ep-chip">
+                                                    <input type="checkbox" class="sh-episode-chk" data-season="${s.seasonNumber}" value="${epNum}" checked />
+                                                    <span>EP ${epNum}</span>
+                                                </label>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('');
+
+                            // Écouteurs pour cocher / décocher par saison
+                            accordionList.querySelectorAll('.sh-master-season-chk').forEach(masterChk => {
+                                masterChk.addEventListener('change', (e) => {
+                                    const sNum = masterChk.dataset.season;
+                                    const epChks = accordionList.querySelectorAll(`.sh-episode-chk[data-season="${sNum}"]`);
+                                    epChks.forEach(chk => { chk.checked = masterChk.checked; });
+                                });
+                            });
                         }
                     }
                 }
             }
         } catch (e) {
-            console.warn('[JellyseerrModal] Erreur détails média:', e);
+            console.warn('[JellyseerrHub] Erreur chargement détails:', e);
         }
 
-        // 2. Récupérer les VRAIS Profils Qualité et Dossiers depuis Radarr / Sonarr
+        // 2. Boutons Tout cocher / Tout décocher
+        modalOverlay.querySelector('#sh-btn-select-all-eps')?.addEventListener('click', () => {
+            modalOverlay.querySelectorAll('.sh-master-season-chk, .sh-episode-chk').forEach(c => { c.checked = true; });
+        });
+        modalOverlay.querySelector('#sh-btn-deselect-all-eps')?.addEventListener('click', () => {
+            modalOverlay.querySelectorAll('.sh-master-season-chk, .sh-episode-chk').forEach(c => { c.checked = false; });
+        });
+
+        // 3. Récupération des Profils de Qualité et Dossiers Réels Radarr / Sonarr
         try {
-            const servers = type === 'tv' ? await api.getSonarrServers?.() : await api.getRadarrServers?.();
+            const servers = type === 'tv' ? await api?.getSonarrServers?.() : await api?.getRadarrServers?.();
             const server = (Array.isArray(servers) && servers.length > 0) ? servers[0] : null;
 
             const profileSelect = modalOverlay.querySelector('#sh-jellyseerr-profile-select');
             const folderSelect = modalOverlay.querySelector('#sh-jellyseerr-folder-select');
 
-            if (server && profileSelect) {
-                if (server.profiles && server.profiles.length > 0) {
-                    profileSelect.innerHTML = server.profiles.map(p => `
-                        <option value="${p.id}" ${p.id === server.activeProfileId ? 'selected' : ''}>${p.name}</option>
-                    `).join('');
-                } else {
-                    profileSelect.innerHTML = `
-                        <option value="1" selected>4K UHD • Dolby Vision & HDR</option>
-                        <option value="2">1080p HD • Qualité Standard</option>
-                        <option value="3">720p • Économie d'espace</option>
-                    `;
-                }
-
-                if (server.rootFolders && server.rootFolders.length > 0 && folderSelect) {
-                    folderSelect.innerHTML = server.rootFolders.map(rf => `
-                        <option value="${rf.path}" ${rf.path === server.activeDirectory ? 'selected' : ''}>${rf.path}</option>
-                    `).join('');
-                }
-            } else if (profileSelect) {
-                profileSelect.innerHTML = `
-                    <option value="1" selected>4K UHD • Dolby Vision & HDR</option>
-                    <option value="2">1080p HD • Qualité Standard</option>
-                    <option value="3">720p • Économie d'espace</option>
-                `;
+            if (server && profileSelect && server.profiles && server.profiles.length > 0) {
+                profileSelect.innerHTML = server.profiles.map(p => `
+                    <option value="${p.id}" ${p.id === server.activeProfileId ? 'selected' : ''}>${p.name}</option>
+                `).join('');
+            }
+            if (server && folderSelect && server.rootFolders && server.rootFolders.length > 0) {
+                folderSelect.innerHTML = server.rootFolders.map(rf => `
+                    <option value="${rf.path}" ${rf.path === server.activeDirectory ? 'selected' : ''}>${rf.path}</option>
+                `).join('');
             }
         } catch (e) {
-            console.warn('[JellyseerrModal] Erreur récupération serveurs Radarr/Sonarr:', e);
+            console.warn('[JellyseerrHub] Fallback profils qualité:', e);
         }
     })();
 
@@ -175,18 +229,18 @@ function openJellyseerrRequestModal(item, jellyseerr) {
     submitBtn?.addEventListener('click', async () => {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="sh-spinner-inline"></span><span>Transmission à Jellyseerr...</span>';
-        
+
         const profileSelect = modalOverlay.querySelector('#sh-jellyseerr-profile-select');
         const folderSelect = modalOverlay.querySelector('#sh-jellyseerr-folder-select');
         
-        const profileId = profileSelect && profileSelect.value !== 'default' ? parseInt(profileSelect.value, 10) : undefined;
-        const rootFolder = folderSelect && folderSelect.value !== 'default' ? folderSelect.value : undefined;
+        const profileId = profileSelect ? parseInt(profileSelect.value, 10) || 1 : 1;
+        const rootFolder = folderSelect ? folderSelect.value : undefined;
 
         let selectedSeasons = null;
         if (type === 'tv') {
-            const checkedBoxes = modalOverlay.querySelectorAll('.sh-season-chk:checked');
-            if (checkedBoxes.length > 0) {
-                selectedSeasons = Array.from(checkedBoxes).map(b => parseInt(b.value, 10));
+            const checkedMaster = modalOverlay.querySelectorAll('.sh-master-season-chk:checked');
+            if (checkedMaster.length > 0) {
+                selectedSeasons = Array.from(checkedMaster).map(b => parseInt(b.dataset.season, 10));
             } else {
                 selectedSeasons = 'all';
             }
@@ -194,28 +248,30 @@ function openJellyseerrRequestModal(item, jellyseerr) {
 
         const payload = {
             mediaType: type === 'tv' ? 'tv' : 'movie',
-            mediaId: Number(tmdbId)
+            mediaId: Number(tmdbId),
+            profileId,
+            ...(rootFolder ? { rootFolder } : {}),
+            ...(selectedSeasons ? { seasons: selectedSeasons } : {})
         };
-        if (profileId) payload.profileId = profileId;
-        if (rootFolder) payload.rootFolder = rootFolder;
-        if (selectedSeasons) payload.seasons = selectedSeasons;
 
         try {
             const api = jellyseerr?.api || window.SpaceHub?.core?.api?.getClient('jellyseerr');
             await api.createRequest(payload);
 
             submitBtn.classList.add('success');
-            submitBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Demande validée !</span>';
+            submitBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Demande validée sur votre serveur !</span>';
+            
             const badge = modalOverlay.querySelector('#sh-req-status-badge');
             if (badge) {
                 badge.className = 'sh-jellyseerr-modal-status-badge status-requested';
-                badge.querySelector('.sh-status-text').textContent = 'Demandé • En attente';
+                badge.querySelector('.sh-status-text').textContent = '⌛ Demandé • En attente';
             }
-            window.SpaceHub?.ui?.components?.toaster?.success(`Demande transmise avec succès pour "${title}" !`);
-            setTimeout(closeModal, 1200);
+
+            window.SpaceHub?.ui?.components?.toaster?.success(`Demande envoyée pour "${title}" !`);
+            setTimeout(closeModal, 1400);
         } catch (err) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<span>Réessayer</span>';
+            submitBtn.innerHTML = '<span>Réessayer la demande</span>';
             window.SpaceHub?.ui?.components?.toaster?.error(`Erreur: ${err.message || 'Impossible d envoyer la demande'}`);
         }
     });
@@ -295,12 +351,14 @@ function bindJellyseerrRequestButtons(container, jellyseerr) {
             const posterImg = card.querySelector('.sh-jellyseerr-bento-card__img')?.src || '';
             const year = card.querySelector('.sh-jellyseerr-bento-card__year')?.textContent || '';
 
+            const overviewText = card.querySelector('.sh-jellyseerr-bento-card__desc')?.textContent || '';
             openJellyseerrRequestModal({
                 id: mediaId,
                 title,
                 mediaType,
-                posterPath: posterImg ? posterImg.replace('https://image.tmdb.org/t/p/w300', '') : '',
-                releaseDate: year
+                posterPath: posterImg ? posterImg.replace('https://image.tmdb.org/t/p/w300', '').replace('https://image.tmdb.org/t/p/w400', '') : '',
+                releaseDate: year,
+                overview: overviewText
             }, jellyseerr);
         });
     });
@@ -333,6 +391,141 @@ function injectJellyseerrSharedStyles() {
     const style = document.createElement('style');
     style.id = 'sh-jellyseerr-shared-styles';
     style.textContent = `
+
+
+/* ── Hub Multimédia Jellyseerr Avancé ── */
+.sh-jellyseerr-modal-card {
+    width: 600px !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+}
+.sh-jellyseerr-synopsis-box {
+    margin-bottom: 16px !important;
+    background: rgba(255,255,255,0.03) !important;
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+}
+.sh-jellyseerr-section-header {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: #a1a1aa !important;
+    margin-bottom: 4px !important;
+}
+.sh-jellyseerr-grid-selectors {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+}
+@media (max-width: 600px) {
+    .sh-jellyseerr-grid-selectors { grid-template-columns: 1fr !important; }
+}
+.sh-jellyseerr-seasons-master-section {
+    background: rgba(255,255,255,0.03) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    border-radius: 16px !important;
+    padding: 14px !important;
+    margin-bottom: 18px !important;
+}
+.sh-jellyseerr-seasons-header-bar {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 12px !important;
+}
+.sh-jellyseerr-seasons-quick-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+.sh-season-quick-btn {
+    background: none !important;
+    border: none !important;
+    color: #818cf8 !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+}
+.sh-season-quick-btn:hover {
+    text-decoration: underline !important;
+}
+.sh-quick-sep {
+    color: rgba(255,255,255,0.3) !important;
+    font-size: 10px !important;
+}
+.sh-jellyseerr-seasons-accordion-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    max-height: 220px !important;
+    overflow-y: auto !important;
+}
+.sh-season-card {
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(255,255,255,0.07) !important;
+    border-radius: 12px !important;
+    padding: 10px 12px !important;
+}
+.sh-season-card-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 8px !important;
+}
+.sh-checkbox-container {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+}
+.sh-season-title-text {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #fff !important;
+}
+.sh-season-badge {
+    font-size: 11px !important;
+    color: rgba(255,255,255,0.5) !important;
+    background: rgba(255,255,255,0.06) !important;
+    padding: 2px 8px !important;
+    border-radius: 10px !important;
+}
+.sh-season-episodes-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+}
+.sh-ep-chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    background: rgba(255,255,255,0.06) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    border-radius: 8px !important;
+    padding: 3px 8px !important;
+    font-size: 11px !important;
+    color: #d4d4d8 !important;
+    cursor: pointer !important;
+}
+.sh-ep-chip input {
+    accent-color: #6366f1 !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+}
+.sh-jellyseerr-modal-status-badge.status-downloading {
+    background: rgba(59, 130, 246, 0.15) !important;
+    border-color: rgba(59, 130, 246, 0.35) !important;
+    color: #93c5fd !important;
+}
+.sh-jellyseerr-modal-status-badge.status-available {
+    background: rgba(34, 197, 94, 0.15) !important;
+    border-color: rgba(34, 197, 94, 0.35) !important;
+    color: #86efac !important;
+}
 
 /* ── Modale de Demande Jellyseerr Ultra-Glass ── */
 .sh-jellyseerr-modal-overlay {

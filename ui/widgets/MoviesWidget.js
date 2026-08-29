@@ -55,27 +55,56 @@ class MoviesWidget {
         try {
             const api = window.SpaceHub?.jellyfin?.api;
             const apiClient = window.SpaceHub?.core?.api?.getClient('jellyfin');
+            const userId = api?.getUserId?.() || window.SpaceHub?.auth?.getUserId?.();
             let items = [];
 
+            // Stratégie 1 : api.getMovies
             if (api?.getMovies) {
                 try {
                     items = await api.getMovies({ limit: 48, sortBy: 'DateCreated', sortOrder: 'Descending' });
                 } catch (e) {
-                    console.warn('[MoviesWidget] Erreur api.getMovies:', e);
-                }
-            }
-            if ((!items || items.length === 0) && apiClient?.getItems) {
-                try {
-                    const response = await apiClient.getItems({ IncludeItemTypes: 'Movie', Recursive: true, Limit: 48, SortBy: 'DateCreated', SortOrder: 'Descending' });
-                    items = response?.Items || [];
-                } catch (e) {
-                    console.warn('[MoviesWidget] Erreur apiClient.getItems:', e);
+                    console.warn('[MoviesWidget] Stratégie 1 api.getMovies:', e);
                 }
             }
 
-            // Si aucun film disponible, masquer proprement le bloc sans afficher de données démo factices
+            // Stratégie 2 : apiClient.getItems avec IncludeItemTypes: 'Movie'
+            if ((!items || items.length === 0) && apiClient?.getItems) {
+                try {
+                    const response = await apiClient.getItems({ 
+                        userId: userId || '',
+                        IncludeItemTypes: 'Movie', 
+                        Recursive: true, 
+                        Limit: 48, 
+                        SortBy: 'DateCreated', 
+                        SortOrder: 'Descending',
+                        Fields: 'PrimaryImageAspectRatio,Overview,Genres,CommunityRating,CriticRating,UserData,RunTimeTicks,ProductionYear'
+                    });
+                    items = response?.Items || (Array.isArray(response) ? response : []);
+                } catch (e) {
+                    console.warn('[MoviesWidget] Stratégie 2 apiClient.getItems:', e);
+                }
+            }
+
+            // Stratégie 3 : window.ApiClient natif
+            if ((!items || items.length === 0) && window.ApiClient?.getItems) {
+                try {
+                    const rawRes = await window.ApiClient.getItems(userId, {
+                        IncludeItemTypes: 'Movie',
+                        Recursive: true,
+                        Limit: 48,
+                        SortBy: 'DateCreated',
+                        SortOrder: 'Descending',
+                        Fields: 'PrimaryImageAspectRatio,Overview,Genres,CommunityRating,CriticRating,UserData,RunTimeTicks,ProductionYear'
+                    });
+                    items = rawRes?.Items || (Array.isArray(rawRes) ? rawRes : []);
+                } catch (e) {
+                    console.warn('[MoviesWidget] Stratégie 3 window.ApiClient:', e);
+                }
+            }
+
             if (!items || items.length === 0) {
-                container.style.display = 'none';
+                // Ne pas masquer le conteneur pour éviter les disparitions soudaines
+                contentEl.innerHTML = '<div style="color:rgba(255,255,255,0.4); padding:20px; font-size:13px;">Aucun film trouvé dans la médiathèque.</div>';
                 return;
             }
 
@@ -84,7 +113,7 @@ class MoviesWidget {
             if (cardBuilder) {
                 cardBuilder.renderGrid(contentEl, items, {
                     type: 'poster',
-                    getImageUrl: (item) => api?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || apiClient?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || '',
+                    getImageUrl: (item) => api?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600, quality: 90 }) || apiClient?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600, quality: 90 }) || '',
                     onClick: (item) => {
                         if (window.SpaceHub?.ui?.modalSlideUpSheet) {
                             window.SpaceHub.ui.modalSlideUpSheet.open(item);
@@ -96,7 +125,6 @@ class MoviesWidget {
             }
         } catch (err) {
             console.error('[MoviesWidget] Erreur:', err);
-            container.style.display = 'none';
         }
     }
 

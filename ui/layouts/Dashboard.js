@@ -561,12 +561,12 @@ class Dashboard {
             ['user-genres', 5],
             ['user-libraries', 10],
             ['continue-watching', 20],
-            ['latest-additions', 30],
-            ['movies', 40],
-            ['tv-shows', 50],
-            ['anime', 60],
-            ['collections-sagas', 70],
-            ['music-soundtracks', 80],
+            ['latest-additions', 25],
+            ['movies', 30],
+            ['tv-shows', 35],
+            ['anime', 40],
+            ['collections-sagas', 50],
+            ['music-soundtracks', 60],
             ['jellyseerr-trending', 100],
             ['jellyseerr-popular-movies', 110],
             ['jellyseerr-popular-series', 120],
@@ -584,26 +584,12 @@ class Dashboard {
         const hiddenSections = new Set(this._settings?.get('dashboard.hiddenSections', []));
         const sectionOrderArr = JSON.parse(localStorage.getItem('sh_dashboard_sections_order') || 'null') || this._settings?.get('dashboard.sectionsOrder', []);
 
-        if (Array.isArray(sectionOrderArr) && sectionOrderArr.length > 0) {
-            const userOrderMap = new Map(sectionOrderArr.map((id, i) => [id, i]));
-            layout.sort((a, b) => {
-                const getScore = (wType) => {
-                    if (userOrderMap.has(wType)) return userOrderMap.get(wType);
-                    // Si nouvel élément non encore sauvegardé dans l'ordre utilisateur : utiliser son rang canonique
-                    if (wType.startsWith('library-')) return 8.5;
-                    const canonical = sectionRankMap.get(wType);
-                    return canonical !== undefined ? canonical / 10 : 999;
-                };
-                return getScore(a.widgetType) - getScore(b.widgetType);
-            });
-        } else {
-            // Tri naturel par rang hiérarchique
-            layout.sort((a, b) => {
-                const rankA = a.widgetType.startsWith('library-') ? 85 : (sectionRankMap.get(a.widgetType) ?? 999);
-                const rankB = b.widgetType.startsWith('library-') ? 85 : (sectionRankMap.get(b.widgetType) ?? 999);
-                return rankA - rankB;
-            });
-        }
+        // Tri hiérarchique garanti : les sections cœur (Films, Séries, Animés, Reprise) sont toujours au sommet
+        layout.sort((a, b) => {
+            const rankA = a.widgetType.startsWith('library-') ? 70 : (sectionRankMap.get(a.widgetType) ?? 999);
+            const rankB = b.widgetType.startsWith('library-') ? 70 : (sectionRankMap.get(b.widgetType) ?? 999);
+            return rankA - rankB;
+        });
 
         let mountedIndex = 0;
 
