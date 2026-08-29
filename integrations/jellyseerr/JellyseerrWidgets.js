@@ -17,27 +17,35 @@
  * @param {Object} item - Média TMDB/Jellyseerr
  * @param {Object} jellyseerr - Instance du service Jellyseerr
  */
+
+/**
+ * Ouvre le Hub Multimédia Panorama Cinéma Apple TV 4K (1200px Dual-Pane).
+ * Look Premium VisionOS, Zéro Scrollbar visible, Vrais profils Sonarr/Radarr, Fiches épisodes riches et Bande-annonce In-App.
+ * @param {Object} item - Média TMDB/Jellyseerr
+ * @param {Object} jellyseerr - Instance du service Jellyseerr
+ */
 function openJellyseerrRequestModal(item, jellyseerr) {
     const tmdbId = item.id || item.tmdbId || item.mediaId;
     const type = item.mediaType || (item.firstAirDate ? 'tv' : 'movie');
     const typeLabel = type === 'tv' ? 'Série TV' : 'Long-Métrage';
     let title = item.title || item.name || 'Média';
-    let poster = item.posterPath ? `https://image.tmdb.org/t/p/w400${item.posterPath}` : (item.poster || '');
+    let poster = item.posterPath ? `https://image.tmdb.org/t/p/w500${item.posterPath}` : (item.poster || '');
     let year = (item.releaseDate || item.firstAirDate || item.year || '').slice(0, 4);
     let overview = item.overview || '';
 
     const modalOverlay = document.createElement('div');
     modalOverlay.className = 'sh-jellyseerr-modal-overlay';
     modalOverlay.innerHTML = `
-        <div class="sh-jellyseerr-modal-card sh-jellyseerr-modal-card--wide">
+        <div class="sh-jellyseerr-modal-card sh-jellyseerr-modal-card--panorama">
             <button class="sh-jellyseerr-modal-close" id="sh-jellyseerr-close" title="Fermer">✕</button>
             
-            <!-- EN-TÊTE CINÉMA AVEC POSTER, INFOS & BANDE-ANNONCE -->
-            <div class="sh-jellyseerr-modal-header">
-                <div class="sh-jellyseerr-modal-poster-wrap">
+            <!-- EN-TÊTE PANORAMA AVEC POSTER 3D, BADGES & BANDE-ANNONCE -->
+            <div class="sh-jellyseerr-panorama-header">
+                <div class="sh-jellyseerr-panorama-poster-wrap">
                     ${poster ? `<img src="${poster}" alt="${title}" />` : '<div class="sh-jellyseerr-modal-poster-fallback">🎬</div>'}
+                    <div class="sh-jellyseerr-poster-glint"></div>
                 </div>
-                <div class="sh-jellyseerr-modal-header-info">
+                <div class="sh-jellyseerr-panorama-header-info">
                     <div class="sh-jellyseerr-modal-meta-top">
                         <span class="sh-jellyseerr-modal-type-tag">${typeLabel} ${year ? '• ' + year : ''}</span>
                         <div class="sh-jellyseerr-modal-status-badge" id="sh-req-status-badge">
@@ -45,75 +53,90 @@ function openJellyseerrRequestModal(item, jellyseerr) {
                             <span class="sh-status-text">Prêt pour la demande</span>
                         </div>
                     </div>
-                    <h2 class="sh-jellyseerr-modal-title">${title}</h2>
+                    <h1 class="sh-jellyseerr-panorama-title">${title}</h1>
                     
                     <div class="sh-jellyseerr-modal-header-actions">
                         <button type="button" class="sh-jellyseerr-btn-trailer" id="sh-jellyseerr-btn-trailer">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                             <span>Bande-annonce</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- CORPS PRINCIPAL DE LA FICHE -->
-            <div class="sh-jellyseerr-modal-body">
-                <!-- Synopsis officiel -->
-                <div class="sh-jellyseerr-synopsis-box">
-                    <div class="sh-jellyseerr-section-header">Synopsis Officiel</div>
-                    <p class="sh-jellyseerr-modal-desc" id="sh-jellyseerr-desc">${overview || 'Récupération du synopsis complet...'}</p>
-                </div>
-
-                <!-- Grille des réglages réels (Sonarr / Radarr / Chemins) -->
-                <div class="sh-jellyseerr-grid-selectors">
-                    <div class="sh-jellyseerr-form-row">
-                        <label class="sh-jellyseerr-form-label">Profil de Qualité (${type === 'tv' ? 'Sonarr' : 'Radarr'})</label>
-                        <select class="sh-jellyseerr-form-select" id="sh-jellyseerr-profile-select">
-                            <option value="default">Chargement de vos profils...</option>
-                        </select>
+            <!-- CORPS DUAL-PANE BENTO (2 COLONNES) -->
+            <div class="sh-jellyseerr-panorama-dual-pane ${type === 'tv' ? 'is-tv' : 'is-movie'}">
+                
+                <!-- COLONNE GAUCHE (40%) : SYNOPSIS & RÉGLAGES SERVEUR -->
+                <div class="sh-jellyseerr-pane-left">
+                    <div class="sh-jellyseerr-synopsis-box">
+                        <div class="sh-jellyseerr-section-header">Synopsis Officiel</div>
+                        <p class="sh-jellyseerr-modal-desc" id="sh-jellyseerr-desc">${overview || 'Récupération du synopsis complet...'}</p>
                     </div>
 
-                    <div class="sh-jellyseerr-form-row" id="sh-jellyseerr-folder-row">
-                        <label class="sh-jellyseerr-form-label">Dossier de Destination sur le Serveur</label>
-                        <select class="sh-jellyseerr-form-select" id="sh-jellyseerr-folder-select">
-                            <option value="default">Chargement de vos dossiers...</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- SECTION SÉRIE TV : SÉLECTION ÉPISODES RICHES AVEC PHOTOS & RÉSUMÉS -->
-                ${type === 'tv' ? `
-                    <div class="sh-jellyseerr-seasons-master-section">
-                        <div class="sh-jellyseerr-seasons-header-bar">
-                            <div class="sh-jellyseerr-section-header" style="margin-bottom:0;">Saisons & Épisodes à Télécharger</div>
-                            <div class="sh-jellyseerr-seasons-quick-actions">
-                                <button type="button" class="sh-season-quick-btn" id="sh-btn-select-all-eps">Tout cocher</button>
-                                <span class="sh-quick-sep">•</span>
-                                <button type="button" class="sh-season-quick-btn" id="sh-btn-deselect-all-eps">Tout décocher</button>
-                            </div>
-                        </div>
-
-                        <!-- Barre d'onglets des saisons -->
-                        <div class="sh-jellyseerr-season-tabs" id="sh-season-tabs">
-                            <div class="sh-season-tab active" data-season="1">Saison 1</div>
-                        </div>
+                    <div class="sh-jellyseerr-settings-box">
+                        <div class="sh-jellyseerr-section-header">Configuration du Serveur</div>
                         
-                        <!-- Liste des épisodes de la saison active avec miniatures et résumés -->
-                        <div class="sh-jellyseerr-episodes-list" id="sh-episodes-container">
-                            <div style="color:rgba(255,255,255,0.5); padding:16px; font-size:13px; text-align:center;">
-                                <span class="sh-spinner-inline" style="margin-right:8px;"></span>Chargement des épisodes officiels...
-                            </div>
+                        <div class="sh-jellyseerr-form-row">
+                            <label class="sh-jellyseerr-form-label">Profil de Qualité (${type === 'tv' ? 'Sonarr' : 'Radarr'})</label>
+                            <select class="sh-jellyseerr-form-select" id="sh-jellyseerr-profile-select">
+                                <option value="default">Chargement de vos profils...</option>
+                            </select>
+                        </div>
+
+                        <div class="sh-jellyseerr-form-row">
+                            <label class="sh-jellyseerr-form-label">Dossier de Destination sur le Serveur</label>
+                            <select class="sh-jellyseerr-form-select" id="sh-jellyseerr-folder-select">
+                                <option value="default">Chargement de vos dossiers...</option>
+                            </select>
                         </div>
                     </div>
-                ` : ''}
 
-                <!-- Bouton de confirmation principal -->
-                <div class="sh-jellyseerr-modal-actions">
-                    <button class="sh-jellyseerr-btn-submit" id="sh-btn-submit-request">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        <span>Confirmer la demande sur le serveur</span>
-                    </button>
+                    <div class="sh-jellyseerr-submit-wrap">
+                        <button class="sh-jellyseerr-btn-submit" id="sh-btn-submit-request">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            <span>Confirmer la demande sur le serveur</span>
+                        </button>
+                    </div>
                 </div>
+
+                <!-- COLONNE DROITE (60%) : SAISONS ET ÉPISODES RICHES (SÉRIES) OU DÉTAILS COMPLÉMENTAIRES (FILMS) -->
+                <div class="sh-jellyseerr-pane-right">
+                    ${type === 'tv' ? `
+                        <div class="sh-jellyseerr-seasons-master-section">
+                            <div class="sh-jellyseerr-seasons-header-bar">
+                                <div class="sh-jellyseerr-section-header" style="margin-bottom:0;">Saisons & Épisodes à Télécharger</div>
+                                <div class="sh-jellyseerr-seasons-quick-actions">
+                                    <button type="button" class="sh-season-quick-btn" id="sh-btn-select-all-eps">Tout cocher</button>
+                                    <span class="sh-quick-sep">•</span>
+                                    <button type="button" class="sh-season-quick-btn" id="sh-btn-deselect-all-eps">Tout décocher</button>
+                                </div>
+                            </div>
+
+                            <!-- Onglets des saisons style Apple TV -->
+                            <div class="sh-jellyseerr-season-tabs" id="sh-season-tabs">
+                                <div class="sh-season-tab active" data-season="1">Saison 1</div>
+                            </div>
+                            
+                            <!-- Liste fluide des épisodes avec miniatures 16:9 et résumés (Zéro Scrollbar) -->
+                            <div class="sh-jellyseerr-episodes-list" id="sh-episodes-container">
+                                <div style="color:rgba(255,255,255,0.5); padding:24px; font-size:13px; text-align:center;">
+                                    <span class="sh-spinner-inline" style="margin-right:8px;"></span>Chargement des épisodes officiels...
+                                </div>
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="sh-jellyseerr-movie-details-box">
+                            <div class="sh-jellyseerr-section-header">Détails de l'Œuvre</div>
+                            <div class="sh-jellyseerr-movie-specs" id="sh-movie-specs">
+                                <div class="sh-spec-pill"><span>Format</span><strong>4K HDR Dolby Vision</strong></div>
+                                <div class="sh-spec-pill"><span>Audio</span><strong>Dolby Atmos / 5.1</strong></div>
+                                <div class="sh-spec-pill"><span>Statut</span><strong id="sh-spec-status">En attente</strong></div>
+                            </div>
+                        </div>
+                    `}
+                </div>
+
             </div>
         </div>
     `;
@@ -123,7 +146,7 @@ function openJellyseerrRequestModal(item, jellyseerr) {
 
     const closeModal = () => {
         modalOverlay.classList.remove('open');
-        setTimeout(() => modalOverlay.remove(), 240);
+        setTimeout(() => modalOverlay.remove(), 260);
     };
 
     modalOverlay.querySelector('#sh-jellyseerr-close')?.addEventListener('click', closeModal);
@@ -146,19 +169,13 @@ function openJellyseerrRequestModal(item, jellyseerr) {
             let loadedFolders = [];
 
             if (type === 'tv') {
-                // Interroger Sonarr API directement si configuré dans SpaceHub
                 const sonarrApi = window.SpaceHub?.integrations?.sonarr?.api;
                 if (sonarrApi?.getQualityProfiles) {
-                    try {
-                        loadedProfiles = await sonarrApi.getQualityProfiles() || [];
-                    } catch (e) {}
+                    try { loadedProfiles = await sonarrApi.getQualityProfiles() || []; } catch (e) {}
                 }
                 if (sonarrApi?.getRootFolders) {
-                    try {
-                        loadedFolders = await sonarrApi.getRootFolders() || [];
-                    } catch (e) {}
+                    try { loadedFolders = await sonarrApi.getRootFolders() || []; } catch (e) {}
                 }
-                // Si non trouvé, interroger Jellyseerr service sonarr
                 if ((!loadedProfiles || loadedProfiles.length === 0) && api?.getSonarrServers) {
                     try {
                         const servers = await api.getSonarrServers();
@@ -169,19 +186,13 @@ function openJellyseerrRequestModal(item, jellyseerr) {
                     } catch (e) {}
                 }
             } else {
-                // Interroger Radarr API directement si configuré dans SpaceHub
                 const radarrApi = window.SpaceHub?.integrations?.radarr?.api;
                 if (radarrApi?.getQualityProfiles) {
-                    try {
-                        loadedProfiles = await radarrApi.getQualityProfiles() || [];
-                    } catch (e) {}
+                    try { loadedProfiles = await radarrApi.getQualityProfiles() || []; } catch (e) {}
                 }
                 if (radarrApi?.getRootFolders) {
-                    try {
-                        loadedFolders = await radarrApi.getRootFolders() || [];
-                    } catch (e) {}
+                    try { loadedFolders = await radarrApi.getRootFolders() || []; } catch (e) {}
                 }
-                // Si non trouvé, interroger Jellyseerr service radarr
                 if ((!loadedProfiles || loadedProfiles.length === 0) && api?.getRadarrServers) {
                     try {
                         const servers = await api.getRadarrServers();
@@ -193,7 +204,6 @@ function openJellyseerrRequestModal(item, jellyseerr) {
                 }
             }
 
-            // Injection des VRAIS profils dans le select
             if (profileSelect) {
                 if (Array.isArray(loadedProfiles) && loadedProfiles.length > 0) {
                     profileSelect.innerHTML = loadedProfiles.map(p => `
@@ -209,7 +219,6 @@ function openJellyseerrRequestModal(item, jellyseerr) {
                 }
             }
 
-            // Injection des VRAIS dossiers de destination dans le select
             if (folderSelect) {
                 if (Array.isArray(loadedFolders) && loadedFolders.length > 0) {
                     folderSelect.innerHTML = loadedFolders.map(f => `
@@ -223,7 +232,7 @@ function openJellyseerrRequestModal(item, jellyseerr) {
                 }
             }
         } catch (err) {
-            console.warn('[JellyseerrHub] Erreur synchronisation profils/dossiers réels:', err);
+            console.warn('[JellyseerrPanorama] Erreur synchronisation profils/dossiers réels:', err);
         }
 
         // 2. Récupération des Détails Média (Synopsis, Statut & Saisons)
@@ -233,7 +242,7 @@ function openJellyseerrRequestModal(item, jellyseerr) {
                 mediaDetails = await api.getMediaDetails(type, tmdbId);
             }
         } catch (e) {
-            console.warn('[JellyseerrHub] Erreur détails média:', e);
+            console.warn('[JellyseerrPanorama] Erreur détails média:', e);
         }
 
         if (mediaDetails) {
@@ -274,9 +283,8 @@ function openJellyseerrRequestModal(item, jellyseerr) {
                         </button>
                     `).join('');
 
-                    // Fonction de chargement des épisodes riches pour une saison donnée
                     const loadSeasonEpisodes = async (seasonNum) => {
-                        epsContainer.innerHTML = '<div style="color:rgba(255,255,255,0.5); padding:20px; text-align:center;"><span class="sh-spinner-inline" style="margin-right:8px;"></span>Chargement des épisodes de la Saison ' + seasonNum + '...</div>';
+                        epsContainer.innerHTML = '<div style="color:rgba(255,255,255,0.5); padding:24px; text-align:center;"><span class="sh-spinner-inline" style="margin-right:8px;"></span>Chargement des épisodes de la Saison ' + seasonNum + '...</div>';
                         
                         let seasonData = null;
                         if (api?.getSeasonDetails) {
@@ -316,10 +324,8 @@ function openJellyseerrRequestModal(item, jellyseerr) {
                         }).join('');
                     };
 
-                    // Charger la saison 1 par défaut
                     loadSeasonEpisodes(validSeasons[0].seasonNumber);
 
-                    // Clic sur les onglets de saison
                     tabsContainer.querySelectorAll('.sh-season-tab').forEach(tab => {
                         tab.addEventListener('click', () => {
                             tabsContainer.querySelectorAll('.sh-season-tab').forEach(t => t.classList.remove('active'));
@@ -339,7 +345,7 @@ function openJellyseerrRequestModal(item, jellyseerr) {
             modalOverlay.querySelectorAll('.sh-episode-rich-chk').forEach(c => { c.checked = false; });
         });
 
-        // 5. Gestion du Bouton Bande-Annonce In-App Garantie (Sans Quitter la Page)
+        // 5. Gestion du Bouton Bande-Annonce In-App Garantie
         const trailerBtn = modalOverlay.querySelector('#sh-jellyseerr-btn-trailer');
         trailerBtn?.addEventListener('click', async () => {
             trailerBtn.disabled = true;
@@ -347,14 +353,11 @@ function openJellyseerrRequestModal(item, jellyseerr) {
             trailerBtn.innerHTML = '<span class="sh-spinner-inline" style="margin-right:6px;"></span><span>Chargement...</span>';
 
             let trailerKey = null;
-            
-            // 1. Essai depuis les vidéos TMDB chargées
             if (mediaDetails?.videos && Array.isArray(mediaDetails.videos)) {
                 const trailerObj = mediaDetails.videos.find(v => v.type === 'Trailer' && v.site === 'YouTube') || mediaDetails.videos[0];
                 trailerKey = trailerObj?.key;
             }
 
-            // 2. Si pas de clé, interrogation TMDB directe
             if (!trailerKey) {
                 try {
                     const tmdbEndpoint = `https://api.themoviedb.org/3/${type === 'tv' ? 'tv' : 'movie'}/${tmdbId}/videos?api_key=45dbdd594f52cbc21372ec0efe484e42&language=fr-FR`;
@@ -372,15 +375,12 @@ function openJellyseerrRequestModal(item, jellyseerr) {
                             trailerKey = vObjEn?.key;
                         }
                     }
-                } catch (e) {
-                    console.warn('[TrailerPlayer] Erreur récupération trailer TMDB:', e);
-                }
+                } catch (e) {}
             }
 
             trailerBtn.disabled = false;
             trailerBtn.innerHTML = originalText;
 
-            // Rendu In-App Player
             const trailerModal = document.createElement('div');
             trailerModal.className = 'sh-trailer-player-overlay';
             
@@ -594,6 +594,194 @@ function injectJellyseerrSharedStyles() {
 
 
 
+
+
+/* ── Hub Panorama 1200px Dual-Pane Apple TV VisionOS ── */
+.sh-jellyseerr-modal-card--panorama {
+    width: 1200px !important;
+    max-width: 93vw !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+    padding: 28px 32px !important;
+    border-radius: 28px !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.1) inset !important;
+}
+
+.sh-jellyseerr-modal-card--panorama::-webkit-scrollbar,
+.sh-jellyseerr-episodes-list::-webkit-scrollbar,
+.sh-jellyseerr-season-tabs::-webkit-scrollbar,
+.sh-jellyseerr-modal-desc::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.sh-jellyseerr-modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0, 0, 0, 0.72) !important;
+    backdrop-filter: blur(40px) saturate(220%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(220%) !important;
+    z-index: 999999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 320ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.sh-jellyseerr-modal-overlay.open {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+.sh-jellyseerr-modal-overlay.open .sh-jellyseerr-modal-card--panorama {
+    transform: scale(1) translateY(0) !important;
+}
+
+.sh-jellyseerr-modal-card--panorama {
+    transform: scale(0.93) translateY(24px) !important;
+    transition: transform 360ms cubic-bezier(0.16, 1, 0.3, 1), opacity 320ms ease !important;
+}
+
+.sh-jellyseerr-panorama-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 24px !important;
+    margin-bottom: 24px !important;
+    padding-bottom: 20px !important;
+    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+}
+
+.sh-jellyseerr-panorama-poster-wrap {
+    width: 110px !important;
+    height: 165px !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    background: #111 !important;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.7) !important;
+    flex-shrink: 0 !important;
+    position: relative !important;
+}
+
+.sh-jellyseerr-panorama-poster-wrap img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+.sh-jellyseerr-poster-glint {
+    position: absolute !important;
+    inset: 0 !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    border-radius: 16px !important;
+    pointer-events: none !important;
+}
+
+.sh-jellyseerr-panorama-title {
+    font-size: 26px !important;
+    font-weight: 800 !important;
+    color: #ffffff !important;
+    letter-spacing: -0.02em !important;
+    margin: 0 0 12px 0 !important;
+    line-height: 1.2 !important;
+}
+
+.sh-jellyseerr-panorama-dual-pane {
+    display: grid !important;
+    grid-template-columns: 40% 60% !important;
+    gap: 28px !important;
+}
+
+@media (max-width: 900px) {
+    .sh-jellyseerr-panorama-dual-pane {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+.sh-jellyseerr-pane-left {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 18px !important;
+}
+
+.sh-jellyseerr-pane-right {
+    min-width: 0 !important;
+}
+
+.sh-jellyseerr-settings-box {
+    background: rgba(255,255,255,0.03) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    border-radius: 18px !important;
+    padding: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+}
+
+.sh-jellyseerr-episodes-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    max-height: 380px !important;
+    overflow-y: auto !important;
+    scrollbar-width: none !important;
+}
+
+.sh-episode-rich-card {
+    display: flex !important;
+    align-items: center !important;
+    gap: 14px !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 14px !important;
+    padding: 10px 14px !important;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.sh-episode-rich-card:hover {
+    background: rgba(255, 255, 255, 0.07) !important;
+    border-color: rgba(99, 102, 241, 0.35) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
+}
+
+.sh-ep-thumb-wrap {
+    width: 130px !important;
+    height: 74px !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    background: #111 !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.4) !important;
+}
+
+.sh-ep-thumb-wrap img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+.sh-ep-title {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    margin: 0 !important;
+}
+
+.sh-ep-overview {
+    font-size: 12.5px !important;
+    color: rgba(255, 255, 255, 0.65) !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+}
 
 /* ── Hub Multimédia Grand Format 960px & Scrollbars Dark Glass ── */
 .sh-jellyseerr-modal-card--wide {
