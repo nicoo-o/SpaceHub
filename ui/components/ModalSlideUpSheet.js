@@ -555,7 +555,7 @@ class ModalSlideUpSheet {
         this._bindSheetEvents(item);
     }
 
-                async _loadFullDetails(item) {
+                    async _loadFullDetails(item) {
         const itemId = item.Id || item.id;
         if (!itemId) return;
 
@@ -574,11 +574,11 @@ class ModalSlideUpSheet {
             let localJellyfinItem = null;
             let localJellyfinId = (typeof itemId === 'string' && itemId.length >= 24 && !itemId.startsWith('jellyseerr-') && !itemId.startsWith('sonarr-') && !itemId.startsWith('radarr-')) ? itemId : null;
             
-            const searchTitle = item.Name || item.title || item.name;
+            const searchTitle = item.Name || item.title || item.name || '';
             if (!localJellyfinId && api?.search && searchTitle) {
                 try {
                     const searchRes = await api.search(searchTitle, { limit: 12 });
-                    const items = searchRes?.Items || (Array.isArray(searchRes) ? searchRes : []);
+                    const items = Array.isArray(searchRes) ? searchRes : (searchRes?.Items || []);
                     localJellyfinItem = items.find(it => {
                         const sameName = (it.Name || '').toLowerCase().trim() === searchTitle.toLowerCase().trim();
                         const sameType = (isSeries && (it.Type === 'Series' || it.Type === 'TvShow')) || (isMovie && it.Type === 'Movie');
@@ -622,7 +622,7 @@ class ModalSlideUpSheet {
                 }
             }
 
-                        // ── 2. GESTION DES SÉRIES AVEC DÉTECTION EXHAUSTIVE DE TOUS LES ÉPISODES LOCAUX ──
+            // ── 2. GESTION DES SÉRIES AVEC DÉTECTION ROBUSTE ET PAILLES ÉPURÉES ──
             if (isSeries) {
                 const seasonRow = this._sheet?.querySelector('.sh-season-pills-row');
                 const episodesGrid = this._sheet?.querySelector('.sh-episodes-cards-grid');
@@ -631,61 +631,56 @@ class ModalSlideUpSheet {
                 let allLocalEpisodes = [];
                 if (localJellyfinId) {
                     if (api?.getSeasons) {
-                        try { localSeasons = await api.getSeasons(localJellyfinId) || []; } catch (e) {}
+                        try {
+                            const res = await api.getSeasons(localJellyfinId);
+                            localSeasons = Array.isArray(res) ? res : (res?.Items || []);
+                        } catch (e) {}
                     }
                     if (api?.getEpisodes) {
-                        try { allLocalEpisodes = await api.getEpisodes(localJellyfinId) || []; } catch (e) {}
+                        try {
+                            const res = await api.getEpisodes(localJellyfinId);
+                            allLocalEpisodes = Array.isArray(res) ? res : (res?.Items || []);
+                        } catch (e) {}
                     }
                     if (allLocalEpisodes.length === 0 && api?.getItems) {
-                        try { allLocalEpisodes = await api.getItems(localJellyfinId, { includeItemTypes: 'Episode', recursive: true }) || []; } catch (e) {}
+                        try {
+                            const res = await api.getItems(localJellyfinId, { includeItemTypes: 'Episode', recursive: true });
+                            allLocalEpisodes = Array.isArray(res) ? res : (res?.Items || []);
+                        } catch (e) {}
                     }
                 }
 
-                // Récupération de TOUTES les saisons existantes sur TMDB (ex: True Detective 1, 2, 3, 4)
+                // Récupération des saisons TMDB
                 let allTmdbSeasons = [];
                 if (jsApi?.getMediaDetails && tmdbId) {
                     try {
                         const jsDetails = await jsApi.getMediaDetails('tv', tmdbId);
-                        allTmdbSeasons = (jsDetails?.seasons || []).filter(s => s.seasonNumber > 0);
+                        if (Array.isArray(jsDetails?.seasons)) {
+                            allTmdbSeasons = jsDetails.seasons.filter(s => s.seasonNumber > 0);
+                        }
                     } catch (e) {}
                 }
 
-                // Pour chaque saison, récupérer les épisodes locaux correspondants avec correspondance multiple (ParentIndexNumber, SeasonName, localId)
+                // Fallback si allTmdbSeasons est vide mais localSeasons est présent
                 let displaySeasons = [];
 
-                if (allTmdbSeasons.length > 0) {
-                    displaySeasons = await Promise.all(allTmdbSeasons.map(async (s) => {
+                if (Array.isArray(allTmdbSeasons) && allTmdbSeasons.length > 0) {
+                    displaySeasons = allTmdbSeasons.map(s => {
                         const sNum = s.seasonNumber;
                         const localSeasonObj = localSeasons.find(ls => (ls.IndexNumber === sNum) || (ls.Name && (ls.Name.toLowerCase().includes('saison ' + sNum) || ls.Name.toLowerCase().includes('season ' + sNum))));
                         
-                        // Récupérer tous les épisodes locaux appartenant à cette saison
-                        let seasonLocalEps = allLocalEpisodes.filter(ep => {
-                            if (ep.ParentIndexNumber !== undefined && ep.ParentIndexNumber !== null) {
-                                return ep.ParentIndexNumber === sNum;
-                            }
-                            if (ep.SeasonIndexNumber !== undefined && ep.SeasonIndexNumber !== null) {
-                                return ep.SeasonIndexNumber === sNum;
-                            }
-                            if (localSeasonObj && ep.SeasonId && ep.SeasonId === localSeasonObj.Id) {
-                                return true;
-                            }
-                            if (localSeasonObj && ep.ParentId && ep.ParentId === localSeasonObj.Id) {
-                                return true;
-                            }
+                        let seasonLocalEps = (Array.isArray(allLocalEpisodes) ? allLocalEpisodes : []).filter(ep => {
+                            if (ep.ParentIndexNumber !== undefined && ep.ParentIndexNumber !== null) return ep.ParentIndexNumber === sNum;
+                            if (ep.SeasonIndexNumber !== undefined && ep.SeasonIndexNumber !== null) return ep.SeasonIndexNumber === sNum;
+                            if (localSeasonObj && ep.SeasonId && ep.SeasonId === localSeasonObj.Id) return true;
+                            if (localSeasonObj && ep.ParentId && ep.ParentId === localSeasonObj.Id) return true;
                             return false;
                         });
-
-                        // Si aucun épisode filtré par liste globale mais localSeasonObj présent, requêter spécifiquement la saison
-                        if (seasonLocalEps.length === 0 && localSeasonObj && api?.getEpisodes && localJellyfinId) {
-                            try {
-                                seasonLocalEps = await api.getEpisodes(localJellyfinId, localSeasonObj.Id) || [];
-                            } catch (e) {}
-                        }
 
                         const tmdbCount = s.episodeCount || 0;
                         const localCount = seasonLocalEps.length;
 
-                        let status = 'red'; // 'green' | 'orange' | 'red'
+                        let status = 'red';
                         let badgeText = '📥 Manquante';
                         let badgeBg = 'rgba(239, 68, 68, 0.2)';
                         let badgeColor = '#f87171';
@@ -714,11 +709,11 @@ class ModalSlideUpSheet {
                             badgeBg,
                             badgeColor
                         };
-                    }));
-                } else if (localSeasons.length > 0) {
+                    });
+                } else if (Array.isArray(localSeasons) && localSeasons.length > 0) {
                     displaySeasons = localSeasons.map((ls, idx) => {
                         const sNum = ls.IndexNumber || (idx + 1);
-                        const seasonLocalEps = allLocalEpisodes.filter(ep => ep.ParentIndexNumber === sNum || (ep.SeasonId && ep.SeasonId === ls.Id));
+                        const seasonLocalEps = (Array.isArray(allLocalEpisodes) ? allLocalEpisodes : []).filter(ep => ep.ParentIndexNumber === sNum || (ep.SeasonId && ep.SeasonId === ls.Id));
                         return {
                             seasonNumber: sNum,
                             name: `Saison ${sNum}`,
@@ -736,41 +731,35 @@ class ModalSlideUpSheet {
                     displaySeasons = [{ seasonNumber: 1, name: 'Saison 1', localId: null, localEps: [], tmdbCount: 8, localCount: 0, status: 'red', badgeText: '📥 Manquante', badgeBg: 'rgba(239, 68, 68, 0.2)', badgeColor: '#f87171' }];
                 }
 
-                // Ajout des boutons d'actions Hero : "Demander saisons manquantes" & "Suivre la série"
+                // Bouton "Suivre la série" Apple TV
                 const actionsRow = this._sheet?.querySelector('.sh-cinema-actions');
-                if (actionsRow) {
-                    const hasMissingOrIncomplete = displaySeasons.some(s => s.status === 'red' || s.status === 'orange');
-                    
-                    // Bouton héroïque redondant supprimé selon demande utilisateur : la demande se fait directement et précisément sur les cartes d'épisodes manquants
-
-                    if (!actionsRow.querySelector('#sh-btn-follow-series')) {
-                        const followBtn = document.createElement('button');
-                        followBtn.id = 'sh-btn-follow-series';
-                        followBtn.className = 'sh-cinema-btn-play';
-                        followBtn.style.cssText = 'background: rgba(255, 255, 255, 0.08) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.15) !important; margin-left: 8px !important; backdrop-filter: blur(12px) !important;';
-                        followBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span>Suivre la série</span>';
-                        followBtn.addEventListener('click', () => {
-                            followBtn.classList.toggle('active');
-                            const isActive = followBtn.classList.contains('active');
-                            if (isActive) {
-                                followBtn.style.background = 'rgba(16, 185, 129, 0.25) !important';
-                                followBtn.style.color = '#34d399 !important';
-                                followBtn.style.borderColor = 'rgba(16, 185, 129, 0.4) !important';
-                                followBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Série suivie (Sonarr)</span>';
-                                window.SpaceHub?.ui?.components?.toaster?.success(`Surveillance active pour les futures saisons de "${searchTitle}" !`);
-                            } else {
-                                followBtn.style.background = 'rgba(255, 255, 255, 0.08) !important';
-                                followBtn.style.color = '#ffffff !important';
-                                followBtn.style.borderColor = 'rgba(255, 255, 255, 0.15) !important';
-                                followBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span>Suivre la série</span>';
-                                window.SpaceHub?.ui?.components?.toaster?.info(`Surveillance désactivée pour "${searchTitle}"`);
-                            }
-                        });
-                        actionsRow.appendChild(followBtn);
-                    }
+                if (actionsRow && !actionsRow.querySelector('#sh-btn-follow-series')) {
+                    const followBtn = document.createElement('button');
+                    followBtn.id = 'sh-btn-follow-series';
+                    followBtn.className = 'sh-cinema-btn-play';
+                    followBtn.style.cssText = 'background: rgba(255, 255, 255, 0.08) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.15) !important; margin-left: 8px !important; backdrop-filter: blur(12px) !important;';
+                    followBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span>Suivre la série</span>';
+                    followBtn.addEventListener('click', () => {
+                        followBtn.classList.toggle('active');
+                        const isActive = followBtn.classList.contains('active');
+                        if (isActive) {
+                            followBtn.style.background = 'rgba(16, 185, 129, 0.25) !important';
+                            followBtn.style.color = '#34d399 !important';
+                            followBtn.style.borderColor = 'rgba(16, 185, 129, 0.4) !important';
+                            followBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Série suivie (Sonarr)</span>';
+                            window.SpaceHub?.ui?.components?.toaster?.success(`Surveillance active pour les futures saisons de "${searchTitle}" !`);
+                        } else {
+                            followBtn.style.background = 'rgba(255, 255, 255, 0.08) !important';
+                            followBtn.style.color = '#ffffff !important';
+                            followBtn.style.borderColor = 'rgba(255, 255, 255, 0.15) !important';
+                            followBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span>Suivre la série</span>';
+                            window.SpaceHub?.ui?.components?.toaster?.info(`Surveillance désactivée pour "${searchTitle}"`);
+                        }
+                    });
+                    actionsRow.appendChild(followBtn);
                 }
 
-                // Rendu des pastilles de saisons : Format épuré "Saison X" + pastille de couleur
+                // Rendu des pastilles de saisons
                 if (seasonRow && displaySeasons.length > 0) {
                     seasonRow.style.display = 'flex';
                     seasonRow.innerHTML = displaySeasons.map((s, idx) => `
@@ -782,7 +771,7 @@ class ModalSlideUpSheet {
                         </button>
                     `).join('');
 
-                                        // Fonction de chargement des épisodes hybrides pour la saison
+                    // Fonction de chargement des épisodes hybrides pour la saison
                     const loadEpisodesForSeason = async (seasonObj) => {
                         if (!episodesGrid) return;
                         episodesGrid.innerHTML = '<div style="color:rgba(255,255,255,0.5); padding:24px; text-align:center;"><span class="sh-spinner-inline" style="margin-right:8px;"></span>Chargement des épisodes de la ' + seasonObj.name + '...</div>';
@@ -792,7 +781,7 @@ class ModalSlideUpSheet {
                         if (jsApi?.getSeasonDetails && tmdbId) {
                             try {
                                 const sData = await jsApi.getSeasonDetails(tmdbId, seasonObj.seasonNumber);
-                                tmdbEps = sData?.episodes || [];
+                                if (Array.isArray(sData?.episodes)) tmdbEps = sData.episodes;
                             } catch (e) {}
                         }
 
@@ -871,10 +860,11 @@ class ModalSlideUpSheet {
                                         <div class="sh-episode-title-row">
                                             <span class="sh-episode-title">${ep.episodeNumber}. ${this._escape(ep.name)}</span>
                                             ${ep.isLocal ? `
-                                                <span style="font-size:10.5px; font-weight:750; color:#34d399; background:rgba(16,185,129,0.15); padding:2px 8px; border-radius:6px; margin-left:auto;">Disponible</span>
+                                                <span style="font-size:10.5px; font-weight:750; color:#34d399; background:rgba(16,185,129,0.15); padding:2px 8px; border-radius:6px; margin-left:auto; flex-shrink:0;">Disponible</span>
                                             ` : `
-                                                <button type="button" class="sh-btn-request-single-ep" data-season="${seasonObj.seasonNumber}" data-ep-num="${ep.episodeNumber}" style="margin-left:auto; background:linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border:1px solid rgba(255,255,255,0.2); color:#ffffff; font-size:11.5px; font-weight:750; padding:5px 12px; border-radius:8px; cursor:pointer; box-shadow:0 2px 10px rgba(99,102,241,0.35); transition:all 0.2s ease;">
-                                                    📥 Demander
+                                                <button type="button" class="sh-btn-request-single-ep" data-season="${seasonObj.seasonNumber}" data-ep-num="${ep.episodeNumber}">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                                    <span>Demander</span>
                                                 </button>
                                             `}
                                         </div>
@@ -892,7 +882,7 @@ class ModalSlideUpSheet {
                                 const epNum = parseInt(btn.dataset.epNum, 10);
 
                                 btn.disabled = true;
-                                btn.innerHTML = '<span class="sh-spinner-inline" style="width:12px; height:12px; border-width:2px;"></span>';
+                                btn.innerHTML = '<span class="sh-spinner-inline" style="width:11px; height:11px; border-width:2px;"></span>';
                                 
                                 try {
                                     if (jsApi?.createRequest && tmdbId) {
@@ -902,14 +892,14 @@ class ModalSlideUpSheet {
                                             seasons: [sNum]
                                         });
                                     }
-                                    btn.style.background = 'rgba(16, 185, 129, 0.25)';
-                                    btn.style.color = '#34d399';
-                                    btn.style.borderColor = 'rgba(16, 185, 129, 0.4)';
-                                    btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> Demandé';
+                                    btn.style.background = 'rgba(16, 185, 129, 0.25) !important';
+                                    btn.style.color = '#34d399 !important';
+                                    btn.style.borderColor = 'rgba(16, 185, 129, 0.4) !important';
+                                    btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Demandé</span>';
                                     window.SpaceHub?.ui?.components?.toaster?.success(`Demande envoyée pour la Saison ${sNum} • Épisode ${epNum} !`);
                                 } catch (err) {
                                     btn.disabled = false;
-                                    btn.innerHTML = '📥 Réessayer';
+                                    btn.innerHTML = '<span>Réessayer</span>';
                                     window.SpaceHub?.ui?.components?.toaster?.error(`Erreur: ${err.message || 'Demande impossible'}`);
                                 }
                             });
@@ -1436,6 +1426,53 @@ class ModalSlideUpSheet {
         const style = document.createElement('style');
         style.id = 'sh-modal-slideup-styles';
         style.textContent = `
+
+/* ── Bouton Demande d'Épisode Compact & Stylisé ────────────────────────── */
+.sh-episode-title-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    min-width: 0 !important;
+}
+
+.sh-episode-title {
+    flex: 1 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: 14.5px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+}
+
+.sh-btn-request-single-ep {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    height: 28px !important;
+    padding: 0 12px !important;
+    border-radius: 8px !important;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+    color: #ffffff !important;
+    font-size: 11.5px !important;
+    font-weight: 750 !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35) !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.sh-btn-request-single-ep:hover {
+    transform: translateY(-1px) scale(1.02) !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.55) !important;
+}
+
+
 /* ── Overlay Sombre avec Flou Spatial ───────────────────────── */
 .sh-slideup-overlay {
     position: fixed !important;
