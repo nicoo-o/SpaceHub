@@ -555,11 +555,10 @@ class ModalSlideUpSheet {
         this._bindSheetEvents(item);
     }
 
-        async _loadFullDetails(item) {
+            async _loadFullDetails(item) {
         const itemId = item.Id || item.id;
         if (!itemId) return;
 
-        const isLocalJellyfin = itemId && typeof itemId === 'string' && itemId.length >= 24 && !itemId.startsWith('jellyseerr-') && !itemId.startsWith('sonarr-') && !itemId.startsWith('radarr-') && item.source !== 'jellyseerr';
         const rawType = (item.Type || item.type || item.MediaType || '').toLowerCase();
         const isMovie = rawType === 'movie' || item.isMovie;
         const isEpisode = rawType === 'episode';
@@ -571,14 +570,56 @@ class ModalSlideUpSheet {
         const jsApi = window.SpaceHub?.integrations?.jellyseerr?.api || (window.SpaceHub?.core?.api?.getClient ? window.SpaceHub.core.api.getClient('jellyseerr') : null);
 
         try {
+            // ── RECHERCHE & CROISEMENT AUTOMATIQUE AVEC LA MÉDIATHÈQUE LOCALE JELLYFIN ──
+            let localJellyfinItem = null;
+            let localJellyfinId = (typeof itemId === 'string' && itemId.length >= 24 && !itemId.startsWith('jellyseerr-') && !itemId.startsWith('sonarr-') && !itemId.startsWith('radarr-')) ? itemId : null;
+            
+            const searchTitle = item.Name || item.title || item.name;
+            if (!localJellyfinId && api?.search && searchTitle) {
+                try {
+                    const searchRes = await api.search(searchTitle, { limit: 12 });
+                    const items = searchRes?.Items || (Array.isArray(searchRes) ? searchRes : []);
+                    localJellyfinItem = items.find(it => {
+                        const sameName = (it.Name || '').toLowerCase().trim() === searchTitle.toLowerCase().trim();
+                        const sameType = (isSeries && (it.Type === 'Series' || it.Type === 'TvShow')) || (isMovie && it.Type === 'Movie');
+                        return sameName && (sameType || !it.Type);
+                    });
+                    if (localJellyfinItem) {
+                        localJellyfinId = localJellyfinItem.Id;
+                    }
+                } catch (e) {
+                    console.debug('Recherche locale Jellyfin:', e);
+                }
+            }
+
+            if (localJellyfinId && !localJellyfinItem && api?.getItem) {
+                try { localJellyfinItem = await api.getItem(localJellyfinId); } catch (e) {}
+            }
+
+            // Si trouvé localement, mettre à jour le bouton Play dans le Hero
+            if (localJellyfinItem) {
+                Object.assign(item, localJellyfinItem);
+                const heroBtn = this._sheet?.querySelector('#sh-slideup-request-btn');
+                if (heroBtn && !heroBtn.classList.contains('sh-cinema-btn-play-ready')) {
+                    heroBtn.className = 'sh-cinema-btn-play sh-cinema-btn-play-ready';
+                    heroBtn.style.background = '#ffffff !important';
+                    heroBtn.style.color = '#000000 !important';
+                    heroBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg><span>${isSeries ? 'Reprendre la série' : 'Regarder'}</span>`;
+                    heroBtn.onclick = () => {
+                        this.close();
+                        window.SpaceHub?.player?.play?.(localJellyfinItem);
+                    };
+                }
+            }
+
             // ── GESTION INTELLIGENTE DES SÉRIES (LOCALES, MIXTES & JELLYSEERR) ──
             if (isSeries) {
                 const seasonRow = this._sheet?.querySelector('.sh-season-pills-row');
                 const episodesGrid = this._sheet?.querySelector('.sh-episodes-cards-grid');
 
                 let localSeasons = [];
-                if (isLocalJellyfin && api?.getSeasons) {
-                    try { localSeasons = await api.getSeasons(itemId) || []; } catch (e) {}
+                if (localJellyfinId && api?.getSeasons) {
+                    try { localSeasons = await api.getSeasons(localJellyfinId) || []; } catch (e) {}
                 }
 
                 // Récupération des saisons TMDB / Jellyseerr pour détecter les saisons manquantes/futures
@@ -595,7 +636,7 @@ class ModalSlideUpSheet {
                 let displaySeasons = [];
                 if (allTmdbSeasons.length > 0) {
                     displaySeasons = allTmdbSeasons.map(s => {
-                        const localMatch = localSeasons.find(ls => (ls.IndexNumber === s.seasonNumber) || (ls.Name && ls.Name.includes(String(s.seasonNumber))));
+                        const localMatch = localSeasons.find(ls => (ls.IndexNumber === s.seasonNumber) || (ls.Name && ls.Name.toLowerCase().includes('saison ' + s.seasonNumber) || ls.Name.toLowerCase().includes('season ' + s.seasonNumber)));
                         return {
                             seasonNumber: s.seasonNumber,
                             name: s.name || `Saison ${s.seasonNumber}`,
@@ -618,9 +659,8 @@ class ModalSlideUpSheet {
 
                 // Détecter s'il y a des saisons manquantes
                 const hasMissing = displaySeasons.some(s => !s.isLocal);
-                if (hasMissing && isLocalJellyfin) {
+                if (hasMissing && localJellyfinId) {
                     item.hasMissingSeasons = true;
-                    // Ajouter le bouton dans le hero si pas présent
                     const actionsRow = this._sheet?.querySelector('.sh-cinema-actions');
                     if (actionsRow && !actionsRow.querySelector('#sh-btn-download-missing-seasons')) {
                         const btn = document.createElement('button');
@@ -653,14 +693,12 @@ class ModalSlideUpSheet {
                         </button>
                     `).join('');
 
-                    // Fonction de chargement des épisodes pour une saison donnée
                     const loadEpisodesForSeason = async (seasonObj) => {
                         if (!episodesGrid) return;
                         episodesGrid.innerHTML = '<div style="color:rgba(255,255,255,0.5); padding:24px; text-align:center;"><span class="sh-spinner-inline" style="margin-right:8px;"></span>Chargement des épisodes de la ' + seasonObj.name + '...</div>';
 
                         if (seasonObj.isLocal && seasonObj.localId && api?.getEpisodes) {
-                            // Charger les vrais épisodes de Jellyfin
-                            let localEps = await api.getEpisodes(itemId, seasonObj.localId) || [];
+                            let localEps = await api.getEpisodes(localJellyfinId, seasonObj.localId) || [];
                             if (localEps.length > 0) {
                                 episodesGrid.innerHTML = localEps.map((ep, idx) => {
                                     const epImg = api?.getImageUrl?.(ep.Id, 'Primary', { maxWidth: 500, maxHeight: 280 }) || api?.getImageUrl?.(ep.Id, 'Thumb', { maxWidth: 500, maxHeight: 280 }) || '';
@@ -704,7 +742,7 @@ class ModalSlideUpSheet {
                             }
                         }
 
-                        // Sinon : Charger les épisodes depuis Jellyseerr / TMDB
+                        // Sinon : Charger depuis Jellyseerr / TMDB
                         let jsEpisodes = [];
                         if (jsApi?.getSeasonDetails && tmdbId) {
                             try {
@@ -760,10 +798,8 @@ class ModalSlideUpSheet {
                         });
                     };
 
-                    // Charger la première saison
                     loadEpisodesForSeason(displaySeasons[0]);
 
-                    // Écouteurs de changement de saison
                     seasonRow.querySelectorAll('.sh-season-pill-btn').forEach(btn => {
                         btn.addEventListener('click', () => {
                             seasonRow.querySelectorAll('.sh-season-pill-btn').forEach(b => b.classList.remove('active'));
@@ -776,10 +812,151 @@ class ModalSlideUpSheet {
                 }
             }
 
-            // ── DETAILS CRITIQUES, SIMILAIRES & CASTING ──
-            if (isLocalJellyfin && api?.getItem) {
-                const fullItem = await api.getItem(itemId);
-                if (fullItem) Object.assign(item, fullItem);
+            // ── 4. RENDU ENRICHI DES TITRES SIMILAIRES (LOCAL JELLYFIN + DÉCOUVERTES JELLYSEERR) ──
+            const bentoGrid = this._sheet?.querySelector('#sh-bento-luxury-grid');
+            if (bentoGrid) {
+                const tmdbId = item.tmdbId || item.id || (typeof itemId === 'string' && itemId.startsWith('jellyseerr-') ? itemId.replace('jellyseerr-', '') : null);
+                const mediaType = isSeries ? 'tv' : 'movie';
+
+                let allSimilarItems = [];
+                
+                // 1. Médias locaux similaires
+                if (localJellyfinId && api?.getSimilarItems) {
+                    try {
+                        const localSim = await api.getSimilarItems(localJellyfinId, 8);
+                        if (Array.isArray(localSim)) {
+                            allSimilarItems.push(...localSim.map(s => ({ ...s, isLocal: true })));
+                        }
+                    } catch (e) {}
+                }
+
+                // 2. Médias similaires Jellyseerr / TMDB
+                if (jsApi?.getSimilar && tmdbId) {
+                    try {
+                        const jsSim = await jsApi.getSimilar(mediaType, tmdbId);
+                        if (Array.isArray(jsSim)) {
+                            jsSim.forEach(jsItem => {
+                                const exists = allSimilarItems.some(s => (s.Name || s.title || '').toLowerCase() === (jsItem.title || jsItem.name || '').toLowerCase());
+                                if (!exists) {
+                                    allSimilarItems.push({
+                                        id: jsItem.id,
+                                        Id: `jellyseerr-${jsItem.id}`,
+                                        Name: jsItem.title || jsItem.name,
+                                        title: jsItem.title || jsItem.name,
+                                        Type: mediaType === 'tv' ? 'Series' : 'Movie',
+                                        isSeries: mediaType === 'tv',
+                                        isMovie: mediaType === 'movie',
+                                        ProductionYear: (jsItem.releaseDate || jsItem.firstAirDate || '').slice(0, 4),
+                                        CommunityRating: jsItem.voteAverage || 8.0,
+                                        Overview: jsItem.overview || '',
+                                        posterUrl: jsItem.posterPath ? `https://image.tmdb.org/t/p/w400${jsItem.posterPath}` : '',
+                                        isJellyseerr: true,
+                                        source: 'jellyseerr',
+                                        isLocal: false
+                                    });
+                                }
+                            });
+                        }
+                    } catch (e) {}
+                }
+
+                // Si liste encore courte, compléter avec les tendances Jellyseerr
+                if (allSimilarItems.length < 4 && jsApi?.getTrendingMedia) {
+                    try {
+                        const trending = await jsApi.getTrendingMedia();
+                        if (Array.isArray(trending)) {
+                            trending.slice(0, 6).forEach(t => {
+                                const exists = allSimilarItems.some(s => (s.Name || s.title || '').toLowerCase() === (t.title || t.name || '').toLowerCase());
+                                if (!exists) {
+                                    allSimilarItems.push({
+                                        id: t.id,
+                                        Id: `jellyseerr-${t.id}`,
+                                        Name: t.title || t.name,
+                                        title: t.title || t.name,
+                                        Type: t.mediaType === 'tv' ? 'Series' : 'Movie',
+                                        isSeries: t.mediaType === 'tv',
+                                        isMovie: t.mediaType === 'movie',
+                                        ProductionYear: (t.releaseDate || t.firstAirDate || '').slice(0, 4),
+                                        CommunityRating: t.voteAverage || 8.2,
+                                        Overview: t.overview || '',
+                                        posterUrl: t.posterPath ? `https://image.tmdb.org/t/p/w400${t.posterPath}` : '',
+                                        isJellyseerr: true,
+                                        source: 'jellyseerr',
+                                        isLocal: false
+                                    });
+                                }
+                            });
+                        }
+                    } catch (e) {}
+                }
+
+                if (allSimilarItems.length > 0) {
+                    bentoGrid.innerHTML = allSimilarItems.map(sim => {
+                        const simImg = sim.posterUrl || (sim.Id && api?.getImageUrl ? api.getImageUrl(sim.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) : '');
+                        const simRating = sim.CommunityRating ? Number(sim.CommunityRating).toFixed(1) : '8.2';
+                        return `
+                            <div class="sh-bento-card" data-item-id="${sim.Id || sim.id}">
+                                <div class="sh-bento-poster-wrap" data-action="details" title="Voir les détails de ${this._escape(sim.Name || sim.title)}">
+                                    ${simImg ? `<img src="${simImg}" alt="${this._escape(sim.Name || sim.title)}" />` : '<div class="sh-bento-poster-fallback">🎬</div>'}
+                                    <div class="sh-bento-quick-play">${sim.isLocal ? '▶' : '📥'}</div>
+                                    <span style="position:absolute; top:8px; left:8px; font-size:10px; font-weight:750; padding:2px 6px; border-radius:6px; background:${sim.isLocal ? 'rgba(16,185,129,0.85)' : 'rgba(99,102,241,0.85)'}; color:#fff; backdrop-filter:blur(8px);">
+                                        ${sim.isLocal ? '✓ Serveur' : '📥 Jellyseerr'}
+                                    </span>
+                                </div>
+                                <div class="sh-bento-content" data-action="details" title="Détails du titre">
+                                    <div class="sh-bento-header-row">
+                                        <span class="sh-bento-title">${this._escape(sim.Name || sim.title)}</span>
+                                    </div>
+                                    <div class="sh-bento-meta-row">
+                                        <span class="sh-bento-score">★ ${simRating}</span>
+                                        <span class="sh-bento-dot">•</span>
+                                        <span>${sim.ProductionYear || ''}</span>
+                                    </div>
+                                    <p class="sh-bento-desc">${this._escape(sim.Overview || '')}</p>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    bentoGrid.querySelectorAll('.sh-bento-card').forEach(card => {
+                        card.addEventListener('click', (e) => {
+                            const simId = card.dataset.itemId;
+                            const targetSim = allSimilarItems.find(s => (s.Id === simId || String(s.id) === String(simId)));
+                            if (targetSim) {
+                                this.open(targetSim);
+                            }
+                        });
+                    });
+                } else {
+                    bentoGrid.innerHTML = '<div style="color:rgba(255,255,255,0.4); padding:20px;">Aucun titre similaire disponible.</div>';
+                }
+            }
+
+            // ── DETAILS CRITIQUES & CASTING ──
+            if (localJellyfinItem) {
+                // Genres réels
+                const genresStr = (localJellyfinItem.Genres || []).join(' • ') || 'Cinéma';
+                const genresValEl = this._sheet.querySelector('#sh-meta-genres-val');
+                if (genresValEl) genresValEl.textContent = genresStr;
+
+                // Casting réel
+                const actors = (localJellyfinItem.People || []).filter(p => p.Type === 'Actor');
+                const castGrid = this._sheet.querySelector('#sh-cast-luxury-grid');
+                if (castGrid && actors.length > 0) {
+                    castGrid.innerHTML = actors.slice(0, 12).map(actor => {
+                        const actorImg = api?.getImageUrl?.(actor.Id, 'Primary', { maxWidth: 200 }) || '';
+                        return `
+                            <div class="sh-cast-card">
+                                ${actorImg ? `<img src="${actorImg}" alt="${this._escape(actor.Name)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />` : ''}
+                                <div class="sh-cast-avatar-fallback" style="${actorImg ? 'display:none;' : ''}">${actor.Name.charAt(0)}</div>
+                                <div class="sh-cast-text">
+                                    <span class="sh-actor-name">${this._escape(actor.Name)}</span>
+                                    <span class="sh-role-name">${this._escape(actor.Role || 'Acteur')}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
             }
         } catch (err) {
             console.warn('[ModalSlideUpSheet] Erreur chargement détails:', err);

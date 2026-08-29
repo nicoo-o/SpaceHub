@@ -255,6 +255,25 @@ class JellyseerrApi extends BaseApiClient {
         }
     }
 
+    /**
+     * Récupère les médias similaires / recommandations depuis Jellyseerr/TMDB.
+     * @param {'movie'|'tv'} mediaType
+     * @param {number|string} mediaId
+     * @param {number} [page=1]
+     * @returns {Promise<Array<Object>>}
+     */
+    async getSimilar(mediaType, mediaId, page = 1) {
+        try {
+            const endpoint = mediaType === 'tv' ? `/api/v1/tv/${mediaId}/similar?page=${page}` : `/api/v1/movie/${mediaId}/similar?page=${page}`;
+            const res = await this.get(endpoint);
+            return res?.results || [];
+        } catch (e) {
+            this._log.debug('getSimilar erreur:', e);
+            return [];
+        }
+    }
+
+
     async requestMedia(type, mediaId, seasons = null) {
         const payload = {
             mediaType: type === 'tv' ? 'tv' : 'movie',
