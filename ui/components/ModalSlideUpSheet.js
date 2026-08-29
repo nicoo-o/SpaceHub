@@ -344,7 +344,54 @@ class ModalSlideUpSheet {
             </div>
 
             <!-- 🏛️ CORPS INTERACTIF AVEC ONGLETS ADAPTATIFS -->
-            <div class="sh-cinema-body">
+            
+                    <!-- TIROIR DE CONFIGURATION JELLYSEERR INTÉGRÉ -->
+                    <div class="sh-slideup-jellyseerr-drawer" id="sh-slideup-jellyseerr-drawer" style="display:none;">
+                        <div class="sh-drawer-inner-card">
+                            <div class="sh-drawer-header">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="sh-jellyseerr-pill-badge" style="background:#6366f1; color:#fff; font-weight:700; padding:2px 8px; border-radius:6px; font-size:11px;">Jellyseerr</span>
+                                    <h3 style="margin:0; font-size:16px; color:#fff; font-weight:700;">Demande sur le serveur</h3>
+                                </div>
+                                <button type="button" class="sh-drawer-close" id="sh-drawer-close">✕</button>
+                            </div>
+                            
+                            <div class="sh-drawer-grid">
+                                <div class="sh-drawer-field">
+                                    <label class="sh-drawer-label">Profil de Qualité (${isSeries ? 'Sonarr' : 'Radarr'})</label>
+                                    <select class="sh-drawer-select" id="sh-drawer-profile-select">
+                                        <option value="1">4K UHD • Dolby Vision & HDR</option>
+                                        <option value="2" selected>1080p HD • Qualité Maximale Remux</option>
+                                        <option value="3">1080p HD • Standard WEB-DL</option>
+                                    </select>
+                                </div>
+                                <div class="sh-drawer-field">
+                                    <label class="sh-drawer-label">Dossier de Destination</label>
+                                    <select class="sh-drawer-select" id="sh-drawer-folder-select">
+                                        <option value="/data/media/${isSeries ? 'series' : 'movies'}" selected>/data/media/${isSeries ? 'series' : 'movies'}</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            ${isSeries ? `
+                                <div class="sh-drawer-checkbox-row">
+                                    <label style="display:flex; align-items:center; gap:8px; color:rgba(255,255,255,0.85); font-size:13px; cursor:pointer;">
+                                        <input type="checkbox" id="sh-drawer-monitor-future" checked style="accent-color:#6366f1; width:16px; height:16px;" />
+                                        <span>Surveiller et télécharger automatiquement les saisons futures (Sonarr)</span>
+                                    </label>
+                                </div>
+                            ` : ''}
+
+                            <div class="sh-drawer-actions">
+                                <button class="sh-drawer-submit-btn" id="sh-drawer-submit-btn">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    <span>Confirmer la demande</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+<div class="sh-cinema-body">
                 <div class="sh-cinema-tabs-nav" id="sh-cinema-tabs-nav">
                     <div class="sh-tabs-slider-pill" id="sh-tabs-slider-pill"></div>
                     
@@ -511,13 +558,88 @@ class ModalSlideUpSheet {
         const itemId = item.Id || item.id;
         if (!itemId) return;
 
-        const isCalendarOrServarr = item.source === 'sonarr' || item.source === 'radarr' || item.source === 'jellyseerr' || (typeof itemId === 'string' && (itemId.startsWith('sonarr-') || itemId.startsWith('radarr-') || itemId.startsWith('sh-cal-')));
+        const isCalendarOrServarr = item.source === 'sonarr' || item.source === 'radarr' || (typeof itemId === 'string' && (itemId.startsWith('sonarr-') || itemId.startsWith('radarr-') || itemId.startsWith('sh-cal-')));
         if (isCalendarOrServarr) {
-            // Pour les sorties de calendrier, les métadonnées sont déjà prêtes
             const castGrid = this._sheet?.querySelector('#sh-cast-luxury-grid');
             if (castGrid) castGrid.innerHTML = '<div style="color:rgba(255,255,255,0.4); padding:20px;">Informations de casting disponibles lors de l\'intégration à la médiathèque.</div>';
             const bentoGrid = this._sheet?.querySelector('#sh-bento-luxury-grid');
             if (bentoGrid) bentoGrid.innerHTML = '<div style="color:rgba(255,255,255,0.4); padding:20px;">Recommandations basées sur vos abonnements Sonarr & Radarr.</div>';
+            return;
+        }
+
+        // Si média Jellyseerr, charger les détails TMDB et les saisons
+        const isJellyseerr = item.isJellyseerr || item.source === 'jellyseerr' || (typeof itemId === 'string' && itemId.startsWith('jellyseerr-'));
+        if (isJellyseerr) {
+            const tmdbId = item.id || item.tmdbId || item.mediaId || (typeof itemId === 'string' ? itemId.replace('jellyseerr-', '') : null);
+            const rawType = (item.Type || item.type || item.MediaType || '').toLowerCase();
+            const isSeries = rawType === 'series' || rawType === 'tvshow' || item.isSeries;
+            const jsApi = window.SpaceHub?.integrations?.jellyseerr?.api || (window.SpaceHub?.core?.api?.getClient ? window.SpaceHub.core.api.getClient('jellyseerr') : null);
+
+            if (isSeries && jsApi?.getMediaDetails && tmdbId) {
+                try {
+                    const jsDetails = await jsApi.getMediaDetails('tv', tmdbId);
+                    const validSeasons = (jsDetails?.seasons || []).filter(s => s.seasonNumber > 0);
+                    const seasonRow = this._sheet?.querySelector('.sh-season-pills-row');
+                    const epGrid = this._sheet?.querySelector('#sh-episodes-luxury-grid');
+
+                    if (seasonRow && validSeasons.length > 0) {
+                        seasonRow.style.display = 'flex';
+                        seasonRow.innerHTML = validSeasons.map((s, idx) => `
+                            <button class="sh-season-pill-btn ${idx === 0 ? 'active' : ''}" data-season-num="${s.seasonNumber}">
+                                Saison ${s.seasonNumber} (${s.episodeCount || 0})
+                            </button>
+                        `).join('');
+
+                        const loadJsSeasonEps = async (sNum) => {
+                            if (epGrid) epGrid.innerHTML = '<div style="color:rgba(255,255,255,0.4); padding:20px;"><span class="sh-spinner-inline" style="margin-right:8px;"></span>Chargement des épisodes...</div>';
+                            let sData = null;
+                            if (jsApi?.getSeasonDetails) {
+                                try { sData = await jsApi.getSeasonDetails(tmdbId, sNum); } catch (e) {}
+                            }
+                            const episodes = sData?.episodes || Array.from({ length: validSeasons.find(s => s.seasonNumber == sNum)?.episodeCount || 8 }, (_, i) => ({
+                                episodeNumber: i + 1,
+                                name: `Épisode ${i + 1}`,
+                                overview: 'Aucun résumé disponible pour cet épisode.',
+                                stillPath: null,
+                                airDate: ''
+                            }));
+
+                            if (epGrid) {
+                                epGrid.innerHTML = episodes.map(ep => {
+                                    const stillUrl = ep.stillPath ? `https://image.tmdb.org/t/p/w400${ep.stillPath}` : '';
+                                    return `
+                                        <div class="sh-episode-luxury-card" style="display:flex; align-items:center; gap:16px; padding:14px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:16px; margin-bottom:12px;">
+                                            <div style="width:140px; height:80px; border-radius:12px; overflow:hidden; background:#111; flex-shrink:0;">
+                                                ${stillUrl ? `<img src="${stillUrl}" style="width:100%; height:100%; object-fit:cover;" alt="${ep.name || ''}" />` : '<div style="display:flex; align-items:center; justify-content:center; height:100%; font-size:24px;">📺</div>'}
+                                            </div>
+                                            <div style="flex:1; min-width:0;">
+                                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                                                    <span style="font-size:11px; font-weight:750; color:#818cf8; background:rgba(99,102,241,0.15); padding:2px 6px; border-radius:6px;">EP ${ep.episodeNumber}</span>
+                                                    <h4 style="margin:0; font-size:14.5px; font-weight:700; color:#fff;">${ep.name || ('Épisode ' + ep.episodeNumber)}</h4>
+                                                    ${ep.airDate ? `<span style="font-size:11px; color:rgba(255,255,255,0.4); margin-left:auto;">${ep.airDate}</span>` : ''}
+                                                </div>
+                                                <p style="margin:0; font-size:12.5px; color:rgba(255,255,255,0.7); line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${ep.overview || 'Aucune description disponible.'}</p>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('');
+                            }
+                        };
+
+                        loadJsSeasonEps(validSeasons[0].seasonNumber);
+
+                        seasonRow.querySelectorAll('.sh-season-pill-btn').forEach(btn => {
+                            btn.addEventListener('click', () => {
+                                seasonRow.querySelectorAll('.sh-season-pill-btn').forEach(b => b.classList.remove('active'));
+                                btn.classList.add('active');
+                                loadJsSeasonEps(parseInt(btn.dataset.seasonNum, 10));
+                            });
+                        });
+                    }
+                } catch (e) {
+                    console.warn('[ModalSlideUp] Erreur chargement saisons Jellyseerr:', e);
+                }
+            }
             return;
         }
 
@@ -940,6 +1062,82 @@ class ModalSlideUpSheet {
     }
 
     _bindSheetEvents(item) {
+
+        // ── Gestionnaire de Demande Jellyseerr Intégré ──
+        const reqBtn = this._sheet?.querySelector('#sh-slideup-request-btn');
+        const drawer = this._sheet?.querySelector('#sh-slideup-jellyseerr-drawer');
+        const drawerClose = this._sheet?.querySelector('#sh-drawer-close');
+        const drawerSubmit = this._sheet?.querySelector('#sh-drawer-submit-btn');
+
+        if (reqBtn && drawer) {
+            reqBtn.addEventListener('click', async () => {
+                drawer.style.display = 'block';
+                drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+                // Charger les vrais profils Sonarr / Radarr
+                const rawType = (item.Type || item.type || item.MediaType || '').toLowerCase();
+                const isSeries = rawType === 'series' || rawType === 'tvshow' || item.isSeries;
+                const profileSelect = drawer.querySelector('#sh-drawer-profile-select');
+                const folderSelect = drawer.querySelector('#sh-drawer-folder-select');
+
+                try {
+                    const servarrApi = isSeries ? window.SpaceHub?.integrations?.sonarr?.api : window.SpaceHub?.integrations?.radarr?.api;
+                    if (servarrApi?.getQualityProfiles && profileSelect) {
+                        const profiles = await servarrApi.getQualityProfiles();
+                        if (Array.isArray(profiles) && profiles.length > 0) {
+                            profileSelect.innerHTML = profiles.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+                        }
+                    }
+                    if (servarrApi?.getRootFolders && folderSelect) {
+                        const folders = await servarrApi.getRootFolders();
+                        if (Array.isArray(folders) && folders.length > 0) {
+                            folderSelect.innerHTML = folders.map(f => `<option value="${f.path}">${f.path}</option>`).join('');
+                        }
+                    }
+                } catch (e) {
+                    console.debug('Chargement profils tiroir:', e);
+                }
+            });
+
+            drawerClose?.addEventListener('click', () => {
+                drawer.style.display = 'none';
+            });
+
+            drawerSubmit?.addEventListener('click', async () => {
+                drawerSubmit.disabled = true;
+                drawerSubmit.innerHTML = '<span class="sh-spinner-inline"></span><span>Transmission...</span>';
+
+                const tmdbId = item.id || item.tmdbId || item.mediaId || (typeof item.Id === 'string' ? item.Id.replace('jellyseerr-', '') : null);
+                const rawType = (item.Type || item.type || item.MediaType || '').toLowerCase();
+                const type = (rawType === 'series' || rawType === 'tvshow' || item.isSeries) ? 'tv' : 'movie';
+                const profileId = parseInt(drawer.querySelector('#sh-drawer-profile-select')?.value || '1', 10);
+                const rootFolder = drawer.querySelector('#sh-drawer-folder-select')?.value;
+                const monitorFuture = drawer.querySelector('#sh-drawer-monitor-future')?.checked ?? true;
+
+                const payload = {
+                    mediaType: type,
+                    mediaId: Number(tmdbId),
+                    profileId,
+                    ...(rootFolder ? { rootFolder } : {}),
+                    ...(type === 'tv' && monitorFuture ? { seasons: 'all' } : {})
+                };
+
+                try {
+                    const api = window.SpaceHub?.integrations?.jellyseerr?.api || (window.SpaceHub?.core?.api?.getClient ? window.SpaceHub.core.api.getClient('jellyseerr') : null);
+                    if (api?.createRequest) {
+                        await api.createRequest(payload);
+                    }
+                    drawerSubmit.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Demande confirmée !</span>';
+                    window.SpaceHub?.ui?.components?.toaster?.success(`Demande envoyée pour "${item.title || item.Name}" !`);
+                    setTimeout(() => { drawer.style.display = 'none'; }, 1500);
+                } catch (err) {
+                    drawerSubmit.disabled = false;
+                    drawerSubmit.innerHTML = '<span>Réessayer</span>';
+                    window.SpaceHub?.ui?.components?.toaster?.error(`Erreur: ${err.message || 'Impossible d envoyer la demande'}`);
+                }
+            });
+        }
+
         this._sheet.querySelector('#sh-slideup-close')?.addEventListener('click', () => this.close());
 
         // Bouton Retour : dépile l'historique de navigation si présent, sinon ferme le modal
