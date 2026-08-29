@@ -339,34 +339,79 @@ function openJellyseerrRequestModal(item, jellyseerr) {
             modalOverlay.querySelectorAll('.sh-episode-rich-chk').forEach(c => { c.checked = false; });
         });
 
-        // 5. Gestion du Bouton Bande-Annonce
+        // 5. Gestion du Bouton Bande-Annonce In-App Garantie (Sans Quitter la Page)
         const trailerBtn = modalOverlay.querySelector('#sh-jellyseerr-btn-trailer');
         trailerBtn?.addEventListener('click', async () => {
+            trailerBtn.disabled = true;
+            const originalText = trailerBtn.innerHTML;
+            trailerBtn.innerHTML = '<span class="sh-spinner-inline" style="margin-right:6px;"></span><span>Chargement...</span>';
+
             let trailerKey = null;
+            
+            // 1. Essai depuis les vidéos TMDB chargées
             if (mediaDetails?.videos && Array.isArray(mediaDetails.videos)) {
                 const trailerObj = mediaDetails.videos.find(v => v.type === 'Trailer' && v.site === 'YouTube') || mediaDetails.videos[0];
                 trailerKey = trailerObj?.key;
             }
 
+            // 2. Si pas de clé, interrogation TMDB directe
+            if (!trailerKey) {
+                try {
+                    const tmdbEndpoint = `https://api.themoviedb.org/3/${type === 'tv' ? 'tv' : 'movie'}/${tmdbId}/videos?api_key=45dbdd594f52cbc21372ec0efe484e42&language=fr-FR`;
+                    const res = await fetch(tmdbEndpoint);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const vObj = (data?.results || []).find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')) || data?.results?.[0];
+                        trailerKey = vObj?.key;
+                    }
+                    if (!trailerKey) {
+                        const resEn = await fetch(`https://api.themoviedb.org/3/${type === 'tv' ? 'tv' : 'movie'}/${tmdbId}/videos?api_key=45dbdd594f52cbc21372ec0efe484e42`);
+                        if (resEn.ok) {
+                            const dataEn = await resEn.json();
+                            const vObjEn = (dataEn?.results || []).find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')) || dataEn?.results?.[0];
+                            trailerKey = vObjEn?.key;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[TrailerPlayer] Erreur récupération trailer TMDB:', e);
+                }
+            }
+
+            trailerBtn.disabled = false;
+            trailerBtn.innerHTML = originalText;
+
+            // Rendu In-App Player
+            const trailerModal = document.createElement('div');
+            trailerModal.className = 'sh-trailer-player-overlay';
+            
             if (trailerKey) {
-                const trailerModal = document.createElement('div');
-                trailerModal.className = 'sh-trailer-player-overlay';
                 trailerModal.innerHTML = `
                     <div class="sh-trailer-player-box">
-                        <button class="sh-trailer-close-btn" id="sh-trailer-close">✕</button>
-                        <iframe src="https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0" frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+                        <button class="sh-trailer-close-btn" id="sh-trailer-close" title="Fermer">✕</button>
+                        <iframe src="https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&rel=0&modestbranding=1" frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
                     </div>
                 `;
-                document.body.appendChild(trailerModal);
-                requestAnimationFrame(() => trailerModal.classList.add('open'));
-                trailerModal.querySelector('#sh-trailer-close')?.addEventListener('click', () => {
-                    trailerModal.classList.remove('open');
-                    setTimeout(() => trailerModal.remove(), 200);
-                });
             } else {
-                // Recherche YouTube automatique de secours
-                window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(title + ' ' + year + ' bande annonce trailer officiel')}`, '_blank');
+                trailerModal.innerHTML = `
+                    <div class="sh-trailer-player-box">
+                        <button class="sh-trailer-close-btn" id="sh-trailer-close" title="Fermer">✕</button>
+                        <iframe src="https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(title + ' ' + year + ' Bande annonce officielle VF')}&autoplay=1" frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+                    </div>
+                `;
             }
+
+            document.body.appendChild(trailerModal);
+            requestAnimationFrame(() => trailerModal.classList.add('open'));
+            
+            const closeTrailer = () => {
+                trailerModal.classList.remove('open');
+                setTimeout(() => trailerModal.remove(), 200);
+            };
+
+            trailerModal.querySelector('#sh-trailer-close')?.addEventListener('click', closeTrailer);
+            trailerModal.addEventListener('click', (e) => {
+                if (e.target === trailerModal) closeTrailer();
+            });
         });
     })();
 
@@ -548,6 +593,88 @@ function injectJellyseerrSharedStyles() {
     style.textContent = `
 
 
+
+
+/* ── Hub Multimédia Grand Format 960px & Scrollbars Dark Glass ── */
+.sh-jellyseerr-modal-card--wide {
+    width: 960px !important;
+    max-width: 95vw !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.02) !important;
+}
+
+.sh-jellyseerr-modal-card--wide::-webkit-scrollbar,
+.sh-jellyseerr-episodes-list::-webkit-scrollbar {
+    width: 6px !important;
+}
+
+.sh-jellyseerr-modal-card--wide::-webkit-scrollbar-track,
+.sh-jellyseerr-episodes-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-radius: 4px !important;
+}
+
+.sh-jellyseerr-modal-card--wide::-webkit-scrollbar-thumb,
+.sh-jellyseerr-episodes-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-radius: 4px !important;
+}
+
+.sh-jellyseerr-modal-card--wide::-webkit-scrollbar-thumb:hover,
+.sh-jellyseerr-episodes-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35) !important;
+}
+
+.sh-trailer-player-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0,0,0,0.88) !important;
+    backdrop-filter: blur(30px) !important;
+    -webkit-backdrop-filter: blur(30px) !important;
+    z-index: 2000000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 0 !important;
+    transition: opacity 0.24s ease !important;
+}
+.sh-trailer-player-overlay.open {
+    opacity: 1 !important;
+}
+.sh-trailer-player-box {
+    width: 900px !important;
+    max-width: 94vw !important;
+    aspect-ratio: 16/9 !important;
+    background: #000 !important;
+    border-radius: 20px !important;
+    overflow: hidden !important;
+    position: relative !important;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.95) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+}
+.sh-trailer-player-box iframe {
+    width: 100% !important;
+    height: 100% !important;
+}
+.sh-trailer-close-btn {
+    position: absolute !important;
+    top: 14px !important;
+    right: 14px !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    background: rgba(0,0,0,0.7) !important;
+    border: 1px solid rgba(255,255,255,0.25) !important;
+    color: #fff !important;
+    font-size: 15px !important;
+    cursor: pointer !important;
+    z-index: 10 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
 
 /* ── Hub Multimédia Grand Format 820px & Fiches Épisodes Riches ── */
 .sh-jellyseerr-modal-card--wide {
@@ -1745,3 +1872,11 @@ export {
     JellyseerrPopularSeriesWidget, 
     JellyseerrUpcomingWidget 
 };
+
+
+if (typeof window !== 'undefined') {
+    window.SpaceHub = window.SpaceHub || {};
+    window.SpaceHub.integrations = window.SpaceHub.integrations || {};
+    window.SpaceHub.integrations.jellyseerr = window.SpaceHub.integrations.jellyseerr || {};
+    window.SpaceHub.integrations.jellyseerr.openRequestModal = openJellyseerrRequestModal;
+}

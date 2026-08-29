@@ -978,6 +978,34 @@ class UnifiedSearch {
             this._log.warn('Erreur recherche Jellyfin:', err);
         }
 
+        // 2. Recherche complémentaire sur l'API Jellyseerr (Découverte & Demande)
+        let jellyseerrResults = [];
+        try {
+            const jellyseerrApi = window.SpaceHub?.integrations?.jellyseerr?.api;
+            if (jellyseerrApi?.search) {
+                const jsData = await jellyseerrApi.search(this._query);
+                const rawJsItems = jsData?.results || [];
+                
+                // Exclure les médias déjà présents dans Jellyfin (par nom et année)
+                const existingTitles = new Set(mediaResults.map(m => (m.title || m.Name || '').toLowerCase().trim()));
+                
+                jellyseerrResults = rawJsItems.filter(item => {
+                    const jsTitle = (item.title || item.name || '').toLowerCase().trim();
+                    return jsTitle && !existingTitles.has(jsTitle);
+                }).slice(0, 8).map(item => ({
+                    ...item,
+                    isJellyseerr: true,
+                    title: item.title || item.name,
+                    Type: item.mediaType === 'tv' ? 'Series' : 'Movie',
+                    imageUrl: item.posterPath ? `https://image.tmdb.org/t/p/w300${item.posterPath}` : '',
+                    ProductionYear: (item.releaseDate || item.firstAirDate || '').slice(0, 4),
+                    sub: `Disponible sur Jellyseerr • Cliquer pour demander`
+                }));
+            }
+        } catch (jsErr) {
+            this._log.debug('Erreur recherche Jellyseerr:', jsErr);
+        }
+
         if (this._activeFilter === 'Navigation') {
             mediaResults = [];
             commands = [];
@@ -989,7 +1017,7 @@ class UnifiedSearch {
             commands = [];
         }
 
-        this._visibleItems = [...navMatches, ...mediaResults, ...commands];
+        this._visibleItems = [...navMatches, ...mediaResults, ...jellyseerrResults, ...commands];
         this._selectedIndex = 0;
 
         if (this._visibleItems.length === 0) {
@@ -1027,21 +1055,41 @@ class UnifiedSearch {
                     </div>
                 `;
             } else {
-                const sub = `${item.ProductionYear || ''} · ${item.Type === 'Movie' ? 'Film' : item.Type === 'Series' ? 'Série' : item.Type === 'Episode' ? 'Épisode' : 'Média'} · ${item.format || 'HD'}`;
-                html += `
-                    <div class="sh-spotlight-item ${isSelected ? 'active' : ''}" data-index="${index}" style="--idx: ${index}">
-                        <div class="sh-spotlight-thumb-wrap">
-                            ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${this._escape(item.title || item.Name)}" />` : `<div class="sh-spotlight-thumb-fallback"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg></div>`}
+                if (item.isJellyseerr) {
+                    html += `
+                        <div class="sh-spotlight-item sh-spotlight-item--jellyseerr ${isSelected ? 'active' : ''}" data-index="${index}" style="--idx: ${index}">
+                            <div class="sh-spotlight-thumb-wrap">
+                                ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${this._escape(item.title || item.Name)}" />` : `<div class="sh-spotlight-thumb-fallback">🎬</div>`}
+                            </div>
+                            <div class="sh-spotlight-item-text">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="sh-spotlight-item-title">${this._highlightQuery(item.title || item.Name, this._query)}</span>
+                                    <span class="sh-jellyseerr-search-badge">Jellyseerr</span>
+                                </div>
+                                <span class="sh-spotlight-item-sub">${item.ProductionYear || ''} • Non présent sur le serveur • Demander</span>
+                            </div>
+                            <div class="sh-spotlight-action-hint">
+                                <span style="color:#64d2ff;">Demander ↵</span>
+                            </div>
                         </div>
-                        <div class="sh-spotlight-item-text">
-                            <span class="sh-spotlight-item-title">${this._highlightQuery(item.title || item.Name, this._query)}</span>
-                            <span class="sh-spotlight-item-sub">${sub}</span>
+                    `;
+                } else {
+                    const sub = `${item.ProductionYear || ''} · ${item.Type === 'Movie' ? 'Film' : item.Type === 'Series' ? 'Série' : item.Type === 'Episode' ? 'Épisode' : 'Média'} · ${item.format || 'HD'}`;
+                    html += `
+                        <div class="sh-spotlight-item ${isSelected ? 'active' : ''}" data-index="${index}" style="--idx: ${index}">
+                            <div class="sh-spotlight-thumb-wrap">
+                                ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${this._escape(item.title || item.Name)}" />` : `<div class="sh-spotlight-thumb-fallback"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg></div>`}
+                            </div>
+                            <div class="sh-spotlight-item-text">
+                                <span class="sh-spotlight-item-title">${this._highlightQuery(item.title || item.Name, this._query)}</span>
+                                <span class="sh-spotlight-item-sub">${sub}</span>
+                            </div>
+                            <div class="sh-spotlight-action-hint">
+                                <span>Ouvrir la fiche ↵</span>
+                            </div>
                         </div>
-                        <div class="sh-spotlight-action-hint">
-                            <span>Ouvrir la fiche ↵</span>
-                        </div>
-                    </div>
-                `;
+                    `;
+                }
             }
         });
 
@@ -1157,6 +1205,19 @@ class UnifiedSearch {
         const style = document.createElement('style');
         style.id = 'sh-spotlight-palette-styles';
         style.textContent = `
+
+.sh-jellyseerr-search-badge {
+    font-size: 10px !important;
+    font-weight: 750 !important;
+    text-transform: uppercase !important;
+    padding: 2px 6px !important;
+    border-radius: 6px !important;
+    background: rgba(99, 102, 241, 0.2) !important;
+    border: 1px solid rgba(99, 102, 241, 0.4) !important;
+    color: #a5b4fc !important;
+}
+
+
 /* ═══════════════════════════════════════════════════════════════════════
    🍏 MACOS QUICKLOOK / WINDOW ZOOM ANIMATION DEPUIS LA LOUPE DU DOCK
    ═══════════════════════════════════════════════════════════════════════ */
