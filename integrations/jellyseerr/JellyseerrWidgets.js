@@ -32,7 +32,9 @@
  */
 function openJellyseerrRequestModal(item, jellyseerr) {
     const tmdbId = item.id || item.tmdbId || item.mediaId || (typeof item.Id === 'string' ? item.Id.replace('jellyseerr-', '') : null);
-    const type = item.mediaType || (item.firstAirDate ? 'tv' : 'movie');
+    const rawType = (item.mediaType || item.Type || item.type || '').toLowerCase();
+    const isTv = rawType === 'tv' || rawType === 'series' || rawType === 'tvshow' || Boolean(item.firstAirDate) || Boolean(item.name && !item.title) || Boolean(item.seasons) || item.isSeries;
+    const type = isTv ? 'tv' : 'movie';
     const title = item.title || item.name || item.Name || 'Média';
     const poster = item.posterPath ? (item.posterPath.startsWith('http') ? item.posterPath : `https://image.tmdb.org/t/p/w500${item.posterPath}`) : (item.poster || item.posterUrl || item.imageUrl || '');
     const backdrop = item.backdropPath ? (item.backdropPath.startsWith('http') ? item.backdropPath : `https://image.tmdb.org/t/p/w1280${item.backdropPath}`) : (item.backdropUrl || poster);
@@ -90,7 +92,9 @@ function openJellyseerrRequestModal(item, jellyseerr) {
 function renderJellyseerrMediaCard(item) {
     const title = item.title || item.name || 'Média';
     const poster = item.posterPath ? `https://image.tmdb.org/t/p/w300${item.posterPath}` : '';
-    const type = item.mediaType || (item.firstAirDate ? 'tv' : 'movie');
+    const rawType = (item.mediaType || item.Type || item.type || '').toLowerCase();
+    const isTv = rawType === 'tv' || rawType === 'series' || rawType === 'tvshow' || Boolean(item.firstAirDate) || Boolean(item.name && !item.title) || Boolean(item.seasons) || item.isSeries;
+    const type = isTv ? 'tv' : 'movie';
     const typeLabel = type === 'tv' ? 'Série' : 'Film';
     const dateStr = item.releaseDate || item.firstAirDate;
     const year = dateStr ? new Date(dateStr).getFullYear() : '';

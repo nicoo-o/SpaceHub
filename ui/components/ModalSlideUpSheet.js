@@ -397,22 +397,22 @@ class ModalSlideUpSheet {
                     <div class="sh-tabs-slider-pill" id="sh-tabs-slider-pill"></div>
                     
                     ${isSeries ? `
-                        <button class="sh-tab-btn active" data-tab="episodes"><span>Épisodes & Saisons</span></button>
-                        <button class="sh-tab-btn" data-tab="synopsis"><span>À propos</span></button>
-                        <button class="sh-tab-btn" data-tab="casting"><span>Distribution & Équipe</span></button>
-                        <button class="sh-tab-btn" data-tab="similaires"><span>Séries similaires</span></button>
+                        <button class="sh-tab-btn ${this._activeTab === 'episodes' ? 'active' : ''}" data-tab="episodes"><span>Épisodes & Saisons</span></button>
+                        <button class="sh-tab-btn ${this._activeTab === 'synopsis' ? 'active' : ''}" data-tab="synopsis"><span>À propos</span></button>
+                        <button class="sh-tab-btn ${this._activeTab === 'casting' ? 'active' : ''}" data-tab="casting"><span>Distribution & Équipe</span></button>
+                        <button class="sh-tab-btn ${this._activeTab === 'similaires' ? 'active' : ''}" data-tab="similaires"><span>Séries similaires</span></button>
                     ` : isCollection ? `
-                        <button class="sh-tab-btn active" data-tab="sagafilms"><span>Films de la Saga</span></button>
-                        <button class="sh-tab-btn" data-tab="synopsis"><span>À propos</span></button>
-                        <button class="sh-tab-btn" data-tab="similaires"><span>Collections similaires</span></button>
+                        <button class="sh-tab-btn ${this._activeTab === 'sagafilms' ? 'active' : ''}" data-tab="sagafilms"><span>Films de la Saga</span></button>
+                        <button class="sh-tab-btn ${this._activeTab === 'synopsis' ? 'active' : ''}" data-tab="synopsis"><span>À propos</span></button>
+                        <button class="sh-tab-btn ${this._activeTab === 'similaires' ? 'active' : ''}" data-tab="similaires"><span>Collections similaires</span></button>
                     ` : isMusic ? `
-                        <button class="sh-tab-btn active" data-tab="tracks"><span>Pistes de l'Album</span></button>
-                        <button class="sh-tab-btn" data-tab="synopsis"><span>À propos</span></button>
-                        <button class="sh-tab-btn" data-tab="similaires"><span>Albums similaires</span></button>
+                        <button class="sh-tab-btn ${this._activeTab === 'tracks' ? 'active' : ''}" data-tab="tracks"><span>Pistes de l'Album</span></button>
+                        <button class="sh-tab-btn ${this._activeTab === 'synopsis' ? 'active' : ''}" data-tab="synopsis"><span>À propos</span></button>
+                        <button class="sh-tab-btn ${this._activeTab === 'similaires' ? 'active' : ''}" data-tab="similaires"><span>Albums similaires</span></button>
                     ` : `
-                        <button class="sh-tab-btn active" data-tab="synopsis"><span>À propos</span></button>
-                        <button class="sh-tab-btn" data-tab="casting"><span>Distribution & Équipe</span></button>
-                        <button class="sh-tab-btn" data-tab="similaires"><span>Titres similaires</span></button>
+                        <button class="sh-tab-btn ${this._activeTab === 'synopsis' ? 'active' : ''}" data-tab="synopsis"><span>À propos</span></button>
+                        <button class="sh-tab-btn ${this._activeTab === 'casting' ? 'active' : ''}" data-tab="casting"><span>Distribution & Équipe</span></button>
+                        <button class="sh-tab-btn ${this._activeTab === 'similaires' ? 'active' : ''}" data-tab="similaires"><span>Titres similaires</span></button>
                     `}
                 </div>
 
@@ -420,7 +420,7 @@ class ModalSlideUpSheet {
                     
                     <!-- 📺 SÉRIES : Panneau Épisodes & Sélecteur de Saisons -->
                     ${isSeries ? `
-                        <div class="sh-tab-panel active" id="sh-panel-episodes">
+                        <div class="sh-tab-panel ${this._activeTab === 'episodes' ? 'active' : ''}" id="sh-panel-episodes">
                             <div class="sh-series-episodes-container">
                                 <div class="sh-season-pills-row">
                                     <button class="sh-season-pill-btn active">Chargement des saisons...</button>
@@ -434,7 +434,7 @@ class ModalSlideUpSheet {
 
                     <!-- 🎬 COLLECTIONS : Panneau Films de la Saga -->
                     ${isCollection ? `
-                        <div class="sh-tab-panel active" id="sh-panel-sagafilms">
+                        <div class="sh-tab-panel ${this._activeTab === 'sagafilms' ? 'active' : ''}" id="sh-panel-sagafilms">
                             <div class="sh-saga-films-grid">
                                 <div style="color:rgba(255,255,255,0.4); padding:20px;">Chargement des films de la saga...</div>
                             </div>
@@ -443,7 +443,7 @@ class ModalSlideUpSheet {
 
                     <!-- 🎵 MUSIQUE : Panneau Pistes de l'Album -->
                     ${isMusic ? `
-                        <div class="sh-tab-panel active" id="sh-panel-tracks">
+                        <div class="sh-tab-panel ${this._activeTab === 'tracks' ? 'active' : ''}" id="sh-panel-tracks">
                             <div class="sh-album-tracks-container">
                                 <div class="sh-tracks-table">
                                     <div style="color:rgba(255,255,255,0.4); padding:20px;">Chargement des pistes audio...</div>
