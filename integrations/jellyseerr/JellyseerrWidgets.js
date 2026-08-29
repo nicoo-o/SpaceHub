@@ -24,451 +24,47 @@
  * @param {Object} item - Média TMDB/Jellyseerr
  * @param {Object} jellyseerr - Instance du service Jellyseerr
  */
+
+/**
+ * Ouvre le Média Jellyseerr dans la feuille maîtresse Apple TV ModalSlideUpSheet.
+ * @param {Object} item - Média TMDB/Jellyseerr
+ * @param {Object} [jellyseerr] - Instance API
+ */
 function openJellyseerrRequestModal(item, jellyseerr) {
-    const tmdbId = item.id || item.tmdbId || item.mediaId;
+    const tmdbId = item.id || item.tmdbId || item.mediaId || (typeof item.Id === 'string' ? item.Id.replace('jellyseerr-', '') : null);
     const type = item.mediaType || (item.firstAirDate ? 'tv' : 'movie');
-    const typeLabel = type === 'tv' ? 'Série TV' : 'Long-Métrage';
-    let title = item.title || item.name || 'Média';
-    let poster = item.posterPath ? `https://image.tmdb.org/t/p/w500${item.posterPath}` : (item.poster || '');
-    let year = (item.releaseDate || item.firstAirDate || item.year || '').slice(0, 4);
-    let overview = item.overview || '';
+    const title = item.title || item.name || item.Name || 'Média';
+    const poster = item.posterPath ? (item.posterPath.startsWith('http') ? item.posterPath : `https://image.tmdb.org/t/p/w500${item.posterPath}`) : (item.poster || item.posterUrl || item.imageUrl || '');
+    const backdrop = item.backdropPath ? (item.backdropPath.startsWith('http') ? item.backdropPath : `https://image.tmdb.org/t/p/w1280${item.backdropPath}`) : (item.backdropUrl || poster);
+    const year = (item.releaseDate || item.firstAirDate || item.year || item.ProductionYear || '').slice(0, 4);
+    const overview = item.overview || item.Overview || '';
 
-    const modalOverlay = document.createElement('div');
-    modalOverlay.className = 'sh-jellyseerr-modal-overlay';
-    modalOverlay.innerHTML = `
-        <div class="sh-jellyseerr-modal-card sh-jellyseerr-modal-card--panorama">
-            <button class="sh-jellyseerr-modal-close" id="sh-jellyseerr-close" title="Fermer">✕</button>
-            
-            <!-- EN-TÊTE PANORAMA AVEC POSTER 3D, BADGES & BANDE-ANNONCE -->
-            <div class="sh-jellyseerr-panorama-header">
-                <div class="sh-jellyseerr-panorama-poster-wrap">
-                    ${poster ? `<img src="${poster}" alt="${title}" />` : '<div class="sh-jellyseerr-modal-poster-fallback">🎬</div>'}
-                    <div class="sh-jellyseerr-poster-glint"></div>
-                </div>
-                <div class="sh-jellyseerr-panorama-header-info">
-                    <div class="sh-jellyseerr-modal-meta-top">
-                        <span class="sh-jellyseerr-modal-type-tag">${typeLabel} ${year ? '• ' + year : ''}</span>
-                        <div class="sh-jellyseerr-modal-status-badge" id="sh-req-status-badge">
-                            <span class="sh-status-dot"></span>
-                            <span class="sh-status-text">Prêt pour la demande</span>
-                        </div>
-                    </div>
-                    <h1 class="sh-jellyseerr-panorama-title">${title}</h1>
-                    
-                    <div class="sh-jellyseerr-modal-header-actions">
-                        <button type="button" class="sh-jellyseerr-btn-trailer" id="sh-jellyseerr-btn-trailer">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                            <span>Bande-annonce</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CORPS DUAL-PANE BENTO (2 COLONNES) -->
-            <div class="sh-jellyseerr-panorama-dual-pane ${type === 'tv' ? 'is-tv' : 'is-movie'}">
-                
-                <!-- COLONNE GAUCHE (40%) : SYNOPSIS & RÉGLAGES SERVEUR -->
-                <div class="sh-jellyseerr-pane-left">
-                    <div class="sh-jellyseerr-synopsis-box">
-                        <div class="sh-jellyseerr-section-header">Synopsis Officiel</div>
-                        <p class="sh-jellyseerr-modal-desc" id="sh-jellyseerr-desc">${overview || 'Récupération du synopsis complet...'}</p>
-                    </div>
-
-                    <div class="sh-jellyseerr-settings-box">
-                        <div class="sh-jellyseerr-section-header">Configuration du Serveur</div>
-                        
-                        <div class="sh-jellyseerr-form-row">
-                            <label class="sh-jellyseerr-form-label">Profil de Qualité (${type === 'tv' ? 'Sonarr' : 'Radarr'})</label>
-                            <select class="sh-jellyseerr-form-select" id="sh-jellyseerr-profile-select">
-                                <option value="default">Chargement de vos profils...</option>
-                            </select>
-                        </div>
-
-                        <div class="sh-jellyseerr-form-row">
-                            <label class="sh-jellyseerr-form-label">Dossier de Destination sur le Serveur</label>
-                            <select class="sh-jellyseerr-form-select" id="sh-jellyseerr-folder-select">
-                                <option value="default">Chargement de vos dossiers...</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="sh-jellyseerr-submit-wrap">
-                        <button class="sh-jellyseerr-btn-submit" id="sh-btn-submit-request">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            <span>Confirmer la demande sur le serveur</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- COLONNE DROITE (60%) : SAISONS ET ÉPISODES RICHES (SÉRIES) OU DÉTAILS COMPLÉMENTAIRES (FILMS) -->
-                <div class="sh-jellyseerr-pane-right">
-                    ${type === 'tv' ? `
-                        <div class="sh-jellyseerr-seasons-master-section">
-                            <div class="sh-jellyseerr-seasons-header-bar">
-                                <div class="sh-jellyseerr-section-header" style="margin-bottom:0;">Saisons & Épisodes à Télécharger</div>
-                                <div class="sh-jellyseerr-seasons-quick-actions">
-                                    <button type="button" class="sh-season-quick-btn" id="sh-btn-select-all-eps">Tout cocher</button>
-                                    <span class="sh-quick-sep">•</span>
-                                    <button type="button" class="sh-season-quick-btn" id="sh-btn-deselect-all-eps">Tout décocher</button>
-                                </div>
-                            </div>
-
-                            <!-- Onglets des saisons style Apple TV -->
-                            <div class="sh-jellyseerr-season-tabs" id="sh-season-tabs">
-                                <div class="sh-season-tab active" data-season="1">Saison 1</div>
-                            </div>
-                            
-                            <!-- Liste fluide des épisodes avec miniatures 16:9 et résumés (Zéro Scrollbar) -->
-                            <div class="sh-jellyseerr-episodes-list" id="sh-episodes-container">
-                                <div style="color:rgba(255,255,255,0.5); padding:24px; font-size:13px; text-align:center;">
-                                    <span class="sh-spinner-inline" style="margin-right:8px;"></span>Chargement des épisodes officiels...
-                                </div>
-                            </div>
-                        </div>
-                    ` : `
-                        <div class="sh-jellyseerr-movie-details-box">
-                            <div class="sh-jellyseerr-section-header">Détails de l'Œuvre</div>
-                            <div class="sh-jellyseerr-movie-specs" id="sh-movie-specs">
-                                <div class="sh-spec-pill"><span>Format</span><strong>4K HDR Dolby Vision</strong></div>
-                                <div class="sh-spec-pill"><span>Audio</span><strong>Dolby Atmos / 5.1</strong></div>
-                                <div class="sh-spec-pill"><span>Statut</span><strong id="sh-spec-status">En attente</strong></div>
-                            </div>
-                        </div>
-                    `}
-                </div>
-
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(modalOverlay);
-    requestAnimationFrame(() => modalOverlay.classList.add('open'));
-
-    const closeModal = () => {
-        modalOverlay.classList.remove('open');
-        setTimeout(() => modalOverlay.remove(), 260);
+    const formattedItem = {
+        ...item,
+        Id: `jellyseerr-${tmdbId}`,
+        id: tmdbId,
+        tmdbId: tmdbId,
+        Name: title,
+        title: title,
+        Type: type === 'tv' ? 'Series' : 'Movie',
+        isSeries: type === 'tv',
+        isMovie: type === 'movie',
+        posterUrl: poster,
+        imageUrl: poster,
+        backdropUrl: backdrop,
+        Overview: overview,
+        overview: overview,
+        ProductionYear: year,
+        year: year,
+        isJellyseerr: true,
+        source: 'jellyseerr'
     };
 
-    modalOverlay.querySelector('#sh-jellyseerr-close')?.addEventListener('click', closeModal);
-    modalOverlay.addEventListener('click', (e) => {
-        if (e.target === modalOverlay) closeModal();
-    });
-
-    // ── CHARGEMENT ASYNCHRONE DES VRAIS PROFILS ET DÉTAILS DE LA SÉRIE ──
-    (async () => {
-        const api = (jellyseerr && typeof jellyseerr.createRequest === 'function') 
-            ? jellyseerr 
-            : (jellyseerr?.api || window.SpaceHub?.integrations?.jellyseerr?.api || (window.SpaceHub?.core?.api?.getClient ? window.SpaceHub.core.api.getClient('jellyseerr') : null));
-
-        const profileSelect = modalOverlay.querySelector('#sh-jellyseerr-profile-select');
-        const folderSelect = modalOverlay.querySelector('#sh-jellyseerr-folder-select');
-
-        // 1. Récupération des VRAIS Profils Qualité et Dossiers depuis Sonarr/Radarr directs ou Jellyseerr
-        try {
-            let loadedProfiles = [];
-            let loadedFolders = [];
-
-            if (type === 'tv') {
-                const sonarrApi = window.SpaceHub?.integrations?.sonarr?.api;
-                if (sonarrApi?.getQualityProfiles) {
-                    try { loadedProfiles = await sonarrApi.getQualityProfiles() || []; } catch (e) {}
-                }
-                if (sonarrApi?.getRootFolders) {
-                    try { loadedFolders = await sonarrApi.getRootFolders() || []; } catch (e) {}
-                }
-                if ((!loadedProfiles || loadedProfiles.length === 0) && api?.getSonarrServers) {
-                    try {
-                        const servers = await api.getSonarrServers();
-                        if (Array.isArray(servers) && servers.length > 0) {
-                            loadedProfiles = servers[0].profiles || [];
-                            loadedFolders = servers[0].rootFolders || [];
-                        }
-                    } catch (e) {}
-                }
-            } else {
-                const radarrApi = window.SpaceHub?.integrations?.radarr?.api;
-                if (radarrApi?.getQualityProfiles) {
-                    try { loadedProfiles = await radarrApi.getQualityProfiles() || []; } catch (e) {}
-                }
-                if (radarrApi?.getRootFolders) {
-                    try { loadedFolders = await radarrApi.getRootFolders() || []; } catch (e) {}
-                }
-                if ((!loadedProfiles || loadedProfiles.length === 0) && api?.getRadarrServers) {
-                    try {
-                        const servers = await api.getRadarrServers();
-                        if (Array.isArray(servers) && servers.length > 0) {
-                            loadedProfiles = servers[0].profiles || [];
-                            loadedFolders = servers[0].rootFolders || [];
-                        }
-                    } catch (e) {}
-                }
-            }
-
-            if (profileSelect) {
-                if (Array.isArray(loadedProfiles) && loadedProfiles.length > 0) {
-                    profileSelect.innerHTML = loadedProfiles.map(p => `
-                        <option value="${p.id}">${p.name}</option>
-                    `).join('');
-                } else {
-                    profileSelect.innerHTML = `
-                        <option value="1" selected>4K UHD • Dolby Vision & HDR</option>
-                        <option value="2">1080p HD • Qualité Maximale Remux</option>
-                        <option value="3">1080p HD • Standard WEB-DL</option>
-                        <option value="4">720p HD • Économie d'espace</option>
-                    `;
-                }
-            }
-
-            if (folderSelect) {
-                if (Array.isArray(loadedFolders) && loadedFolders.length > 0) {
-                    folderSelect.innerHTML = loadedFolders.map(f => `
-                        <option value="${f.path}">${f.path}</option>
-                    `).join('');
-                } else {
-                    folderSelect.innerHTML = `
-                        <option value="/data/media/${type === 'tv' ? 'series' : 'movies'}" selected>/data/media/${type === 'tv' ? 'series' : 'movies'}</option>
-                        <option value="/media/${type === 'tv' ? 'series' : 'movies'}">/media/${type === 'tv' ? 'series' : 'movies'}</option>
-                    `;
-                }
-            }
-        } catch (err) {
-            console.warn('[JellyseerrPanorama] Erreur synchronisation profils/dossiers réels:', err);
-        }
-
-        // 2. Récupération des Détails Média (Synopsis, Statut & Saisons)
-        let mediaDetails = null;
-        try {
-            if (api?.getMediaDetails && tmdbId) {
-                mediaDetails = await api.getMediaDetails(type, tmdbId);
-            }
-        } catch (e) {
-            console.warn('[JellyseerrPanorama] Erreur détails média:', e);
-        }
-
-        if (mediaDetails) {
-            if (mediaDetails.overview) {
-                const descEl = modalOverlay.querySelector('#sh-jellyseerr-desc');
-                if (descEl) descEl.textContent = mediaDetails.overview;
-            }
-
-            // Statut de disponibilité
-            const badge = modalOverlay.querySelector('#sh-req-status-badge');
-            if (badge) {
-                const mediaStatus = mediaDetails.mediaInfo?.status;
-                if (mediaStatus === 5) {
-                    badge.className = 'sh-jellyseerr-modal-status-badge status-available';
-                    badge.querySelector('.sh-status-text').textContent = '✓ Disponible sur Jellyfin';
-                } else if (mediaStatus === 3 || mediaStatus === 4) {
-                    badge.className = 'sh-jellyseerr-modal-status-badge status-downloading';
-                    badge.querySelector('.sh-status-text').textContent = '↓ En cours de téléchargement';
-                } else if (mediaStatus === 2) {
-                    badge.className = 'sh-jellyseerr-modal-status-badge status-requested';
-                    badge.querySelector('.sh-status-text').textContent = '⌛ Demandé • En attente';
-                } else {
-                    badge.className = 'sh-jellyseerr-modal-status-badge';
-                    badge.querySelector('.sh-status-text').textContent = '● Prêt pour la demande';
-                }
-            }
-
-            // 3. Gestion des Saisons et Épisodes Riches avec Photos & Résumés
-            if (type === 'tv' && mediaDetails.seasons && mediaDetails.seasons.length > 0) {
-                const validSeasons = mediaDetails.seasons.filter(s => s.seasonNumber > 0);
-                const tabsContainer = modalOverlay.querySelector('#sh-season-tabs');
-                const epsContainer = modalOverlay.querySelector('#sh-episodes-container');
-
-                if (tabsContainer && validSeasons.length > 0) {
-                    tabsContainer.innerHTML = validSeasons.map((s, idx) => `
-                        <button type="button" class="sh-season-tab ${idx === 0 ? 'active' : ''}" data-season="${s.seasonNumber}">
-                            Saison ${s.seasonNumber} (${s.episodeCount || 0})
-                        </button>
-                    `).join('');
-
-                    const loadSeasonEpisodes = async (seasonNum) => {
-                        epsContainer.innerHTML = '<div style="color:rgba(255,255,255,0.5); padding:24px; text-align:center;"><span class="sh-spinner-inline" style="margin-right:8px;"></span>Chargement des épisodes de la Saison ' + seasonNum + '...</div>';
-                        
-                        let seasonData = null;
-                        if (api?.getSeasonDetails) {
-                            try {
-                                seasonData = await api.getSeasonDetails(tmdbId, seasonNum);
-                            } catch (e) {}
-                        }
-
-                        const episodes = seasonData?.episodes || Array.from({ length: validSeasons.find(s => s.seasonNumber == seasonNum)?.episodeCount || 8 }, (_, i) => ({
-                            episodeNumber: i + 1,
-                            name: `Épisode ${i + 1}`,
-                            overview: 'Aucun synopsis disponible pour cet épisode.',
-                            stillPath: null,
-                            airDate: ''
-                        }));
-
-                        epsContainer.innerHTML = episodes.map(ep => {
-                            const stillUrl = ep.stillPath ? `https://image.tmdb.org/t/p/w300${ep.stillPath}` : '';
-                            return `
-                                <div class="sh-episode-rich-card">
-                                    <div class="sh-ep-checkbox-wrap">
-                                        <input type="checkbox" class="sh-episode-rich-chk" data-season="${seasonNum}" value="${ep.episodeNumber}" checked />
-                                    </div>
-                                    <div class="sh-ep-thumb-wrap">
-                                        ${stillUrl ? `<img src="${stillUrl}" alt="${ep.name || ''}" loading="lazy" />` : '<div class="sh-ep-thumb-fallback">📺</div>'}
-                                    </div>
-                                    <div class="sh-ep-info-wrap">
-                                        <div class="sh-ep-header-line">
-                                            <span class="sh-ep-number-tag">EP ${ep.episodeNumber}</span>
-                                            <h4 class="sh-ep-title">${ep.name || ('Épisode ' + ep.episodeNumber)}</h4>
-                                            ${ep.airDate ? `<span class="sh-ep-date">${ep.airDate}</span>` : ''}
-                                        </div>
-                                        <p class="sh-ep-overview">${ep.overview || 'Aucune description disponible.'}</p>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('');
-                    };
-
-                    loadSeasonEpisodes(validSeasons[0].seasonNumber);
-
-                    tabsContainer.querySelectorAll('.sh-season-tab').forEach(tab => {
-                        tab.addEventListener('click', () => {
-                            tabsContainer.querySelectorAll('.sh-season-tab').forEach(t => t.classList.remove('active'));
-                            tab.classList.add('active');
-                            loadSeasonEpisodes(parseInt(tab.dataset.season, 10));
-                        });
-                    });
-                }
-            }
-        }
-
-        // 4. Boutons Tout cocher / Tout décocher
-        modalOverlay.querySelector('#sh-btn-select-all-eps')?.addEventListener('click', () => {
-            modalOverlay.querySelectorAll('.sh-episode-rich-chk').forEach(c => { c.checked = true; });
-        });
-        modalOverlay.querySelector('#sh-btn-deselect-all-eps')?.addEventListener('click', () => {
-            modalOverlay.querySelectorAll('.sh-episode-rich-chk').forEach(c => { c.checked = false; });
-        });
-
-        // 5. Gestion du Bouton Bande-Annonce In-App Garantie
-        const trailerBtn = modalOverlay.querySelector('#sh-jellyseerr-btn-trailer');
-        trailerBtn?.addEventListener('click', async () => {
-            trailerBtn.disabled = true;
-            const originalText = trailerBtn.innerHTML;
-            trailerBtn.innerHTML = '<span class="sh-spinner-inline" style="margin-right:6px;"></span><span>Chargement...</span>';
-
-            let trailerKey = null;
-            if (mediaDetails?.videos && Array.isArray(mediaDetails.videos)) {
-                const trailerObj = mediaDetails.videos.find(v => v.type === 'Trailer' && v.site === 'YouTube') || mediaDetails.videos[0];
-                trailerKey = trailerObj?.key;
-            }
-
-            if (!trailerKey) {
-                try {
-                    const tmdbEndpoint = `https://api.themoviedb.org/3/${type === 'tv' ? 'tv' : 'movie'}/${tmdbId}/videos?api_key=45dbdd594f52cbc21372ec0efe484e42&language=fr-FR`;
-                    const res = await fetch(tmdbEndpoint);
-                    if (res.ok) {
-                        const data = await res.json();
-                        const vObj = (data?.results || []).find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')) || data?.results?.[0];
-                        trailerKey = vObj?.key;
-                    }
-                    if (!trailerKey) {
-                        const resEn = await fetch(`https://api.themoviedb.org/3/${type === 'tv' ? 'tv' : 'movie'}/${tmdbId}/videos?api_key=45dbdd594f52cbc21372ec0efe484e42`);
-                        if (resEn.ok) {
-                            const dataEn = await resEn.json();
-                            const vObjEn = (dataEn?.results || []).find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')) || dataEn?.results?.[0];
-                            trailerKey = vObjEn?.key;
-                        }
-                    }
-                } catch (e) {}
-            }
-
-            trailerBtn.disabled = false;
-            trailerBtn.innerHTML = originalText;
-
-            const trailerModal = document.createElement('div');
-            trailerModal.className = 'sh-trailer-player-overlay';
-            
-            if (trailerKey) {
-                trailerModal.innerHTML = `
-                    <div class="sh-trailer-player-box">
-                        <button class="sh-trailer-close-btn" id="sh-trailer-close" title="Fermer">✕</button>
-                        <iframe src="https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&rel=0&modestbranding=1" frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
-                    </div>
-                `;
-            } else {
-                trailerModal.innerHTML = `
-                    <div class="sh-trailer-player-box">
-                        <button class="sh-trailer-close-btn" id="sh-trailer-close" title="Fermer">✕</button>
-                        <iframe src="https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(title + ' ' + year + ' Bande annonce officielle VF')}&autoplay=1" frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
-                    </div>
-                `;
-            }
-
-            document.body.appendChild(trailerModal);
-            requestAnimationFrame(() => trailerModal.classList.add('open'));
-            
-            const closeTrailer = () => {
-                trailerModal.classList.remove('open');
-                setTimeout(() => trailerModal.remove(), 200);
-            };
-
-            trailerModal.querySelector('#sh-trailer-close')?.addEventListener('click', closeTrailer);
-            trailerModal.addEventListener('click', (e) => {
-                if (e.target === trailerModal) closeTrailer();
-            });
-        });
-    })();
-
-    // ── GESTION DE LA VALIDATION DE LA DEMANDE ──
-    const submitBtn = modalOverlay.querySelector('#sh-btn-submit-request');
-    submitBtn?.addEventListener('click', async () => {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="sh-spinner-inline"></span><span>Transmission à Jellyseerr...</span>';
-
-        const profileSelect = modalOverlay.querySelector('#sh-jellyseerr-profile-select');
-        const folderSelect = modalOverlay.querySelector('#sh-jellyseerr-folder-select');
-        
-        const profileId = profileSelect && profileSelect.value !== 'default' ? parseInt(profileSelect.value, 10) : 1;
-        const rootFolder = folderSelect && folderSelect.value !== 'default' ? folderSelect.value : undefined;
-
-        let selectedSeasons = null;
-        if (type === 'tv') {
-            const activeTab = modalOverlay.querySelector('.sh-season-tab.active');
-            const sNum = activeTab ? parseInt(activeTab.dataset.season, 10) : 1;
-            selectedSeasons = [sNum];
-        }
-
-        const payload = {
-            mediaType: type === 'tv' ? 'tv' : 'movie',
-            mediaId: Number(tmdbId),
-            profileId,
-            ...(rootFolder ? { rootFolder } : {}),
-            ...(selectedSeasons ? { seasons: selectedSeasons } : {})
-        };
-
-        try {
-            const api = (jellyseerr && typeof jellyseerr.createRequest === 'function') 
-                ? jellyseerr 
-                : (jellyseerr?.api || window.SpaceHub?.integrations?.jellyseerr?.api || (window.SpaceHub?.core?.api?.getClient ? window.SpaceHub.core.api.getClient('jellyseerr') : null));
-            
-            if (!api || typeof api.createRequest !== 'function') {
-                throw new Error('API Jellyseerr non disponible');
-            }
-            await api.createRequest(payload);
-
-            submitBtn.classList.add('success');
-            submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Demande validée sur votre serveur !</span>';
-            
-            const badge = modalOverlay.querySelector('#sh-req-status-badge');
-            if (badge) {
-                badge.className = 'sh-jellyseerr-modal-status-badge status-requested';
-                badge.querySelector('.sh-status-text').textContent = '⌛ Demandé • En attente';
-            }
-
-            window.SpaceHub?.ui?.components?.toaster?.success(`Demande envoyée pour "${title}" !`);
-            setTimeout(closeModal, 1400);
-        } catch (err) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<span>Réessayer la demande</span>';
-            window.SpaceHub?.ui?.components?.toaster?.error(`Erreur: ${err.message || 'Impossible d envoyer la demande'}`);
-        }
-    });
+    if (window.SpaceHub?.ui?.modalSlideUpSheet) {
+        window.SpaceHub.ui.modalSlideUpSheet.open(formattedItem);
+    } else {
+        console.warn('[Jellyseerr] ModalSlideUpSheet non encore initialisé');
+    }
 }
 
 
@@ -535,7 +131,7 @@ function renderJellyseerrMediaCard(item) {
  * @param {Object} jellyseerr
  */
 function bindJellyseerrRequestButtons(container, jellyseerr) {
-    // 1. Clic sur la carte globale pour ouvrir la modal de demande complète
+    // Clic sur la carte entière pour ouvrir dans ModalSlideUpSheet Apple TV
     container.querySelectorAll('.sh-jellyseerr-bento-card').forEach(card => {
         card.addEventListener('click', (e) => {
             if (e.target.closest('.sh-jellyseerr-req-action-btn')) return;
@@ -546,24 +142,19 @@ function bindJellyseerrRequestButtons(container, jellyseerr) {
             const year = card.querySelector('.sh-jellyseerr-bento-card__year')?.textContent || '';
 
             let overviewText = '';
-            try {
-                overviewText = decodeURIComponent(card.dataset.overview || '');
-            } catch (e) {
-                overviewText = card.dataset.overview || '';
-            }
+            try { overviewText = decodeURIComponent(card.dataset.overview || ''); } catch (e) { overviewText = card.dataset.overview || ''; }
 
             openJellyseerrRequestModal({
                 id: mediaId,
                 title,
                 mediaType,
-                posterPath: posterImg ? posterImg.replace('https://image.tmdb.org/t/p/w300', '').replace('https://image.tmdb.org/t/p/w400', '') : '',
+                posterPath: posterImg,
                 releaseDate: year,
                 overview: overviewText
             }, jellyseerr);
         });
     });
 
-    // 2. Clic sur le bouton de demande rapide
     container.querySelectorAll('.sh-jellyseerr-req-action-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();

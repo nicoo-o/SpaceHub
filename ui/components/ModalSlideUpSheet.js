@@ -135,8 +135,9 @@ class ModalSlideUpSheet {
         });
 
         if (this._ambientGlow) {
-            if (backdropUrl) {
-                this._ambientGlow.style.backgroundImage = `url('${backdropUrl}')`;
+            const bg = backdropUrl || posterUrl || item.backdropUrl || item.imageUrl || '';
+            if (bg) {
+                this._ambientGlow.style.backgroundImage = `url('${bg}')`;
             }
             this._ambientGlow.classList.add('sh-modal-ambient-glow--open');
         }
