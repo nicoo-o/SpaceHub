@@ -968,7 +968,9 @@ class CardBuilder {
     overflow: visible;
     cursor: pointer;
     position: relative;
-    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms ease;
+    will-change: transform;
+    backface-visibility: hidden;
 }
 
 .sh-card:hover, .sh-card.sh-tv-focused {

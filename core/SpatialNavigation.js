@@ -1,10 +1,9 @@
 /**
- * SpaceHub — Spatial Navigation (TV Remote & Multi-Menu Controller)
- * Version: 4.5.0
+ * SpaceHub — Spatial Navigation Pro (Apple TV 4K Engine & Anti-Rollback)
+ * Version: 5.0.0
  *
- * Moteur de navigation spatiale unifié pour télécommandes TV, manettes et claviers.
- * Navigation 100% opérationnelle dans la Fiche Média (.sh-episode-card, .sh-season-pill-btn),
- * les Réglages, la Recherche et tous les menus SpaceHub.
+ * Moteur de navigation spatiale haute performance 60/120fps.
+ * Intègre la reconnexion DOM par ID stable, la synchronisation RAF et l'anti-rebond.
  */
 
 'use strict';
@@ -20,15 +19,19 @@ export class SpatialNavigation {
         this._log = new Logger('SpatialNavigation');
         this._root = root;
         this._focusedElement = null;
+        this._lastFocusedId = null;
         this._lastInteractedElement = null;
         this._invokingElementStack = [];
         this._isEnabled = true;
         this._isTvMode = false;
+        this._isNavigating = false;
+        this._rafId = null;
         this._lastMouseX = null;
         this._lastMouseY = null;
+        
         this._injectStyles();
         this._bindEvents();
-        this._log.info('Moteur SpatialNavigation TV v4.5 (Fiches & Menus) actif.');
+        this._log.info('Moteur SpatialNavigation TV Pro v5.0 (Anti-Rollback) actif.');
     }
 
     _injectStyles() {
@@ -36,63 +39,87 @@ export class SpatialNavigation {
         const style = document.createElement('style');
         style.id = 'sh-spatial-nav-styles';
         style.textContent = `
-            /* Halo Luminescent Apple TV 4K sur le Poster du Média */
+            /* ── Apple TV 4K Pure Luminescent Aura & Hardware Composite ── */
+            .sh-card {
+                will-change: transform;
+                backface-visibility: hidden;
+                transform: translate3d(0, 0, 0);
+            }
+
             .sh-card.sh-tv-focused {
                 outline: none !important;
                 box-shadow: none !important;
-                transform: translateY(-6px) scale(1.025) !important;
+                transform: translate3d(0, -7px, 0) scale3d(1.03, 1.03, 1) !important;
+                z-index: 100 !important;
             }
 
             .sh-card.sh-tv-focused .sh-card__image-wrap {
-                outline: 3px solid #ff9f0a !important;
-                outline-offset: 3px !important;
-                box-shadow: 0 0 28px rgba(255, 159, 10, 0.70), 0 16px 40px rgba(0, 0, 0, 0.95) !important;
+                outline: 2.5px solid #ff9f0a !important;
+                outline-offset: 2.5px !important;
+                box-shadow: 
+                    0 0 0 1px rgba(255, 255, 255, 0.40),
+                    0 0 32px rgba(255, 159, 10, 0.65),
+                    0 18px 44px rgba(0, 0, 0, 0.95),
+                    inset 0 1px 1px rgba(255, 255, 255, 0.70) !important;
             }
 
             .sh-card.sh-tv-focused .sh-card__action-pill {
-                transform: translateX(-50%) translateY(0) !important;
+                transform: translateX(-50%) translateY(0) scale(1) !important;
                 opacity: 1 !important;
             }
 
             .sh-card.sh-tv-focused .sh-card__image {
-                transform: scale(1.04) !important;
+                transform: scale(1.045) !important;
             }
 
             .sh-card.sh-tv-focused .sh-card__codec-tag {
                 opacity: 0 !important;
-                transform: translateY(10px) !important;
+                transform: translateY(12px) !important;
             }
 
-            /* Halo Luminescent sur Boutons, Épisodes, Saisons et Onglets */
+            /* ── Halo sur Boutons d'Action & Onglets ── */
             .sh-tv-focused:not(.sh-card) {
                 outline: 2.5px solid #ff9f0a !important;
-                outline-offset: 3px !important;
-                box-shadow: 0 0 22px rgba(255, 159, 10, 0.65), 0 8px 24px rgba(0, 0, 0, 0.85) !important;
+                outline-offset: 2.5px !important;
+                box-shadow: 
+                    0 0 0 1px rgba(255, 255, 255, 0.35),
+                    0 0 24px rgba(255, 159, 10, 0.60),
+                    0 10px 28px rgba(0, 0, 0, 0.85) !important;
                 z-index: 9999 !important;
             }
 
+            /* ── Carte Épisode Haute Visibilité ── */
             .sh-episode-card.sh-tv-focused,
             .sh-ep-card.sh-tv-focused,
             .sh-slideup-ep-card.sh-tv-focused {
                 outline: 2.5px solid #ff9f0a !important;
                 outline-offset: 2px !important;
-                background: rgba(255, 159, 10, 0.12) !important;
-                transform: scale(1.015) translateY(-2px) !important;
+                background: linear-gradient(135deg, rgba(255, 159, 10, 0.20) 0%, rgba(255, 255, 255, 0.08) 100%) !important;
+                border-color: #ff9f0a !important;
+                transform: scale(1.02) translateY(-2px) !important;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.60), 0 0 20px rgba(255, 159, 10, 0.35) !important;
             }
 
+            .sh-episode-card.sh-tv-focused .sh-episode-overlay-play {
+                opacity: 1 !important;
+                transform: scale(1.1) !important;
+            }
+
+            /* ── Pilules et Badges Actifs ── */
             .sh-genre-chip.sh-tv-focused,
             .sh-nav-tab-btn.sh-tv-focused,
             .sh-season-pill-btn.sh-tv-focused,
             .sh-tab-btn.sh-tv-focused {
-                background: rgba(255, 159, 10, 0.25) !important;
+                background: rgba(255, 159, 10, 0.30) !important;
                 border-color: #ff9f0a !important;
+                transform: translateY(-2px) !important;
             }
         `;
         document.head.appendChild(style);
     }
 
     _bindEvents() {
-        // 1. Clavier / D-Pad
+        // 1. Clavier / D-Pad avec Synchronisation RAF et Anti-Rebond
         window.addEventListener('keydown', (e) => {
             if (!this._isEnabled) return;
 
@@ -111,7 +138,7 @@ export class SpatialNavigation {
                 case 'ArrowLeft':
                 case 'ArrowRight':
                     e.preventDefault();
-                    this._handleDirection(e.key.replace('Arrow', '').toLowerCase());
+                    this._queueDirection(e.key.replace('Arrow', '').toLowerCase());
                     break;
                 case 'Enter':
                     if (this._focusedElement) {
@@ -126,7 +153,7 @@ export class SpatialNavigation {
             }
         });
 
-        // 2. Bascule Souris
+        // 2. Bascule Souris Fluide
         window.addEventListener('mousemove', (e) => {
             if (this._lastMouseX === null || this._lastMouseY === null) {
                 this._lastMouseX = e.clientX;
@@ -146,11 +173,12 @@ export class SpatialNavigation {
             }
         }, { passive: true });
 
-        // 3. Mémorisation du survol souris
+        // 3. Mémorisation du survol souris pour reprise exacte
         document.addEventListener('mouseover', (e) => {
             const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-episode-card, .sh-season-pill-btn, button, a');
             if (target) {
                 this._lastInteractedElement = target;
+                this._recordElementId(target);
             }
         }, { passive: true });
 
@@ -161,15 +189,48 @@ export class SpatialNavigation {
             const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-cinema-btn-play, .sh-cinema-btn-glass, button, a');
             if (target) {
                 this._lastInteractedElement = target;
+                this._recordElementId(target);
             }
         }, { passive: true });
     }
 
+    _queueDirection(direction) {
+        if (this._isNavigating) return;
+        this._isNavigating = true;
+
+        if (this._rafId) cancelAnimationFrame(this._rafId);
+        this._rafId = requestAnimationFrame(() => {
+            this._handleDirection(direction);
+            this._isNavigating = false;
+        });
+    }
+
+    _recordElementId(el) {
+        if (!el) return;
+        this._lastFocusedId = el.dataset?.id || el.dataset?.itemId || el.dataset?.epId || el.id || null;
+    }
+
     /**
-     * Notifie l'ouverture d'une modale pour restreindre et initialiser le focus TV.
-     * @param {HTMLElement} container
-     * @param {HTMLElement} [defaultFocusEl]
+     * Tente de reconnecter le focus à un élément ayant le même ID si le DOM a été rafraîchi.
      */
+    _reconnectFocusIfDisconnected() {
+        if (this._focusedElement && document.body.contains(this._focusedElement)) {
+            return this._focusedElement;
+        }
+
+        if (this._lastFocusedId) {
+            const container = this._getActiveContainer();
+            const reconnected = container.querySelector(
+                `[data-id="${this._lastFocusedId}"], [data-item-id="${this._lastFocusedId}"], [data-ep-id="${this._lastFocusedId}"], #${this._lastFocusedId}`
+            );
+            if (reconnected) {
+                this._focusedElement = reconnected;
+                return reconnected;
+            }
+        }
+        return null;
+    }
+
     onModalOpened(container, defaultFocusEl = null) {
         if (this._focusedElement) {
             this._invokingElementStack.push(this._focusedElement);
@@ -183,12 +244,9 @@ export class SpatialNavigation {
             if (target) {
                 this._setFocus(target);
             }
-        }, 100);
+        }, 80);
     }
 
-    /**
-     * Notifie la fermeture d'une modale pour restituer le focus à l'appelant.
-     */
     onModalClosed() {
         this.clearFocus();
         const invokingEl = this._invokingElementStack.pop();
@@ -276,7 +334,7 @@ export class SpatialNavigation {
         ].join(', ');
 
         const all = Array.from(container.querySelectorAll(selector));
-                return all.filter(el => {
+        return all.filter(el => {
             if (
                 el.classList.contains('sh-hero-badge') ||
                 el.classList.contains('sh-score-rt') ||
@@ -297,7 +355,10 @@ export class SpatialNavigation {
         const focusables = this._getFocusableElements();
         if (focusables.length === 0) return;
 
-        if (!this._focusedElement || !document.body.contains(this._focusedElement)) {
+        let current = this._reconnectFocusIfDisconnected();
+
+        // Si aucun élément n'est sélectionné au clavier
+        if (!current) {
             if (this._lastInteractedElement && document.body.contains(this._lastInteractedElement)) {
                 const rect = this._lastInteractedElement.getBoundingClientRect();
                 if (rect.top >= 0 && rect.bottom <= window.innerHeight && rect.width > 0) {
@@ -325,13 +386,12 @@ export class SpatialNavigation {
             return;
         }
 
-        const current = this._focusedElement;
         const currentRect = current.getBoundingClientRect();
 
-        // ── 1. LOGIQUE SPÉCIALE DEDANS LA FICHE MÉDIA (ModalSlideUpSheet) ──
+        // ── 1. LOGIQUE DANS LA FICHE MÉDIA (ModalSlideUpSheet) ──
         const slideUp = document.querySelector('.sh-slideup-sheet--open');
         if (slideUp && slideUp.contains(current)) {
-            // A. Navigation dans les épisodes (Haut/Bas entre épisodes)
+            // A. Épisodes (Haut / Bas déterministe)
             if (current.classList.contains('sh-episode-card')) {
                 const episodeCards = Array.from(slideUp.querySelectorAll('.sh-episode-card'));
                 const curEpIdx = episodeCards.indexOf(current);
@@ -344,7 +404,6 @@ export class SpatialNavigation {
                             this._setFocus(episodeCards[curEpIdx - 1]);
                             return;
                         } else {
-                            // Remonter aux pilules de saison
                             const seasonPill = slideUp.querySelector('.sh-season-pill-btn.active') || slideUp.querySelector('.sh-season-pill-btn');
                             if (seasonPill) { this._setFocus(seasonPill); return; }
                         }
@@ -352,7 +411,7 @@ export class SpatialNavigation {
                 }
             }
 
-            // B. Navigation dans les pilules de saisons (Gauche/Droite entre saisons)
+            // B. Saisons (Gauche / Droite déterministe)
             if (current.classList.contains('sh-season-pill-btn')) {
                 const seasons = Array.from(slideUp.querySelectorAll('.sh-season-pill-btn'));
                 const curSIdx = seasons.indexOf(current);
@@ -373,7 +432,7 @@ export class SpatialNavigation {
                 }
             }
 
-            // C. Navigation dans les onglets (Gauche/Droite entre onglets)
+            // C. Onglets (Gauche / Droite déterministe)
             if (current.classList.contains('sh-tab-btn')) {
                 const tabs = Array.from(slideUp.querySelectorAll('.sh-tab-btn'));
                 const curTIdx = tabs.indexOf(current);
@@ -396,7 +455,7 @@ export class SpatialNavigation {
                 }
             }
 
-            // D. Navigation dans les boutons d'action d'en-tête (Gauche/Droite)
+            // D. En-Tête Boutons d'Action (Gauche / Droite déterministe)
             if (current.closest('.sh-cinema-actions')) {
                 const actionBtns = Array.from(slideUp.querySelectorAll('.sh-cinema-btn-play, .sh-cinema-btn-glass'));
                 const curBIdx = actionBtns.indexOf(current);
@@ -464,7 +523,7 @@ export class SpatialNavigation {
             }
         }
 
-        // ── 3. FALLBACK GÉOMÉTRIQUE 2D ──
+        // ── 3. FALLBACK GÉOMÉTRIQUE 2D UNIFIÉ ──
         let bestCandidate = null;
         let minDistance = Infinity;
 
@@ -506,6 +565,7 @@ export class SpatialNavigation {
 
         this._focusedElement = element;
         this._lastInteractedElement = element;
+        this._recordElementId(element);
         element.classList.add('sh-tv-focused');
 
         const scroller = element.closest(
@@ -537,6 +597,7 @@ export class SpatialNavigation {
 
     destroy() {
         this.clearFocus();
+        if (this._rafId) cancelAnimationFrame(this._rafId);
         this._isEnabled = false;
     }
 }
