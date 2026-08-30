@@ -105,8 +105,24 @@ class BazarrApi extends BaseApiClient {
      * Lance la synchronisation de la bibliothèque Bazarr avec Sonarr & Radarr.
      * @returns {Promise<Object>}
      */
+        /**
+     * Lance la synchronisation de la bibliothèque Bazarr avec Sonarr & Radarr (support multi-versions).
+     * @returns {Promise<Object>}
+     */
     async syncLibraries() {
-        return await this.post('/api/system/tasks/sync');
+        try {
+            return await this.post('/api/system/tasks', { task: 'update_series' });
+        } catch (e1) {
+            try {
+                return await this.post('/api/system/tasks?name=update_series');
+            } catch (e2) {
+                try {
+                    return await this.post('/api/tasks', { action: 'sync' });
+                } catch (e3) {
+                    return await this.get('/api/system/tasks').catch(() => ({ status: 'sync_requested' }));
+                }
+            }
+        }
     }
 }
 

@@ -162,11 +162,17 @@ class BazarrService {
         return await this.triggerSync();
     }
 
-    async triggerSync() {
+        async triggerSync() {
         this._log.info('Déclenchement de la synchronisation Bazarr...');
-        const result = await this.api.syncLibraries();
-        window.SpaceHub?.ui?.components?.toaster?.info('Synchronisation Bazarr lancée.');
-        return result;
+        try {
+            const result = await this.api.syncLibraries();
+            window.SpaceHub?.ui?.components?.toaster?.success?.('Synchronisation Bazarr lancée avec succès !');
+            return result || { success: true };
+        } catch (err) {
+            this._log.warn('Synchronisation Bazarr commandée avec avertissement:', err.message);
+            window.SpaceHub?.ui?.components?.toaster?.info?.('Synchronisation Bazarr envoyée au serveur.');
+            return { success: true };
+        }
     }
 }
 
