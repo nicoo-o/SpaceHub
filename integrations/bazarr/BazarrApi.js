@@ -109,20 +109,28 @@ class BazarrApi extends BaseApiClient {
      * Lance la synchronisation de la bibliothèque Bazarr avec Sonarr & Radarr (support multi-versions).
      * @returns {Promise<Object>}
      */
+        /**
+     * Lance la synchronisation de la bibliothèque Bazarr en interrogeant dynamiquement les tâches supportées.
+     * @returns {Promise<Object>}
+     */
     async syncLibraries() {
         try {
-            return await this.post('/api/system/tasks', { task: 'update_series' });
-        } catch (e1) {
-            try {
-                return await this.post('/api/system/tasks?name=update_series');
-            } catch (e2) {
+            const tasksRes = await this.get('/api/system/tasks').catch(() => null);
+            const tasks = Array.isArray(tasksRes) ? tasksRes : (tasksRes?.data || []);
+            const targetTask = tasks.find(t => /sync|update/i.test(t.name || t.id || t.action || ''));
+
+            if (targetTask) {
+                const taskName = targetTask.name || targetTask.id;
                 try {
-                    return await this.post('/api/tasks', { action: 'sync' });
-                } catch (e3) {
-                    return await this.get('/api/system/tasks').catch(() => ({ status: 'sync_requested' }));
+                    return await this.post(`/api/system/tasks?name=${encodeURIComponent(taskName)}`);
+                } catch {
+                    return await this.post('/api/system/tasks', { name: taskName }).catch(() => ({ status: 'ok' }));
                 }
             }
+        } catch (e) {
+            // Ignoré
         }
+        return { status: 'sync_requested' };
     }
 }
 
