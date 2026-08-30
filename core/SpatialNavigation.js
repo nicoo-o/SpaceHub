@@ -7,7 +7,7 @@
  * - Gestion du cycle de vie des écouteurs (named listeners, bind, unbind, destroy sans fuite).
  * - Priorité absolue au VideoPlayer (Player Bypass).
  * - Détection géométrique réelle des scopes (getBoundingClientRect).
- * - Algorithme universel 2D géométrique par bandes naturelles (_findSpatialTarget - zéro saut de ligne).
+ * - Algorithme universel 2D géométrique par bandes naturelles (_findSpatialTarget - isolation stricte 18px).
  * - Verrouillage absolu du scroll Hero à 0px (aucun décalage, filtre noir préservé).
  * - Entourage halo orange pur sur le bouton Regarder blanc.
  * - Back Stack propre avec notification immédiate onModalClosed et reconnexion automatique.
@@ -388,15 +388,21 @@ export class SpatialNavigation {
 
             if (below.length === 0) return null;
 
+            // Identifier le sommet Y de la rangée immédiatement inférieure
             let minTop = Infinity;
             below.forEach(c => {
                 const top = c.getBoundingClientRect().top;
                 if (top < minTop) minTop = top;
             });
 
-            // Ne considérer que la rangée immédiatement inférieure (marge de 45px)
-            const immediateRow = below.filter(c => c.getBoundingClientRect().top <= minTop + 45);
+            // Seuil strict de 18px pour isoler rigoureusement une seule rangée physique
+            const immediateRow = below.filter(c => c.getBoundingClientRect().top <= minTop + 18);
 
+            // 1. Si la rangée possède un élément actif (ex: onglet actif, saison active), aller dessus en priorité
+            const activeInRow = immediateRow.find(c => c.classList.contains('active') || c.classList.contains('selected'));
+            if (activeInRow) return activeInRow;
+
+            // 2. Sinon, choisir l'élément le plus proche en alignement horizontal X
             let best = immediateRow[0];
             let minDx = Infinity;
             immediateRow.forEach(c => {
@@ -420,14 +426,18 @@ export class SpatialNavigation {
 
             if (above.length === 0) return null;
 
+            // Identifier le bas Y de la rangée immédiatement supérieure
             let maxBottom = -Infinity;
             above.forEach(c => {
                 const bottom = c.getBoundingClientRect().bottom;
                 if (bottom > maxBottom) maxBottom = bottom;
             });
 
-            // Ne considérer que la rangée immédiatement supérieure
-            const immediateRow = above.filter(c => c.getBoundingClientRect().bottom >= maxBottom - 45);
+            // Seuil strict de 18px pour isoler rigoureusement la rangée du dessus
+            const immediateRow = above.filter(c => c.getBoundingClientRect().bottom >= maxBottom - 18);
+
+            const activeInRow = immediateRow.find(c => c.classList.contains('active') || c.classList.contains('selected'));
+            if (activeInRow) return activeInRow;
 
             let best = immediateRow[0];
             let minDx = Infinity;
@@ -448,8 +458,8 @@ export class SpatialNavigation {
                 if (c === current) return false;
                 const r = c.getBoundingClientRect();
                 const centerY = r.top + r.height / 2;
-                const inHorizontalBand = Math.abs(centerY - currentCenterY) < Math.max(currentRect.height, r.height) + 20;
-                return r.width > 0 && r.height > 0 && r.left >= currentRect.left + 5 && inHorizontalBand;
+                const inHorizontalBand = Math.abs(centerY - currentCenterY) < Math.max(currentRect.height, r.height) + 12;
+                return r.width > 0 && r.height > 0 && r.left >= currentRect.left + 4 && inHorizontalBand;
             });
 
             if (rightCandidates.length === 0) return null;
@@ -472,8 +482,8 @@ export class SpatialNavigation {
                 if (c === current) return false;
                 const r = c.getBoundingClientRect();
                 const centerY = r.top + r.height / 2;
-                const inHorizontalBand = Math.abs(centerY - currentCenterY) < Math.max(currentRect.height, r.height) + 20;
-                return r.width > 0 && r.height > 0 && r.right <= currentRect.left - 5 && inHorizontalBand;
+                const inHorizontalBand = Math.abs(centerY - currentCenterY) < Math.max(currentRect.height, r.height) + 12;
+                return r.width > 0 && r.height > 0 && r.right <= currentRect.left - 4 && inHorizontalBand;
             });
 
             if (leftCandidates.length === 0) return null;
