@@ -724,6 +724,19 @@ class HeroSpotlightComponent {
 .sh-hero-edge-btn--prev { left: 24px; }
 .sh-hero-edge-btn--next { right: 24px; }
 
+/* ── FLÈCHES HERO EN MODE TV FOCUS ── */
+.sh-hero-edge-btn.sh-focus-active,
+.sh-hero-edge-btn.sh-tv-focused {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: translateY(-50%) scale(1.15) !important;
+    border-color: #ff9f0a !important;
+    background: rgba(30, 30, 45, 0.95) !important;
+    box-shadow: 0 0 0 2.5px #ff9f0a, 0 0 24px rgba(255, 159, 10, 0.8) !important;
+    z-index: 999 !important;
+}
+
+
 .sh-hero-edge-btn.sh-hero-edge-btn--visible {
     opacity: 0.90;
     pointer-events: auto !important;

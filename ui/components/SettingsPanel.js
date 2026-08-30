@@ -68,31 +68,31 @@ class SettingsPanel {
             <div class="sh-settings-container">
                 <!-- Navigation latérale macOS Style -->
                 <nav class="sh-settings-nav">
-                    <button class="sh-settings-nav__item ${this._activeTab === 'general' ? 'active' : ''}" data-tab="general">
+                    <button tabindex="0" data-nav-focusable="true" class="sh-settings-nav__item ${this._activeTab === 'general' ? 'active' : ''}" data-tab="general">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                         <span>Général</span>
                     </button>
-                    <button class="sh-settings-nav__item ${this._activeTab === 'theme' ? 'active' : ''}" data-tab="theme">
+                    <button tabindex="0" data-nav-focusable="true" class="sh-settings-nav__item ${this._activeTab === 'theme' ? 'active' : ''}" data-tab="theme">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path></svg>
                         <span>Apparence</span>
                     </button>
-                    <button class="sh-settings-nav__item ${this._activeTab === 'dashboard' ? 'active' : ''}" data-tab="dashboard">
+                    <button tabindex="0" data-nav-focusable="true" class="sh-settings-nav__item ${this._activeTab === 'dashboard' ? 'active' : ''}" data-tab="dashboard">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
                         <span>Dashboard</span>
                     </button>
-                    <button class="sh-settings-nav__item ${this._activeTab === 'libraries' ? 'active' : ''}" data-tab="libraries">
+                    <button tabindex="0" data-nav-focusable="true" class="sh-settings-nav__item ${this._activeTab === 'libraries' ? 'active' : ''}" data-tab="libraries">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
                         <span>Médiathèques</span>
                     </button>
-                    <button class="sh-settings-nav__item ${this._activeTab === 'integrations' ? 'active' : ''}" data-tab="integrations">
+                    <button tabindex="0" data-nav-focusable="true" class="sh-settings-nav__item ${this._activeTab === 'integrations' ? 'active' : ''}" data-tab="integrations">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                         <span>Intégrations</span>
                     </button>
-                    <button class="sh-settings-nav__item ${this._activeTab === 'notifications' ? 'active' : ''}" data-tab="notifications">
+                    <button tabindex="0" data-nav-focusable="true" class="sh-settings-nav__item ${this._activeTab === 'notifications' ? 'active' : ''}" data-tab="notifications">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                         <span>Notifications</span>
                     </button>
-                    <button class="sh-settings-nav__item ${this._activeTab === 'backup' ? 'active' : ''}" data-tab="backup">
+                    <button tabindex="0" data-nav-focusable="true" class="sh-settings-nav__item ${this._activeTab === 'backup' ? 'active' : ''}" data-tab="backup">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         <span>Sauvegarde</span>
                     </button>

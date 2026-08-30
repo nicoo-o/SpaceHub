@@ -473,16 +473,16 @@ export class SpatialNavigation {
             return 'modal-sheet';
         }
 
-        // 4. Modale générale active
+        // 4. Paramètres (Settings) - Priorité avant les modales génériques
+        const settings = document.querySelector('#spacehub-settings.is-open, #spacehub-settings.open, #spacehub-settings, .sh-settings-modal');
+        if (settings && settings.getBoundingClientRect().height > 0 && window.getComputedStyle(settings).display !== 'none') {
+            return 'settings';
+        }
+
+        // 5. Modale générale active
         const generalModal = document.querySelector('.sh-modal-overlay.open, .sh-modal.open, .sh-console-modal-overlay.open, #sh-admin-dashboard-modal, .sh-admin-modal-overlay');
         if (generalModal && generalModal.getBoundingClientRect().height > 0) {
             return 'general-modal';
-        }
-
-        // 5. Paramètres (Settings)
-        const settings = document.querySelector('#spacehub-settings.is-open, .sh-settings-modal.is-open, #spacehub-settings');
-        if (settings && settings.getBoundingClientRect().height > 0 && window.getComputedStyle(settings).display !== 'none') {
-            return 'settings';
         }
 
         // 6. Recherche Unifiée (Search)
@@ -1040,24 +1040,119 @@ export class SpatialNavigation {
 
     // ─── 3. SCOPES SECONDAIRES ──────────────────────────────────────────────
     _navigateSettings(direction) {
-        const container = document.querySelector('#spacehub-settings, .sh-settings-modal, .sh-modal-overlay.open, .sh-modal.open');
+        const container = document.querySelector('#spacehub-settings, .sh-settings-modal, .sh-modal-overlay.open');
         if (!container) return;
-        const focusables = this._getFocusablesInContainer(container);
-        if (focusables.length === 0) return;
+
+        const navTabs = Array.from(container.querySelectorAll('.sh-settings-nav__item'));
+        const contentItems = Array.from(container.querySelectorAll(
+            '.sh-settings-content input, .sh-settings-content select, .sh-settings-content button, .sh-settings-content .sh-theme-card, .sh-settings-content a, .sh-settings-content [tabindex="0"]'
+        )).filter(el => {
+            const rect = el.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).display !== 'none';
+        });
+        const footerBtns = Array.from(container.querySelectorAll('.sh-modal-footer button, .sh-modal__footer button, [data-action="close"], [data-action="save"]'));
 
         let current = this._focusedElement;
-        if (!current || !container.contains(current)) return this._setFocus(focusables[0]);
 
-        const target = this._findSpatialTarget(current, focusables, direction);
-        if (target) {
-            return this._setFocus(target);
+        if (!current || !container.contains(current)) {
+            const activeTab = navTabs.find(t => t.classList.contains('active')) || navTabs[0] || footerBtns[0];
+            if (activeTab) return this._setFocus(activeTab);
+            return;
         }
 
-        const curIdx = focusables.indexOf(current);
-        if (direction === 'down' && curIdx + 1 < focusables.length) {
-            this._setFocus(focusables[curIdx + 1]);
-        } else if (direction === 'up' && curIdx > 0) {
-            this._setFocus(focusables[curIdx - 1]);
+        // 1. Navigation dans la barre d'onglets latérale (macOS Style)
+        if (navTabs.includes(current)) {
+            const curIdx = navTabs.indexOf(current);
+            if (direction === 'down') {
+                if (curIdx !== -1 && curIdx + 1 < navTabs.length) {
+                    const nextTab = navTabs[curIdx + 1];
+                    this._setFocus(nextTab);
+                    nextTab.click(); // Activer automatiquement l'onglet
+                } else if (footerBtns.length > 0) {
+                    this._setFocus(footerBtns[0]);
+                }
+                return;
+            }
+            if (direction === 'up') {
+                if (curIdx > 0) {
+                    const prevTab = navTabs[curIdx - 1];
+                    this._setFocus(prevTab);
+                    prevTab.click();
+                }
+                return;
+            }
+            if (direction === 'right') {
+                if (contentItems.length > 0) {
+                    return this._setFocus(contentItems[0]);
+                } else if (footerBtns.length > 0) {
+                    return this._setFocus(footerBtns[0]);
+                }
+                return;
+            }
+            return;
+        }
+
+        // 2. Navigation dans le contenu de droite
+        if (contentItems.includes(current)) {
+            const curIdx = contentItems.indexOf(current);
+            if (direction === 'left') {
+                const target = this._findSpatialTarget(current, contentItems, 'left');
+                if (target) return this._setFocus(target);
+                // Retourner à l'onglet actif
+                const activeTab = navTabs.find(t => t.classList.contains('active')) || navTabs[0];
+                if (activeTab) return this._setFocus(activeTab);
+                return;
+            }
+            if (direction === 'right') {
+                const target = this._findSpatialTarget(current, contentItems, 'right');
+                if (target) return this._setFocus(target);
+                return;
+            }
+            if (direction === 'down') {
+                const target = this._findSpatialTarget(current, contentItems, 'down');
+                if (target) return this._setFocus(target);
+                if (curIdx !== -1 && curIdx + 1 < contentItems.length) {
+                    return this._setFocus(contentItems[curIdx + 1]);
+                } else if (footerBtns.length > 0) {
+                    return this._setFocus(footerBtns[0]);
+                }
+                return;
+            }
+            if (direction === 'up') {
+                const target = this._findSpatialTarget(current, contentItems, 'up');
+                if (target) return this._setFocus(target);
+                if (curIdx > 0) {
+                    return this._setFocus(contentItems[curIdx - 1]);
+                } else {
+                    const activeTab = navTabs.find(t => t.classList.contains('active')) || navTabs[0];
+                    if (activeTab) return this._setFocus(activeTab);
+                }
+                return;
+            }
+            return;
+        }
+
+        // 3. Navigation dans les boutons de pied de page
+        if (footerBtns.includes(current)) {
+            const curIdx = footerBtns.indexOf(current);
+            if (direction === 'right' && curIdx + 1 < footerBtns.length) {
+                return this._setFocus(footerBtns[curIdx + 1]);
+            }
+            if (direction === 'left') {
+                if (curIdx > 0) return this._setFocus(footerBtns[curIdx - 1]);
+                const activeTab = navTabs.find(t => t.classList.contains('active')) || navTabs[0];
+                if (activeTab) return this._setFocus(activeTab);
+                return;
+            }
+            if (direction === 'up') {
+                if (contentItems.length > 0) {
+                    return this._setFocus(contentItems[contentItems.length - 1]);
+                } else {
+                    const activeTab = navTabs.find(t => t.classList.contains('active')) || navTabs[0];
+                    if (activeTab) return this._setFocus(activeTab);
+                }
+                return;
+            }
         }
     }
 
@@ -1125,18 +1220,15 @@ export class SpatialNavigation {
 
     // ─── UTILITAIRES & FOCUS MANAGEMENT ──────────────────────────────────────
     _reconnectDashboardFocus() {
+        const heroPlay = document.getElementById('sh-hero-btn-play') || document.querySelector('.sh-hero-btn-play');
+        if (heroPlay && heroPlay.getBoundingClientRect().height > 0) {
+            return heroPlay;
+        }
         if (this._lastDashboardFocusedCard && document.body.contains(this._lastDashboardFocusedCard) && !this._lastDashboardFocusedCard.closest('.sh-slideup-sheet')) {
             return this._lastDashboardFocusedCard;
         }
         if (this._lastDashboardFocusedCardId) {
             const reconnected = document.querySelector(`.sh-dashboard__grid .sh-card[data-id="${this._lastDashboardFocusedCardId}"], .sh-dashboard__grid .sh-card[data-item-id="${this._lastDashboardFocusedCardId}"]`);
-            if (reconnected) {
-                this._lastDashboardFocusedCard = reconnected;
-                return reconnected;
-            }
-        }
-        if (this._lastFocusedId) {
-            const reconnected = document.querySelector(`.sh-dashboard__grid [data-id="${this._lastFocusedId}"], .sh-dashboard__grid [data-item-id="${this._lastFocusedId}"]`);
             if (reconnected) return reconnected;
         }
         return document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton)');
