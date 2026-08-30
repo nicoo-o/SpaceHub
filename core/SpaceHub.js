@@ -21,6 +21,8 @@ import SettingsManager from './SettingsManager.js';
 import CacheManager    from './CacheManager.js';
 import { ApiClient, JellyfinClient } from './ApiClient.js';
 import SpaceHubSDK     from './SDK.js';
+import TouchEngine     from './TouchEngine.js';
+import AudioFeedback    from './AudioFeedback.js';
 
 import ThemeManager    from '../ui/themes/ThemeManager.js';
 import Toaster         from '../ui/components/Toaster.js';
@@ -173,6 +175,10 @@ const SpaceHub = {
 async function init() {
         // 1. Logger
     const log = new Logger('SpaceHub');
+    const touchEngine = new TouchEngine();
+    const audioFeedback = new AudioFeedback();
+    SpaceHub.core.audioFeedback = audioFeedback;
+    SpaceHub.core.touchEngine = touchEngine;
     SpaceHub.core.log = log;
     log.info(`🚀 Initialisation de SpaceHub v${SpaceHub.version}...`);
 

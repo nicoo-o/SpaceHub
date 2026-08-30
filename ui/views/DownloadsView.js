@@ -92,38 +92,38 @@ class DownloadsView {
                 <!-- Barre de Navigation des Services (Liquid Spring Tab Bar) -->
                 <nav class="sh-downloads-nav">
                     <div class="sh-downloads-nav__track">
-                        <button class="sh-dl-tab-btn ${this._activeTab === 'qbit' ? 'active' : ''}" data-tab="qbit">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'qbit' ? 'active' : ''}" data-tab="qbit">
                             <span class="sh-dl-tab-icon">⚡</span>
                             <span>qBittorrent</span>
                         </button>
-                        <button class="sh-dl-tab-btn ${this._activeTab === 'jellyseerr' ? 'active' : ''}" data-tab="jellyseerr">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'jellyseerr' ? 'active' : ''}" data-tab="jellyseerr">
                             <span class="sh-dl-tab-icon">🍿</span>
                             <span>Jellyseerr</span>
                         </button>
-                        <button class="sh-dl-tab-btn ${this._activeTab === 'sonarr' ? 'active' : ''}" data-tab="sonarr">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'sonarr' ? 'active' : ''}" data-tab="sonarr">
                             <span class="sh-dl-tab-icon">📺</span>
                             <span>Séries (Sonarr)</span>
                         </button>
-                        <button class="sh-dl-tab-btn ${this._activeTab === 'radarr' ? 'active' : ''}" data-tab="radarr">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'radarr' ? 'active' : ''}" data-tab="radarr">
                             <span class="sh-dl-tab-icon">🎬</span>
                             <span>Films (Radarr)</span>
                         </button>
-                        <button class="sh-dl-tab-btn ${this._activeTab === 'bazarr' ? 'active' : ''}" data-tab="bazarr">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'bazarr' ? 'active' : ''}" data-tab="bazarr">
                             <span class="sh-dl-tab-icon">📝</span>
                             <span>Sous-titres (Bazarr)</span>
                         </button>
-                        <button class="sh-dl-tab-btn ${this._activeTab === 'calendar' ? 'active' : ''}" data-tab="calendar">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'calendar' ? 'active' : ''}" data-tab="calendar">
                             <span class="sh-dl-tab-icon">📅</span>
                             <span>Calendrier Sorties</span>
                         </button>
-                        <button class="sh-dl-tab-btn ${this._activeTab === 'health' ? 'active' : ''}" data-tab="health">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'health' ? 'active' : ''}" data-tab="health">
                             <span class="sh-dl-tab-icon">🩺</span>
                             <span>Santé Médiathèque</span>
                         </button>
                     </div>
 
                     <div class="sh-downloads-nav__actions">
-                        <button class="sh-dl-action-btn" id="sh-dl-btn-refresh" title="Actualiser tous les flux">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-action-btn" id="sh-dl-btn-refresh" title="Actualiser tous les flux">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
                             <span>Actualiser</span>
                         </button>

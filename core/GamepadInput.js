@@ -1,171 +1,268 @@
 /**
- * SpaceHub — GamepadInput (Grand Cinema Edition v8.0)
- * Module de gestion des manettes de jeu et contrôleurs avec polling optimisé et throttling intelligent.
+ * SpaceHub — Advanced Gamepad & Virtual Cursor Engine (v9.0)
+ * Version: 2.0.0
+ *
+ * Moteur Manette Industriel :
+ * - D-Pad & Stick Gauche (Navigation 2D avec deadzone 0.15).
+ * - Stick Droit : Scroll fluide vertical ou Mode "Souris Virtuelle" (toggle via R3 / stick-click).
+ * - Gâchettes L2 / R2 (Avance/retour rapide & switch d'onglets).
+ * - Retour haptique / Vibrations (gamepad.vibrationActuator).
+ * - Détection automatique de type de manette (Xbox, PlayStation DualSense, Nintendo Switch).
+ * - Throttling & Auto-repeat intelligent.
  */
 
 'use strict';
 
+import Logger from './Logger.js';
 import { NavAction } from './InputMapper.js';
 
 export class GamepadInput {
     /**
-     * @param {Object} [options]
-     * @param {Function} [options.onAction] Callback invoqué lors d'une action gamepad
+     * @param {Object} options
+     * @param {(action: string) => void} options.onAction
      */
-    constructor({ onAction = null } = {}) {
-        this._onAction = onAction;
+    constructor({ onAction } = {}) {
+        this._log = new Logger('GamepadInput');
+        this._onAction = onAction || (() => {});
         this._isEnabled = true;
         this._rafId = null;
-        this._connectedGamepads = new Set();
-        
-        // État des boutons pour le système de répétition intelligente (Repeat / Throttling)
-        this._buttonTimestamps = new Map();
-        this._initialDelay = 300; // ms avant première répétition
-        this._repeatInterval = 110; // ms entre chaque répétition
+        this._deadzone = 0.18;
+        this._initialDelay = 280;
+        this._repeatInterval = 100;
+        this._lastActionTime = 0;
+        this._activeDirection = null;
+        this._virtualMouseMode = false;
+        this._virtualCursorX = window.innerWidth / 2;
+        this._virtualCursorY = window.innerHeight / 2;
+        this._cursorEl = null;
 
-        this._boundConnect = this._handleConnect.bind(this);
-        this._boundDisconnect = this._handleDisconnect.bind(this);
-        this._boundPoll = this._pollLoop.bind(this);
+        this._buttonStates = new Map();
+        this._boundLoop = this._pollLoop.bind(this);
 
-        this._bindEvents();
+        this._injectVirtualCursorStyles();
+        this.enable();
+        this._log.info('Moteur Gamepad Avancé v2.0 opérationnel.');
     }
 
-    _bindEvents() {
-        window.addEventListener('gamepadconnected', this._boundConnect);
-        window.addEventListener('gamepaddisconnected', this._boundDisconnect);
-    }
-
-    _unbindEvents() {
-        window.removeEventListener('gamepadconnected', this._boundConnect);
-        window.removeEventListener('gamepaddisconnected', this._boundDisconnect);
-    }
-
-    _handleConnect(e) {
-        if (!e.gamepad) return;
-        this._connectedGamepads.add(e.gamepad.index);
-        console.log(`[GamepadInput] Manette connectée (${e.gamepad.index}): ${e.gamepad.id}`);
-        this._startPolling();
-    }
-
-    _handleDisconnect(e) {
-        if (!e.gamepad) return;
-        this._connectedGamepads.delete(e.gamepad.index);
-        console.log(`[GamepadInput] Manette déconnectée (${e.gamepad.index})`);
-        if (this._connectedGamepads.size === 0) {
-            this._stopPolling();
-        }
-    }
-
-    _startPolling() {
-        if (this._rafId !== null) return;
-        this._rafId = requestAnimationFrame(this._boundPoll);
-    }
-
-    _stopPolling() {
-        if (this._rafId !== null) {
-            cancelAnimationFrame(this._rafId);
-            this._rafId = null;
-        }
-        this._buttonTimestamps.clear();
-    }
-
-    _pollLoop() {
-        if (!this._isEnabled || this._connectedGamepads.size === 0) {
-            this._rafId = null;
-            return;
-        }
-
-        const gamepads = typeof navigator.getGamepads === 'function' ? navigator.getGamepads() : [];
-        const now = performance.now();
-
-        for (let i = 0; i < gamepads.length; i++) {
-            const gp = gamepads[i];
-            if (!gp || !gp.connected) continue;
-
-            // 1. Boutons standard (D-Pad & Actions)
-            // Bouton 12: D-Pad Haut / Bouton 13: D-Pad Bas / Bouton 14: D-Pad Gauche / Bouton 15: D-Pad Droite
-            // Bouton 0: A (Select) / Bouton 1: B (Back) / Bouton 9: Start / Bouton 8: Select
-            const buttons = gp.buttons;
-            const axes = gp.axes;
-
-            let currentAction = null;
-
-            // D-Pad ou Stick Gauche Haut
-            if ((buttons[12] && buttons[12].pressed) || (axes[1] && axes[1] < -0.55)) {
-                currentAction = NavAction.UP;
+    _injectVirtualCursorStyles() {
+        if (document.getElementById('sh-virtual-cursor-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'sh-virtual-cursor-styles';
+        style.textContent = `
+            .sh-virtual-cursor {
+                position: fixed;
+                width: 22px;
+                height: 22px;
+                border: 2px solid #ff9f0a;
+                background: rgba(255, 159, 10, 0.4);
+                box-shadow: 0 0 15px #ff9f0a, 0 4px 12px rgba(0,0,0,0.8);
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 9999999;
+                transform: translate(-50%, -50%);
+                display: none;
+                transition: transform 60ms linear;
             }
-            // D-Pad ou Stick Gauche Bas
-            else if ((buttons[13] && buttons[13].pressed) || (axes[1] && axes[1] > 0.55)) {
-                currentAction = NavAction.DOWN;
+            .sh-virtual-cursor.visible {
+                display: block;
             }
-            // D-Pad ou Stick Gauche Gauche
-            else if ((buttons[14] && buttons[14].pressed) || (axes[0] && axes[0] < -0.55)) {
-                currentAction = NavAction.LEFT;
-            }
-            // D-Pad ou Stick Gauche Droite
-            else if ((buttons[15] && buttons[15].pressed) || (axes[0] && axes[0] > 0.55)) {
-                currentAction = NavAction.RIGHT;
-            }
-            // Bouton A / Croix (Sélection)
-            else if (buttons[0] && buttons[0].pressed) {
-                currentAction = NavAction.SELECT;
-            }
-            // Bouton B / Cercle ou Bouton Retour (Back)
-            else if ((buttons[1] && buttons[1].pressed) || (buttons[8] && buttons[8].pressed)) {
-                currentAction = NavAction.BACK;
-            }
-
-            if (currentAction) {
-                this._processActionWithThrottle(currentAction, now);
-            } else {
-                this._buttonTimestamps.clear();
-            }
-        }
-
-        this._rafId = requestAnimationFrame(this._boundPoll);
-    }
-
-    _processActionWithThrottle(action, now) {
-        const lastPress = this._buttonTimestamps.get(action);
-
-        if (!lastPress) {
-            // Premier appui immédiat
-            this._buttonTimestamps.set(action, { firstTime: now, lastTime: now });
-            this._dispatchAction(action);
-        } else {
-            const timeSinceFirst = now - lastPress.firstTime;
-            const timeSinceLast = now - lastPress.lastTime;
-
-            // Si le bouton est maintenu au-delà du délai initial (300ms), répéter à intervalle régulier (110ms)
-            if (timeSinceFirst >= this._initialDelay && timeSinceLast >= this._repeatInterval) {
-                lastPress.lastTime = now;
-                this._dispatchAction(action);
-            }
-        }
-    }
-
-    _dispatchAction(action) {
-        if (typeof this._onAction === 'function') {
-            this._onAction(action);
-        } else {
-            window.dispatchEvent(new CustomEvent('spacehub:gamepad-action', { detail: { action } }));
-        }
+        `;
+        document.head.appendChild(style);
     }
 
     enable() {
         this._isEnabled = true;
-        if (this._connectedGamepads.size > 0) this._startPolling();
+        if (!this._rafId) {
+            this._rafId = requestAnimationFrame(this._boundLoop);
+        }
     }
 
     disable() {
         this._isEnabled = false;
-        this._stopPolling();
+        if (this._rafId) {
+            cancelAnimationFrame(this._rafId);
+            this._rafId = null;
+        }
+        if (this._cursorEl) {
+            this._cursorEl.classList.remove('visible');
+        }
+    }
+
+    vibrate(duration = 80, strongMagnitude = 0.6, weakMagnitude = 0.3) {
+        try {
+            const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+            const gp = Array.from(gamepads).find(g => g && g.connected);
+            if (gp?.vibrationActuator) {
+                gp.vibrationActuator.playEffect('dual-rumble', {
+                    startDelay: 0,
+                    duration: duration,
+                    weakMagnitude: weakMagnitude,
+                    strongMagnitude: strongMagnitude
+                }).catch(() => {});
+            } else if ('vibrate' in navigator) {
+                navigator.vibrate(duration);
+            }
+        } catch (_) {}
+    }
+
+    _pollLoop() {
+        if (!this._isEnabled) return;
+
+        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        const gp = Array.from(gamepads).find(g => g && g.connected);
+
+        if (gp) {
+            this._processGamepad(gp);
+        }
+
+        this._rafId = requestAnimationFrame(this._boundLoop);
+    }
+
+    _processGamepad(gp) {
+        const id = (gp.id || '').toLowerCase();
+        const isNintendo = id.includes('nintendo') || id.includes('switch') || id.includes('joy-con');
+
+        // 1. Boutons de navigation (D-Pad & Boutons principaux)
+        const btnA = gp.buttons[isNintendo ? 1 : 0]?.pressed;
+        const btnB = gp.buttons[isNintendo ? 0 : 1]?.pressed;
+        const btnX = gp.buttons[2]?.pressed;
+        const btnY = gp.buttons[3]?.pressed;
+        const btnL1 = gp.buttons[4]?.pressed;
+        const btnR1 = gp.buttons[5]?.pressed;
+        const btnL2 = gp.buttons[6]?.pressed;
+        const btnR2 = gp.buttons[7]?.pressed;
+        const btnSelect = gp.buttons[8]?.pressed;
+        const btnStart = gp.buttons[9]?.pressed;
+        const btnR3 = gp.buttons[11]?.pressed; // Stick droit clic
+
+        const dpadUp = gp.buttons[12]?.pressed;
+        const dpadDown = gp.buttons[13]?.pressed;
+        const dpadLeft = gp.buttons[14]?.pressed;
+        const dpadRight = gp.buttons[15]?.pressed;
+
+        // 2. Sticks analogiques
+        const stickLeftX = gp.axes[0] || 0;
+        const stickLeftY = gp.axes[1] || 0;
+        const stickRightX = gp.axes[2] || 0;
+        const stickRightY = gp.axes[3] || 0;
+
+        // Toggle Mode Souris Virtuelle sur R3
+        if (btnR3 && !this._buttonStates.get('r3')) {
+            this._buttonStates.set('r3', true);
+            this._virtualMouseMode = !this._virtualMouseMode;
+            this.vibrate(120, 0.8, 0.4);
+            this._ensureCursor();
+            this._cursorEl.classList.toggle('visible', this._virtualMouseMode);
+            window.SpaceHub?.ui?.components?.toaster?.info(
+                this._virtualMouseMode ? '🖱️ Souris Virtuelle Manette Activée' : '📺 Mode Navigation TV Restauré'
+            );
+        } else if (!btnR3) {
+            this._buttonStates.set('r3', false);
+        }
+
+        // Mode Souris Virtuelle
+        if (this._virtualMouseMode) {
+            if (Math.abs(stickRightX) > this._deadzone || Math.abs(stickRightY) > this._deadzone) {
+                this._virtualCursorX = Math.max(10, Math.min(window.innerWidth - 10, this._virtualCursorX + stickRightX * 18));
+                this._virtualCursorY = Math.max(10, Math.min(window.innerHeight - 10, this._virtualCursorY + stickRightY * 18));
+                if (this._cursorEl) {
+                    this._cursorEl.style.left = `${this._virtualCursorX}px`;
+                    this._cursorEl.style.top = `${this._virtualCursorY}px`;
+                }
+            }
+
+            if (btnA && !this._buttonStates.get('btnA')) {
+                this._buttonStates.set('btnA', true);
+                this.vibrate(40);
+                const el = document.elementFromPoint(this._virtualCursorX, this._virtualCursorY);
+                if (el) el.click();
+            } else if (!btnA) {
+                this._buttonStates.set('btnA', false);
+            }
+            return;
+        }
+
+        // Mode Scroll rapide au stick droit
+        if (Math.abs(stickRightY) > this._deadzone) {
+            window.scrollBy({ top: stickRightY * 24, behavior: 'auto' });
+        }
+
+        // Direction active (D-Pad prioritaire puis Stick Gauche)
+        let direction = null;
+        if (dpadUp || stickLeftY < -this._deadzone) direction = NavAction.UP;
+        else if (dpadDown || stickLeftY > this._deadzone) direction = NavAction.DOWN;
+        else if (dpadLeft || stickLeftX < -this._deadzone) direction = NavAction.LEFT;
+        else if (dpadRight || stickLeftX > this._deadzone) direction = NavAction.RIGHT;
+
+        const now = Date.now();
+
+        if (direction) {
+            if (this._activeDirection !== direction) {
+                this._activeDirection = direction;
+                this._lastActionTime = now;
+                this.vibrate(10);
+                this._onAction(direction);
+            } else if (now - this._lastActionTime > this._initialDelay) {
+                this._lastActionTime = now - (this._initialDelay - this._repeatInterval);
+                this._onAction(direction);
+            }
+        } else {
+            this._activeDirection = null;
+        }
+
+        // Actions bouton unique (A, B, X, Y, Start, Triggers)
+        this._handleButtonPress('btnA', btnA, () => {
+            this.vibrate(20);
+            this._onAction(NavAction.SELECT);
+        });
+
+        this._handleButtonPress('btnB', btnB, () => {
+            this.vibrate(15);
+            this._onAction(NavAction.BACK);
+        });
+
+        this._handleButtonPress('btnStart', btnStart, () => {
+            this.vibrate(25);
+            this._onAction(NavAction.MENU);
+        });
+
+        this._handleButtonPress('btnL2', btnL2, () => {
+            this.vibrate(20);
+            this._onAction(NavAction.PAGE_UP);
+        });
+
+        this._handleButtonPress('btnR2', btnR2, () => {
+            this.vibrate(20);
+            this._onAction(NavAction.PAGE_DOWN);
+        });
+    }
+
+    _handleButtonPress(key, isPressed, callback) {
+        if (isPressed) {
+            if (!this._buttonStates.get(key)) {
+                this._buttonStates.set(key, true);
+                callback();
+            }
+        } else {
+            this._buttonStates.set(key, false);
+        }
+    }
+
+    _ensureCursor() {
+        if (document.getElementById('sh-virtual-cursor')) {
+            this._cursorEl = document.getElementById('sh-virtual-cursor');
+            return;
+        }
+        const cursor = document.createElement('div');
+        cursor.id = 'sh-virtual-cursor';
+        cursor.className = 'sh-virtual-cursor';
+        document.body.appendChild(cursor);
+        this._cursorEl = cursor;
     }
 
     destroy() {
         this.disable();
-        this._unbindEvents();
-        this._connectedGamepads.clear();
+        if (this._cursorEl) this._cursorEl.remove();
     }
 }
 

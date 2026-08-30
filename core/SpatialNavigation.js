@@ -41,6 +41,10 @@ export class SpatialNavigation {
         this._rafId = null;
         this._lastMouseX = null;
         this._lastMouseY = null;
+        this._dirHoldTimer = null;
+        this._dirHoldStart = 0;
+        this._selectHoldTimer = null;
+        this._isLongPressActive = false;
 
         // Module de gestion Gamepad
         this._gamepadInput = new GamepadInput({
@@ -49,9 +53,11 @@ export class SpatialNavigation {
 
         // Liaisons nommées pour un cycle de vie propre (bind/unbind)
         this._boundKeyDown = this._handleKeyDown.bind(this);
+        this._boundKeyUp = this._handleKeyUp.bind(this);
         this._boundMouseMove = this._handleMouseMove.bind(this);
         this._boundMouseOver = this._handleMouseOver.bind(this);
         this._boundPointerDown = this._handlePointerDown.bind(this);
+        this._boundResize = this._handleResize.bind(this);
 
         this._injectStyles();
         this._bindEvents();
@@ -72,6 +78,37 @@ export class SpatialNavigation {
             body.sh-tv-mode a:focus,
             body.sh-tv-mode [tabindex]:focus {
                 outline: none !important;
+            }
+
+            /* ── UNIFICATION DU FOCUS ACTIF HAUTE COUTURE (.sh-focus-active) ── */
+            .sh-focus-active,
+            .sh-card.sh-focus-active,
+            .sh-card.sh-tv-focused {
+                outline: none !important;
+                box-shadow: none !important;
+                transform: translate3d(0, -7px, 0) scale3d(1.03, 1.03, 1) !important;
+                z-index: 100 !important;
+            }
+
+            .sh-card.sh-focus-active .sh-card__image-wrap,
+            .sh-card.sh-tv-focused .sh-card__image-wrap {
+                outline: none !important;
+                box-shadow: 
+                    0 0 0 2.5px #ff9f0a,
+                    0 0 0 4px rgba(255, 255, 255, 0.40),
+                    0 0 32px rgba(255, 159, 10, 0.65),
+                    0 18px 44px rgba(0, 0, 0, 0.95),
+                    inset 0 1px 1px rgba(255, 255, 255, 0.70) !important;
+            }
+
+            .sh-focus-active:not(.sh-card),
+            .sh-tv-focused:not(.sh-card) {
+                outline: none !important;
+                border-color: #ff9f0a !important;
+                box-shadow: 
+                    0 0 0 2px #ff9f0a,
+                    0 0 18px rgba(255, 159, 10, 0.65) !important;
+                z-index: 9999 !important;
             }
 
             /* ── AURA LUMINESCENTE CINÉMATIQUE SUR CARTES ── */
@@ -192,6 +229,7 @@ export class SpatialNavigation {
 
     _bindEvents() {
         window.addEventListener('keydown', this._boundKeyDown);
+        window.addEventListener('keyup', this._boundKeyUp);
         window.addEventListener('mousemove', this._boundMouseMove, { passive: true });
         document.addEventListener('mouseover', this._boundMouseOver, { passive: true });
         document.addEventListener('pointerdown', this._boundPointerDown, { passive: true });
@@ -199,9 +237,12 @@ export class SpatialNavigation {
 
     _unbindEvents() {
         window.removeEventListener('keydown', this._boundKeyDown);
+        window.removeEventListener('keyup', this._boundKeyUp);
         window.removeEventListener('mousemove', this._boundMouseMove);
         document.removeEventListener('mouseover', this._boundMouseOver);
         document.removeEventListener('pointerdown', this._boundPointerDown);
+        window.removeEventListener('resize', this._boundResize);
+        window.removeEventListener('orientationchange', this._boundResize);
     }
 
     _handleKeyDown(e) {
@@ -224,14 +265,38 @@ export class SpatialNavigation {
 
         if (isDirectionAction(action)) {
             e.preventDefault();
+            if (!e.repeat) {
+                this._dirHoldStart = Date.now();
+            }
+            const holdTime = Date.now() - this._dirHoldStart;
+            // Si la touche est maintenue plus de 800ms ➔ Fast-scroll (saut de 5 cartes)
+            if (holdTime > 800) {
+                for (let i = 0; i < 4; i++) this._queueDirection(action);
+            }
             this._queueDirection(action);
+        } else if (action === NavAction.PAGE_DOWN) {
+            e.preventDefault();
+            this._handlePaging('down');
+        } else if (action === NavAction.PAGE_UP) {
+            e.preventDefault();
+            this._handlePaging('up');
         } else if (action === NavAction.SELECT) {
-            if (this._focusedElement) {
+            if (!e.repeat && this._focusedElement?.classList.contains('sh-card')) {
+                // Timer de Long-Press (600ms) pour ouvrir le menu contextuel rapide
+                this._selectHoldTimer = setTimeout(() => {
+                    this._isLongPressActive = true;
+                    this._openCardContextMenu(this._focusedElement);
+                }, 600);
+            }
+            if (this._focusedElement && !this._isLongPressActive) {
                 e.preventDefault();
                 this._activateFocused();
             }
         } else if (action === NavAction.BACK) {
             this._handleBack(e);
+        } else if (action === NavAction.MENU) {
+            e.preventDefault();
+            this._toggleSidebar();
         }
     }
 
@@ -256,13 +321,21 @@ export class SpatialNavigation {
 
     _handleMouseOver(e) {
         const target = e.target.closest(
-            '.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-nav-action-btn, ' +
+            '[data-nav-focusable], .sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-nav-action-btn, ' +
             '.sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-hero-btn-play, .sh-hero-btn-glass, ' +
             '.sh-slideup-back-btn, .sh-slideup-close-btn, .sh-episode-card, .sh-season-pill-btn, button, a'
         );
         if (target) {
             this._lastInteractedElement = target;
             this._recordElementId(target);
+
+            // Hover Intent : Délai de 90ms avant d'activer le focus visuel à la souris (évite les flashs)
+            if (this._hoverIntentTimer) clearTimeout(this._hoverIntentTimer);
+            this._hoverIntentTimer = setTimeout(() => {
+                if (this._lastInteractedElement === target && !this._isTvMode) {
+                    target.classList.add('sh-mouse-hovered');
+                }
+            }, 90);
         }
     }
 
@@ -270,13 +343,61 @@ export class SpatialNavigation {
         this.clearFocus();
         this._deactivateTvMode();
         const target = e.target.closest(
-            '.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-nav-action-btn, ' +
+            '[data-nav-focusable], .sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-nav-action-btn, ' +
             '.sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-hero-btn-play, .sh-hero-btn-glass, ' +
             '.sh-slideup-back-btn, .sh-slideup-close-btn, button, a'
         );
         if (target) {
             this._lastInteractedElement = target;
             this._recordElementId(target);
+        }
+    }
+
+    _handleKeyUp(e) {
+        this._dirHoldStart = 0;
+        if (this._selectHoldTimer) {
+            clearTimeout(this._selectHoldTimer);
+            this._selectHoldTimer = null;
+        }
+        setTimeout(() => {
+            this._isLongPressActive = false;
+        }, 100);
+    }
+
+    _handlePaging(direction) {
+        const allCards = Array.from(document.querySelectorAll('.sh-card:not(.sh-card--skeleton), [data-nav-focusable]'));
+        if (allCards.length === 0) return;
+
+        let current = this._focusedElement;
+        if (!current || !allCards.includes(current)) return this._setFocus(allCards[0]);
+
+        const curIdx = allCards.indexOf(current);
+        const step = 10; // Paging saut de 10 éléments d'un coup
+
+        if (direction === 'down') {
+            const nextIdx = Math.min(allCards.length - 1, curIdx + step);
+            this._setFocus(allCards[nextIdx]);
+        } else {
+            const prevIdx = Math.max(0, curIdx - step);
+            this._setFocus(allCards[prevIdx]);
+        }
+    }
+
+    _openCardContextMenu(cardEl) {
+        if (!cardEl) return;
+        const itemId = cardEl.dataset?.id || cardEl.dataset?.itemId;
+        const title = cardEl.querySelector('.sh-card__title')?.textContent || 'Média';
+        window.SpaceHub?.ui?.components?.toaster?.info(`⚙️ Menu Rapide : ${title}`);
+        cardEl.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+    }
+
+    _handleResize() {
+        if (this._focusedElement) {
+            const rect = this._focusedElement.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0 || !document.body.contains(this._focusedElement)) {
+                this.clearFocus();
+                this._reconnectDashboardFocus();
+            }
         }
     }
 
@@ -332,7 +453,7 @@ export class SpatialNavigation {
         }
 
         // 4. Modale générale active
-        const generalModal = document.querySelector('.sh-modal-overlay.open, .sh-modal.open, .sh-console-modal-overlay.open');
+        const generalModal = document.querySelector('.sh-modal-overlay.open, .sh-modal.open, .sh-console-modal-overlay.open, #sh-admin-dashboard-modal, .sh-admin-modal-overlay');
         if (generalModal && generalModal.getBoundingClientRect().height > 0) {
             return 'general-modal';
         }
@@ -373,6 +494,8 @@ export class SpatialNavigation {
                 this._navigateModalSheet(direction);
                 break;
             case 'general-modal':
+                this._navigateGeneralModal(direction);
+                break;
             case 'settings':
                 this._navigateSettings(direction);
                 break;
@@ -600,10 +723,20 @@ export class SpatialNavigation {
             const islandItems = Array.from(document.querySelectorAll('.sh-dynamic-island .sh-nav-tab-btn, .sh-dynamic-island .sh-nav-action-btn, .sh-dynamic-island .sh-user-avatar-btn'));
             const curIdx = islandItems.indexOf(current);
 
-            if (direction === 'right' && curIdx !== -1 && curIdx + 1 < islandItems.length) {
-                return this._setFocus(islandItems[curIdx + 1]);
-            } else if (direction === 'left' && curIdx !== -1 && curIdx > 0) {
-                return this._setFocus(islandItems[curIdx - 1]);
+            if (direction === 'right') {
+                if (curIdx !== -1 && curIdx + 1 < islandItems.length) {
+                    return this._setFocus(islandItems[curIdx + 1]);
+                } else if (curIdx === islandItems.length - 1) {
+                    // Wrap-around vers le premier élément
+                    return this._setFocus(islandItems[0]);
+                }
+            } else if (direction === 'left') {
+                if (curIdx !== -1 && curIdx > 0) {
+                    return this._setFocus(islandItems[curIdx - 1]);
+                } else if (curIdx === 0) {
+                    // Wrap-around vers le dernier élément
+                    return this._setFocus(islandItems[islandItems.length - 1]);
+                }
             } else if (direction === 'down') {
                 if (island) {
                     island.classList.remove('sh-island--expanded');
@@ -736,6 +869,36 @@ export class SpatialNavigation {
         }
     }
 
+    // ─── 4. SCOPE MODALES GÉNÉRALES & CONSOLE (Focus Registry & Trap) ─────────
+    _navigateGeneralModal(direction) {
+        const modal = document.querySelector(
+            '.sh-modal-overlay.open, .sh-console-modal-overlay.open, #sh-admin-dashboard-modal, .sh-admin-modal-overlay, .sh-modal.open'
+        );
+        if (!modal) return;
+
+        const allFocusables = this._getFocusablesInContainer(modal);
+        if (allFocusables.length === 0) return;
+
+        let current = this._focusedElement;
+        if (!current || !modal.contains(current)) {
+            const activeTab = modal.querySelector('.sh-console-nav-tab.active, .sh-tab-btn.active, .sh-btn--primary') || allFocusables[0];
+            return this._setFocus(activeTab);
+        }
+
+        const target = this._findSpatialTarget(current, allFocusables, direction);
+        if (target) {
+            return this._setFocus(target);
+        }
+
+        // Fallback linéaire si seuil angulaire strict non satisfait
+        const curIdx = allFocusables.indexOf(current);
+        if (direction === 'down' && curIdx !== -1 && curIdx + 1 < allFocusables.length) {
+            this._setFocus(allFocusables[curIdx + 1]);
+        } else if (direction === 'up' && curIdx > 0) {
+            this._setFocus(allFocusables[curIdx - 1]);
+        }
+    }
+
     // ─── 3. SCOPES SECONDAIRES ──────────────────────────────────────────────
     _navigateSettings(direction) {
         const container = document.querySelector('#spacehub-settings, .sh-settings-modal, .sh-modal-overlay.open, .sh-modal.open');
@@ -760,19 +923,34 @@ export class SpatialNavigation {
     }
 
     _navigateSearch(direction) {
+        const searchContainer = document.querySelector('.sh-unified-search-modal');
+        if (!searchContainer) return;
+
         const searchInput = document.getElementById('sh-search-input');
-        const results = Array.from(document.querySelectorAll('.sh-unified-search-modal .sh-card:not(.sh-card--skeleton)'));
+        const results = Array.from(searchContainer.querySelectorAll('.sh-card:not(.sh-card--skeleton), [data-nav-focusable], button'));
 
         if (this._focusedElement === searchInput) {
-            if (direction === 'down' && results.length > 0) return this._setFocus(results[0]);
-        } else if (results.includes(this._focusedElement)) {
-            const curIdx = results.indexOf(this._focusedElement);
-            if (direction === 'up' && curIdx === 0 && searchInput) {
+            if (direction === 'down' && results.length > 0) {
+                return this._setFocus(results[0]);
+            }
+            return;
+        }
+
+        let current = this._focusedElement;
+        if (!current || !searchContainer.contains(current)) {
+            if (searchInput) return this._setFocus(searchInput);
+            return;
+        }
+
+        const target = this._findSpatialTarget(current, results, direction);
+        if (target) {
+            return this._setFocus(target);
+        }
+
+        if (direction === 'up') {
+            const above = results.filter(c => c.getBoundingClientRect().bottom <= current.getBoundingClientRect().top + 5);
+            if (above.length === 0 && searchInput) {
                 return this._setFocus(searchInput);
-            } else if (direction === 'right' && curIdx + 1 < results.length) {
-                return this._setFocus(results[curIdx + 1]);
-            } else if (direction === 'left' && curIdx > 0) {
-                return this._setFocus(results[curIdx - 1]);
             }
         }
     }
@@ -789,6 +967,20 @@ export class SpatialNavigation {
             this._setFocus(items[curIdx + 1]);
         } else if (direction === 'up' && curIdx > 0) {
             this._setFocus(items[curIdx - 1]);
+        }
+    }
+
+    _toggleSidebar() {
+        const sidebar = window.SpaceHub?.ui?.sidebar || window.SpaceHub?.sidebar;
+        if (sidebar && typeof sidebar.toggle === 'function') {
+            sidebar.toggle();
+            const openDrawer = document.querySelector('.sh-sidebar--open, .sh-sidebar-drawer.open');
+            if (openDrawer) {
+                const firstItem = openDrawer.querySelector('.sh-sidebar-item, a, button');
+                if (firstItem) this._setFocus(firstItem);
+            } else {
+                this._reconnectDashboardFocus();
+            }
         }
     }
 
@@ -812,7 +1004,23 @@ export class SpatialNavigation {
     }
 
     _getFocusablesInContainer(container) {
+        if (!container) return [];
+
+        // 1. Focus Registry de vue active si disponible
+        const currentView = window.SpaceHub?.router?.getCurrentView?.();
+        if (currentView?.getFocusables && typeof currentView.getFocusables === 'function') {
+            const customFocusables = currentView.getFocusables(container);
+            if (Array.isArray(customFocusables) && customFocusables.length > 0) {
+                return customFocusables.filter(el => {
+                    const rect = el.getBoundingClientRect();
+                    return rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden';
+                });
+            }
+        }
+
+        // 2. Sélecteur universel haute couverture
         const selector = [
+            '[data-nav-focusable]',
             '#sh-hero-btn-play',
             '#sh-hero-btn-trailer',
             '#sh-hero-btn-details',
@@ -833,11 +1041,29 @@ export class SpatialNavigation {
             '#sh-search-input',
             '.sh-settings-nav__item',
             '.sh-sidebar-item',
+            '.sh-console-nav-tab',
+            '.sh-console-done-btn',
+            '.sh-admin-header-btn',
+            '.sh-admin-modal-close',
+            '.sh-admin-mini-action-btn',
+            '.sh-lib-tab-btn',
+            '.sh-lib-genre-chip',
+            '.sh-lib-alpha-btn',
+            '.sh-lib-control-btn',
+            '.sh-lib-dropdown-item',
+            '.sh-lib-viewmode-btn',
+            '.sh-lib-backdrop-thumb-wrap',
+            '.sh-lib-table-play',
+            '.sh-lib-table-fav',
+            '.sh-lib-manage-row',
+            '.sh-lib-order-btn',
+            '.sh-dl-action-btn',
+            '.sh-dl-tab-btn',
             'button:not([disabled]):not(.sh-hero-badge):not(.sh-score-rt):not(.sh-score-imdb)',
             'a[href]',
             'input:not([disabled])',
-            '[tabindex="0"]:not(.sh-hero-badge):not(.sh-score-rt):not(.sh-score-imdb)',
-            '[data-nav-focusable]'
+            'select:not([disabled])',
+            '[tabindex="0"]:not(.sh-hero-badge):not(.sh-score-rt):not(.sh-score-imdb)'
         ].join(', ');
 
         return Array.from(container.querySelectorAll(selector)).filter(el => {
@@ -853,7 +1079,7 @@ export class SpatialNavigation {
                 return false;
             }
             const rect = el.getBoundingClientRect();
-            return rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden';
+            return rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden' && window.getComputedStyle(el).display !== 'none';
         });
     }
 
@@ -862,6 +1088,7 @@ export class SpatialNavigation {
         this.clearFocus();
 
         this._focusedElement = element;
+        window.SpaceHub?.core?.audioFeedback?.playTick?.();
         this._lastInteractedElement = element;
         this._recordElementId(element);
 
@@ -871,7 +1098,7 @@ export class SpatialNavigation {
             this._lastDashboardFocusedCardId = element.dataset?.id || element.dataset?.itemId || null;
         }
 
-        element.classList.add('sh-tv-focused');
+        element.classList.add('sh-tv-focused', 'sh-focus-active');
 
         // 🛑 HERO SCROLL LOCK : Verrouillage strict à top 0px sans scrollIntoView
         const isHeroBtn = element.id === 'sh-hero-btn-play' || element.id === 'sh-hero-btn-trailer' || element.id === 'sh-hero-btn-details';
@@ -902,6 +1129,7 @@ export class SpatialNavigation {
 
     _activateFocused() {
         if (!this._focusedElement) return;
+        window.SpaceHub?.core?.audioFeedback?.playSelect?.();
         this._focusedElement.click();
     }
 
@@ -1027,7 +1255,26 @@ export class SpatialNavigation {
         if (!this._isEnabled) return;
 
         const scope = this._detectCurrentScope();
-        if (scope === 'player') return;
+        if (scope === 'player') {
+            // Transmission directe des actions manette/remote au lecteur vidéo
+            const player = window.SpaceHub?.player;
+            if (player && typeof player._onKeyDown === 'function') {
+                const keyMap = {
+                    'UP': 'ArrowUp',
+                    'DOWN': 'ArrowDown',
+                    'LEFT': 'ArrowLeft',
+                    'RIGHT': 'ArrowRight',
+                    'SELECT': 'Enter',
+                    'BACK': 'Escape',
+                    'PLAY_PAUSE': ' '
+                };
+                const fakeKey = keyMap[action];
+                if (fakeKey) {
+                    player._onKeyDown({ key: fakeKey, preventDefault: () => {}, target: document.body });
+                }
+            }
+            return;
+        }
 
         this._activateTvMode();
 
@@ -1044,10 +1291,10 @@ export class SpatialNavigation {
 
     clearFocus() {
         if (this._focusedElement) {
-            this._focusedElement.classList.remove('sh-tv-focused');
+            this._focusedElement.classList.remove('sh-tv-focused', 'sh-focus-active');
             this._focusedElement = null;
         }
-        document.querySelectorAll('.sh-tv-focused').forEach(el => el.classList.remove('sh-tv-focused'));
+        document.querySelectorAll('.sh-tv-focused, .sh-focus-active').forEach(el => el.classList.remove('sh-tv-focused', 'sh-focus-active'));
     }
 
     enable() {

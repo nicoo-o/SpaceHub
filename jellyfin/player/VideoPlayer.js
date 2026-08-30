@@ -49,6 +49,9 @@ class VideoPlayer {
         // Tiroir Latéral
         this._activeDrawerTab = 'audio';
         this._isDrawerOpen = false;
+        this._seekHoldStart = 0;
+        this._seekHoldCount = 0;
+        this._focusedHudEl = null;
 
         // Détection gestuelle
         this._lastTapTime = 0;
@@ -66,6 +69,10 @@ class VideoPlayer {
     }
 
         play(item, startPositionTicks = 0) {
+        setTimeout(() => {
+            const playPause = this._el?.querySelector('#sh-btn-play-pause');
+            if (playPause) playPause.focus();
+        }, 150);
         if (!item) return;
 
         // Si une Série entière est envoyée directement au player, résolution automatique de l'épisode
@@ -457,7 +464,7 @@ class VideoPlayer {
 
                         <!-- Ancre Dépliante 1 : Épisodes (Séries) -->
                         <div class="sh-dock-popover-anchor" id="sh-anchor-episodes" style="display:none;">
-                            <button class="sh-dock-pill-btn" id="sh-btn-open-episodes" title="Liste des épisodes">
+                            <button tabindex="0" data-nav-focusable="true" class="sh-dock-pill-btn" id="sh-btn-open-episodes" title="Liste des épisodes">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
                                 <span>Épisodes</span>
                                 <span class="sh-popover-chevron">▴</span>
@@ -475,7 +482,7 @@ class VideoPlayer {
 
                         <!-- Ancre Dépliante 2 : Audio & Sous-titres -->
                         <div class="sh-dock-popover-anchor" id="sh-anchor-audio-subs">
-                            <button class="sh-dock-pill-btn" id="sh-btn-open-audio-subs" title="Pistes Audio & Sous-Titres (S)">
+                            <button tabindex="0" data-nav-focusable="true" class="sh-dock-pill-btn" id="sh-btn-open-audio-subs" title="Pistes Audio & Sous-Titres (S)">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
                                 <span>Audio & Subs</span>
                                 <span class="sh-popover-chevron">▴</span>
@@ -527,7 +534,7 @@ class VideoPlayer {
 
                         <!-- Ancre Dépliante 3 : Vitesse & Réglages -->
                         <div class="sh-dock-popover-anchor" id="sh-anchor-settings">
-                            <button class="sh-dock-pill-btn" id="sh-btn-open-settings" title="Vitesse & Réglages (C)">
+                            <button tabindex="0" data-nav-focusable="true" class="sh-dock-pill-btn" id="sh-btn-open-settings" title="Vitesse & Réglages (C)">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
                                 <span id="sh-speed-indicator">${this._playbackRate}x</span>
                                 <span class="sh-popover-chevron">▴</span>
@@ -1311,7 +1318,20 @@ class VideoPlayer {
     _onKeyDown(e) {
         if (!this._el || e.target.tagName === 'INPUT') return;
 
-        // 1. Navigation dans les popovers actifs du lecteur (Audio, Subs, Réglages, Épisodes)
+        // Si les contrôles sont masqués, la première pression réveille le HUD
+        if (!this._isControlsVisible) {
+            e.preventDefault();
+            this._showControls();
+            this._resetIdleTimer();
+            // Focus initial sur Play/Pause au réveil
+            const playBtn = this._el.querySelector('#sh-btn-play-pause');
+            if (playBtn) playBtn.focus();
+            return;
+        }
+
+        this._resetIdleTimer();
+
+        // A. GESTION DES POPOVERS OUVERTS (Audio, Subs, Réglages, Épisodes)
         const openPopover = this._el.querySelector('.sh-player-popover.open');
         if (openPopover) {
             const items = Array.from(openPopover.querySelectorAll('.sh-popover-item, .sh-chip-btn, .sh-sync-btn, .sh-popover-ep-card, button:not([disabled])'));
@@ -1321,38 +1341,58 @@ class VideoPlayer {
             if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'BrowserBack' || e.key === 'GoBack') {
                 e.preventDefault();
                 this._closeAllPopovers();
+                const triggerBtn = openPopover.closest('.sh-dock-popover-anchor')?.querySelector('.sh-dock-pill-btn');
+                if (triggerBtn) triggerBtn.focus();
                 return;
             }
 
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
+                let next = null;
                 if (curIdx === -1 || curIdx + 1 >= items.length) {
-                    items[0]?.focus();
+                    next = items[0];
                 } else {
-                    items[curIdx + 1]?.focus();
+                    next = items[curIdx + 1];
+                }
+                if (next) {
+                    next.focus();
+                    next.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
                 return;
             }
 
             if (e.key === 'ArrowUp') {
                 e.preventDefault();
+                let prev = null;
                 if (curIdx <= 0) {
-                    items[items.length - 1]?.focus();
+                    prev = items[items.length - 1];
                 } else {
-                    items[curIdx - 1]?.focus();
+                    prev = items[curIdx - 1];
+                }
+                if (prev) {
+                    prev.focus();
+                    prev.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
                 return;
             }
 
             if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-                const audioCol = openPopover.querySelector('#sh-player-audio-list');
-                const subsCol = openPopover.querySelector('#sh-player-subs-list');
+                const audioCol = openPopover.querySelector('#sh-player-audio-list')?.closest('.sh-popover-col');
+                const subsCol = openPopover.querySelector('#sh-player-subs-list')?.closest('.sh-popover-col');
                 if (audioCol && subsCol) {
                     e.preventDefault();
-                    if (e.key === 'ArrowRight' && !subsCol.contains(focused)) {
-                        subsCol.querySelector('.sh-popover-item.selected, .sh-popover-item')?.focus();
-                    } else if (e.key === 'ArrowLeft' && !audioCol.contains(focused)) {
-                        audioCol.querySelector('.sh-popover-item.selected, .sh-popover-item')?.focus();
+                    if (e.key === 'ArrowRight' && audioCol.contains(focused)) {
+                        const target = subsCol.querySelector('.sh-popover-item.selected, .sh-popover-item, .sh-sync-btn');
+                        if (target) {
+                            target.focus();
+                            target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                    } else if (e.key === 'ArrowLeft' && subsCol.contains(focused)) {
+                        const target = audioCol.querySelector('.sh-popover-item.selected, .sh-popover-item');
+                        if (target) {
+                            target.focus();
+                            target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
                     }
                     return;
                 }
@@ -1365,23 +1405,127 @@ class VideoPlayer {
                     return;
                 }
             }
+            return;
         }
 
+        // B. GESTION DE LA TIMELINE FOCUSÉE
+        const timeline = this._el.querySelector('#sh-player-timeline-focus');
+        if (document.activeElement === timeline) {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                e.preventDefault();
+                if (!e.repeat) {
+                    this._seekHoldStart = Date.now();
+                    this._seekHoldCount = 0;
+                }
+                this._seekHoldCount++;
+                const holdTime = Date.now() - this._seekHoldStart;
+                let step = 5;
+                if (holdTime > 5000) step = 300;
+                else if (holdTime > 3000) step = 60;
+                else if (holdTime > 1000) step = 30;
+
+                const delta = e.key === 'ArrowRight' ? step : -step;
+                this._seekRelative(delta);
+                return;
+            }
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const playBtn = this._el.querySelector('#sh-btn-play-pause');
+                if (playBtn) playBtn.focus();
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const backBtn = this._el.querySelector('#sh-player-btn-back');
+                if (backBtn) backBtn.focus();
+                return;
+            }
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this._togglePlayPause();
+                return;
+            }
+        }
+
+        // C. GESTION DE LA TOPBAR (Bouton Retour)
+        const topBackBtn = this._el.querySelector('#sh-player-btn-back');
+        if (document.activeElement === topBackBtn) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (timeline) timeline.focus();
+                else this._el.querySelector('#sh-btn-play-pause')?.focus();
+                return;
+            }
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.close();
+                return;
+            }
+        }
+
+        // D. GESTION DES BOUTONS DU DOCK (Navigation 2D Clavier / TV)
+        const dockButtons = Array.from(this._el.querySelectorAll(
+            '#sh-btn-prev-ep, #sh-btn-skip-back, #sh-btn-play-pause, #sh-btn-skip-fwd, #sh-btn-next-ep, #sh-btn-volume, #sh-btn-open-audio-subs, #sh-btn-open-settings, #sh-btn-open-episodes, #sh-btn-fullscreen'
+        )).filter(el => el.offsetParent !== null && window.getComputedStyle(el).display !== 'none');
+
+        const curDockIdx = dockButtons.indexOf(document.activeElement);
+
+        if (curDockIdx !== -1) {
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                if (curDockIdx + 1 < dockButtons.length) {
+                    dockButtons[curDockIdx + 1].focus();
+                }
+                return;
+            }
+
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                if (curDockIdx > 0) {
+                    dockButtons[curDockIdx - 1].focus();
+                }
+                return;
+            }
+
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (timeline) timeline.focus();
+                else if (topBackBtn) topBackBtn.focus();
+                return;
+            }
+
+            if (e.key === 'ArrowDown') {
+                const focusedBtn = document.activeElement;
+                if (focusedBtn.classList.contains('sh-dock-pill-btn')) {
+                    e.preventDefault();
+                    focusedBtn.click(); // Ouvre le popover
+                    return;
+                }
+            }
+
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                document.activeElement.click();
+                return;
+            }
+        }
+
+        // E. TOUCHES DE RACCOURCI DIRECTES
         switch (e.key) {
             case ' ':
             case 'k':
                 e.preventDefault();
-                this._el.querySelector('#sh-btn-play-pause')?.click();
+                this._togglePlayPause();
                 break;
             case 'ArrowLeft':
             case 'j':
                 e.preventDefault();
-                this._el.querySelector('#sh-btn-skip-back')?.click();
+                this._seekRelative(-10);
                 break;
             case 'ArrowRight':
             case 'l':
                 e.preventDefault();
-                this._el.querySelector('#sh-btn-skip-fwd')?.click();
+                this._seekRelative(+10);
                 break;
             case 'ArrowUp':
                 e.preventDefault();
@@ -1401,20 +1545,22 @@ class VideoPlayer {
                 break;
             case 's':
                 e.preventDefault();
-                this._openDrawer(this._isDrawerOpen && this._activeDrawerTab === 'subs' ? 'subs' : 'subs');
+                this._el.querySelector('#sh-btn-open-audio-subs')?.click();
                 break;
             case 'c':
                 e.preventDefault();
-                this._openDrawer('settings');
+                this._el.querySelector('#sh-btn-open-settings')?.click();
+                break;
+            case 'e':
+                e.preventDefault();
+                this._el.querySelector('#sh-btn-open-episodes')?.click();
                 break;
             case 'Escape':
+            case 'Backspace':
+            case 'BrowserBack':
+            case 'GoBack':
                 e.preventDefault();
-                const anyPopoverOpen = this._el?.querySelector('.sh-player-popover.open');
-                if (anyPopoverOpen) {
-                    this._closeAllPopovers();
-                } else {
-                    this.close();
-                }
+                this.close();
                 break;
         }
     }

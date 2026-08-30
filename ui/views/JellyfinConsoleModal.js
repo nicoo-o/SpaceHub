@@ -53,31 +53,31 @@ export class JellyfinConsoleModal {
 
                     <!-- Navigation par Onglets (Liquid Spring Pill Track) -->
                     <nav class="sh-console-nav">
-                        <button class="sh-console-nav-tab ${this._activeTab === 'system' ? 'active' : ''}" data-tab="system">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-console-nav-tab ${this._activeTab === 'system' ? 'active' : ''}" data-tab="system">
                             <span>💻</span>
                             <span>Système</span>
                         </button>
-                        <button class="sh-console-nav-tab ${this._activeTab === 'encoding' ? 'active' : ''}" data-tab="encoding">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-console-nav-tab ${this._activeTab === 'encoding' ? 'active' : ''}" data-tab="encoding">
                             <span>⚡</span>
                             <span>Transcodage GPU</span>
                         </button>
-                        <button class="sh-console-nav-tab ${this._activeTab === 'network' ? 'active' : ''}" data-tab="network">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-console-nav-tab ${this._activeTab === 'network' ? 'active' : ''}" data-tab="network">
                             <span>🌐</span>
                             <span>Réseau</span>
                         </button>
-                        <button class="sh-console-nav-tab ${this._activeTab === 'users' ? 'active' : ''}" data-tab="users">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-console-nav-tab ${this._activeTab === 'users' ? 'active' : ''}" data-tab="users">
                             <span>👥</span>
                             <span>Utilisateurs</span>
                         </button>
-                        <button class="sh-console-nav-tab ${this._activeTab === 'tasks' ? 'active' : ''}" data-tab="tasks">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-console-nav-tab ${this._activeTab === 'tasks' ? 'active' : ''}" data-tab="tasks">
                             <span>⏱️</span>
                             <span>Tâches</span>
                         </button>
-                        <button class="sh-console-nav-tab ${this._activeTab === 'logs' ? 'active' : ''}" data-tab="logs">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-console-nav-tab ${this._activeTab === 'logs' ? 'active' : ''}" data-tab="logs">
                             <span>📜</span>
                             <span>Logs Live</span>
                         </button>
-                        <button class="sh-console-nav-tab ${this._activeTab === 'plugins' ? 'active' : ''}" data-tab="plugins">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-console-nav-tab ${this._activeTab === 'plugins' ? 'active' : ''}" data-tab="plugins">
                             <span>🧩</span>
                             <span>Extensions & Plugins</span>
                         </button>
@@ -99,7 +99,7 @@ export class JellyfinConsoleModal {
                     <div class="sh-console-footer-status" id="sh-console-footer-status">
                         <span>🟢 Serveur Jellyfin Connecté & Prêt</span>
                     </div>
-                    <button class="sh-console-done-btn" id="sh-console-btn-done">Fermer</button>
+                    <button tabindex="0" data-nav-focusable="true" class="sh-console-done-btn" id="sh-console-btn-done">Fermer</button>
                 </div>
             </div>
         `;
@@ -114,6 +114,8 @@ export class JellyfinConsoleModal {
                 this._taskPollTimer = null;
             }
             modal.classList.remove('open');
+            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            if (spatialNav) spatialNav.onModalClosed();
             setTimeout(() => modal.remove(), 260);
         };
 
@@ -135,6 +137,11 @@ export class JellyfinConsoleModal {
         });
 
         await this._renderActiveTab(modal);
+
+        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        if (spatialNav) {
+            spatialNav.onModalOpened(modal, modal.querySelector('.sh-console-nav-tab.active'));
+        }
     }
 
     /**

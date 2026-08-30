@@ -57,6 +57,10 @@ export function mapKeyboardEvent(event) {
             return NavAction.SELECT;
 
         // Retour Arrière / Annulation
+        case 'ContextMenu':
+        case 'Menu':
+        case 'Guide':
+            return NavAction.MENU;
         case 'Escape':
         case 'Esc':
         case 'Backspace':
@@ -75,6 +79,13 @@ export function mapKeyboardEvent(event) {
 
         // Pagination rapide
         case 'PageUp':
+        case 'ChannelUp':
+        case 'MediaTrackPrevious':
+            return NavAction.PAGE_UP;
+        case 'PageDown':
+        case 'ChannelDown':
+        case 'MediaTrackNext':
+            return NavAction.PAGE_DOWN;
         case 'ChannelUp':
             return NavAction.PAGE_UP;
 

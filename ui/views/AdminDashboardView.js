@@ -33,13 +33,13 @@ export class AdminDashboardView {
                         <p class="sh-admin-modal-subtitle" id="sh-admin-server-info-text">Chargement des métriques du serveur...</p>
                     </div>
                     <div class="sh-admin-header-actions">
-                        <button class="sh-admin-header-btn" id="sh-admin-btn-refresh" title="Actualiser les données">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-admin-header-btn" id="sh-admin-btn-refresh" title="Actualiser les données">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
                             </svg>
                             <span>Actualiser</span>
                         </button>
-                        <button class="sh-admin-modal-close" id="sh-admin-modal-close" aria-label="Fermer">✕</button>
+                        <button tabindex="0" data-nav-focusable="true" class="sh-admin-modal-close" id="sh-admin-modal-close" aria-label="Fermer">✕</button>
                     </div>
                 </div>
 
@@ -66,7 +66,7 @@ export class AdminDashboardView {
                     <div class="sh-admin-bento-card sh-admin-card-library">
                         <div class="sh-admin-card-header">
                             <h3 class="sh-admin-card-title">État de la Médiathèque</h3>
-                            <button class="sh-admin-mini-action-btn" id="sh-admin-btn-scan-library">
+                            <button tabindex="0" data-nav-focusable="true" class="sh-admin-mini-action-btn" id="sh-admin-btn-scan-library">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
                                     <path d="M3 3v5h5"></path>
@@ -138,7 +138,7 @@ export class AdminDashboardView {
                     <div class="sh-admin-bento-card sh-admin-card-services">
                         <div class="sh-admin-card-header">
                             <h3 class="sh-admin-card-title">Écosystème des Services Connectés</h3>
-                            <button class="sh-admin-mini-action-btn" id="sh-admin-btn-test-all-services">
+                            <button tabindex="0" data-nav-focusable="true" class="sh-admin-mini-action-btn" id="sh-admin-btn-test-all-services">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                                 </svg>
@@ -168,7 +168,11 @@ export class AdminDashboardView {
 
         this._injectStyles();
         document.body.appendChild(modal);
-        requestAnimationFrame(() => modal.classList.add('open'));
+        requestAnimationFrame(() => {
+            modal.classList.add('open');
+            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            if (spatialNav) spatialNav.onModalOpened(modal, modal.querySelector('#sh-admin-btn-refresh'));
+        });
 
         // Événements de fermeture
         const closeModal = () => {
@@ -177,6 +181,8 @@ export class AdminDashboardView {
                 this._refreshTimer = null;
             }
             modal.classList.remove('open');
+            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            if (spatialNav) spatialNav.onModalClosed();
             setTimeout(() => modal.remove(), 260);
         };
 
