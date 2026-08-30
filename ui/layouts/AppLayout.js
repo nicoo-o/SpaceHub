@@ -217,13 +217,19 @@ class AppLayout {
         // Initialisation immédiate en mode Compact permanent
         setIslandState('compact');
 
-        // Support tactile mobile et focus TV
+                // Support tactile mobile (toggle au tap et fermeture au clic extérieur)
         island?.addEventListener('click', (e) => {
+            e.stopPropagation();
             if (island?.classList.contains('sh-island--compact')) {
                 setIslandState('expanded');
             }
         });
-        island?.addEventListener('focusin', () => setIslandState('expanded'));
+
+        document.addEventListener('click', (e) => {
+            if (island && !island.contains(e.target) && island.classList.contains('sh-island--expanded') && !island.classList.contains('sh-island--search')) {
+                setIslandState('compact');
+            }
+        });
 
         // Horloge dynamique en temps réel
         const updateClock = () => {
