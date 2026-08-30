@@ -53,7 +53,17 @@ class SettingsPanel {
                 <button class="sh-btn sh-btn--ghost" data-action="close">Fermer</button>
                 <button class="sh-btn sh-btn--primary" data-action="save">Enregistrer</button>
             `,
-            onOpen: (m) => this._bindEvents(m)
+            onOpen: (m) => {
+                this._bindEvents(m);
+                const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+                if (spatialNav && m?._el) {
+                    spatialNav.onModalOpened(m._el, m._el.querySelector('.sh-settings-nav__item.active') || m._el.querySelector('.sh-settings-nav__item'));
+                }
+            },
+            onClose: () => {
+                const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+                if (spatialNav) spatialNav.onModalClosed();
+            }
         });
 
         this._modal.open();

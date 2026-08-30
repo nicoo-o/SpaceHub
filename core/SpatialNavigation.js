@@ -473,9 +473,9 @@ export class SpatialNavigation {
             return 'modal-sheet';
         }
 
-        // 4. Paramètres (Settings) - Priorité avant les modales génériques
-        const settings = document.querySelector('#spacehub-settings.is-open, #spacehub-settings.open, #spacehub-settings, .sh-settings-modal');
-        if (settings && settings.getBoundingClientRect().height > 0 && window.getComputedStyle(settings).display !== 'none') {
+        // 4. Paramètres (Settings) - Priorité absolue
+        const settings = document.querySelector('#sh-modal-spacehub-settings.sh-modal--open, #sh-modal-spacehub-settings, #spacehub-settings.sh-modal--open, #spacehub-settings, .sh-settings-container');
+        if (settings && (settings.classList.contains('sh-modal--open') || settings.getBoundingClientRect().height > 0) && window.getComputedStyle(settings).display !== 'none') {
             return 'settings';
         }
 
@@ -1040,7 +1040,7 @@ export class SpatialNavigation {
 
     // ─── 3. SCOPES SECONDAIRES ──────────────────────────────────────────────
     _navigateSettings(direction) {
-        const container = document.querySelector('#spacehub-settings, .sh-settings-modal, .sh-modal-overlay.open');
+        const container = document.querySelector('#sh-modal-spacehub-settings, #spacehub-settings, .sh-settings-container, .sh-modal.sh-modal--open');
         if (!container) return;
 
         const navTabs = Array.from(container.querySelectorAll('.sh-settings-nav__item'));
