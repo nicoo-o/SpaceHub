@@ -79,12 +79,13 @@ export class SpatialNavigation {
                 transform: translateY(12px) !important;
             }
 
-            /* ── HALO PARFAITEMENT ARRONDI SUR TOUS LES BOUTONS ET PILULES (Zéro Boîte Carrée) ── */
+            /* ── HALO PARFAITEMENT ÉPOUSANT SUR TOUS LES BOUTONS ET PILULES (ZÉRO DÉCALAGE / ZÉRO BOXY) ── */
             .sh-genre-chip.sh-tv-focused,
             .sh-season-pill-btn.sh-tv-focused,
             .sh-tab-btn.sh-tv-focused,
             .sh-nav-tab-btn.sh-tv-focused,
             .sh-nav-action-btn.sh-tv-focused,
+            .sh-user-avatar-btn.sh-tv-focused,
             .sh-slideup-back-btn.sh-tv-focused,
             .sh-slideup-close-btn.sh-tv-focused,
             .sh-hero-btn-play.sh-tv-focused,
@@ -96,10 +97,9 @@ export class SpatialNavigation {
                 outline: none !important;
                 border-color: #ff9f0a !important;
                 box-shadow: 
-                    0 0 0 2.5px #ff9f0a,
-                    0 0 22px rgba(255, 159, 10, 0.60),
-                    0 4px 14px rgba(0, 0, 0, 0.60) !important;
-                transform: translateY(-2px) scale(1.02) !important;
+                    0 0 0 2px #ff9f0a,
+                    0 0 16px rgba(255, 159, 10, 0.65) !important;
+                transform: none !important;
                 z-index: 9999 !important;
             }
 
@@ -254,9 +254,17 @@ export class SpatialNavigation {
             }
         }
 
-        // A. ZONE DYNAMIC ISLAND (.sh-nav-tab-btn, .sh-nav-action-btn)
-        if (current.classList.contains('sh-nav-tab-btn') || current.classList.contains('sh-nav-action-btn') || current.closest('.sh-dynamic-island')) {
-            const islandItems = Array.from(document.querySelectorAll('.sh-dynamic-island .sh-nav-tab-btn, .sh-dynamic-island .sh-nav-action-btn'));
+        // A. ZONE DYNAMIC ISLAND (.sh-nav-tab-btn, .sh-nav-action-btn, .sh-user-avatar-btn)
+        if (current.classList.contains('sh-nav-tab-btn') || current.classList.contains('sh-nav-action-btn') || current.classList.contains('sh-user-avatar-btn') || current.closest('.sh-dynamic-island')) {
+            const island = document.getElementById('sh-dynamic-island');
+            const underglow = document.getElementById('sh-island-underglow');
+            if (island && !island.classList.contains('sh-island--expanded')) {
+                island.classList.remove('sh-island--compact', 'sh-island--collapsing');
+                island.classList.add('sh-island--expanded');
+                if (underglow) underglow.className = 'sh-island-underglow sh-underglow--expanded';
+            }
+
+            const islandItems = Array.from(document.querySelectorAll('.sh-dynamic-island .sh-nav-tab-btn, .sh-dynamic-island .sh-nav-action-btn, .sh-dynamic-island .sh-user-avatar-btn'));
             const curIdx = islandItems.indexOf(current);
 
             if (direction === 'right' && curIdx !== -1 && curIdx + 1 < islandItems.length) {
@@ -264,7 +272,13 @@ export class SpatialNavigation {
             } else if (direction === 'left' && curIdx !== -1 && curIdx > 0) {
                 return this._setFocus(islandItems[curIdx - 1]);
             } else if (direction === 'down') {
-                // Descendre directement sur le bouton Regarder du Hero ou sur la barre de genres
+                // Replier doucement l'island et descendre vers le Hero
+                if (island) {
+                    island.classList.remove('sh-island--expanded');
+                    island.classList.add('sh-island--compact');
+                    if (underglow) underglow.className = 'sh-island-underglow sh-underglow--compact';
+                }
+
                 const heroPlay = document.getElementById('sh-hero-btn-play') || document.querySelector('.sh-hero-btn-play');
                 if (heroPlay) return this._setFocus(heroPlay);
 
@@ -292,7 +306,14 @@ export class SpatialNavigation {
                 const firstCard = document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton)');
                 if (firstCard) return this._setFocus(firstCard);
             } else if (direction === 'up') {
-                const navTab = document.querySelector('.sh-nav-tab-btn.active') || document.querySelector('.sh-nav-tab-btn') || document.querySelector('.sh-dynamic-island');
+                const island = document.getElementById('sh-dynamic-island');
+                const underglow = document.getElementById('sh-island-underglow');
+                if (island) {
+                    island.classList.remove('sh-island--compact', 'sh-island--collapsing');
+                    island.classList.add('sh-island--expanded');
+                    if (underglow) underglow.className = 'sh-island-underglow sh-underglow--expanded';
+                }
+                const navTab = document.querySelector('.sh-nav-tab-btn.active') || document.querySelector('.sh-nav-tab-btn');
                 if (navTab) return this._setFocus(navTab);
             }
             return;
