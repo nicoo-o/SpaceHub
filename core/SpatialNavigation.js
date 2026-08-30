@@ -347,10 +347,10 @@ export class SpatialNavigation {
             return;
         }
 
-        // D. ZONE CARROUSELS (.sh-dashboard__item -> .sh-card)
+        // D. ZONE CARROUSELS & WIDGETS (.sh-widget, .sh-dashboard__item -> .sh-card)
         if (current.classList.contains('sh-card')) {
-            const allRows = Array.from(document.querySelectorAll('.sh-dashboard__item')).filter(r => r.querySelector('.sh-card:not(.sh-card--skeleton)'));
-            const currentRow = current.closest('.sh-dashboard__item');
+            const allRows = Array.from(document.querySelectorAll('.sh-widget, .sh-dashboard__item, .sh-shelf')).filter(r => r.querySelector('.sh-card:not(.sh-card--skeleton)'));
+            const currentRow = current.closest('.sh-widget, .sh-dashboard__item, .sh-shelf');
             const rowIdx = allRows.indexOf(currentRow);
 
             if (currentRow && rowIdx !== -1) {
@@ -649,27 +649,30 @@ export class SpatialNavigation {
         this._lastInteractedElement = element;
         this._recordElementId(element);
 
-        // Si l'élément est une carte du Dashboard, mémoriser et centrer verticalement le rayon
+        // Si l'élément est une carte du Dashboard, mémoriser de façon permanente
         if (element.classList.contains('sh-card')) {
             this._lastDashboardFocusedCard = element;
             this._lastDashboardFocusedCardId = element.dataset?.id || element.dataset?.itemId || null;
-
-            const row = element.closest('.sh-dashboard__item');
-            if (row) {
-                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
         }
 
         element.classList.add('sh-tv-focused');
 
-        // Centrage horizontal dans le carrousel
-        const scroller = element.closest(
-            '.sh-card-grid, .sh-carousel-scroller, .sh-cinema-body, .sh-series-episodes-container, .sh-season-pills-row'
-        );
-        if (scroller) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        // Centrage Universel Vertical & Horizontal (pour toutes les cartes de widgets et de bibliothèques)
+        if (element.classList.contains('sh-card')) {
+            const containerRow = element.closest('.sh-widget, .sh-dashboard__item, .sh-shelf, .sh-section, .sh-library-grid');
+            if (containerRow) {
+                containerRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
         } else {
-            element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+            const scroller = element.closest(
+                '.sh-card-grid, .sh-carousel-scroller, .sh-cinema-body, .sh-series-episodes-container, .sh-season-pills-row'
+            );
+            if (scroller) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            } else {
+                element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+            }
         }
 
         if (typeof element.focus === 'function') {
@@ -705,7 +708,7 @@ export class SpatialNavigation {
 
     onModalClosed() {
         this.clearFocus();
-        setTimeout(() => {
+        const restore = () => {
             let target = this._lastDashboardFocusedCard;
             if (!target || !document.body.contains(target)) {
                 if (this._lastDashboardFocusedCardId) {
@@ -717,12 +720,15 @@ export class SpatialNavigation {
                 if (saved?.element && document.body.contains(saved.element)) target = saved.element;
             }
             if (!target) {
-                target = document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton)');
+                target = document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton), .sh-widget .sh-card:not(.sh-card--skeleton)');
             }
             if (target) {
                 this._setFocus(target);
             }
-        }, 50);
+        };
+
+        restore();
+        setTimeout(restore, 120);
     }
 
     _handleBack(event) {
