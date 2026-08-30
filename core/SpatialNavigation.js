@@ -1,9 +1,9 @@
 /**
- * SpaceHub — Spatial Navigation (TV Remote & Mouse Seamless Transition)
- * Version: 3.5.0
+ * SpaceHub — Spatial Navigation (TV Remote & Multi-Menu Controller)
+ * Version: 4.0.0
  *
- * Moteur de navigation spatiale unifié.
- * Gère la transition invisible et immédiate entre la Souris et la Télécommande/Flèches.
+ * Moteur de navigation spatiale unifié pour télécommandes TV, manettes et claviers.
+ * Gère la navigation dans 100% des menus (Fiche Média, Réglages, Console, Recherche, Tiroir, etc.).
  */
 
 'use strict';
@@ -20,13 +20,14 @@ export class SpatialNavigation {
         this._root = root;
         this._focusedElement = null;
         this._lastInteractedElement = null;
+        this._invokingElementStack = [];
         this._isEnabled = true;
         this._isTvMode = false;
         this._lastMouseX = null;
         this._lastMouseY = null;
         this._injectStyles();
         this._bindEvents();
-        this._log.info('Moteur SpatialNavigation TV v3.5 prêt.');
+        this._log.info('Moteur SpatialNavigation TV v4.0 (Multi-Menus) actif.');
     }
 
     _injectStyles() {
@@ -61,16 +62,25 @@ export class SpatialNavigation {
                 transform: translateY(10px) !important;
             }
 
-            /* Halo Luminescent sur Boutons et Onglets */
+            /* Halo Luminescent sur Boutons, Épisodes, Saisons et Onglets */
             .sh-tv-focused:not(.sh-card) {
                 outline: 2.5px solid #ff9f0a !important;
                 outline-offset: 3px !important;
-                box-shadow: 0 0 22px rgba(255, 159, 10, 0.60), 0 8px 24px rgba(0, 0, 0, 0.8) !important;
-                z-index: 999 !important;
+                box-shadow: 0 0 22px rgba(255, 159, 10, 0.65), 0 8px 24px rgba(0, 0, 0, 0.85) !important;
+                z-index: 9999 !important;
+            }
+
+            .sh-ep-card.sh-tv-focused,
+            .sh-slideup-ep-card.sh-tv-focused {
+                outline: 3px solid #ff9f0a !important;
+                outline-offset: 3px !important;
+                transform: scale(1.03) translateY(-3px) !important;
             }
 
             .sh-genre-chip.sh-tv-focused,
-            .sh-nav-tab-btn.sh-tv-focused {
+            .sh-nav-tab-btn.sh-tv-focused,
+            .sh-season-pill-btn.sh-tv-focused,
+            .sh-tab-btn.sh-tv-focused {
                 background: rgba(255, 159, 10, 0.25) !important;
                 border-color: #ff9f0a !important;
             }
@@ -85,7 +95,7 @@ export class SpatialNavigation {
 
             const activeEl = document.activeElement;
             const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
-            if (isInput && e.key !== 'Escape') return;
+            if (isInput && e.key !== 'Escape' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
 
             const tvKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape', 'Backspace'];
             if (!tvKeys.includes(e.key)) return;
@@ -113,7 +123,7 @@ export class SpatialNavigation {
             }
         });
 
-        // 2. Mouvement Souris : Désactivation instantanée du focus TV et suivi de la position souris
+        // 2. Bascule Souris
         window.addEventListener('mousemove', (e) => {
             if (this._lastMouseX === null || this._lastMouseY === null) {
                 this._lastMouseX = e.clientX;
@@ -133,23 +143,55 @@ export class SpatialNavigation {
             }
         }, { passive: true });
 
-        // 3. Suivi du survol souris sur les éléments interactifs pour reprise de position immédiate
+        // 3. Mémorisation du survol souris
         document.addEventListener('mouseover', (e) => {
-            const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-hero-btn-play, .sh-hero-btn-glass, button, a');
+            const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-ep-card, .sh-slideup-ep-card, .sh-season-pill-btn, button, a');
             if (target) {
                 this._lastInteractedElement = target;
             }
         }, { passive: true });
 
-        // 4. Clic Souris : Nettoyage immédiat du mode TV et mémorisation
+        // 4. Clic Souris
         document.addEventListener('pointerdown', (e) => {
             this.clearFocus();
             this._isTvMode = false;
-            const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, button, a');
+            const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-cinema-btn-play, .sh-cinema-btn-glass, button, a');
             if (target) {
                 this._lastInteractedElement = target;
             }
         }, { passive: true });
+    }
+
+    /**
+     * Notifie l'ouverture d'une modale pour restreindre et initialiser le focus TV.
+     * @param {HTMLElement} container
+     * @param {HTMLElement} [defaultFocusEl]
+     */
+    onModalOpened(container, defaultFocusEl = null) {
+        if (this._focusedElement) {
+            this._invokingElementStack.push(this._focusedElement);
+        }
+        this.clearFocus();
+
+        setTimeout(() => {
+            const target = defaultFocusEl || container?.querySelector(
+                '#sh-slideup-play-btn, .sh-cinema-btn-play, #sh-search-input, .sh-settings-nav__item.active, .sh-console-tab-btn.active, .sh-btn--primary, button:not([disabled])'
+            );
+            if (target) {
+                this._setFocus(target);
+            }
+        }, 80);
+    }
+
+    /**
+     * Notifie la fermeture d'une modale pour restituer le focus à l'appelant.
+     */
+    onModalClosed() {
+        this.clearFocus();
+        const invokingEl = this._invokingElementStack.pop();
+        if (invokingEl && document.body.contains(invokingEl)) {
+            setTimeout(() => this._setFocus(invokingEl), 50);
+        }
     }
 
     _handleBack(event) {
@@ -157,13 +199,23 @@ export class SpatialNavigation {
         if (slideUpModal) {
             event?.preventDefault();
             window.SpaceHub?.ui?.modalSlideUpSheet?.close?.();
+            this.onModalClosed();
             return;
         }
 
-        const openModal = document.querySelector('.sh-modal-overlay.open, .sh-modal.open, #spacehub-settings');
+        const openSettings = document.querySelector('#spacehub-settings');
+        if (openSettings) {
+            event?.preventDefault();
+            openSettings.querySelector('[data-action="close"]')?.click?.();
+            this.onModalClosed();
+            return;
+        }
+
+        const openModal = document.querySelector('.sh-modal-overlay.open, .sh-modal.open, .sh-console-modal-overlay.open');
         if (openModal) {
             event?.preventDefault();
-            document.querySelectorAll('.sh-modal-overlay.open, .sh-modal.open').forEach(m => m.remove());
+            openModal.remove();
+            this.onModalClosed();
             return;
         }
 
@@ -197,15 +249,26 @@ export class SpatialNavigation {
             '.sh-dock-pill-btn',
             '.sh-resume-dock__btn-play',
             '#sh-resume-dock-play',
-            '.sh-slideup-btn-play',
-            '.sh-slideup-btn-glass',
-            '.sh-slideup-season-chip',
+            '#sh-slideup-play-btn',
+            '#sh-slideup-trailer-btn',
+            '#sh-btn-audio-popover',
+            '#sh-slideup-close-btn',
+            '.sh-cinema-btn-play',
+            '.sh-cinema-btn-glass',
+            '.sh-tab-btn',
+            '.sh-season-pill-btn',
+            '.sh-ep-card',
             '.sh-slideup-ep-card',
+            '.sh-cast-card',
+            '#sh-search-input',
             '.sh-settings-nav__item',
+            '.sh-console-tab-btn',
+            '.sh-sidebar-item',
             '.sh-btn:not([disabled])',
             'button:not([disabled]):not(.sh-hero-badge):not(.sh-score-rt):not(.sh-score-imdb):not([style*="display: none"])',
             'a[href]',
             'input:not([disabled])',
+            'select:not([disabled])',
             '[tabindex="0"]:not(.sh-hero-badge):not(.sh-score-rt):not(.sh-score-imdb)'
         ].join(', ');
 
@@ -223,9 +286,7 @@ export class SpatialNavigation {
         const focusables = this._getFocusableElements();
         if (focusables.length === 0) return;
 
-        // Si aucun élément n'est sélectionné au clavier (ex: reprise après souris)
         if (!this._focusedElement || !document.body.contains(this._focusedElement)) {
-            // 1. Reprendre depuis le dernier élément survolé par la souris s'il est encore visible
             if (this._lastInteractedElement && document.body.contains(this._lastInteractedElement)) {
                 const rect = this._lastInteractedElement.getBoundingClientRect();
                 if (rect.top >= 0 && rect.bottom <= window.innerHeight && rect.width > 0) {
@@ -234,14 +295,13 @@ export class SpatialNavigation {
                 }
             }
 
-            // 2. Sinon cibler la carte visible la plus proche du centre de l'écran
             const centerY = window.innerHeight / 2;
             let closestEl = focusables[0];
             let minCenterDelta = Infinity;
 
             focusables.forEach(el => {
                 const r = el.getBoundingClientRect();
-                if (r.top >= 40 && r.bottom <= window.innerHeight - 40) {
+                if (r.top >= 20 && r.bottom <= window.innerHeight - 20) {
                     const deltaY = Math.abs((r.top + r.height / 2) - centerY);
                     if (deltaY < minCenterDelta) {
                         minCenterDelta = deltaY;
@@ -257,11 +317,15 @@ export class SpatialNavigation {
         const current = this._focusedElement;
         const currentRect = current.getBoundingClientRect();
 
-        // 1. Déplacement horizontal intra-carrousel (Gauche / Droite)
+        // 1. Navigation intra-carrousel ou intra-liste horizontale (Gauche / Droite)
         if ((direction === 'left' || direction === 'right')) {
-            const listParent = current.closest('.sh-card-grid, .sh-carousel-track, .sh-slideup-episodes-scroller, .sh-slideup-seasons-track, .sh-genre-bar-track');
+            const listParent = current.closest(
+                '.sh-card-grid, .sh-carousel-track, .sh-cinema-actions, .sh-cinema-tabs-nav, .sh-season-pills-row, .sh-series-episodes-grid, .sh-genre-bar-track, .sh-nav-tabs'
+            );
             if (listParent) {
-                const siblings = Array.from(listParent.querySelectorAll('.sh-card:not(.sh-card--skeleton), .sh-slideup-ep-card, .sh-slideup-season-chip, .sh-genre-chip'));
+                const siblings = Array.from(listParent.querySelectorAll(
+                    '.sh-card:not(.sh-card--skeleton), .sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-tab-btn, .sh-season-pill-btn, .sh-ep-card, .sh-slideup-ep-card, .sh-genre-chip, .sh-nav-tab-btn'
+                ));
                 const currentIndex = siblings.indexOf(current);
                 if (currentIndex !== -1) {
                     const targetIndex = direction === 'right' ? currentIndex + 1 : currentIndex - 1;
@@ -273,34 +337,69 @@ export class SpatialNavigation {
             }
         }
 
-        // 2. Déplacement vertical inter-sections (Haut / Bas)
-        if ((direction === 'up' || direction === 'down') && current.classList.contains('sh-card')) {
-            const currentSection = current.closest('.sh-dashboard__item');
-            if (currentSection) {
-                const allSections = Array.from(document.querySelectorAll('.sh-dashboard__item'));
-                const currentSecIdx = allSections.indexOf(currentSection);
-                if (currentSecIdx !== -1) {
-                    const targetSecIdx = direction === 'down' ? currentSecIdx + 1 : currentSecIdx - 1;
-                    if (targetSecIdx >= 0 && targetSecIdx < allSections.length) {
-                        const nextCards = allSections[targetSecIdx].querySelectorAll('.sh-card:not(.sh-card--skeleton)');
-                        if (nextCards.length > 0) {
-                            let bestCard = nextCards[0];
-                            let minDeltaX = Infinity;
-                            nextCards.forEach(c => {
-                                const dx = Math.abs(c.getBoundingClientRect().left - currentRect.left);
-                                if (dx < minDeltaX) {
-                                    minDeltaX = dx;
-                                    bestCard = c;
-                                }
-                            });
-                            this._setFocus(bestCard);
-                            return;
-                        }
-                    } else if (direction === 'up') {
-                        const chips = document.querySelectorAll('.sh-genre-chip');
-                        if (chips.length > 0) {
-                            this._setFocus(chips[0]);
-                            return;
+        // 2. Navigation inter-sections verticale (Haut / Bas)
+        if ((direction === 'up' || direction === 'down')) {
+            // A. Dans la Fiche Média (ModalSlideUpSheet)
+            const slideUp = document.querySelector('.sh-slideup-sheet--open');
+            if (slideUp && slideUp.contains(current)) {
+                if (direction === 'down') {
+                    if (current.closest('.sh-cinema-actions')) {
+                        const firstTab = slideUp.querySelector('.sh-tab-btn.active') || slideUp.querySelector('.sh-tab-btn');
+                        if (firstTab) { this._setFocus(firstTab); return; }
+                    } else if (current.closest('.sh-cinema-tabs-nav')) {
+                        const firstSeason = slideUp.querySelector('.sh-season-pill-btn.active') || slideUp.querySelector('.sh-season-pill-btn');
+                        const firstEp = slideUp.querySelector('.sh-ep-card, .sh-slideup-ep-card');
+                        if (firstSeason) { this._setFocus(firstSeason); return; }
+                        if (firstEp) { this._setFocus(firstEp); return; }
+                    } else if (current.closest('.sh-season-pills-row')) {
+                        const firstEp = slideUp.querySelector('.sh-ep-card, .sh-slideup-ep-card');
+                        if (firstEp) { this._setFocus(firstEp); return; }
+                    }
+                } else if (direction === 'up') {
+                    if (current.closest('.sh-series-episodes-grid, .sh-cinema-panels-wrapper')) {
+                        const seasonPill = slideUp.querySelector('.sh-season-pill-btn.active') || slideUp.querySelector('.sh-season-pill-btn');
+                        const tabBtn = slideUp.querySelector('.sh-tab-btn.active') || slideUp.querySelector('.sh-tab-btn');
+                        if (seasonPill) { this._setFocus(seasonPill); return; }
+                        if (tabBtn) { this._setFocus(tabBtn); return; }
+                    } else if (current.closest('.sh-season-pills-row')) {
+                        const tabBtn = slideUp.querySelector('.sh-tab-btn.active') || slideUp.querySelector('.sh-tab-btn');
+                        if (tabBtn) { this._setFocus(tabBtn); return; }
+                    } else if (current.closest('.sh-cinema-tabs-nav')) {
+                        const playBtn = slideUp.querySelector('#sh-slideup-play-btn, .sh-cinema-btn-play');
+                        if (playBtn) { this._setFocus(playBtn); return; }
+                    }
+                }
+            }
+
+            // B. Dans le Dashboard classique
+            if (current.classList.contains('sh-card')) {
+                const currentSection = current.closest('.sh-dashboard__item');
+                if (currentSection) {
+                    const allSections = Array.from(document.querySelectorAll('.sh-dashboard__item'));
+                    const currentSecIdx = allSections.indexOf(currentSection);
+                    if (currentSecIdx !== -1) {
+                        const targetSecIdx = direction === 'down' ? currentSecIdx + 1 : currentSecIdx - 1;
+                        if (targetSecIdx >= 0 && targetSecIdx < allSections.length) {
+                            const nextCards = allSections[targetSecIdx].querySelectorAll('.sh-card:not(.sh-card--skeleton)');
+                            if (nextCards.length > 0) {
+                                let bestCard = nextCards[0];
+                                let minDeltaX = Infinity;
+                                nextCards.forEach(c => {
+                                    const dx = Math.abs(c.getBoundingClientRect().left - currentRect.left);
+                                    if (dx < minDeltaX) {
+                                        minDeltaX = dx;
+                                        bestCard = c;
+                                    }
+                                });
+                                this._setFocus(bestCard);
+                                return;
+                            }
+                        } else if (direction === 'up') {
+                            const chips = document.querySelectorAll('.sh-genre-chip');
+                            if (chips.length > 0) {
+                                this._setFocus(chips[0]);
+                                return;
+                            }
                         }
                     }
                 }
@@ -351,7 +450,9 @@ export class SpatialNavigation {
         this._lastInteractedElement = element;
         element.classList.add('sh-tv-focused');
 
-        const scroller = element.closest('.sh-card-grid, .sh-carousel-scroller, .sh-slideup-episodes-scroller, .sh-slideup-seasons-track');
+        const scroller = element.closest(
+            '.sh-card-grid, .sh-carousel-scroller, .sh-series-episodes-grid, .sh-season-pills-row, .sh-cinema-body, .sh-cinema-tabs-nav'
+        );
         if (scroller) {
             element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         } else {

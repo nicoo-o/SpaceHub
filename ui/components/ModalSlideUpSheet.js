@@ -21,6 +21,7 @@ class ModalSlideUpSheet {
         this._overlay = null;
         this._ambientGlow = null;
         this._isOpen = false;
+        window.SpaceHub?.layout?._spatialNav?.onModalClosed();
         this._currentItem = null;
         this._activeTab = 'synopsis';
         this._selectedAudioIndex = 0;
@@ -143,6 +144,7 @@ class ModalSlideUpSheet {
         this._renderContent(item, { posterUrl, backdropUrl });
 
         requestAnimationFrame(() => {
+            window.SpaceHub?.layout?._spatialNav?.onModalOpened(this._sheet);
             this._sheet.querySelector('.sh-cinema-body')?.scrollTo({ top: 0, behavior: 'instant' });
         });
 
