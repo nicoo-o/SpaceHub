@@ -169,7 +169,7 @@ const SpaceHub = {
 // ─── Initialisation ──────────────────────────────────────────────────────────
 
 async function init() {
-    // 1. Logger
+        // 1. Logger
     const log = new Logger('SpaceHub');
     SpaceHub.core.log = log;
     log.info(`🚀 Initialisation de SpaceHub v${SpaceHub.version}...`);
@@ -179,18 +179,7 @@ async function init() {
     SpaceHub.core.eventBus = eventBus;
     log.info('EventBus prêt.');
 
-        // 3. ModuleManager
-    const moduleManager = new ModuleManager(eventBus);
-    SpaceHub.core.moduleManager = moduleManager;
-    log.info('ModuleManager prêt.');
-
-    // 3.5. PluginManager
-    const pluginManager = new PluginManager({ eventBus, settings });
-    SpaceHub.plugins = pluginManager;
-    SpaceHub.core.pluginManager = pluginManager;
-    log.info('PluginManager prêt.');
-
-    // 4. SettingsManager
+    // 3. SettingsManager
     const settings = new SettingsManager(eventBus);
     SpaceHub.core.settings = settings;
 
@@ -223,7 +212,18 @@ async function init() {
     });
     log.info('SettingsManager prêt.');
 
-    // 5. Appliquer le niveau de log
+    // 4. ModuleManager
+    const moduleManager = new ModuleManager(eventBus, settings);
+    SpaceHub.core.moduleManager = moduleManager;
+    log.info('ModuleManager prêt.');
+
+    // 5. PluginManager
+    const pluginManager = new PluginManager({ eventBus, settings });
+    SpaceHub.plugins = pluginManager;
+    SpaceHub.core.pluginManager = pluginManager;
+    log.info('PluginManager prêt.');
+
+    // 6. Appliquer le niveau de log
     const logLevel = settings.get('core.logLevel', 'info');
     log.setLevel(logLevel);
 
