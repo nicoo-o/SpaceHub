@@ -96,24 +96,31 @@ export class SpatialNavigation {
         });
     }
 
-    _getFocusableElements() {
+        _getFocusableElements() {
         const selector = [
-            '.sh-card:not(.sh-card--skeleton)',
+            '#sh-hero-btn-play',
+            '#sh-hero-btn-trailer',
+            '#sh-hero-btn-details',
+            '#sh-hero-scroll-hint',
             '.sh-genre-chip',
+            '.sh-card:not(.sh-card--skeleton)',
             '.sh-nav-tab-btn',
             '.sh-dock-pill-btn',
             '.sh-resume-dock__btn-play',
-            '.sh-resume-dock',
-            'button:not([disabled]):not([style*="display: none"])',
+            '#sh-resume-dock-play',
+            'button:not([disabled]):not(.sh-hero-badge):not(.sh-score-rt):not(.sh-score-imdb):not([style*="display: none"])',
             'a[href]',
             'input:not([disabled])',
-            '[tabindex="0"]'
+            '[tabindex="0"]:not(.sh-hero-badge):not(.sh-score-rt):not(.sh-score-imdb)'
         ].join(', ');
 
         const all = Array.from(document.querySelectorAll(selector));
         return all.filter(el => {
+            if (el.classList.contains('sh-hero-badge') || el.classList.contains('sh-score-rt') || el.classList.contains('sh-score-imdb')) {
+                return false;
+            }
             const rect = el.getBoundingClientRect();
-            return rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden';
+            return rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden' && window.getComputedStyle(el).display !== 'none';
         });
     }
 
