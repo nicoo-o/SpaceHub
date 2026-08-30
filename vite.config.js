@@ -2,21 +2,26 @@ import { defineConfig } from 'vite';
 import http from 'node:http';
 import https from 'node:https';
 
+function isPrivateOrLocalHost(host) {
+  const h = (host || '').toLowerCase();
+  if (h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '[::1]') return true;
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+  if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+  if (h.endsWith('.local') || h.endsWith('.lan') || h.endsWith('.internal') || h.endsWith('.home') || !h.includes('.')) return true;
+  return false;
+}
+
 function isAllowedProxyTarget(urlStr) {
   try {
     const u = new URL(urlStr);
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
     const host = u.hostname.toLowerCase();
 
-    // 1. Localhost / Loopback
-    if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]') return true;
+    // 1. Réseau local / Loopback / Home server
+    if (isPrivateOrLocalHost(host)) return true;
 
-    // 2. Réseaux locaux privés RFC 1918 (10.x.x.x, 192.168.x.x, 172.16-31.x.x)
-    if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
-    if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
-    if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
-
-    // 3. Domaines d'APIs officielles autorisées & Metadata
+    // 2. APIs officielles autorisées & Médias
     if (
       host === 'image.tmdb.org' ||
       host === 'api.themoviedb.org' ||
@@ -26,11 +31,6 @@ function isAllowedProxyTarget(urlStr) {
       host.endsWith('.githubusercontent.com') ||
       host.endsWith('.jsdelivr.net')
     ) {
-      return true;
-    }
-
-    // 4. Hôtes locaux réseau domestique (.local, .lan, .internal, ou noms d'hôtes simples)
-    if (host.endsWith('.local') || host.endsWith('.lan') || host.endsWith('.internal') || host.endsWith('.home') || !host.includes('.')) {
       return true;
     }
 
@@ -50,6 +50,7 @@ function dynamicCorsProxyPlugin() {
 
         if (!target) {
           res.statusCode = 400;
+          res.setHeader('content-type', 'application/json');
           res.end(JSON.stringify({ error: 'Missing "url" query parameter' }));
           return;
         }
@@ -83,11 +84,18 @@ function dynamicCorsProxyPlugin() {
             const targetUrl = new URL(target);
             const isHttps = targetUrl.protocol === 'https:';
             const client = isHttps ? https : http;
+            const isLocal = isPrivateOrLocalHost(targetUrl.hostname);
 
             const forwardHeaders = { ...req.headers };
-            delete forwardHeaders.host;
-            delete forwardHeaders.origin;
-            delete forwardHeaders.referer;
+            delete forwardHeaders['host'];
+            delete forwardHeaders['origin'];
+            delete forwardHeaders['referer'];
+            delete forwardHeaders['connection'];
+            delete forwardHeaders['accept-encoding'];
+            delete forwardHeaders['sec-fetch-dest'];
+            delete forwardHeaders['sec-fetch-mode'];
+            delete forwardHeaders['sec-fetch-site'];
+
             forwardHeaders['host'] = targetUrl.host;
             forwardHeaders['origin'] = targetUrl.origin;
             forwardHeaders['referer'] = `${targetUrl.origin}/`;
@@ -98,36 +106,51 @@ function dynamicCorsProxyPlugin() {
               delete forwardHeaders['content-length'];
             }
 
-            const proxyReq = client.request(
-              targetUrl,
-              {
-                method: req.method,
-                headers: forwardHeaders,
-                rejectUnauthorized: true, // Sécurisation stricte des certificats SSL/TLS
-              },
-              (proxyRes) => {
-                const responseHeaders = { ...proxyRes.headers };
-                responseHeaders['access-control-allow-origin'] = '*';
-                responseHeaders['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
-                responseHeaders['access-control-allow-headers'] = '*';
-                responseHeaders['access-control-allow-credentials'] = 'true';
+            const requestOptions = {
+              hostname: targetUrl.hostname,
+              port: targetUrl.port || (isHttps ? 443 : 80),
+              path: targetUrl.pathname + targetUrl.search,
+              method: req.method,
+              headers: forwardHeaders,
+              // Pour les serveurs locaux LAN avec certificat auto-signé, autoriser le certificat
+              rejectUnauthorized: !isLocal,
+              timeout: 15000,
+            };
 
-                // Nettoyage des cookies de session pour compatibilité maximale
-                if (responseHeaders['set-cookie']) {
-                  responseHeaders['set-cookie'] = responseHeaders['set-cookie'].map((cookie) =>
-                    cookie.replace(/;\s*Secure/gi, '').replace(/SameSite=Strict/gi, 'SameSite=Lax')
-                  );
-                }
+            const proxyReq = client.request(requestOptions, (proxyRes) => {
+              const responseHeaders = { ...proxyRes.headers };
+              responseHeaders['access-control-allow-origin'] = '*';
+              responseHeaders['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
+              responseHeaders['access-control-allow-headers'] = '*';
+              responseHeaders['access-control-allow-credentials'] = 'true';
 
-                res.writeHead(proxyRes.statusCode || 200, responseHeaders);
-                proxyRes.pipe(res);
+              // Nettoyage des cookies de session pour compatibilité maximale
+              if (responseHeaders['set-cookie']) {
+                responseHeaders['set-cookie'] = responseHeaders['set-cookie'].map((cookie) =>
+                  cookie.replace(/;\s*Secure/gi, '').replace(/SameSite=Strict/gi, 'SameSite=Lax')
+                );
               }
-            );
+
+              res.writeHead(proxyRes.statusCode || 200, responseHeaders);
+              proxyRes.pipe(res);
+            });
+
+            proxyReq.on('timeout', () => {
+              proxyReq.destroy();
+              if (!res.headersSent) {
+                res.statusCode = 504;
+                res.setHeader('content-type', 'application/json');
+                res.end(JSON.stringify({ error: 'Gateway Timeout: connection to target server timed out' }));
+              }
+            });
 
             proxyReq.on('error', (err) => {
-              res.statusCode = 502;
-              res.setHeader('content-type', 'application/json');
-              res.end(JSON.stringify({ error: err.message }));
+              console.error('[CORS Proxy Error]', target, err.message);
+              if (!res.headersSent) {
+                res.statusCode = 502;
+                res.setHeader('content-type', 'application/json');
+                res.end(JSON.stringify({ error: `Bad Gateway: ${err.message}` }));
+              }
             });
 
             if (bodyBuffer.length > 0) {
