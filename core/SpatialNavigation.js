@@ -81,18 +81,18 @@ export class SpatialNavigation {
                 transform: translateY(12px) !important;
             }
 
-            /* ── BOUTON REGARDER HERO HAUTE COUTURE ── */
+            /* ── ENTOURAGE HALO ORANGE SUR BOUTON REGARDER HERO ── */
             #sh-hero-btn-play.sh-tv-focused,
             .sh-hero-btn-play.sh-tv-focused {
                 outline: none !important;
-                background: #ff9f0a !important;
+                background: #ffffff !important;
                 color: #000000 !important;
                 border-color: #ff9f0a !important;
                 box-shadow: 
-                    0 0 0 2.5px #ffffff,
-                    0 0 28px rgba(255, 159, 10, 0.85),
-                    0 8px 24px rgba(0, 0, 0, 0.60) !important;
-                transform: scale(1.04) !important;
+                    0 0 0 2.5px #ff9f0a,
+                    0 0 22px rgba(255, 159, 10, 0.65),
+                    0 4px 14px rgba(0, 0, 0, 0.50) !important;
+                transform: scale(1.02) !important;
                 z-index: 9999 !important;
             }
 
@@ -686,14 +686,11 @@ export class SpatialNavigation {
 
         element.classList.add('sh-tv-focused');
 
-        // Si l'élément est un bouton du Hero, remonter tout en haut pour une visibilité totale
-        if (element.id === 'sh-hero-btn-play' || element.id === 'sh-hero-btn-trailer' || element.id === 'sh-hero-btn-details') {
+        // Gestion du défilement : Hero = Scroll 0px strict / Cartes = Centrage
+        const isHeroBtn = element.id === 'sh-hero-btn-play' || element.id === 'sh-hero-btn-trailer' || element.id === 'sh-hero-btn-details';
+        if (isHeroBtn) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-
-        // Centrage Universel Vertical & Horizontal (pour toutes les cartes de widgets et de bibliothèques)
-        if (element.classList.contains('sh-card')) {
+        } else if (element.classList.contains('sh-card')) {
             const containerRow = element.closest('.sh-widget, .sh-dashboard__item, .sh-shelf, .sh-section, .sh-library-grid');
             if (containerRow) {
                 containerRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
