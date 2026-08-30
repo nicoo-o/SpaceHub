@@ -332,7 +332,10 @@ export class SpatialNavigation {
                 return this._setFocus(chips[curIdx - 1]);
             } else if (direction === 'up') {
                 const heroPlay = document.getElementById('sh-hero-btn-play') || document.querySelector('.sh-hero-btn-play');
-                if (heroPlay) return this._setFocus(heroPlay);
+                if (heroPlay) {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    return this._setFocus(heroPlay);
+                }
             } else if (direction === 'down') {
                 const firstRow = document.querySelector('.sh-dashboard__item');
                 if (firstRow) {
@@ -659,6 +662,12 @@ export class SpatialNavigation {
         }
 
         element.classList.add('sh-tv-focused');
+
+        // Si l'élément est un bouton du Hero, remonter tout en haut pour une visibilité totale
+        if (element.id === 'sh-hero-btn-play' || element.id === 'sh-hero-btn-trailer' || element.id === 'sh-hero-btn-details') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
 
         // Centrage Universel Vertical & Horizontal (pour toutes les cartes de widgets et de bibliothèques)
         if (element.classList.contains('sh-card')) {
