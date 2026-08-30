@@ -1,9 +1,10 @@
 /**
  * SpaceHub — Industrial Spatial Navigation Engine (FocusTree Architecture)
- * Version: 6.0.0
+ * Version: 6.5.0
  *
- * Moteur de navigation spatiale déterministe pour Smart TV (Apple TV, Android TV, Tizen, WebOS).
- * Basé sur le standard d'arbre virtuel FocusTree, scopes isolés et mémoires de rangées.
+ * Moteur de navigation spatiale déterministe pour Smart TV.
+ * Résolution totale des halos arrondis, navigation fluide Dynamic Island,
+ * fiches médias sans blocage et descente saisons ➔ épisodes.
  */
 
 'use strict';
@@ -22,7 +23,7 @@ export class SpatialNavigation {
         this._lastFocusedId = null;
         this._lastInteractedElement = null;
         this._invokingElementStack = [];
-        this._rowMemory = new Map(); // Mémorisation de l'index actif par rangée
+        this._rowMemory = new Map();
         this._isEnabled = true;
         this._isTvMode = false;
         this._isNavigating = false;
@@ -32,7 +33,7 @@ export class SpatialNavigation {
 
         this._injectStyles();
         this._bindEvents();
-        this._log.info('Moteur SpatialNavigation Industriel v6.0 (FocusTree) prêt.');
+        this._log.info('Moteur SpatialNavigation Industriel v6.5 (Zéro Blocage) prêt.');
     }
 
     _injectStyles() {
@@ -40,7 +41,7 @@ export class SpatialNavigation {
         const style = document.createElement('style');
         style.id = 'sh-spatial-nav-styles';
         style.textContent = `
-            /* ── Apple TV 4K Pure Luminescent Aura & Hardware Composite ── */
+            /* ── AURA LUMINESCENTE CINÉMATIQUE SUR CARTES ── */
             .sh-card {
                 will-change: transform;
                 backface-visibility: hidden;
@@ -55,10 +56,10 @@ export class SpatialNavigation {
             }
 
             .sh-card.sh-tv-focused .sh-card__image-wrap {
-                outline: 2.5px solid #ff9f0a !important;
-                outline-offset: 2.5px !important;
+                outline: none !important;
                 box-shadow: 
-                    0 0 0 1px rgba(255, 255, 255, 0.40),
+                    0 0 0 2.5px #ff9f0a,
+                    0 0 0 4px rgba(255, 255, 255, 0.40),
                     0 0 32px rgba(255, 159, 10, 0.65),
                     0 18px 44px rgba(0, 0, 0, 0.95),
                     inset 0 1px 1px rgba(255, 255, 255, 0.70) !important;
@@ -78,49 +79,50 @@ export class SpatialNavigation {
                 transform: translateY(12px) !important;
             }
 
-            /* ── Halo Luminescent sur Boutons d'Action & Onglets ── */
-            .sh-tv-focused:not(.sh-card) {
-                outline: 2.5px solid #ff9f0a !important;
-                outline-offset: 2.5px !important;
+            /* ── HALO PARFAITEMENT ARRONDI SUR TOUS LES BOUTONS ET PILULES (Zéro Boîte Carrée) ── */
+            .sh-genre-chip.sh-tv-focused,
+            .sh-season-pill-btn.sh-tv-focused,
+            .sh-tab-btn.sh-tv-focused,
+            .sh-nav-tab-btn.sh-tv-focused,
+            .sh-nav-action-btn.sh-tv-focused,
+            .sh-slideup-back-btn.sh-tv-focused,
+            .sh-slideup-close-btn.sh-tv-focused,
+            .sh-hero-btn-play.sh-tv-focused,
+            .sh-hero-btn-glass.sh-tv-focused,
+            .sh-cinema-btn-play.sh-tv-focused,
+            .sh-cinema-btn-glass.sh-tv-focused,
+            .sh-btn.sh-tv-focused,
+            .sh-settings-nav__item.sh-tv-focused {
+                outline: none !important;
+                border-color: #ff9f0a !important;
                 box-shadow: 
-                    0 0 0 1px rgba(255, 255, 255, 0.35),
-                    0 0 24px rgba(255, 159, 10, 0.60),
-                    0 10px 28px rgba(0, 0, 0, 0.85) !important;
+                    0 0 0 2.5px #ff9f0a,
+                    0 0 22px rgba(255, 159, 10, 0.60),
+                    0 4px 14px rgba(0, 0, 0, 0.60) !important;
+                transform: translateY(-2px) scale(1.02) !important;
                 z-index: 9999 !important;
             }
 
-            /* ── Carte Épisode Haute Visibilité ── */
+            /* ── CARTE ÉPISODE HAUTE COUTURE ── */
             .sh-episode-card.sh-tv-focused,
             .sh-ep-card.sh-tv-focused,
             .sh-slideup-ep-card.sh-tv-focused {
-                outline: 2.5px solid #ff9f0a !important;
-                outline-offset: 2px !important;
+                outline: none !important;
                 background: linear-gradient(135deg, rgba(255, 159, 10, 0.20) 0%, rgba(255, 255, 255, 0.08) 100%) !important;
-                border-color: #ff9f0a !important;
+                border: 2px solid #ff9f0a !important;
                 transform: scale(1.02) translateY(-2px) !important;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.60), 0 0 20px rgba(255, 159, 10, 0.35) !important;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.60), 0 0 24px rgba(255, 159, 10, 0.40) !important;
             }
 
             .sh-episode-card.sh-tv-focused .sh-episode-overlay-play {
                 opacity: 1 !important;
                 transform: scale(1.1) !important;
             }
-
-            /* ── Pilules et Badges Actifs ── */
-            .sh-genre-chip.sh-tv-focused,
-            .sh-nav-tab-btn.sh-tv-focused,
-            .sh-season-pill-btn.sh-tv-focused,
-            .sh-tab-btn.sh-tv-focused {
-                background: rgba(255, 159, 10, 0.30) !important;
-                border-color: #ff9f0a !important;
-                transform: translateY(-2px) !important;
-            }
         `;
         document.head.appendChild(style);
     }
 
     _bindEvents() {
-        // 1. Événements Clavier / D-Pad
         window.addEventListener('keydown', (e) => {
             if (!this._isEnabled) return;
 
@@ -154,7 +156,6 @@ export class SpatialNavigation {
             }
         });
 
-        // 2. Bascule Souris Fluide
         window.addEventListener('mousemove', (e) => {
             if (this._lastMouseX === null || this._lastMouseY === null) {
                 this._lastMouseX = e.clientX;
@@ -174,20 +175,18 @@ export class SpatialNavigation {
             }
         }, { passive: true });
 
-        // 3. Mémorisation du survol souris
         document.addEventListener('mouseover', (e) => {
-            const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-hero-btn-play, .sh-hero-btn-glass, .sh-episode-card, .sh-season-pill-btn, button, a');
+            const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-nav-action-btn, .sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-hero-btn-play, .sh-hero-btn-glass, .sh-slideup-back-btn, .sh-slideup-close-btn, .sh-episode-card, .sh-season-pill-btn, button, a');
             if (target) {
                 this._lastInteractedElement = target;
                 this._recordElementId(target);
             }
         }, { passive: true });
 
-        // 4. Clic Souris
         document.addEventListener('pointerdown', (e) => {
             this.clearFocus();
             this._isTvMode = false;
-            const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-hero-btn-play, .sh-hero-btn-glass, button, a');
+            const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-nav-action-btn, .sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-hero-btn-play, .sh-hero-btn-glass, .sh-slideup-back-btn, .sh-slideup-close-btn, button, a');
             if (target) {
                 this._lastInteractedElement = target;
                 this._recordElementId(target);
@@ -211,21 +210,14 @@ export class SpatialNavigation {
         this._lastFocusedId = el.dataset?.id || el.dataset?.itemId || el.dataset?.epId || el.id || null;
     }
 
-    /**
-     * Détermine le scope actif exclusif (Dashboard, Fiche Média, Réglages, etc.).
-     * @returns {'modal-sheet' | 'settings' | 'search' | 'sidebar' | 'dashboard'}
-     */
     _detectCurrentScope() {
         if (document.querySelector('.sh-slideup-sheet--open')) return 'modal-sheet';
-        if (document.querySelector('#spacehub-settings, .sh-settings-overlay.open')) return 'settings';
+        if (document.querySelector('#spacehub-settings, .sh-settings-modal')) return 'settings';
         if (document.querySelector('.sh-unified-search-modal.open, #sh-search-input:focus')) return 'search';
         if (document.querySelector('.sh-sidebar--open, .sh-sidebar-drawer.open')) return 'sidebar';
         return 'dashboard';
     }
 
-    /**
-     * Cœur du Moteur Déterministe FocusTree (Routage selon le Scope).
-     */
     _navigateDirectional(direction) {
         const scope = this._detectCurrentScope();
         
@@ -249,22 +241,43 @@ export class SpatialNavigation {
         }
     }
 
-    // ─── 1. SCOPE DASHBOARD (Hero ⇄ Genres ⇄ Carrousels ⇄ Dynamic Island) ────
+    // ─── 1. SCOPE DASHBOARD (Dynamic Island ⇄ Hero ⇄ Genres ⇄ Carrousels) ───
     _navigateDashboard(direction) {
         let current = this._focusedElement;
 
-        // Auto-reconnexion si le nœud actuel a été détaché du DOM
         if (!current || !document.body.contains(current)) {
             current = this._reconnectDashboardFocus();
             if (!current) {
-                // Point d'entrée par défaut : Premier bouton du Hero ou premier film
                 const defaultEl = document.getElementById('sh-hero-btn-play') || document.querySelector('.sh-card:not(.sh-card--skeleton)');
                 if (defaultEl) this._setFocus(defaultEl);
                 return;
             }
         }
 
-        // A. Zone HERO ACTIONS (#sh-hero-btn-play, trailer, details)
+        // A. ZONE DYNAMIC ISLAND (.sh-nav-tab-btn, .sh-nav-action-btn)
+        if (current.classList.contains('sh-nav-tab-btn') || current.classList.contains('sh-nav-action-btn') || current.closest('.sh-dynamic-island')) {
+            const islandItems = Array.from(document.querySelectorAll('.sh-dynamic-island .sh-nav-tab-btn, .sh-dynamic-island .sh-nav-action-btn'));
+            const curIdx = islandItems.indexOf(current);
+
+            if (direction === 'right' && curIdx !== -1 && curIdx + 1 < islandItems.length) {
+                return this._setFocus(islandItems[curIdx + 1]);
+            } else if (direction === 'left' && curIdx !== -1 && curIdx > 0) {
+                return this._setFocus(islandItems[curIdx - 1]);
+            } else if (direction === 'down') {
+                // Descendre directement sur le bouton Regarder du Hero ou sur la barre de genres
+                const heroPlay = document.getElementById('sh-hero-btn-play') || document.querySelector('.sh-hero-btn-play');
+                if (heroPlay) return this._setFocus(heroPlay);
+
+                const firstChip = document.querySelector('.sh-genre-chip.active') || document.querySelector('.sh-genre-chip');
+                if (firstChip) return this._setFocus(firstChip);
+
+                const firstCard = document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton)');
+                if (firstCard) return this._setFocus(firstCard);
+            }
+            return;
+        }
+
+        // B. ZONE HERO ACTIONS (#sh-hero-btn-play, trailer, details)
         if (current.id === 'sh-hero-btn-play' || current.id === 'sh-hero-btn-trailer' || current.id === 'sh-hero-btn-details') {
             if (direction === 'right') {
                 if (current.id === 'sh-hero-btn-play') { const next = document.getElementById('sh-hero-btn-trailer'); if (next) return this._setFocus(next); }
@@ -273,23 +286,23 @@ export class SpatialNavigation {
                 if (current.id === 'sh-hero-btn-details') { const prev = document.getElementById('sh-hero-btn-trailer'); if (prev) return this._setFocus(prev); }
                 if (current.id === 'sh-hero-btn-trailer') { const prev = document.getElementById('sh-hero-btn-play'); if (prev) return this._setFocus(prev); }
             } else if (direction === 'down') {
-                // Descendre vers la barre de genres ou directement le premier carrousel
                 const firstChip = document.querySelector('.sh-genre-chip.active') || document.querySelector('.sh-genre-chip');
                 if (firstChip) return this._setFocus(firstChip);
 
                 const firstCard = document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton)');
                 if (firstCard) return this._setFocus(firstCard);
             } else if (direction === 'up') {
-                const navTab = document.querySelector('.sh-dynamic-island, .sh-nav-tab-btn.active, .sh-nav-tab-btn');
+                const navTab = document.querySelector('.sh-nav-tab-btn.active') || document.querySelector('.sh-nav-tab-btn') || document.querySelector('.sh-dynamic-island');
                 if (navTab) return this._setFocus(navTab);
             }
             return;
         }
 
-        // B. Zone BARRE DE GENRES (.sh-genre-chip)
+        // C. ZONE BARRE DE GENRES (.sh-genre-chip)
         if (current.classList.contains('sh-genre-chip')) {
             const chips = Array.from(document.querySelectorAll('.sh-genre-chip'));
             const curIdx = chips.indexOf(current);
+
             if (direction === 'right' && curIdx !== -1 && curIdx + 1 < chips.length) {
                 return this._setFocus(chips[curIdx + 1]);
             } else if (direction === 'left' && curIdx !== -1 && curIdx > 0) {
@@ -298,7 +311,6 @@ export class SpatialNavigation {
                 const heroPlay = document.getElementById('sh-hero-btn-play') || document.querySelector('.sh-hero-btn-play');
                 if (heroPlay) return this._setFocus(heroPlay);
             } else if (direction === 'down') {
-                // Descendre sur le premier carrousel du Dashboard (avec restauration de la mémoire de colonne)
                 const firstRow = document.querySelector('.sh-dashboard__item');
                 if (firstRow) {
                     const cards = Array.from(firstRow.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
@@ -312,7 +324,7 @@ export class SpatialNavigation {
             return;
         }
 
-        // C. Zone CARROUSELS DU DASHBOARD (.sh-dashboard__item -> .sh-card)
+        // D. ZONE CARROUSELS (.sh-dashboard__item -> .sh-card)
         if (current.classList.contains('sh-card')) {
             const allRows = Array.from(document.querySelectorAll('.sh-dashboard__item')).filter(r => r.querySelector('.sh-card:not(.sh-card--skeleton)'));
             const currentRow = current.closest('.sh-dashboard__item');
@@ -322,23 +334,19 @@ export class SpatialNavigation {
                 const currentCards = Array.from(currentRow.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
                 const cardIdx = currentCards.indexOf(current);
 
-                // Mémoriser la position dans ce rayon
                 this._rowMemory.set(rowIdx, Math.max(0, cardIdx));
 
-                // 1. Navigation intra-rayon (Gauche / Droite)
                 if (direction === 'right' && cardIdx !== -1 && cardIdx + 1 < currentCards.length) {
                     return this._setFocus(currentCards[cardIdx + 1]);
                 } else if (direction === 'left' && cardIdx !== -1 && cardIdx > 0) {
                     return this._setFocus(currentCards[cardIdx - 1]);
                 }
 
-                // 2. Navigation inter-rayons (Haut / Bas)
                 if (direction === 'down') {
                     if (rowIdx + 1 < allRows.length) {
                         const nextRow = allRows[rowIdx + 1];
                         const nextCards = Array.from(nextRow.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
                         if (nextCards.length > 0) {
-                            // Alignement géométrique horizontal optimal
                             const currentX = current.getBoundingClientRect().left;
                             let bestCard = nextCards[0];
                             let minDeltaX = Infinity;
@@ -364,7 +372,6 @@ export class SpatialNavigation {
                             return this._setFocus(bestCard);
                         }
                     } else if (rowIdx === 0) {
-                        // Remonter vers la barre de genres
                         const activeChip = document.querySelector('.sh-genre-chip.active') || document.querySelector('.sh-genre-chip');
                         if (activeChip) return this._setFocus(activeChip);
                     }
@@ -373,7 +380,7 @@ export class SpatialNavigation {
             return;
         }
 
-        // D. Fallback générique Dashboard
+        // Fallback
         const focusables = this._getFocusablesInContainer(document.body);
         if (focusables.length > 0) this._setFocus(focusables[0]);
     }
@@ -387,15 +394,99 @@ export class SpatialNavigation {
         if (!current || !sheet.contains(current)) {
             const playBtn = sheet.querySelector('#sh-slideup-play-btn, .sh-cinema-btn-play');
             if (playBtn) return this._setFocus(playBtn);
-            const firstFocusable = this._getFocusablesInContainer(sheet)[0];
-            if (firstFocusable) return this._setFocus(firstFocusable);
             return;
         }
 
-        // A. ÉPISODES (.sh-episode-card)
+        // A. BOUTONS DE LA BARRE DU HAUT (Retour & Fermer)
+        if (current.id === 'sh-slideup-back' || current.classList.contains('sh-slideup-back-btn')) {
+            if (direction === 'right') {
+                const closeBtn = sheet.querySelector('#sh-slideup-close, .sh-slideup-close-btn');
+                if (closeBtn) return this._setFocus(closeBtn);
+            } else if (direction === 'down') {
+                const playBtn = sheet.querySelector('#sh-slideup-play-btn, .sh-cinema-btn-play');
+                if (playBtn) return this._setFocus(playBtn);
+            }
+            return;
+        }
+
+        if (current.id === 'sh-slideup-close' || current.classList.contains('sh-slideup-close-btn')) {
+            if (direction === 'left') {
+                const backBtn = sheet.querySelector('#sh-slideup-back, .sh-slideup-back-btn');
+                if (backBtn) return this._setFocus(backBtn);
+            } else if (direction === 'down') {
+                const trailerBtn = sheet.querySelector('#sh-slideup-trailer-btn, .sh-cinema-btn-glass') || sheet.querySelector('#sh-slideup-play-btn');
+                if (trailerBtn) return this._setFocus(trailerBtn);
+            }
+            return;
+        }
+
+        // B. BOUTONS D'ACTION PRINCIPAUX (Regarder, Bande-annonce, Audio)
+        if (current.closest('.sh-cinema-actions')) {
+            const actionBtns = Array.from(sheet.querySelectorAll('.sh-cinema-btn-play, .sh-cinema-btn-glass'));
+            const curIdx = actionBtns.indexOf(current);
+
+            if (direction === 'right' && curIdx !== -1 && curIdx + 1 < actionBtns.length) {
+                return this._setFocus(actionBtns[curIdx + 1]);
+            } else if (direction === 'left' && curIdx !== -1 && curIdx > 0) {
+                return this._setFocus(actionBtns[curIdx - 1]);
+            } else if (direction === 'up') {
+                const backBtn = sheet.querySelector('#sh-slideup-back, .sh-slideup-back-btn');
+                if (backBtn) return this._setFocus(backBtn);
+            } else if (direction === 'down') {
+                const tabBtn = sheet.querySelector('.sh-tab-btn.active') || sheet.querySelector('.sh-tab-btn');
+                if (tabBtn) return this._setFocus(tabBtn);
+            }
+            return;
+        }
+
+        // C. ONGLETS DE NAVIGATION (.sh-tab-btn)
+        if (current.classList.contains('sh-tab-btn')) {
+            const tabs = Array.from(sheet.querySelectorAll('.sh-tab-btn'));
+            const curIdx = tabs.indexOf(current);
+
+            if (direction === 'right' && curIdx !== -1 && curIdx + 1 < tabs.length) {
+                return this._setFocus(tabs[curIdx + 1]);
+            } else if (direction === 'left' && curIdx !== -1 && curIdx > 0) {
+                return this._setFocus(tabs[curIdx - 1]);
+            } else if (direction === 'up') {
+                const playBtn = sheet.querySelector('#sh-slideup-play-btn, .sh-cinema-btn-play');
+                if (playBtn) return this._setFocus(playBtn);
+            } else if (direction === 'down') {
+                // Descendre vers les saisons ou les épisodes
+                const seasonPill = sheet.querySelector('.sh-season-pill-btn.active') || sheet.querySelector('.sh-season-pill-btn');
+                if (seasonPill) return this._setFocus(seasonPill);
+
+                const firstEp = sheet.querySelector('.sh-episodes-cards-grid .sh-episode-card') || sheet.querySelector('.sh-episode-card');
+                if (firstEp) return this._setFocus(firstEp);
+            }
+            return;
+        }
+
+        // D. SÉLECTEUR DE SAISONS (.sh-season-pill-btn)
+        if (current.classList.contains('sh-season-pill-btn')) {
+            const seasons = Array.from(sheet.querySelectorAll('.sh-season-pill-btn'));
+            const curIdx = seasons.indexOf(current);
+
+            if (direction === 'right' && curIdx !== -1 && curIdx + 1 < seasons.length) {
+                return this._setFocus(seasons[curIdx + 1]);
+            } else if (direction === 'left' && curIdx !== -1 && curIdx > 0) {
+                return this._setFocus(seasons[curIdx - 1]);
+            } else if (direction === 'up') {
+                const tabBtn = sheet.querySelector('.sh-tab-btn.active') || sheet.querySelector('.sh-tab-btn');
+                if (tabBtn) return this._setFocus(tabBtn);
+            } else if (direction === 'down') {
+                // Descendre impérativement dans les épisodes de la saison
+                const firstEp = sheet.querySelector('.sh-episodes-cards-grid .sh-episode-card') || sheet.querySelector('.sh-episode-card');
+                if (firstEp) return this._setFocus(firstEp);
+            }
+            return;
+        }
+
+        // E. GRILLE DES ÉPISODES (.sh-episode-card)
         if (current.classList.contains('sh-episode-card')) {
             const episodes = Array.from(sheet.querySelectorAll('.sh-episode-card'));
             const curIdx = episodes.indexOf(current);
+
             if (direction === 'down' && curIdx !== -1 && curIdx + 1 < episodes.length) {
                 return this._setFocus(episodes[curIdx + 1]);
             } else if (direction === 'up') {
@@ -410,62 +501,9 @@ export class SpatialNavigation {
             }
             return;
         }
-
-        // B. SAISONS (.sh-season-pill-btn)
-        if (current.classList.contains('sh-season-pill-btn')) {
-            const seasons = Array.from(sheet.querySelectorAll('.sh-season-pill-btn'));
-            const curIdx = seasons.indexOf(current);
-            if (direction === 'right' && curIdx !== -1 && curIdx + 1 < seasons.length) {
-                return this._setFocus(seasons[curIdx + 1]);
-            } else if (direction === 'left' && curIdx !== -1 && curIdx > 0) {
-                return this._setFocus(seasons[curIdx - 1]);
-            } else if (direction === 'down') {
-                const firstEp = sheet.querySelector('.sh-episode-card');
-                if (firstEp) return this._setFocus(firstEp);
-            } else if (direction === 'up') {
-                const tabBtn = sheet.querySelector('.sh-tab-btn.active') || sheet.querySelector('.sh-tab-btn');
-                if (tabBtn) return this._setFocus(tabBtn);
-            }
-            return;
-        }
-
-        // C. ONGLETS (.sh-tab-btn)
-        if (current.classList.contains('sh-tab-btn')) {
-            const tabs = Array.from(sheet.querySelectorAll('.sh-tab-btn'));
-            const curIdx = tabs.indexOf(current);
-            if (direction === 'right' && curIdx !== -1 && curIdx + 1 < tabs.length) {
-                return this._setFocus(tabs[curIdx + 1]);
-            } else if (direction === 'left' && curIdx !== -1 && curIdx > 0) {
-                return this._setFocus(tabs[curIdx - 1]);
-            } else if (direction === 'down') {
-                const seasonPill = sheet.querySelector('.sh-season-pill-btn.active') || sheet.querySelector('.sh-season-pill-btn');
-                if (seasonPill) return this._setFocus(seasonPill);
-                const firstEp = sheet.querySelector('.sh-episode-card');
-                if (firstEp) return this._setFocus(firstEp);
-            } else if (direction === 'up') {
-                const playBtn = sheet.querySelector('#sh-slideup-play-btn, .sh-cinema-btn-play');
-                if (playBtn) return this._setFocus(playBtn);
-            }
-            return;
-        }
-
-        // D. BOUTONS D'ACTIONS D'EN-TÊTE
-        if (current.closest('.sh-cinema-actions')) {
-            const actionBtns = Array.from(sheet.querySelectorAll('.sh-cinema-btn-play, .sh-cinema-btn-glass'));
-            const curIdx = actionBtns.indexOf(current);
-            if (direction === 'right' && curIdx !== -1 && curIdx + 1 < actionBtns.length) {
-                return this._setFocus(actionBtns[curIdx + 1]);
-            } else if (direction === 'left' && curIdx !== -1 && curIdx > 0) {
-                return this._setFocus(actionBtns[curIdx - 1]);
-            } else if (direction === 'down') {
-                const tabBtn = sheet.querySelector('.sh-tab-btn.active') || sheet.querySelector('.sh-tab-btn');
-                if (tabBtn) return this._setFocus(tabBtn);
-            }
-            return;
-        }
     }
 
-    // ─── 3. SCOPES SECONDAIRES (Réglages, Recherche, Tiroir) ────────────────
+    // ─── 3. SCOPES SECONDAIRES ──────────────────────────────────────────────
     _navigateSettings(direction) {
         const container = document.querySelector('#spacehub-settings, .sh-settings-modal');
         if (!container) return;
@@ -473,9 +511,7 @@ export class SpatialNavigation {
         if (focusables.length === 0) return;
 
         let current = this._focusedElement;
-        if (!current || !container.contains(current)) {
-            return this._setFocus(focusables[0]);
-        }
+        if (!current || !container.contains(current)) return this._setFocus(focusables[0]);
 
         const curIdx = focusables.indexOf(current);
         if (direction === 'down' && curIdx + 1 < focusables.length) {
@@ -490,9 +526,7 @@ export class SpatialNavigation {
         const results = Array.from(document.querySelectorAll('.sh-unified-search-modal .sh-card:not(.sh-card--skeleton)'));
 
         if (this._focusedElement === searchInput) {
-            if (direction === 'down' && results.length > 0) {
-                return this._setFocus(results[0]);
-            }
+            if (direction === 'down' && results.length > 0) return this._setFocus(results[0]);
         } else if (results.includes(this._focusedElement)) {
             const curIdx = results.indexOf(this._focusedElement);
             if (direction === 'up' && curIdx === 0 && searchInput) {
@@ -510,9 +544,7 @@ export class SpatialNavigation {
         if (items.length === 0) return;
 
         let current = this._focusedElement;
-        if (!current || !items.includes(current)) {
-            return this._setFocus(items[0]);
-        }
+        if (!current || !items.includes(current)) return this._setFocus(items[0]);
 
         const curIdx = items.indexOf(current);
         if (direction === 'down' && curIdx + 1 < items.length) {
@@ -540,6 +572,8 @@ export class SpatialNavigation {
             '#sh-hero-btn-details',
             '.sh-genre-chip',
             '.sh-card:not(.sh-card--skeleton)',
+            '#sh-slideup-back',
+            '#sh-slideup-close',
             '#sh-slideup-play-btn',
             '#sh-slideup-trailer-btn',
             '#sh-btn-audio-popover',
@@ -548,6 +582,8 @@ export class SpatialNavigation {
             '.sh-tab-btn',
             '.sh-season-pill-btn',
             '.sh-episode-card',
+            '.sh-nav-tab-btn',
+            '.sh-nav-action-btn',
             '#sh-search-input',
             '.sh-settings-nav__item',
             '.sh-sidebar-item',
@@ -609,10 +645,14 @@ export class SpatialNavigation {
         this.clearFocus();
 
         setTimeout(() => {
-            const target = defaultFocusEl || container?.querySelector(
-                '#sh-slideup-play-btn, .sh-cinema-btn-play, #sh-search-input, .sh-settings-nav__item.active, .sh-console-tab-btn.active, .sh-btn--primary, button:not([disabled])'
-            );
-            if (target) this._setFocus(target);
+            // Cibler en priorité absolue le bouton Regarder
+            const target = defaultFocusEl || container?.querySelector('#sh-slideup-play-btn, .sh-cinema-btn-play, #sh-search-input, .sh-btn--primary');
+            if (target) {
+                this._setFocus(target);
+            } else {
+                const backBtn = container?.querySelector('#sh-slideup-back, .sh-slideup-back-btn');
+                if (backBtn) this._setFocus(backBtn);
+            }
         }, 80);
     }
 
