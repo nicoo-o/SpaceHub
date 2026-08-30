@@ -303,33 +303,33 @@ export class SpatialNavigation {
             return 'player';
         }
 
-        // 2. Modale fiche média (ModalSlideUpSheet)
+        // 2. Modale fiche média (ModalSlideUpSheet) - Détection géométrique réelle
         const sheet = document.querySelector('.sh-slideup-sheet--open');
-        if (sheet && sheet.offsetParent !== null) {
+        if (sheet && sheet.getBoundingClientRect().height > 0) {
             return 'modal-sheet';
         }
 
         // 3. Modale générale active
         const generalModal = document.querySelector('.sh-modal-overlay.open, .sh-modal.open, .sh-console-modal-overlay.open');
-        if (generalModal && generalModal.offsetParent !== null) {
+        if (generalModal && generalModal.getBoundingClientRect().height > 0) {
             return 'general-modal';
         }
 
         // 4. Paramètres (Settings)
         const settings = document.querySelector('#spacehub-settings.is-open, .sh-settings-modal.is-open, #spacehub-settings');
-        if (settings && settings.offsetParent !== null && window.getComputedStyle(settings).display !== 'none') {
+        if (settings && settings.getBoundingClientRect().height > 0 && window.getComputedStyle(settings).display !== 'none') {
             return 'settings';
         }
 
         // 5. Recherche Unifiée (Search)
         const searchModal = document.querySelector('.sh-unified-search-modal.open');
-        if (searchModal && (searchModal.offsetParent !== null || document.activeElement?.id === 'sh-search-input')) {
+        if (searchModal && (searchModal.getBoundingClientRect().height > 0 || document.activeElement?.id === 'sh-search-input')) {
             return 'search';
         }
 
         // 6. Sidebar
         const sidebar = document.querySelector('.sh-sidebar--open, .sh-sidebar-drawer.open');
-        if (sidebar && sidebar.offsetParent !== null) {
+        if (sidebar && sidebar.getBoundingClientRect().width > 0) {
             return 'sidebar';
         }
 
@@ -569,111 +569,26 @@ export class SpatialNavigation {
         const sheet = document.querySelector('.sh-slideup-sheet--open');
         if (!sheet) return;
 
+        const allFocusables = this._getFocusablesInContainer(sheet);
+        if (allFocusables.length === 0) return;
+
         let current = this._focusedElement;
         if (!current || !sheet.contains(current)) {
-            const playBtn = sheet.querySelector('#sh-slideup-play-btn, .sh-cinema-btn-play');
-            if (playBtn) return this._setFocus(playBtn);
-            return;
+            const playBtn = sheet.querySelector('#sh-slideup-play-btn, .sh-cinema-btn-play') || allFocusables[0];
+            return this._setFocus(playBtn);
         }
 
-        // Grille des épisodes : Utiliser l'algorithme 2D universel
-        if (current.classList.contains('sh-episode-card')) {
-            const allEpisodes = Array.from(sheet.querySelectorAll('.sh-episode-card'));
-            const targetEp = this._findSpatialTarget(current, allEpisodes, direction);
-            if (targetEp) {
-                return this._setFocus(targetEp);
-            }
-
-            if (direction === 'up') {
-                const seasonPill = sheet.querySelector('.sh-season-pill-btn.active') || sheet.querySelector('.sh-season-pill-btn');
-                if (seasonPill) return this._setFocus(seasonPill);
-                const tabBtn = sheet.querySelector('.sh-tab-btn.active') || sheet.querySelector('.sh-tab-btn');
-                if (tabBtn) return this._setFocus(tabBtn);
-            }
-            return;
+        const target = this._findSpatialTarget(current, allFocusables, direction);
+        if (target) {
+            return this._setFocus(target);
         }
 
-        // Actions du haut
-        if (current.id === 'sh-slideup-back' || current.classList.contains('sh-slideup-back-btn')) {
-            if (direction === 'right') {
-                const closeBtn = sheet.querySelector('#sh-slideup-close, .sh-slideup-close-btn');
-                if (closeBtn) return this._setFocus(closeBtn);
-            } else if (direction === 'down') {
-                const playBtn = sheet.querySelector('#sh-slideup-play-btn, .sh-cinema-btn-play');
-                if (playBtn) return this._setFocus(playBtn);
-            }
-            return;
-        }
-
-        if (current.id === 'sh-slideup-close' || current.classList.contains('sh-slideup-close-btn')) {
-            if (direction === 'left') {
-                const backBtn = sheet.querySelector('#sh-slideup-back, .sh-slideup-back-btn');
-                if (backBtn) return this._setFocus(backBtn);
-            } else if (direction === 'down') {
-                const trailerBtn = sheet.querySelector('#sh-slideup-trailer-btn, .sh-cinema-btn-glass') || sheet.querySelector('#sh-slideup-play-btn');
-                if (trailerBtn) return this._setFocus(trailerBtn);
-            }
-            return;
-        }
-
-        // Boutons principaux
-        if (current.closest('.sh-cinema-actions')) {
-            const actionBtns = Array.from(sheet.querySelectorAll('.sh-cinema-btn-play, .sh-cinema-btn-glass'));
-            const curIdx = actionBtns.indexOf(current);
-
-            if (direction === 'right' && curIdx !== -1 && curIdx + 1 < actionBtns.length) {
-                return this._setFocus(actionBtns[curIdx + 1]);
-            } else if (direction === 'left' && curIdx !== -1 && curIdx > 0) {
-                return this._setFocus(actionBtns[curIdx - 1]);
-            } else if (direction === 'up') {
-                const backBtn = sheet.querySelector('#sh-slideup-back, .sh-slideup-back-btn');
-                if (backBtn) return this._setFocus(backBtn);
-            } else if (direction === 'down') {
-                const tabBtn = sheet.querySelector('.sh-tab-btn.active') || sheet.querySelector('.sh-tab-btn');
-                if (tabBtn) return this._setFocus(tabBtn);
-            }
-            return;
-        }
-
-        // Onglets
-        if (current.classList.contains('sh-tab-btn')) {
-            const tabs = Array.from(sheet.querySelectorAll('.sh-tab-btn'));
-            const curIdx = tabs.indexOf(current);
-
-            if (direction === 'right' && curIdx !== -1 && curIdx + 1 < tabs.length) {
-                return this._setFocus(tabs[curIdx + 1]);
-            } else if (direction === 'left' && curIdx !== -1 && curIdx > 0) {
-                return this._setFocus(tabs[curIdx - 1]);
-            } else if (direction === 'up') {
-                const playBtn = sheet.querySelector('#sh-slideup-play-btn, .sh-cinema-btn-play');
-                if (playBtn) return this._setFocus(playBtn);
-            } else if (direction === 'down') {
-                const seasonPill = sheet.querySelector('.sh-season-pill-btn.active') || sheet.querySelector('.sh-season-pill-btn');
-                if (seasonPill) return this._setFocus(seasonPill);
-
-                const firstEp = sheet.querySelector('.sh-episodes-cards-grid .sh-episode-card') || sheet.querySelector('.sh-episode-card');
-                if (firstEp) return this._setFocus(firstEp);
-            }
-            return;
-        }
-
-        // Sélecteur de saisons
-        if (current.classList.contains('sh-season-pill-btn')) {
-            const seasons = Array.from(sheet.querySelectorAll('.sh-season-pill-btn'));
-            const curIdx = seasons.indexOf(current);
-
-            if (direction === 'right' && curIdx !== -1 && curIdx + 1 < seasons.length) {
-                return this._setFocus(seasons[curIdx + 1]);
-            } else if (direction === 'left' && curIdx !== -1 && curIdx > 0) {
-                return this._setFocus(seasons[curIdx - 1]);
-            } else if (direction === 'up') {
-                const tabBtn = sheet.querySelector('.sh-tab-btn.active') || sheet.querySelector('.sh-tab-btn');
-                if (tabBtn) return this._setFocus(tabBtn);
-            } else if (direction === 'down') {
-                const firstEp = sheet.querySelector('.sh-episodes-cards-grid .sh-episode-card') || sheet.querySelector('.sh-episode-card');
-                if (firstEp) return this._setFocus(firstEp);
-            }
-            return;
+        // Fallback linéaire si non trouvé directement par angle strict
+        const curIdx = allFocusables.indexOf(current);
+        if (direction === 'down' && curIdx !== -1 && curIdx + 1 < allFocusables.length) {
+            this._setFocus(allFocusables[curIdx + 1]);
+        } else if (direction === 'up' && curIdx > 0) {
+            this._setFocus(allFocusables[curIdx - 1]);
         }
     }
 
@@ -829,7 +744,7 @@ export class SpatialNavigation {
         }
 
         const scroller = element.closest(
-            '.sh-card-grid, .sh-carousel-scroller, .sh-cinema-body, .sh-series-episodes-container, .sh-season-pills-row'
+            '.sh-card-grid, .sh-carousel-scroller, .sh-cinema-body, .sh-series-episodes-container, .sh-season-pills-row, .sh-slideup-sheet, .sh-cinema-sheet-inner'
         );
         if (scroller) {
             element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
