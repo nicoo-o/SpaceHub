@@ -1458,6 +1458,8 @@ class VideoPlayer {
             }
 
             document.body.classList.remove('sh-cinema-active');
+            const nav = window.SpaceHub?.spatialNav || window.SpaceHub?.ui?.appLayout?._spatialNav;
+            nav?.onModalClosed?.();
             elToClose.remove();
         }, 320);
 

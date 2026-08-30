@@ -649,14 +649,20 @@ export class SpatialNavigation {
         this._lastInteractedElement = element;
         this._recordElementId(element);
 
-        // Si l'élément est une carte du Dashboard, mémoriser de façon permanente
+        // Si l'élément est une carte du Dashboard, mémoriser et centrer verticalement le rayon
         if (element.classList.contains('sh-card')) {
             this._lastDashboardFocusedCard = element;
             this._lastDashboardFocusedCardId = element.dataset?.id || element.dataset?.itemId || null;
+
+            const row = element.closest('.sh-dashboard__item');
+            if (row) {
+                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
 
         element.classList.add('sh-tv-focused');
 
+        // Centrage horizontal dans le carrousel
         const scroller = element.closest(
             '.sh-card-grid, .sh-carousel-scroller, .sh-cinema-body, .sh-series-episodes-container, .sh-season-pills-row'
         );
