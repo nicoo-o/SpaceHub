@@ -1432,6 +1432,16 @@ class ModalSlideUpSheet {
             this._audioPopoverOpen = !this._audioPopoverOpen;
             audioMenu?.classList.toggle('open', this._audioPopoverOpen);
             audioBtn.classList.toggle('active', this._audioPopoverOpen);
+
+            if (this._audioPopoverOpen) {
+                const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+                if (spatialNav) {
+                    setTimeout(() => {
+                        const activeItem = audioMenu?.querySelector('.sh-popover-item.selected') || audioMenu?.querySelector('.sh-popover-item');
+                        if (activeItem) spatialNav._setFocus(activeItem);
+                    }, 50);
+                }
+            }
         });
 
         this._bindAudioPopoverEvents();

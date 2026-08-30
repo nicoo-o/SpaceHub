@@ -1311,6 +1311,62 @@ class VideoPlayer {
     _onKeyDown(e) {
         if (!this._el || e.target.tagName === 'INPUT') return;
 
+        // 1. Navigation dans les popovers actifs du lecteur (Audio, Subs, Réglages, Épisodes)
+        const openPopover = this._el.querySelector('.sh-player-popover.open');
+        if (openPopover) {
+            const items = Array.from(openPopover.querySelectorAll('.sh-popover-item, .sh-chip-btn, .sh-sync-btn, .sh-popover-ep-card, button:not([disabled])'));
+            const focused = document.activeElement;
+            const curIdx = items.indexOf(focused);
+
+            if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'BrowserBack' || e.key === 'GoBack') {
+                e.preventDefault();
+                this._closeAllPopovers();
+                return;
+            }
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (curIdx === -1 || curIdx + 1 >= items.length) {
+                    items[0]?.focus();
+                } else {
+                    items[curIdx + 1]?.focus();
+                }
+                return;
+            }
+
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (curIdx <= 0) {
+                    items[items.length - 1]?.focus();
+                } else {
+                    items[curIdx - 1]?.focus();
+                }
+                return;
+            }
+
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                const audioCol = openPopover.querySelector('#sh-player-audio-list');
+                const subsCol = openPopover.querySelector('#sh-player-subs-list');
+                if (audioCol && subsCol) {
+                    e.preventDefault();
+                    if (e.key === 'ArrowRight' && !subsCol.contains(focused)) {
+                        subsCol.querySelector('.sh-popover-item.selected, .sh-popover-item')?.focus();
+                    } else if (e.key === 'ArrowLeft' && !audioCol.contains(focused)) {
+                        audioCol.querySelector('.sh-popover-item.selected, .sh-popover-item')?.focus();
+                    }
+                    return;
+                }
+            }
+
+            if (e.key === 'Enter' || e.key === ' ') {
+                if (focused && openPopover.contains(focused)) {
+                    e.preventDefault();
+                    focused.click();
+                    return;
+                }
+            }
+        }
+
         switch (e.key) {
             case ' ':
             case 'k':

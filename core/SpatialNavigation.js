@@ -156,6 +156,20 @@ export class SpatialNavigation {
                 z-index: 9999 !important;
             }
 
+            /* ── POPOVER ITEMS & MENUS DÉROULANTS HAUTE COUTURE ── */
+            .sh-popover-item.sh-tv-focused,
+            .sh-dropdown-item.sh-tv-focused,
+            .sh-sync-btn.sh-tv-focused,
+            .sh-chip-btn.sh-tv-focused,
+            .sh-popover-item[data-nav-focusable]:focus-visible {
+                outline: none !important;
+                background: rgba(255, 159, 10, 0.28) !important;
+                border-color: #ff9f0a !important;
+                box-shadow: 0 0 0 2px #ff9f0a, 0 0 16px rgba(255, 159, 10, 0.60) !important;
+                transform: scale(1.02) !important;
+                z-index: 99999 !important;
+            }
+
             /* ── CARTE ÉPISODE HAUTE COUTURE ── */
             .sh-episode-card.sh-tv-focused,
             .sh-ep-card.sh-tv-focused,
@@ -298,42 +312,50 @@ export class SpatialNavigation {
     }
 
     _detectCurrentScope() {
-        // 1. Priorité : Player Vidéo
+        // 1. Popover ou Menu Déroulant Actif (Fiche Média ou Dashboard)
+        const openPopover = document.querySelector(
+            '#sh-audio-popover-menu.open, .sh-audio-popover-menu.open, .sh-popover.open, .sh-dropdown-menu.open'
+        );
+        if (openPopover && openPopover.getBoundingClientRect().height > 0) {
+            return 'popover-menu';
+        }
+
+        // 2. Priorité : Player Vidéo
         if (window.SpaceHub?.player?.isOpen?.() || window.SpaceHub?.player?._el) {
             return 'player';
         }
 
-        // 2. Modale fiche média (ModalSlideUpSheet) - Détection géométrique réelle
+        // 3. Modale fiche média (ModalSlideUpSheet) - Détection géométrique réelle
         const sheet = document.querySelector('.sh-slideup-sheet--open');
         if (sheet && sheet.getBoundingClientRect().height > 0) {
             return 'modal-sheet';
         }
 
-        // 3. Modale générale active
+        // 4. Modale générale active
         const generalModal = document.querySelector('.sh-modal-overlay.open, .sh-modal.open, .sh-console-modal-overlay.open');
         if (generalModal && generalModal.getBoundingClientRect().height > 0) {
             return 'general-modal';
         }
 
-        // 4. Paramètres (Settings)
+        // 5. Paramètres (Settings)
         const settings = document.querySelector('#spacehub-settings.is-open, .sh-settings-modal.is-open, #spacehub-settings');
         if (settings && settings.getBoundingClientRect().height > 0 && window.getComputedStyle(settings).display !== 'none') {
             return 'settings';
         }
 
-        // 5. Recherche Unifiée (Search)
+        // 6. Recherche Unifiée (Search)
         const searchModal = document.querySelector('.sh-unified-search-modal.open');
         if (searchModal && (searchModal.getBoundingClientRect().height > 0 || document.activeElement?.id === 'sh-search-input')) {
             return 'search';
         }
 
-        // 6. Sidebar
+        // 7. Sidebar
         const sidebar = document.querySelector('.sh-sidebar--open, .sh-sidebar-drawer.open');
         if (sidebar && sidebar.getBoundingClientRect().width > 0) {
             return 'sidebar';
         }
 
-        // 7. Dashboard
+        // 8. Dashboard
         return 'dashboard';
     }
 
@@ -341,6 +363,9 @@ export class SpatialNavigation {
         const scope = this._detectCurrentScope();
         
         switch (scope) {
+            case 'popover-menu':
+                this._navigatePopoverMenu(direction);
+                break;
             case 'player':
                 // Le lecteur vidéo est maître de ses propres commandes
                 return;
@@ -502,6 +527,44 @@ export class SpatialNavigation {
         }
 
         return null;
+    }
+
+    // ─── 0. SCOPE POPOVER / MENUS DÉROULANTS (Audio & Sous-titres) ───────────
+    _navigatePopoverMenu(direction) {
+        const popover = document.querySelector(
+            '#sh-audio-popover-menu.open, .sh-audio-popover-menu.open, .sh-popover.open, .sh-dropdown-menu.open'
+        );
+        if (!popover) return;
+
+        const items = Array.from(popover.querySelectorAll('.sh-popover-item, .sh-dropdown-item, button:not([disabled])'));
+        if (items.length === 0) return;
+
+        let current = this._focusedElement;
+        if (!current || !popover.contains(current)) {
+            const selected = popover.querySelector('.sh-popover-item.selected') || items[0];
+            return this._setFocus(selected);
+        }
+
+        const currentList = current.closest('.sh-popover-list, .sh-popover-column');
+        const audioList = popover.querySelector('#sh-popover-audio-list, .sh-popover-column:first-child');
+        const subsList = popover.querySelector('#sh-popover-subs-list, .sh-popover-column:last-child');
+
+        if (direction === 'right' && currentList && subsList && currentList !== subsList) {
+            const selectedSub = subsList.querySelector('.sh-popover-item.selected') || subsList.querySelector('.sh-popover-item');
+            if (selectedSub) return this._setFocus(selectedSub);
+        } else if (direction === 'left' && currentList && audioList && currentList !== audioList) {
+            const selectedAudio = audioList.querySelector('.sh-popover-item.selected') || audioList.querySelector('.sh-popover-item');
+            if (selectedAudio) return this._setFocus(selectedAudio);
+        } else {
+            const colItems = currentList ? Array.from(currentList.querySelectorAll('.sh-popover-item, button')) : items;
+            const curIdx = colItems.indexOf(current);
+
+            if (direction === 'down' && curIdx !== -1 && curIdx + 1 < colItems.length) {
+                return this._setFocus(colItems[curIdx + 1]);
+            } else if (direction === 'up' && curIdx > 0) {
+                return this._setFocus(colItems[curIdx - 1]);
+            }
+        }
     }
 
     // ─── 1. SCOPE DASHBOARD (Dynamic Island ⇄ Hero ⇄ Genres ⇄ Carrousels) ───
@@ -900,8 +963,26 @@ export class SpatialNavigation {
     _handleBack(event) {
         event?.preventDefault();
 
+        // 0. Popover ou Menu Déroulant (Fermeture prioritaire)
+        const openPopover = document.querySelector(
+            '#sh-audio-popover-menu.open, .sh-audio-popover-menu.open, .sh-popover.open, .sh-dropdown-menu.open'
+        );
+        if (openPopover) {
+            window.SpaceHub?.ui?.modalSlideUpSheet?._closeAudioPopover?.();
+            openPopover.classList.remove('open');
+            const anchorBtn = document.getElementById('sh-btn-audio-popover') || document.querySelector('.sh-btn-audio-popover');
+            if (anchorBtn) this._setFocus(anchorBtn);
+            return;
+        }
+
         // 1. Modale fiche média
         const slideUpModal = document.querySelector('.sh-slideup-sheet--open');
+        if (slideUpModal) {
+            const currentItem = window.SpaceHub?.ui?.modalSlideUpSheet?._currentItem;
+            window.SpaceHub?.ui?.modalSlideUpSheet?.close?.();
+            this.onModalClosed(currentItem);
+            return;
+        }
         if (slideUpModal) {
             const currentItem = window.SpaceHub?.ui?.modalSlideUpSheet?._currentItem;
             window.SpaceHub?.ui?.modalSlideUpSheet?.close?.();
