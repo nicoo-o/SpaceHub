@@ -1,6 +1,6 @@
 /**
  * SpaceHub — SettingsManager
- * Version: 0.2.0
+ * Version: 1.0.0
  *
  * Gestion centralisée de la configuration utilisateur.
  * Stockage dans localStorage avec support des valeurs par défaut,
@@ -127,6 +127,28 @@ class SettingsManager {
      */
     export() {
         return JSON.stringify(this._settings, null, 2);
+    }
+
+    /**
+     * Exporte les settings utilisateur en JSON en masquant les clés et mots de passe sensibles.
+     * @returns {string}
+     */
+    exportSanitized() {
+        const sanitized = JSON.parse(JSON.stringify(this._settings));
+        const maskSecrets = (obj) => {
+            for (const key of Object.keys(obj)) {
+                if (typeof obj[key] === 'object' && obj[key] !== null) {
+                    maskSecrets(obj[key]);
+                } else if (typeof obj[key] === 'string') {
+                    const lk = key.toLowerCase();
+                    if (lk.includes('key') || lk.includes('password') || lk.includes('token') || lk.includes('secret')) {
+                        obj[key] = obj[key].length > 6 ? `${obj[key].slice(0, 3)}****${obj[key].slice(-2)}` : '******';
+                    }
+                }
+            }
+        };
+        maskSecrets(sanitized);
+        return JSON.stringify(sanitized, null, 2);
     }
 
     /**

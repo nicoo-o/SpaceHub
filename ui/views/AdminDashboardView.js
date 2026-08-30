@@ -216,11 +216,19 @@ export class AdminDashboardView {
 
         modal.querySelector('#sh-admin-btn-sync-bazarr')?.addEventListener('click', async () => {
             const bazarr = window.SpaceHub?.integrations?.bazarr;
-            if (bazarr?.service?.sync) {
-                await bazarr.service.sync();
-                window.SpaceHub?.ui?.components?.toaster?.success?.('Synchronisation Bazarr effectuée !');
-            } else {
-                window.SpaceHub?.ui?.components?.toaster?.info?.('Bazarr non configuré ou inactif.');
+            try {
+                if (typeof bazarr?.sync === 'function') {
+                    await bazarr.sync();
+                    window.SpaceHub?.ui?.components?.toaster?.success?.('Synchronisation Bazarr effectuée !');
+                } else if (typeof bazarr?.service?.sync === 'function') {
+                    await bazarr.service.sync();
+                    window.SpaceHub?.ui?.components?.toaster?.success?.('Synchronisation Bazarr effectuée !');
+                } else {
+                    window.SpaceHub?.ui?.components?.toaster?.info?.('Bazarr non configuré ou inactif.');
+                }
+            } catch (err) {
+                console.error('[AdminDashboardView] Erreur sync Bazarr:', err);
+                window.SpaceHub?.ui?.components?.toaster?.error?.(`Erreur Bazarr: ${err.message || 'Échec de synchronisation'}`);
             }
         });
 

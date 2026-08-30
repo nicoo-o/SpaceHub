@@ -7,7 +7,7 @@
  * les améliorations Jellyfin natives, l'Extension SDK, le panneau de configuration,
  * et l'ensemble des intégrations (Sonarr, Radarr, Prowlarr, Bazarr, Jellyseerr, qBittorrent).
  *
- * Basé sur KefinTweaks par @ranaldsgift — https://github.com/ranaldsgift/KefinTweaks
+ * Basé sur KefinTweaks par @ranaldsgift — https://github.com/nicoo-o/SpaceHub
  */
 
 'use strict';

@@ -1,7 +1,7 @@
 # Space Hub — Plan de Développement Complet
 
 > **Plugin Jellyfin modulaire** transformant Jellyfin en un **Media Center unifié**.
-> **Base** : Fork de [KefinTweaks](https://github.com/ranaldsgift/KefinTweaks) (repo original : `ranaldsgift/KefinTweaks`).
+> **Base** : Fork de [KefinTweaks](https://github.com/nicoo-o/SpaceHub) (repo original : `nicoo-o/SpaceHub`).
 > **Architecture** : Frontend JavaScript/CSS injecté dans Jellyfin Web.
 > **Objectif** : Remplacer Sonarr, Radarr, Bazarr, Prowlarr, Jellyseerr, qBittorrent, etc. par une **interface unique, cohérente et modulaire**.
 

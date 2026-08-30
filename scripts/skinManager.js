@@ -209,7 +209,7 @@
         // Match pattern: .../SpaceHub/skins/{filename}.css
         // This works for various formats:
         // - https://ranaldsgift.github.io/SpaceHub/skins/elegantKefin.css
-        // - https://cdn.jsdelivr.net/gh/ranaldsgift/SpaceHub@main/skins/elegantKefin.css
+        // - https://cdn.jsdelivr.net/gh/nicoo-o/SpaceHub@main/skins/elegantKefin.css
         // - https://selfhosted.com/SpaceHub/skins/elegantKefin.css
         const SpaceHubSkinPattern = /\/SpaceHub\/skins\/([^\/\?]+\.css)(?:\?.*)?$/i;
         const match = normalized.match(SpaceHubSkinPattern);

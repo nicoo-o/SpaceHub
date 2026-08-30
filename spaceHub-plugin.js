@@ -27,8 +27,8 @@
     }
 
     // jsDelivr URL patterns
-    const JSDELIVR_BASE = 'https://cdn.jsdelivr.net/gh/ranaldsgift/SpaceHub';
-    const GITHUB_REPO = 'ranaldsgift/SpaceHub';
+    const JSDELIVR_BASE = 'https://cdn.jsdelivr.net/gh/nicoo-o/SpaceHub';
+    const GITHUB_REPO = 'nicoo-o/SpaceHub';
     const GITHUB_API_RELEASES = `https://api.github.com/repos/${GITHUB_REPO}/releases`;
 
     // Check if user is admin
@@ -505,7 +505,7 @@ window.SpaceHubConfig = ${JSON.stringify(config, null, 2)};`;
                 <p>Thanks so much for installing SpaceHub!</p>
                 <p>SpaceHub is not maintained by the Jellyfin team, and as a result you are encouraged to seek support from me directly.</p>
                 <p>Sadly, there is <i>currently</i> no place suitable for discussion of plugins built by community members or fan-made projects in the official Jellyfin Discord, so please visit the <a href="https://discord.gg/v7P9CAvCKZ" target="_blank" style="color: #00a4dc; text-decoration: underline;">Jellyfin Community Discord</a> to find me (username: HighImKevin) and other users who would be happy to help you out.</p>
-                <p>Please also feel free to report bugs and request features from the <a href="https://github.com/ranaldsgift/SpaceHub/issues" target="_blank" style="color: #00a4dc; text-decoration: underline;">Issues</a> page. The strength of this plugin relies on awesome community members like you, so thanks for using SpaceHub!</p>
+                <p>Please also feel free to report bugs and request features from the <a href="https://github.com/nicoo-o/SpaceHub/issues" target="_blank" style="color: #00a4dc; text-decoration: underline;">Issues</a> page. The strength of this plugin relies on awesome community members like you, so thanks for using SpaceHub!</p>
             `;
         } else {
             // Update message with refresh instruction
@@ -779,7 +779,7 @@ window.SpaceHubConfig = ${JSON.stringify(config, null, 2)};`;
                 } else if (sourceInfo.version === LATEST_RELEASE_NAME) {
                     // Fetch the actual latest version number
                     try {
-                        const response = await fetch('https://api.github.com/repos/ranaldsgift/SpaceHub/releases/latest');
+                        const response = await fetch('https://api.github.com/repos/nicoo-o/SpaceHub/releases/latest');
                         if (response.ok) {
                             const data = await response.json();
                             const versionNumber = data.tag_name.replace(/^v/, '');
@@ -947,7 +947,7 @@ window.SpaceHubConfig = ${JSON.stringify(config, null, 2)};`;
                 } else if (sourceInfo.version === LATEST_RELEASE_NAME) {
                     // Fetch the actual latest version number
                     try {
-                        const response = await fetch('https://api.github.com/repos/ranaldsgift/SpaceHub/releases/latest');
+                        const response = await fetch('https://api.github.com/repos/nicoo-o/SpaceHub/releases/latest');
                         if (response.ok) {
                             const data = await response.json();
                             const versionNumber = data.tag_name.replace(/^v/, '');
@@ -1120,7 +1120,7 @@ window.SpaceHubConfig = ${JSON.stringify(config, null, 2)};`;
                 } else if (sourceInfo.version === LATEST_RELEASE_NAME) {
                     // Fetch the actual latest version number
                     try {
-                        const response = await fetch('https://api.github.com/repos/ranaldsgift/SpaceHub/releases/latest');
+                        const response = await fetch('https://api.github.com/repos/nicoo-o/SpaceHub/releases/latest');
                         if (response.ok) {
                             const data = await response.json();
                             const versionNumber = data.tag_name.replace(/^v/, '');
@@ -1273,7 +1273,7 @@ window.SpaceHubConfig = ${JSON.stringify(config, null, 2)};`;
                 let img = card.querySelector('img');
     
                 if (img) {
-                    img.src = 'https://raw.githubusercontent.com/ranaldsgift/SpaceHub/refs/heads/main/logo.png';
+                    img.src = 'https://raw.githubusercontent.com/nicoo-o/SpaceHub/refs/heads/main/logo.png';
                     img.style.width = 'auto';
                     img.style.height = '100%';
                     img.parentNode.style.background = 'linear-gradient(to bottom, #202020, #101010)';
@@ -1281,7 +1281,7 @@ window.SpaceHubConfig = ${JSON.stringify(config, null, 2)};`;
                     img = document.createElement('div');
                     img.className = 'defaultCardBackground';
                     // give the gradient some color
-                    img.style.background = 'url(https://raw.githubusercontent.com/ranaldsgift/SpaceHub/refs/heads/main/logo.png), linear-gradient(to bottom, #202020, #101010)';
+                    img.style.background = 'url(https://raw.githubusercontent.com/nicoo-o/SpaceHub/refs/heads/main/logo.png), linear-gradient(to bottom, #202020, #101010)';
                     img.style.backgroundSize = 'contain';
                     img.style.backgroundPosition = 'center';
                     img.style.backgroundRepeat = 'no-repeat';

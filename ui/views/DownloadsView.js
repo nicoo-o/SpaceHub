@@ -865,7 +865,7 @@ class DownloadsView {
         }
 
         slotMain.querySelector('#sh-health-btn-subtitles')?.addEventListener('click', async () => {
-            await window.SpaceHub?.integrations?.bazarr?.service?.sync?.();
+            await window.SpaceHub?.integrations?.bazarr?.sync?.();
             window.SpaceHub?.ui?.components?.toaster?.success?.('Recherche automatique de sous-titres lancée !');
         });
 
