@@ -365,38 +365,39 @@ export class SpatialNavigation {
             return;
         }
 
-        // D. ZONE CARROUSELS & CARTES MÉDIAS (.sh-card) ── NAVIGATION 4D DIRECTE SANS ROLLBACK
+        // D. ZONE CARROUSELS & CARTES MÉDIAS (.sh-card) ── NAVIGATION INFAILLIBLE SANS BLOCAGE
         if (current.classList.contains('sh-card')) {
-            // 1. Navigation Horizontale (← / →) : Directe au sein de la grille locale
-            const localGrid = current.closest('.sh-card-grid, .sh-widget__items-container, .sh-carousel-scroller, .sh-library-grid, .sh-widget, .sh-dashboard__item') || current.parentElement;
-            const siblingCards = Array.from(localGrid.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
-            const cardIdx = siblingCards.indexOf(current);
-
-            if (direction === 'right') {
-                if (cardIdx !== -1 && cardIdx + 1 < siblingCards.length) {
-                    return this._setFocus(siblingCards[cardIdx + 1]);
-                }
-                return; // Arrivé au bout à droite : rester fermement sur la carte
-            }
-
-            if (direction === 'left') {
-                if (cardIdx !== -1 && cardIdx > 0) {
-                    return this._setFocus(siblingCards[cardIdx - 1]);
-                }
-                return; // Arrivé au bout à gauche : rester fermement sur la carte
-            }
-
-            // 2. Navigation Verticale (↓ / ↑) : Déplacement entre conteneurs de rangées réels
-            const allGrids = Array.from(document.querySelectorAll('.sh-card-grid, .sh-widget__items-container, .sh-carousel-scroller, .sh-library-grid'))
-                .filter(g => g.querySelector('.sh-card:not(.sh-card--skeleton)'));
+            const allRowContainers = Array.from(document.querySelectorAll('.sh-dashboard__item, .sh-library-grid'))
+                .filter(row => row.querySelector('.sh-card:not(.sh-card--skeleton)'));
             
-            const currentCardGrid = current.closest('.sh-card-grid, .sh-widget__items-container, .sh-carousel-scroller, .sh-library-grid');
-            const gridIdx = allGrids.indexOf(currentCardGrid);
+            const currentRow = current.closest('.sh-dashboard__item, .sh-library-grid');
+            const rowIdx = allRowContainers.indexOf(currentRow);
 
+            // 1. Navigation Horizontale (← / →) : Intra-rangée
+            if (currentRow) {
+                const rowCards = Array.from(currentRow.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
+                const cardIdx = rowCards.indexOf(current);
+
+                if (direction === 'right') {
+                    if (cardIdx !== -1 && cardIdx + 1 < rowCards.length) {
+                        return this._setFocus(rowCards[cardIdx + 1]);
+                    }
+                    return; // Bout de rangée : rester sur la carte
+                }
+
+                if (direction === 'left') {
+                    if (cardIdx !== -1 && cardIdx > 0) {
+                        return this._setFocus(rowCards[cardIdx - 1]);
+                    }
+                    return; // Début de rangée : rester sur la carte
+                }
+            }
+
+            // 2. Navigation Verticale (↓ / ↑) : Inter-rangées
             if (direction === 'down') {
-                if (gridIdx !== -1 && gridIdx + 1 < allGrids.length) {
-                    const nextGrid = allGrids[gridIdx + 1];
-                    const nextCards = Array.from(nextGrid.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
+                if (currentRow && rowIdx !== -1 && rowIdx + 1 < allRowContainers.length) {
+                    const nextRow = allRowContainers[rowIdx + 1];
+                    const nextCards = Array.from(nextRow.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
                     if (nextCards.length > 0) {
                         const currentX = current.getBoundingClientRect().left;
                         let bestCard = nextCards[0];
@@ -408,13 +409,13 @@ export class SpatialNavigation {
                         return this._setFocus(bestCard);
                     }
                 }
-                return; // Bas de page : rester sur la carte active
+                return; // Bas de page : rester sur la carte
             }
 
             if (direction === 'up') {
-                if (gridIdx > 0) {
-                    const prevGrid = allGrids[gridIdx - 1];
-                    const prevCards = Array.from(prevGrid.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
+                if (currentRow && rowIdx > 0) {
+                    const prevRow = allRowContainers[rowIdx - 1];
+                    const prevCards = Array.from(prevRow.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
                     if (prevCards.length > 0) {
                         const currentX = current.getBoundingClientRect().left;
                         let bestCard = prevCards[0];
@@ -425,7 +426,7 @@ export class SpatialNavigation {
                         });
                         return this._setFocus(bestCard);
                     }
-                } else if (gridIdx === 0 || gridIdx === -1) {
+                } else if (!currentRow || rowIdx === 0) {
                     // Tout en haut du catalogue : remonter sur la barre de genres
                     const activeChip = document.querySelector('.sh-genre-chip.active') || document.querySelector('.sh-genre-chip');
                     if (activeChip) return this._setFocus(activeChip);
@@ -433,7 +434,6 @@ export class SpatialNavigation {
                 return;
             }
 
-            return;
         }
     }
 

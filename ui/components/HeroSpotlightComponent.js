@@ -584,7 +584,13 @@ class HeroSpotlightComponent {
 .sh-hero-container { position: relative; width: 100%; height: 100vh; overflow: hidden; background: #000000; }
 .sh-hero-bg { position: absolute; top: -2%; left: -2%; right: -2%; bottom: -2%; background-size: cover; background-position: center 20%; animation: sh-ken-burns 36s ease-in-out infinite alternate; transition: background-image 500ms ease, opacity 500ms ease, transform 500ms ease; will-change: transform, opacity; pointer-events: none !important; }
 @keyframes sh-ken-burns { 0% { transform: scale(1.02) translate(0, 0); } 50% { transform: scale(1.04) translate(-8px, -4px); } 100% { transform: scale(1.02) translate(0, 0); } }
-.sh-hero-gradient-overlay { position: absolute; inset: 0; background: linear-gradient(to right, rgba(0,0,0,0.96) 0%, transparent 60%), linear-gradient(to top, #000000 0%, transparent 70%); z-index: 6; pointer-events: none !important; }
+.sh-hero-gradient-overlay {
+        position: absolute;
+        inset: 0;
+        background: 
+            linear-gradient(to right, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.7) 35%, transparent 65%),
+            linear-gradient(to top, #000000 0%, #000000 12%, rgba(0,0,0,0.85) 30%, transparent 75%);
+        z-index: 6; pointer-events: none !important; }
 .sh-hero-content { position: relative; z-index: 10; height: 100%; max-width: 1600px; margin: 0 auto; padding: 0 54px; display: flex; align-items: flex-end; padding-bottom: 84px; pointer-events: none !important; }
 .sh-hero-info { max-width: 700px; pointer-events: auto !important; }
 
