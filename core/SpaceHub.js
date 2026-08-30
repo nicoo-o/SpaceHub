@@ -15,6 +15,7 @@
 import Logger          from './Logger.js';
 import EventBus        from './EventBus.js';
 import ModuleManager   from './ModuleManager.js';
+import PluginManager    from './PluginManager.js';
 import SettingsManager from './SettingsManager.js';
 import CacheManager    from './CacheManager.js';
 import { ApiClient, JellyfinClient } from './ApiClient.js';
@@ -87,10 +88,12 @@ const SpaceHub = {
      *   api: ApiClient,
      * }}
      */
+    plugins: null,
     core: {
         log: null,
         eventBus: null,
         moduleManager: null,
+        pluginManager: null,
         settings: null,
         cache: null,
         api: null,
@@ -176,10 +179,16 @@ async function init() {
     SpaceHub.core.eventBus = eventBus;
     log.info('EventBus prêt.');
 
-    // 3. ModuleManager
+        // 3. ModuleManager
     const moduleManager = new ModuleManager(eventBus);
     SpaceHub.core.moduleManager = moduleManager;
     log.info('ModuleManager prêt.');
+
+    // 3.5. PluginManager
+    const pluginManager = new PluginManager({ eventBus, settings });
+    SpaceHub.plugins = pluginManager;
+    SpaceHub.core.pluginManager = pluginManager;
+    log.info('PluginManager prêt.');
 
     // 4. SettingsManager
     const settings = new SettingsManager(eventBus);

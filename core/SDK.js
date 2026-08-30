@@ -15,6 +15,10 @@ class SpaceHubSDK {
         this._log = new Logger('SDK');
     }
 
+    _getPluginManager() {
+        return window.SpaceHub?.plugins || window.SpaceHub?.core?.pluginManager || this._pm;
+    }
+
     // ─── Plugins & Cycle de Vie ───────────────────────────────────────────────
 
     /**
@@ -22,7 +26,7 @@ class SpaceHubSDK {
      * @param {Object} pluginManifest
      */
     registerPlugin(pluginManifest) {
-        const pm = window.SpaceHub?.plugins || window.SpaceHub?.core?.pluginManager;
+        const pm = this._getPluginManager();
         if (!pm) {
             this._log.error('PluginManager non initialisé.');
             return false;
@@ -35,7 +39,7 @@ class SpaceHubSDK {
      * @returns {Array<Object>}
      */
     getPlugins() {
-        const pm = window.SpaceHub?.plugins || window.SpaceHub?.core?.pluginManager;
+        const pm = this._getPluginManager();
         return pm?.getPlugins() || [];
     }
 
@@ -44,7 +48,7 @@ class SpaceHubSDK {
      * @param {string} id
      */
     async enablePlugin(id) {
-        const pm = window.SpaceHub?.plugins || window.SpaceHub?.core?.pluginManager;
+        const pm = this._getPluginManager();
         return await pm?.enablePlugin(id);
     }
 
@@ -53,7 +57,7 @@ class SpaceHubSDK {
      * @param {string} id
      */
     async disablePlugin(id) {
-        const pm = window.SpaceHub?.plugins || window.SpaceHub?.core?.pluginManager;
+        const pm = this._getPluginManager();
         return await pm?.disablePlugin(id);
     }
 
