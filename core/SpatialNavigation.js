@@ -1,10 +1,10 @@
 /**
- * SpaceHub — Spatial Navigation (TV Remote & D-Pad Controller)
- * Version: 2.0.0
+ * SpaceHub — Spatial Navigation (TV Remote & Mobile/D-Pad Engine)
+ * Version: 3.0.0
  *
- * Moteur de navigation spatiale optimisé pour télécommandes TV, manettes et claviers.
- * Supporte le déplacement intra-carrousel (gauche/droite), inter-sections (haut/bas)
- * et le halo Apple TV 4K ultra-visible.
+ * Moteur de navigation spatiale unifié pour télécommandes TV, claviers, manettes et tactile.
+ * Supporte la bascule instantanée Souris ⇄ Flèches, la navigation intra-modale
+ * et l'harmonisation visuelle parfaite.
  */
 
 'use strict';
@@ -21,9 +21,12 @@ export class SpatialNavigation {
         this._root = root;
         this._focusedElement = null;
         this._isEnabled = true;
+        this._isTvMode = false;
+        this._lastMouseX = null;
+        this._lastMouseY = null;
         this._injectStyles();
         this._bindEvents();
-        this._log.info('Moteur SpatialNavigation TV v2.0 prêt.');
+        this._log.info('Moteur SpatialNavigation TV & Mobile v3.0 actif.');
     }
 
     _injectStyles() {
@@ -31,18 +34,19 @@ export class SpatialNavigation {
         const style = document.createElement('style');
         style.id = 'sh-spatial-nav-styles';
         style.textContent = `
-            /* Halo Luminescent Apple TV 4K Focus Ultra-Visible */
+            /* Halo Luminescent Apple TV 4K Subtil & Non-Coupeur */
             .sh-tv-focused {
-                outline: 3.5px solid #ff9f0a !important;
-                outline-offset: 4px !important;
-                box-shadow: 0 0 28px rgba(255, 159, 10, 0.75), 0 14px 36px rgba(0, 0, 0, 0.9) !important;
-                transform: scale3d(1.06, 1.06, 1.06) !important;
-                z-index: 9999 !important;
-                transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease, outline 140ms ease !important;
+                outline: 2.5px solid #ff9f0a !important;
+                outline-offset: 3px !important;
+                box-shadow: 0 0 20px rgba(255, 159, 10, 0.55), 0 8px 24px rgba(0, 0, 0, 0.8) !important;
+                z-index: 999 !important;
             }
 
             .sh-card.sh-tv-focused {
-                transform: scale3d(1.07, 1.07, 1.07) translateY(-6px) !important;
+                outline: 2.5px solid #ff9f0a !important;
+                outline-offset: 3px !important;
+                box-shadow: 0 0 24px rgba(255, 159, 10, 0.60), 0 12px 30px rgba(0, 0, 0, 0.85) !important;
+                transform: translateY(-5px) scale(1.025) !important;
             }
 
             .sh-genre-chip.sh-tv-focused,
@@ -55,16 +59,19 @@ export class SpatialNavigation {
     }
 
     _bindEvents() {
+        // 1. Clavier / D-Pad
         window.addEventListener('keydown', (e) => {
             if (!this._isEnabled) return;
 
-            // Ignorer si l'utilisateur saisit du texte dans un champ
+            // Ignorer si l'utilisateur saisit du texte dans un champ (sauf Escape)
             const activeEl = document.activeElement;
             const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
             if (isInput && e.key !== 'Escape') return;
 
             const tvKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape', 'Backspace'];
             if (!tvKeys.includes(e.key)) return;
+
+            this._isTvMode = true;
 
             switch (e.key) {
                 case 'ArrowUp':
@@ -82,21 +89,66 @@ export class SpatialNavigation {
                     break;
                 case 'Escape':
                 case 'Backspace':
-                    const openModal = document.querySelector('.sh-modal-overlay.open, .sh-modal.open, .sh-slideup-sheet--open, #spacehub-settings');
-                    if (openModal) {
-                        e.preventDefault();
-                        window.SpaceHub?.ui?.modalSlideUpSheet?.close?.();
-                        document.querySelectorAll('.sh-modal-overlay.open, .sh-modal.open').forEach(m => m.remove());
-                    } else if (window.SpaceHub?.player?._el) {
-                        e.preventDefault();
-                        window.SpaceHub.player.close();
-                    }
+                    this._handleBack(e);
                     break;
             }
         });
+
+        // 2. Bascule instantanée Souris (Désactive le mode TV dès que la souris bouge)
+        window.addEventListener('mousemove', (e) => {
+            if (this._lastMouseX === null || this._lastMouseY === null) {
+                this._lastMouseX = e.clientX;
+                this._lastMouseY = e.clientY;
+                return;
+            }
+
+            const delta = Math.abs(e.clientX - this._lastMouseX) + Math.abs(e.clientY - this._lastMouseY);
+            if (delta > 4) {
+                this._lastMouseX = e.clientX;
+                this._lastMouseY = e.clientY;
+                if (this._isTvMode || this._focusedElement) {
+                    this.clearFocus();
+                    this._isTvMode = false;
+                }
+            }
+        }, { passive: true });
     }
 
-        _getFocusableElements() {
+    _handleBack(event) {
+        const slideUpModal = document.querySelector('.sh-slideup-sheet--open');
+        if (slideUpModal) {
+            event?.preventDefault();
+            window.SpaceHub?.ui?.modalSlideUpSheet?.close?.();
+            return;
+        }
+
+        const openModal = document.querySelector('.sh-modal-overlay.open, .sh-modal.open, #spacehub-settings');
+        if (openModal) {
+            event?.preventDefault();
+            document.querySelectorAll('.sh-modal-overlay.open, .sh-modal.open').forEach(m => m.remove());
+            return;
+        }
+
+        if (window.SpaceHub?.player?._el) {
+            event?.preventDefault();
+            window.SpaceHub.player.close();
+        }
+    }
+
+    _getActiveContainer() {
+        // Si une modale ou fiche média est ouverte, restreindre le focus à son contenu
+        const slideUp = document.querySelector('.sh-slideup-sheet--open');
+        if (slideUp) return slideUp;
+
+        const openModal = document.querySelector('.sh-modal.open, #spacehub-settings, .sh-console-modal-overlay.open');
+        if (openModal) return openModal;
+
+        return document.body;
+    }
+
+    _getFocusableElements() {
+        const container = this._getActiveContainer();
+
         const selector = [
             '#sh-hero-btn-play',
             '#sh-hero-btn-trailer',
@@ -108,13 +160,19 @@ export class SpatialNavigation {
             '.sh-dock-pill-btn',
             '.sh-resume-dock__btn-play',
             '#sh-resume-dock-play',
+            '.sh-slideup-btn-play',
+            '.sh-slideup-btn-glass',
+            '.sh-slideup-season-chip',
+            '.sh-slideup-ep-card',
+            '.sh-settings-nav__item',
+            '.sh-btn:not([disabled])',
             'button:not([disabled]):not(.sh-hero-badge):not(.sh-score-rt):not(.sh-score-imdb):not([style*="display: none"])',
             'a[href]',
             'input:not([disabled])',
             '[tabindex="0"]:not(.sh-hero-badge):not(.sh-score-rt):not(.sh-score-imdb)'
         ].join(', ');
 
-        const all = Array.from(document.querySelectorAll(selector));
+        const all = Array.from(container.querySelectorAll(selector));
         return all.filter(el => {
             if (el.classList.contains('sh-hero-badge') || el.classList.contains('sh-score-rt') || el.classList.contains('sh-score-imdb')) {
                 return false;
@@ -132,7 +190,7 @@ export class SpatialNavigation {
         if (!this._focusedElement || !document.body.contains(this._focusedElement)) {
             const visible = focusables.find(el => {
                 const r = el.getBoundingClientRect();
-                return r.top >= 50 && r.bottom <= window.innerHeight - 50 && r.left >= 0 && r.right <= window.innerWidth;
+                return r.top >= 40 && r.bottom <= window.innerHeight - 40 && r.left >= 0 && r.right <= window.innerWidth;
             }) || focusables[0];
             this._setFocus(visible);
             return;
@@ -141,23 +199,23 @@ export class SpatialNavigation {
         const current = this._focusedElement;
         const currentRect = current.getBoundingClientRect();
 
-        // 1. Déplacement horizontal intra-carrousel prioritaire pour les cartes
-        if ((direction === 'left' || direction === 'right') && current.classList.contains('sh-card')) {
-            const track = current.closest('.sh-carousel-track, .sh-gooey-track, .sh-dashboard__item');
-            if (track) {
-                const siblingCards = Array.from(track.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
-                const currentIndex = siblingCards.indexOf(current);
+        // 1. Navigation intra-carrousel ou intra-liste (Gauche / Droite)
+        if ((direction === 'left' || direction === 'right')) {
+            const listParent = current.closest('.sh-card-grid, .sh-carousel-track, .sh-slideup-episodes-scroller, .sh-slideup-seasons-track, .sh-genre-bar-track');
+            if (listParent) {
+                const siblings = Array.from(listParent.querySelectorAll('.sh-card:not(.sh-card--skeleton), .sh-slideup-ep-card, .sh-slideup-season-chip, .sh-genre-chip'));
+                const currentIndex = siblings.indexOf(current);
                 if (currentIndex !== -1) {
                     const targetIndex = direction === 'right' ? currentIndex + 1 : currentIndex - 1;
-                    if (targetIndex >= 0 && targetIndex < siblingCards.length) {
-                        this._setFocus(siblingCards[targetIndex]);
+                    if (targetIndex >= 0 && targetIndex < siblings.length) {
+                        this._setFocus(siblings[targetIndex]);
                         return;
                     }
                 }
             }
         }
 
-        // 2. Déplacement vertical entre sections
+        // 2. Navigation inter-sections verticale (Haut / Bas)
         if ((direction === 'up' || direction === 'down') && current.classList.contains('sh-card')) {
             const currentSection = current.closest('.sh-dashboard__item');
             if (currentSection) {
@@ -168,7 +226,6 @@ export class SpatialNavigation {
                     if (targetSecIdx >= 0 && targetSecIdx < allSections.length) {
                         const nextCards = allSections[targetSecIdx].querySelectorAll('.sh-card:not(.sh-card--skeleton)');
                         if (nextCards.length > 0) {
-                            // Trouver la carte la plus alignée horizontalement
                             let bestCard = nextCards[0];
                             let minDeltaX = Infinity;
                             nextCards.forEach(c => {
@@ -182,7 +239,7 @@ export class SpatialNavigation {
                             return;
                         }
                     } else if (direction === 'up') {
-                        // Monter vers la barre de genres ou la Dynamic Island
+                        // Monter vers la barre de genres
                         const chips = document.querySelectorAll('.sh-genre-chip');
                         if (chips.length > 0) {
                             this._setFocus(chips[0]);
@@ -193,7 +250,7 @@ export class SpatialNavigation {
             }
         }
 
-        // 3. Fallback géométrique 2D classique
+        // 3. Fallback géométrique 2D
         let bestCandidate = null;
         let minDistance = Infinity;
 
@@ -231,14 +288,13 @@ export class SpatialNavigation {
 
     _setFocus(element) {
         if (!element) return;
-        if (this._focusedElement) {
-            this._focusedElement.classList.remove('sh-tv-focused');
-        }
+        this.clearFocus();
+
         this._focusedElement = element;
         element.classList.add('sh-tv-focused');
 
-        // Défilement automatique du carrousel parent
-        const scroller = element.closest('.sh-carousel-scroller, .sh-carousel-track-wrapper, .sh-carousel-track, .sh-gooey-scroller');
+        // Défilement automatique fluide
+        const scroller = element.closest('.sh-card-grid, .sh-carousel-scroller, .sh-slideup-episodes-scroller, .sh-slideup-seasons-track');
         if (scroller) {
             element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         } else {
@@ -255,11 +311,16 @@ export class SpatialNavigation {
         this._focusedElement.click();
     }
 
-    destroy() {
+    clearFocus() {
         if (this._focusedElement) {
             this._focusedElement.classList.remove('sh-tv-focused');
             this._focusedElement = null;
         }
+        document.querySelectorAll('.sh-tv-focused').forEach(el => el.classList.remove('sh-tv-focused'));
+    }
+
+    destroy() {
+        this.clearFocus();
         this._isEnabled = false;
     }
 }

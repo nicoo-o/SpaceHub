@@ -920,7 +920,7 @@ class CardBuilder {
     gap: 24px;
     overflow-x: auto;
     overflow-y: visible;
-    padding: 14px 8px 28px 8px;
+    padding: 20px 12px 34px 12px;
     scroll-behavior: smooth;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -971,8 +971,8 @@ class CardBuilder {
     transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.sh-card:hover {
-    transform: translateY(-8px) scale(1.025);
+.sh-card:hover, .sh-card.sh-tv-focused {
+    transform: translateY(-6px) scale(1.025);
 }
 
 .sh-card:focus-visible {
@@ -988,7 +988,7 @@ class CardBuilder {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.80), inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.05);
     transition: box-shadow 300ms ease;
 }
-.sh-card:hover .sh-card__image-wrap {
+.sh-card:hover .sh-card__image-wrap, .sh-card.sh-tv-focused .sh-card__image-wrap {
     box-shadow: 0 28px 65px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.22);
 }
 
@@ -1003,7 +1003,7 @@ class CardBuilder {
     display: block;
     transition: transform 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
-.sh-card:hover .sh-card__image { transform: scale(1.04); }
+.sh-card:hover .sh-card__image, .sh-card.sh-tv-focused .sh-card__image { transform: scale(1.04); }
 
 /* ── Glint & Edge Shimmer ────────────────────────────────── */
 .sh-card__glint {
@@ -1015,7 +1015,7 @@ class CardBuilder {
     z-index: 6;
     transition: opacity 300ms ease;
 }
-.sh-card:hover .sh-card__glint {
+.sh-card:hover .sh-card__glint, .sh-card.sh-tv-focused .sh-card__glint {
     opacity: 1;
     animation: sh-glintSweep 600ms ease forwards;
 }
@@ -1362,7 +1362,7 @@ class CardBuilder {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.50);
     transition: opacity 180ms ease, transform 180ms ease;
 }
-.sh-card:hover .sh-card__codec-tag {
+.sh-card:hover .sh-card__codec-tag, .sh-card.sh-tv-focused .sh-card__codec-tag {
     opacity: 0;
     transform: translateY(10px);
 }
@@ -1398,7 +1398,7 @@ class CardBuilder {
 .sh-card__action-pill:active {
     transform: translateX(-50%) translateY(0) scale(0.95) !important;
 }
-.sh-card:hover .sh-card__action-pill {
+.sh-card:hover .sh-card__action-pill, .sh-card.sh-tv-focused .sh-card__action-pill {
     transform: translateX(-50%) translateY(0);
     opacity: 1;
 }
