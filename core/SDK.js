@@ -25,13 +25,13 @@ class SpaceHubSDK {
      * Enregistre un plugin SDK avec cycle de vie (onLoad, onEnable, onDisable, onUnload).
      * @param {Object} pluginManifest
      */
-    registerPlugin(pluginManifest) {
+    async registerPlugin(pluginManifest) {
         const pm = this._getPluginManager();
         if (!pm) {
             this._log.error('PluginManager non initialisé.');
             return false;
         }
-        return pm.registerPlugin(pluginManifest);
+        return await pm.registerPlugin(pluginManifest);
     }
 
     /**

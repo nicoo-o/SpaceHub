@@ -220,9 +220,6 @@ export class AdminDashboardView {
                 if (typeof bazarr?.sync === 'function') {
                     await bazarr.sync();
                     window.SpaceHub?.ui?.components?.toaster?.success?.('Synchronisation Bazarr effectuée !');
-                } else if (typeof bazarr?.service?.sync === 'function') {
-                    await bazarr.service.sync();
-                    window.SpaceHub?.ui?.components?.toaster?.success?.('Synchronisation Bazarr effectuée !');
                 } else {
                     window.SpaceHub?.ui?.components?.toaster?.info?.('Bazarr non configuré ou inactif.');
                 }

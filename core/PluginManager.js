@@ -42,7 +42,7 @@ export class PluginManager {
      * @param {Function} [manifest.onUnload] - Hook de déchargement
      * @returns {boolean}
      */
-    registerPlugin(manifest) {
+    async registerPlugin(manifest) {
         if (!manifest || !manifest.id || typeof manifest.id !== 'string') {
             this._log.error('Échec enregistrement : un plugin doit définir un "id" valide.');
             return false;
@@ -76,9 +76,11 @@ export class PluginManager {
         // Vérifier si le plugin doit être activé au démarrage
         const shouldBeEnabled = this._settings ? this._settings.get(`plugins.${id}.enabled`, manifest.isDefault ?? true) : true;
         if (shouldBeEnabled) {
-            this.enablePlugin(id).catch(err => {
+            try {
+                await this.enablePlugin(id);
+            } catch (err) {
                 this._log.error(`Erreur lors de l'auto-activation du plugin "${id}":`, err);
-            });
+            }
         }
 
         return true;

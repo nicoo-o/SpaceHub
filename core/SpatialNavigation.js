@@ -1,17 +1,24 @@
 /**
- * SpaceHub — Spatial Navigation Engine (Grand Cinema Edition v7.0)
- * Version: 7.0.0
+ * SpaceHub — Spatial Navigation Engine (Grand Cinema Edition v8.0 Stable Core)
+ * Version: 8.0.0
  *
- * Moteur de navigation spatiale déterministe 2D géométrique pour Smart TV.
+ * Moteur de navigation spatiale déterministe 2D géométrique pour Smart TV & Remote.
+ * - Architecture modulaire avec InputMapper (Clavier, Télécommande Smart TV, Gamepad).
+ * - Gestion du cycle de vie des écouteurs (named listeners, bind, unbind, destroy sans fuite).
+ * - Priorité absolue au VideoPlayer (Player Bypass).
+ * - Détection de visibilité réelle des scopes (offsetParent).
+ * - Algorithme universel 2D géométrique (_findSpatialTarget).
  * - Verrouillage absolu du scroll Hero à 0px (aucun décalage, filtre noir préservé).
  * - Entourage halo orange pur sur le bouton Regarder blanc.
- * - Moteur 2D géométrique infaillible sur 100% des cartes médias sans aucun blocage.
- * - Cycle de retour en cascade (Lecteur -> Fiche Média -> Accueil).
+ * - Back Stack propre respectant le cycle de vie des composants (aucun .remove sauvage).
+ * - Mode TV dynamique (sh-tv-mode) et compatibilité :focus-visible.
  */
 
 'use strict';
 
 import Logger from './Logger.js';
+import { NavAction, mapKeyboardEvent, isDirectionAction } from './InputMapper.js';
+import GamepadInput from './GamepadInput.js';
 
 export class SpatialNavigation {
     /**
@@ -35,9 +42,20 @@ export class SpatialNavigation {
         this._lastMouseX = null;
         this._lastMouseY = null;
 
+        // Module de gestion Gamepad
+        this._gamepadInput = new GamepadInput({
+            onAction: (action) => this._handleAction(action)
+        });
+
+        // Liaisons nommées pour un cycle de vie propre (bind/unbind)
+        this._boundKeyDown = this._handleKeyDown.bind(this);
+        this._boundMouseMove = this._handleMouseMove.bind(this);
+        this._boundMouseOver = this._handleMouseOver.bind(this);
+        this._boundPointerDown = this._handlePointerDown.bind(this);
+
         this._injectStyles();
         this._bindEvents();
-        this._log.info('Moteur SpatialNavigation v7.0 (2D Géométrique & Hero Scroll Lock) opérationnel.');
+        this._log.info('Moteur SpatialNavigation v8.0 (Stable Core) opérationnel.');
     }
 
     _injectStyles() {
@@ -45,6 +63,17 @@ export class SpatialNavigation {
         const style = document.createElement('style');
         style.id = 'sh-spatial-nav-styles';
         style.textContent = `
+            /* ── MODE TV GLOBAL (CURSEUR MASQUÉ) ── */
+            body.sh-tv-mode {
+                cursor: none !important;
+            }
+
+            body.sh-tv-mode button:focus,
+            body.sh-tv-mode a:focus,
+            body.sh-tv-mode [tabindex]:focus {
+                outline: none !important;
+            }
+
             /* ── AURA LUMINESCENTE CINÉMATIQUE SUR CARTES ── */
             .sh-card {
                 will-change: transform;
@@ -52,14 +81,16 @@ export class SpatialNavigation {
                 transform: translate3d(0, 0, 0);
             }
 
-            .sh-card.sh-tv-focused {
+            .sh-card.sh-tv-focused,
+            .sh-card[data-nav-focusable]:focus-visible {
                 outline: none !important;
                 box-shadow: none !important;
                 transform: translate3d(0, -7px, 0) scale3d(1.03, 1.03, 1) !important;
                 z-index: 100 !important;
             }
 
-            .sh-card.sh-tv-focused .sh-card__image-wrap {
+            .sh-card.sh-tv-focused .sh-card__image-wrap,
+            .sh-card[data-nav-focusable]:focus-visible .sh-card__image-wrap {
                 outline: none !important;
                 box-shadow: 
                     0 0 0 2.5px #ff9f0a,
@@ -69,12 +100,14 @@ export class SpatialNavigation {
                     inset 0 1px 1px rgba(255, 255, 255, 0.70) !important;
             }
 
-            .sh-card.sh-tv-focused .sh-card__action-pill {
+            .sh-card.sh-tv-focused .sh-card__action-pill,
+            .sh-card[data-nav-focusable]:focus-visible .sh-card__action-pill {
                 transform: translateX(-50%) translateY(0) scale(1) !important;
                 opacity: 1 !important;
             }
 
-            .sh-card.sh-tv-focused .sh-card__image {
+            .sh-card.sh-tv-focused .sh-card__image,
+            .sh-card[data-nav-focusable]:focus-visible .sh-card__image {
                 transform: scale(1.045) !important;
             }
 
@@ -83,9 +116,10 @@ export class SpatialNavigation {
                 transform: translateY(12px) !important;
             }
 
-            /* ── ENTOURAGE HALO ORANGE SUR BOUTON BLANC DU HERO (ZÉRO DÉCALAGE / FOND BLANC PRESERVÉ) ── */
+            /* ── ENTOURAGE HALO ORANGE SUR BOUTON BLANC DU HERO ── */
             #sh-hero-btn-play.sh-tv-focused,
-            .sh-hero-btn-play.sh-tv-focused {
+            .sh-hero-btn-play.sh-tv-focused,
+            #sh-hero-btn-play:focus-visible {
                 outline: none !important;
                 background: #ffffff !important;
                 color: #000000 !important;
@@ -111,7 +145,8 @@ export class SpatialNavigation {
             .sh-cinema-btn-play.sh-tv-focused,
             .sh-cinema-btn-glass.sh-tv-focused,
             .sh-btn.sh-tv-focused,
-            .sh-settings-nav__item.sh-tv-focused {
+            .sh-settings-nav__item.sh-tv-focused,
+            [data-nav-focusable]:focus-visible {
                 outline: none !important;
                 border-color: #ff9f0a !important;
                 box-shadow: 
@@ -124,7 +159,8 @@ export class SpatialNavigation {
             /* ── CARTE ÉPISODE HAUTE COUTURE ── */
             .sh-episode-card.sh-tv-focused,
             .sh-ep-card.sh-tv-focused,
-            .sh-slideup-ep-card.sh-tv-focused {
+            .sh-slideup-ep-card.sh-tv-focused,
+            .sh-episode-card[data-nav-focusable]:focus-visible {
                 outline: none !important;
                 background: linear-gradient(135deg, rgba(255, 159, 10, 0.20) 0%, rgba(255, 255, 255, 0.08) 100%) !important;
                 border: 2px solid #ff9f0a !important;
@@ -141,75 +177,103 @@ export class SpatialNavigation {
     }
 
     _bindEvents() {
-        window.addEventListener('keydown', (e) => {
-            if (!this._isEnabled) return;
+        window.addEventListener('keydown', this._boundKeyDown);
+        window.addEventListener('mousemove', this._boundMouseMove, { passive: true });
+        document.addEventListener('mouseover', this._boundMouseOver, { passive: true });
+        document.addEventListener('pointerdown', this._boundPointerDown, { passive: true });
+    }
 
-            const activeEl = document.activeElement;
-            const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
-            if (isInput && e.key !== 'Escape' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    _unbindEvents() {
+        window.removeEventListener('keydown', this._boundKeyDown);
+        window.removeEventListener('mousemove', this._boundMouseMove);
+        document.removeEventListener('mouseover', this._boundMouseOver);
+        document.removeEventListener('pointerdown', this._boundPointerDown);
+    }
 
-            const tvKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape', 'Backspace'];
-            if (!tvKeys.includes(e.key)) return;
+    _handleKeyDown(e) {
+        if (!this._isEnabled) return;
 
-            this._isTvMode = true;
+        const action = mapKeyboardEvent(e);
+        if (!action) return;
 
-            switch (e.key) {
-                case 'ArrowUp':
-                case 'ArrowDown':
-                case 'ArrowLeft':
-                case 'ArrowRight':
-                    e.preventDefault();
-                    this._queueDirection(e.key.replace('Arrow', '').toLowerCase());
-                    break;
-                case 'Enter':
-                    if (this._focusedElement) {
-                        e.preventDefault();
-                        this._activateFocused();
-                    }
-                    break;
-                case 'Escape':
-                case 'Backspace':
-                    this._handleBack(e);
-                    break;
+        const activeEl = document.activeElement;
+        const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
+        if (isInput && action !== NavAction.BACK && action !== NavAction.DOWN && action !== NavAction.UP) return;
+
+        // 1. Priorité absolue au lecteur vidéo (Player Bypass)
+        const scope = this._detectCurrentScope();
+        if (scope === 'player') {
+            return; // Le VideoPlayer gère 100% de ses propres touches
+        }
+
+        this._activateTvMode();
+
+        if (isDirectionAction(action)) {
+            e.preventDefault();
+            this._queueDirection(action);
+        } else if (action === NavAction.SELECT) {
+            if (this._focusedElement) {
+                e.preventDefault();
+                this._activateFocused();
             }
-        });
+        } else if (action === NavAction.BACK) {
+            this._handleBack(e);
+        }
+    }
 
-        window.addEventListener('mousemove', (e) => {
-            if (this._lastMouseX === null || this._lastMouseY === null) {
-                this._lastMouseX = e.clientX;
-                this._lastMouseY = e.clientY;
-                return;
+    _handleMouseMove(e) {
+        if (this._lastMouseX === null || this._lastMouseY === null) {
+            this._lastMouseX = e.clientX;
+            this._lastMouseY = e.clientY;
+            return;
+        }
+
+        const delta = Math.abs(e.clientX - this._lastMouseX) + Math.abs(e.clientY - this._lastMouseY);
+        if (delta > 3) {
+            this._lastMouseX = e.clientX;
+            this._lastMouseY = e.clientY;
+
+            if (this._focusedElement) {
+                this.clearFocus();
             }
+            this._deactivateTvMode();
+        }
+    }
 
-            const delta = Math.abs(e.clientX - this._lastMouseX) + Math.abs(e.clientY - this._lastMouseY);
-            if (delta > 2) {
-                this._lastMouseX = e.clientX;
-                this._lastMouseY = e.clientY;
+    _handleMouseOver(e) {
+        const target = e.target.closest(
+            '.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-nav-action-btn, ' +
+            '.sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-hero-btn-play, .sh-hero-btn-glass, ' +
+            '.sh-slideup-back-btn, .sh-slideup-close-btn, .sh-episode-card, .sh-season-pill-btn, button, a'
+        );
+        if (target) {
+            this._lastInteractedElement = target;
+            this._recordElementId(target);
+        }
+    }
 
-                if (this._focusedElement) {
-                    this.clearFocus();
-                }
-                this._isTvMode = false;
-            }
-        }, { passive: true });
+    _handlePointerDown(e) {
+        this.clearFocus();
+        this._deactivateTvMode();
+        const target = e.target.closest(
+            '.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-nav-action-btn, ' +
+            '.sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-hero-btn-play, .sh-hero-btn-glass, ' +
+            '.sh-slideup-back-btn, .sh-slideup-close-btn, button, a'
+        );
+        if (target) {
+            this._lastInteractedElement = target;
+            this._recordElementId(target);
+        }
+    }
 
-        document.addEventListener('mouseover', (e) => {
-            const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-nav-action-btn, .sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-hero-btn-play, .sh-hero-btn-glass, .sh-slideup-back-btn, .sh-slideup-close-btn, .sh-episode-card, .sh-season-pill-btn, button, a');
-            if (target) {
-                this._lastInteractedElement = target;
-                this._recordElementId(target);
-            }
-        }, { passive: true });
+    _activateTvMode() {
+        this._isTvMode = true;
+        document.body.classList.add('sh-tv-mode');
+    }
 
-        document.addEventListener('pointerdown', (e) => {
-            this.clearFocus();
-            this._isTvMode = false;
-            const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-nav-action-btn, .sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-hero-btn-play, .sh-hero-btn-glass, .sh-slideup-back-btn, .sh-slideup-close-btn, button, a');
-            if (target) {
-                this._lastInteractedElement = target;
-                this._recordElementId(target);
-            }
-        }, { passive: true });
+    _deactivateTvMode() {
+        this._isTvMode = false;
+        document.body.classList.remove('sh-tv-mode');
     }
 
     _queueDirection(direction) {
@@ -234,10 +298,42 @@ export class SpatialNavigation {
     }
 
     _detectCurrentScope() {
-        if (document.querySelector('.sh-slideup-sheet--open')) return 'modal-sheet';
-        if (document.querySelector('#spacehub-settings, .sh-settings-modal')) return 'settings';
-        if (document.querySelector('.sh-unified-search-modal.open, #sh-search-input:focus')) return 'search';
-        if (document.querySelector('.sh-sidebar--open, .sh-sidebar-drawer.open')) return 'sidebar';
+        // 1. Priorité : Player Vidéo
+        if (window.SpaceHub?.player?.isOpen?.() || window.SpaceHub?.player?._el) {
+            return 'player';
+        }
+
+        // 2. Modale fiche média (ModalSlideUpSheet)
+        const sheet = document.querySelector('.sh-slideup-sheet--open');
+        if (sheet && sheet.offsetParent !== null) {
+            return 'modal-sheet';
+        }
+
+        // 3. Modale générale active
+        const generalModal = document.querySelector('.sh-modal-overlay.open, .sh-modal.open, .sh-console-modal-overlay.open');
+        if (generalModal && generalModal.offsetParent !== null) {
+            return 'general-modal';
+        }
+
+        // 4. Paramètres (Settings)
+        const settings = document.querySelector('#spacehub-settings.is-open, .sh-settings-modal.is-open, #spacehub-settings');
+        if (settings && settings.offsetParent !== null && window.getComputedStyle(settings).display !== 'none') {
+            return 'settings';
+        }
+
+        // 5. Recherche Unifiée (Search)
+        const searchModal = document.querySelector('.sh-unified-search-modal.open');
+        if (searchModal && (searchModal.offsetParent !== null || document.activeElement?.id === 'sh-search-input')) {
+            return 'search';
+        }
+
+        // 6. Sidebar
+        const sidebar = document.querySelector('.sh-sidebar--open, .sh-sidebar-drawer.open');
+        if (sidebar && sidebar.offsetParent !== null) {
+            return 'sidebar';
+        }
+
+        // 7. Dashboard
         return 'dashboard';
     }
 
@@ -245,9 +341,13 @@ export class SpatialNavigation {
         const scope = this._detectCurrentScope();
         
         switch (scope) {
+            case 'player':
+                // Le lecteur vidéo est maître de ses propres commandes
+                return;
             case 'modal-sheet':
                 this._navigateModalSheet(direction);
                 break;
+            case 'general-modal':
             case 'settings':
                 this._navigateSettings(direction);
                 break;
@@ -262,6 +362,69 @@ export class SpatialNavigation {
                 this._navigateDashboard(direction);
                 break;
         }
+    }
+
+    // ─── ALGORITHME SPATIAL UNIVERSEL 2D GÉOMÉTRIQUE ─────────────────────────
+    /**
+     * Recherche la meilleure cible dans une direction donnée parmi les candidats
+     * @param {HTMLElement} current
+     * @param {HTMLElement[]} candidates
+     * @param {string} direction 'up' | 'down' | 'left' | 'right'
+     * @returns {HTMLElement|null}
+     */
+    _findSpatialTarget(current, candidates, direction) {
+        if (!current || !candidates || candidates.length === 0) return null;
+
+        const currentRect = current.getBoundingClientRect();
+        const currentCenterX = currentRect.left + currentRect.width / 2;
+        const currentCenterY = currentRect.top + currentRect.height / 2;
+
+        const filtered = candidates.filter(candidate => {
+            if (candidate === current) return false;
+            const r = candidate.getBoundingClientRect();
+            if (r.width === 0 || r.height === 0) return false;
+
+            switch (direction) {
+                case 'right':
+                    return r.left >= currentRect.left + 5;
+                case 'left':
+                    return r.right <= currentRect.right - 5;
+                case 'down':
+                    return r.top >= currentRect.top + 15;
+                case 'up':
+                    return r.bottom <= currentRect.bottom - 15;
+                default:
+                    return false;
+            }
+        });
+
+        if (filtered.length === 0) return null;
+
+        let bestTarget = null;
+        let minDistance = Infinity;
+
+        filtered.forEach(candidate => {
+            const r = candidate.getBoundingClientRect();
+            const candidateCenterX = r.left + r.width / 2;
+            const candidateCenterY = r.top + r.height / 2;
+
+            const dx = Math.abs(candidateCenterX - currentCenterX);
+            const dy = Math.abs(candidateCenterY - currentCenterY);
+
+            let distance;
+            if (direction === 'left' || direction === 'right') {
+                distance = dx + (dy * 2.2);
+            } else {
+                distance = dy + (dx * 1.5);
+            }
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                bestTarget = candidate;
+            }
+        });
+
+        return bestTarget;
     }
 
     // ─── 1. SCOPE DASHBOARD (Dynamic Island ⇄ Hero ⇄ Genres ⇄ Carrousels) ───
@@ -362,12 +525,10 @@ export class SpatialNavigation {
             return;
         }
 
-        // D. ZONE CARROUSELS & CARTES MÉDIAS (.sh-card) ── MOTEUR 2D GÉOMÉTRIQUE UNIVERSEL
+        // D. ZONE CARROUSELS & CARTES MÉDIAS (.sh-card)
         if (current.classList.contains('sh-card')) {
-            const currentRect = current.getBoundingClientRect();
-
-            // 1. Navigation Horizontale (← / →) : Directe et garantie dans le conteneur immédiat
-            const parentScroller = current.parentElement;
+            // 1. Navigation Horizontale (← / →) : Intra-carrousel
+            const parentScroller = current.closest('.sh-card-grid, .sh-widget__items-container, .sh-carousel-scroller, .sh-library-grid') || current.parentElement;
             const siblingCards = Array.from(parentScroller.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
             const cardIdx = siblingCards.indexOf(current);
 
@@ -375,73 +536,28 @@ export class SpatialNavigation {
                 if (cardIdx !== -1 && cardIdx + 1 < siblingCards.length) {
                     return this._setFocus(siblingCards[cardIdx + 1]);
                 }
-                return; // Fin de ligne : rester fermement sur la carte
+                return;
             }
 
             if (direction === 'left') {
                 if (cardIdx !== -1 && cardIdx > 0) {
                     return this._setFocus(siblingCards[cardIdx - 1]);
                 }
-                return; // Début de ligne : rester fermement sur la carte
+                return;
             }
 
-            // 2. Navigation Verticale (↓ / ↑) : Recherche 2D géométrique sur toutes les cartes réelles
+            // 2. Navigation Verticale (↓ / ↑) : Recherche géométrique universelle 2D
             const allCards = Array.from(document.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
+            const targetCard = this._findSpatialTarget(current, allCards, direction);
 
-            if (direction === 'down') {
-                const cardsBelow = allCards.filter(c => {
-                    const r = c.getBoundingClientRect();
-                    return r.top > currentRect.top + 30;
-                });
-
-                if (cardsBelow.length > 0) {
-                    let bestCard = cardsBelow[0];
-                    let minDistance = Infinity;
-
-                    cardsBelow.forEach(c => {
-                        const r = c.getBoundingClientRect();
-                        const dx = Math.abs(r.left - currentRect.left);
-                        const dy = Math.abs(r.top - currentRect.top);
-                        const dist = (dx * 1.5) + dy;
-                        if (dist < minDistance) {
-                            minDistance = dist;
-                            bestCard = c;
-                        }
-                    });
-
-                    return this._setFocus(bestCard);
-                }
-                return; // Bas du catalogue : rester sur la carte
+            if (targetCard) {
+                return this._setFocus(targetCard);
             }
 
             if (direction === 'up') {
-                const cardsAbove = allCards.filter(c => {
-                    const r = c.getBoundingClientRect();
-                    return r.bottom < currentRect.bottom - 30;
-                });
-
-                if (cardsAbove.length > 0) {
-                    let bestCard = cardsAbove[0];
-                    let minDistance = Infinity;
-
-                    cardsAbove.forEach(c => {
-                        const r = c.getBoundingClientRect();
-                        const dx = Math.abs(r.left - currentRect.left);
-                        const dy = Math.abs(currentRect.top - r.bottom);
-                        const dist = (dx * 1.5) + dy;
-                        if (dist < minDistance) {
-                            minDistance = dist;
-                            bestCard = c;
-                        }
-                    });
-
-                    return this._setFocus(bestCard);
-                } else {
-                    // Aucune carte au-dessus : remonter sur la barre de genres
-                    const activeChip = document.querySelector('.sh-genre-chip.active') || document.querySelector('.sh-genre-chip');
-                    if (activeChip) return this._setFocus(activeChip);
-                }
-                return;
+                // Si aucune carte au-dessus : remonter vers la barre de genres
+                const activeChip = document.querySelector('.sh-genre-chip.active') || document.querySelector('.sh-genre-chip');
+                if (activeChip) return this._setFocus(activeChip);
             }
 
             return;
@@ -460,7 +576,24 @@ export class SpatialNavigation {
             return;
         }
 
-        // A. BOUTONS DE LA BARRE DU HAUT (Retour & Fermer)
+        // Grille des épisodes : Utiliser l'algorithme 2D universel
+        if (current.classList.contains('sh-episode-card')) {
+            const allEpisodes = Array.from(sheet.querySelectorAll('.sh-episode-card'));
+            const targetEp = this._findSpatialTarget(current, allEpisodes, direction);
+            if (targetEp) {
+                return this._setFocus(targetEp);
+            }
+
+            if (direction === 'up') {
+                const seasonPill = sheet.querySelector('.sh-season-pill-btn.active') || sheet.querySelector('.sh-season-pill-btn');
+                if (seasonPill) return this._setFocus(seasonPill);
+                const tabBtn = sheet.querySelector('.sh-tab-btn.active') || sheet.querySelector('.sh-tab-btn');
+                if (tabBtn) return this._setFocus(tabBtn);
+            }
+            return;
+        }
+
+        // Actions du haut
         if (current.id === 'sh-slideup-back' || current.classList.contains('sh-slideup-back-btn')) {
             if (direction === 'right') {
                 const closeBtn = sheet.querySelector('#sh-slideup-close, .sh-slideup-close-btn');
@@ -483,7 +616,7 @@ export class SpatialNavigation {
             return;
         }
 
-        // B. BOUTONS D'ACTION PRINCIPAUX (Regarder, Bande-annonce, Audio)
+        // Boutons principaux
         if (current.closest('.sh-cinema-actions')) {
             const actionBtns = Array.from(sheet.querySelectorAll('.sh-cinema-btn-play, .sh-cinema-btn-glass'));
             const curIdx = actionBtns.indexOf(current);
@@ -502,7 +635,7 @@ export class SpatialNavigation {
             return;
         }
 
-        // C. ONGLETS DE NAVIGATION (.sh-tab-btn)
+        // Onglets
         if (current.classList.contains('sh-tab-btn')) {
             const tabs = Array.from(sheet.querySelectorAll('.sh-tab-btn'));
             const curIdx = tabs.indexOf(current);
@@ -524,7 +657,7 @@ export class SpatialNavigation {
             return;
         }
 
-        // D. SÉLECTEUR DE SAISONS (.sh-season-pill-btn)
+        // Sélecteur de saisons
         if (current.classList.contains('sh-season-pill-btn')) {
             const seasons = Array.from(sheet.querySelectorAll('.sh-season-pill-btn'));
             const curIdx = seasons.indexOf(current);
@@ -542,31 +675,11 @@ export class SpatialNavigation {
             }
             return;
         }
-
-        // E. GRILLE DES ÉPISODES (.sh-episode-card)
-        if (current.classList.contains('sh-episode-card')) {
-            const episodes = Array.from(sheet.querySelectorAll('.sh-episode-card'));
-            const curIdx = episodes.indexOf(current);
-
-            if (direction === 'down' && curIdx !== -1 && curIdx + 1 < episodes.length) {
-                return this._setFocus(episodes[curIdx + 1]);
-            } else if (direction === 'up') {
-                if (curIdx > 0) {
-                    return this._setFocus(episodes[curIdx - 1]);
-                } else {
-                    const seasonPill = sheet.querySelector('.sh-season-pill-btn.active') || sheet.querySelector('.sh-season-pill-btn');
-                    if (seasonPill) return this._setFocus(seasonPill);
-                    const tabBtn = sheet.querySelector('.sh-tab-btn.active') || sheet.querySelector('.sh-tab-btn');
-                    if (tabBtn) return this._setFocus(tabBtn);
-                }
-            }
-            return;
-        }
     }
 
     // ─── 3. SCOPES SECONDAIRES ──────────────────────────────────────────────
     _navigateSettings(direction) {
-        const container = document.querySelector('#spacehub-settings, .sh-settings-modal');
+        const container = document.querySelector('#spacehub-settings, .sh-settings-modal, .sh-modal-overlay.open, .sh-modal.open');
         if (!container) return;
         const focusables = this._getFocusablesInContainer(container);
         if (focusables.length === 0) return;
@@ -574,6 +687,12 @@ export class SpatialNavigation {
         let current = this._focusedElement;
         if (!current || !container.contains(current)) return this._setFocus(focusables[0]);
 
+        const target = this._findSpatialTarget(current, focusables, direction);
+        if (target) {
+            return this._setFocus(target);
+        }
+
+        // Fallback linéaire si non trouvé spatialement
         const curIdx = focusables.indexOf(current);
         if (direction === 'down' && curIdx + 1 < focusables.length) {
             this._setFocus(focusables[curIdx + 1]);
@@ -659,7 +778,8 @@ export class SpatialNavigation {
             'button:not([disabled]):not(.sh-hero-badge):not(.sh-score-rt):not(.sh-score-imdb)',
             'a[href]',
             'input:not([disabled])',
-            '[tabindex="0"]:not(.sh-hero-badge):not(.sh-score-rt):not(.sh-score-imdb)'
+            '[tabindex="0"]:not(.sh-hero-badge):not(.sh-score-rt):not(.sh-score-imdb)',
+            '[data-nav-focusable]'
         ].join(', ');
 
         return Array.from(container.querySelectorAll(selector)).filter(el => {
@@ -772,36 +892,76 @@ export class SpatialNavigation {
             }
         };
 
-        restore();
-        setTimeout(restore, 100);
+        requestAnimationFrame(() => {
+            restore();
+        });
+
+        setTimeout(() => {
+            if (!this._focusedElement) {
+                restore();
+            }
+        }, 120);
     }
 
     _handleBack(event) {
+        event?.preventDefault();
+
+        // 1. Modale fiche média
         const slideUpModal = document.querySelector('.sh-slideup-sheet--open');
         if (slideUpModal) {
-            event?.preventDefault();
             window.SpaceHub?.ui?.modalSlideUpSheet?.close?.();
             return;
         }
 
-        const openSettings = document.querySelector('#spacehub-settings');
-        if (openSettings) {
-            event?.preventDefault();
-            openSettings.querySelector('[data-action="close"]')?.click?.();
+        // 2. Paramètres
+        const openSettings = document.querySelector('#spacehub-settings.is-open, .sh-settings-modal.is-open, #spacehub-settings');
+        if (openSettings && openSettings.offsetParent !== null) {
+            openSettings.querySelector('[data-action="close"], .sh-settings-close-btn')?.click?.();
             return;
         }
 
+        // 3. Recherche
+        const openSearch = document.querySelector('.sh-unified-search-modal.open');
+        if (openSearch) {
+            window.SpaceHub?.ui?.unifiedSearch?.close?.();
+            return;
+        }
+
+        // 4. Modales génériques (fermeture propre sans .remove() sauvage)
         const openModal = document.querySelector('.sh-modal-overlay.open, .sh-modal.open, .sh-console-modal-overlay.open');
         if (openModal) {
-            event?.preventDefault();
-            openModal.remove();
-            this.onModalClosed();
+            const closeBtn = openModal.querySelector('[data-action="close"], .sh-modal-close-btn, .sh-modal__close');
+            if (closeBtn) {
+                closeBtn.click();
+            } else {
+                openModal.classList.remove('open');
+                this.onModalClosed();
+            }
             return;
         }
 
-        if (window.SpaceHub?.player?._el) {
-            event?.preventDefault();
+        // 5. Lecteur Vidéo
+        if (window.SpaceHub?.player?.isOpen?.() || window.SpaceHub?.player?._el) {
             window.SpaceHub.player.close();
+        }
+    }
+
+    _handleAction(action) {
+        if (!this._isEnabled) return;
+
+        const scope = this._detectCurrentScope();
+        if (scope === 'player') return;
+
+        this._activateTvMode();
+
+        if (isDirectionAction(action)) {
+            this._queueDirection(action);
+        } else if (action === NavAction.SELECT) {
+            if (this._focusedElement) {
+                this._activateFocused();
+            }
+        } else if (action === NavAction.BACK) {
+            this._handleBack();
         }
     }
 
@@ -813,10 +973,27 @@ export class SpatialNavigation {
         document.querySelectorAll('.sh-tv-focused').forEach(el => el.classList.remove('sh-tv-focused'));
     }
 
+    enable() {
+        this._isEnabled = true;
+        this._gamepadInput?.enable();
+    }
+
+    disable() {
+        this._isEnabled = false;
+        this._gamepadInput?.disable();
+        this.clearFocus();
+    }
+
     destroy() {
         this.clearFocus();
+        this._unbindEvents();
+        if (this._gamepadInput) {
+            this._gamepadInput.destroy();
+            this._gamepadInput = null;
+        }
         if (this._rafId) cancelAnimationFrame(this._rafId);
         this._isEnabled = false;
+        this._deactivateTvMode();
     }
 }
 
