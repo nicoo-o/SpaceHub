@@ -21,7 +21,8 @@ class ModalSlideUpSheet {
         this._overlay = null;
         this._ambientGlow = null;
         this._isOpen = false;
-        window.SpaceHub?.layout?._spatialNav?.onModalClosed();
+        const nav = window.SpaceHub?.spatialNav || window.SpaceHub?.ui?.appLayout?._spatialNav;
+        nav?.onModalClosed();
         this._currentItem = null;
         this._activeTab = 'synopsis';
         this._selectedAudioIndex = 0;
@@ -144,7 +145,8 @@ class ModalSlideUpSheet {
         this._renderContent(item, { posterUrl, backdropUrl });
 
         requestAnimationFrame(() => {
-            window.SpaceHub?.layout?._spatialNav?.onModalOpened(this._sheet);
+            const nav = window.SpaceHub?.spatialNav || window.SpaceHub?.ui?.appLayout?._spatialNav;
+            nav?.onModalOpened(this._sheet);
             this._sheet.querySelector('.sh-cinema-body')?.scrollTo({ top: 0, behavior: 'instant' });
         });
 
@@ -448,7 +450,7 @@ class ModalSlideUpSheet {
                         <div class="sh-tab-panel ${this._activeTab === 'episodes' ? 'active' : ''}" id="sh-panel-episodes">
                             <div class="sh-series-episodes-container">
                                 <div class="sh-season-pills-row">
-                                    <button class="sh-season-pill-btn active">Chargement des saisons...</button>
+                                    <button class="sh-season-pill-btn" tabindex="0" active">Chargement des saisons...</button>
                                 </div>
                                 <div class="sh-episodes-cards-grid">
                                     <div style="color:rgba(255,255,255,0.4); padding:20px;">Chargement des épisodes...</div>
@@ -788,7 +790,7 @@ class ModalSlideUpSheet {
                 if (seasonRow && displaySeasons.length > 0) {
                     seasonRow.style.display = 'flex';
                     seasonRow.innerHTML = displaySeasons.map((s, idx) => `
-                        <button class="sh-season-pill-btn ${idx === 0 ? 'active' : ''}" data-season-num="${s.seasonNumber}">
+                        <button class="sh-season-pill-btn" tabindex="0" ${idx === 0 ? 'active' : ''}" data-season-num="${s.seasonNumber}">
                             <span class="sh-season-pill-title">${this._escape(s.name)}</span>
                             <span style="font-size:10px; margin-left:8px; padding:2px 7px; border-radius:6px; font-weight:750; background:${s.badgeBg}; color:${s.badgeColor};">
                                 ${s.badgeText}
@@ -817,7 +819,7 @@ class ModalSlideUpSheet {
                                 const progress = Math.round(ep.UserData?.PlayedPercentage || 0);
                                 const dur = ep.RunTimeTicks ? Math.round(ep.RunTimeTicks / 10000000 / 60) + ' min' : '';
                                 return `
-                                    <div class="sh-episode-card" data-ep-id="${ep.Id}">
+                                    <div class="sh-episode-card" tabindex="0" role="button" data-ep-id="${ep.Id}">
                                         <div class="sh-episode-thumb-wrap" data-action="play">
                                             ${epImg ? `<img src="${epImg}" alt="${this._escape(ep.Name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.IndexNumber || (idx + 1)}</div>`}
                                             <div class="sh-episode-overlay-play">▶</div>
@@ -874,7 +876,7 @@ class ModalSlideUpSheet {
 
                         episodesGrid.innerHTML = hybridList.map(ep => {
                             return `
-                                <div class="sh-episode-card ${ep.isLocal ? '' : 'sh-episode-card--missing'}" style="${ep.isLocal ? '' : 'opacity:0.88;'}">
+                                <div class="sh-episode-card ${ep.isLocal ? '' : 'sh-episode-card--missing'}" tabindex="0" role="button" style="${ep.isLocal ? '' : 'opacity:0.88;'}">
                                     <div class="sh-episode-thumb-wrap" data-action="${ep.isLocal ? 'play' : 'request'}" data-ep-num="${ep.episodeNumber}">
                                         ${ep.stillUrl ? `<img src="${ep.stillUrl}" alt="${this._escape(ep.name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.episodeNumber}</div>`}
                                         <div class="sh-episode-overlay-play">${ep.isLocal ? '▶' : '📥'}</div>
@@ -1149,7 +1151,7 @@ class ModalSlideUpSheet {
             const durationMin = ep.RunTimeTicks ? Math.round(ep.RunTimeTicks / 10000000 / 60) + ' min' : '';
 
             return `
-                <div class="sh-episode-card" data-ep-id="${ep.Id}">
+                <div class="sh-episode-card" tabindex="0" role="button" data-ep-id="${ep.Id}">
                     <div class="sh-episode-thumb-wrap" data-action="play" title="▶ Lancer l'Épisode ${ep.IndexNumber || (idx + 1)}">
                         ${epImg ? `<img src="${epImg}" alt="${this._escape(ep.Name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.IndexNumber || (idx + 1)}</div>`}
                         <div class="sh-episode-overlay-play">▶</div>

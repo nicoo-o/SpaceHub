@@ -1,9 +1,10 @@
 /**
  * SpaceHub — Spatial Navigation (TV Remote & Multi-Menu Controller)
- * Version: 4.0.0
+ * Version: 4.5.0
  *
  * Moteur de navigation spatiale unifié pour télécommandes TV, manettes et claviers.
- * Gère la navigation dans 100% des menus (Fiche Média, Réglages, Console, Recherche, Tiroir, etc.).
+ * Navigation 100% opérationnelle dans la Fiche Média (.sh-episode-card, .sh-season-pill-btn),
+ * les Réglages, la Recherche et tous les menus SpaceHub.
  */
 
 'use strict';
@@ -27,7 +28,7 @@ export class SpatialNavigation {
         this._lastMouseY = null;
         this._injectStyles();
         this._bindEvents();
-        this._log.info('Moteur SpatialNavigation TV v4.0 (Multi-Menus) actif.');
+        this._log.info('Moteur SpatialNavigation TV v4.5 (Fiches & Menus) actif.');
     }
 
     _injectStyles() {
@@ -70,11 +71,13 @@ export class SpatialNavigation {
                 z-index: 9999 !important;
             }
 
+            .sh-episode-card.sh-tv-focused,
             .sh-ep-card.sh-tv-focused,
             .sh-slideup-ep-card.sh-tv-focused {
-                outline: 3px solid #ff9f0a !important;
-                outline-offset: 3px !important;
-                transform: scale(1.03) translateY(-3px) !important;
+                outline: 2.5px solid #ff9f0a !important;
+                outline-offset: 2px !important;
+                background: rgba(255, 159, 10, 0.12) !important;
+                transform: scale(1.015) translateY(-2px) !important;
             }
 
             .sh-genre-chip.sh-tv-focused,
@@ -145,7 +148,7 @@ export class SpatialNavigation {
 
         // 3. Mémorisation du survol souris
         document.addEventListener('mouseover', (e) => {
-            const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-ep-card, .sh-slideup-ep-card, .sh-season-pill-btn, button, a');
+            const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-episode-card, .sh-season-pill-btn, button, a');
             if (target) {
                 this._lastInteractedElement = target;
             }
@@ -180,7 +183,7 @@ export class SpatialNavigation {
             if (target) {
                 this._setFocus(target);
             }
-        }, 80);
+        }, 100);
     }
 
     /**
@@ -252,11 +255,11 @@ export class SpatialNavigation {
             '#sh-slideup-play-btn',
             '#sh-slideup-trailer-btn',
             '#sh-btn-audio-popover',
-            '#sh-slideup-close-btn',
             '.sh-cinema-btn-play',
             '.sh-cinema-btn-glass',
             '.sh-tab-btn',
             '.sh-season-pill-btn',
+            '.sh-episode-card',
             '.sh-ep-card',
             '.sh-slideup-ep-card',
             '.sh-cast-card',
@@ -317,62 +320,109 @@ export class SpatialNavigation {
         const current = this._focusedElement;
         const currentRect = current.getBoundingClientRect();
 
-        // 1. Navigation intra-carrousel ou intra-liste horizontale (Gauche / Droite)
-        if ((direction === 'left' || direction === 'right')) {
-            const listParent = current.closest(
-                '.sh-card-grid, .sh-carousel-track, .sh-cinema-actions, .sh-cinema-tabs-nav, .sh-season-pills-row, .sh-series-episodes-grid, .sh-genre-bar-track, .sh-nav-tabs'
-            );
-            if (listParent) {
-                const siblings = Array.from(listParent.querySelectorAll(
-                    '.sh-card:not(.sh-card--skeleton), .sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-tab-btn, .sh-season-pill-btn, .sh-ep-card, .sh-slideup-ep-card, .sh-genre-chip, .sh-nav-tab-btn'
-                ));
-                const currentIndex = siblings.indexOf(current);
-                if (currentIndex !== -1) {
-                    const targetIndex = direction === 'right' ? currentIndex + 1 : currentIndex - 1;
-                    if (targetIndex >= 0 && targetIndex < siblings.length) {
-                        this._setFocus(siblings[targetIndex]);
+        // ── 1. LOGIQUE SPÉCIALE DEDANS LA FICHE MÉDIA (ModalSlideUpSheet) ──
+        const slideUp = document.querySelector('.sh-slideup-sheet--open');
+        if (slideUp && slideUp.contains(current)) {
+            // A. Navigation dans les épisodes (Haut/Bas entre épisodes)
+            if (current.classList.contains('sh-episode-card')) {
+                const episodeCards = Array.from(slideUp.querySelectorAll('.sh-episode-card'));
+                const curEpIdx = episodeCards.indexOf(current);
+                if (curEpIdx !== -1) {
+                    if (direction === 'down' && curEpIdx + 1 < episodeCards.length) {
+                        this._setFocus(episodeCards[curEpIdx + 1]);
                         return;
+                    } else if (direction === 'up') {
+                        if (curEpIdx > 0) {
+                            this._setFocus(episodeCards[curEpIdx - 1]);
+                            return;
+                        } else {
+                            // Remonter aux pilules de saison
+                            const seasonPill = slideUp.querySelector('.sh-season-pill-btn.active') || slideUp.querySelector('.sh-season-pill-btn');
+                            if (seasonPill) { this._setFocus(seasonPill); return; }
+                        }
                     }
                 }
             }
-        }
 
-        // 2. Navigation inter-sections verticale (Haut / Bas)
-        if ((direction === 'up' || direction === 'down')) {
-            // A. Dans la Fiche Média (ModalSlideUpSheet)
-            const slideUp = document.querySelector('.sh-slideup-sheet--open');
-            if (slideUp && slideUp.contains(current)) {
-                if (direction === 'down') {
-                    if (current.closest('.sh-cinema-actions')) {
-                        const firstTab = slideUp.querySelector('.sh-tab-btn.active') || slideUp.querySelector('.sh-tab-btn');
-                        if (firstTab) { this._setFocus(firstTab); return; }
-                    } else if (current.closest('.sh-cinema-tabs-nav')) {
-                        const firstSeason = slideUp.querySelector('.sh-season-pill-btn.active') || slideUp.querySelector('.sh-season-pill-btn');
-                        const firstEp = slideUp.querySelector('.sh-ep-card, .sh-slideup-ep-card');
-                        if (firstSeason) { this._setFocus(firstSeason); return; }
+            // B. Navigation dans les pilules de saisons (Gauche/Droite entre saisons)
+            if (current.classList.contains('sh-season-pill-btn')) {
+                const seasons = Array.from(slideUp.querySelectorAll('.sh-season-pill-btn'));
+                const curSIdx = seasons.indexOf(current);
+                if (curSIdx !== -1) {
+                    if (direction === 'right' && curSIdx + 1 < seasons.length) {
+                        this._setFocus(seasons[curSIdx + 1]);
+                        return;
+                    } else if (direction === 'left' && curSIdx > 0) {
+                        this._setFocus(seasons[curSIdx - 1]);
+                        return;
+                    } else if (direction === 'down') {
+                        const firstEp = slideUp.querySelector('.sh-episode-card');
                         if (firstEp) { this._setFocus(firstEp); return; }
-                    } else if (current.closest('.sh-season-pills-row')) {
-                        const firstEp = slideUp.querySelector('.sh-ep-card, .sh-slideup-ep-card');
-                        if (firstEp) { this._setFocus(firstEp); return; }
+                    } else if (direction === 'up') {
+                        const tabBtn = slideUp.querySelector('.sh-tab-btn.active') || slideUp.querySelector('.sh-tab-btn');
+                        if (tabBtn) { this._setFocus(tabBtn); return; }
                     }
-                } else if (direction === 'up') {
-                    if (current.closest('.sh-series-episodes-grid, .sh-cinema-panels-wrapper')) {
+                }
+            }
+
+            // C. Navigation dans les onglets (Gauche/Droite entre onglets)
+            if (current.classList.contains('sh-tab-btn')) {
+                const tabs = Array.from(slideUp.querySelectorAll('.sh-tab-btn'));
+                const curTIdx = tabs.indexOf(current);
+                if (curTIdx !== -1) {
+                    if (direction === 'right' && curTIdx + 1 < tabs.length) {
+                        this._setFocus(tabs[curTIdx + 1]);
+                        return;
+                    } else if (direction === 'left' && curTIdx > 0) {
+                        this._setFocus(tabs[curTIdx - 1]);
+                        return;
+                    } else if (direction === 'down') {
                         const seasonPill = slideUp.querySelector('.sh-season-pill-btn.active') || slideUp.querySelector('.sh-season-pill-btn');
-                        const tabBtn = slideUp.querySelector('.sh-tab-btn.active') || slideUp.querySelector('.sh-tab-btn');
+                        const firstEp = slideUp.querySelector('.sh-episode-card');
                         if (seasonPill) { this._setFocus(seasonPill); return; }
-                        if (tabBtn) { this._setFocus(tabBtn); return; }
-                    } else if (current.closest('.sh-season-pills-row')) {
-                        const tabBtn = slideUp.querySelector('.sh-tab-btn.active') || slideUp.querySelector('.sh-tab-btn');
-                        if (tabBtn) { this._setFocus(tabBtn); return; }
-                    } else if (current.closest('.sh-cinema-tabs-nav')) {
+                        if (firstEp) { this._setFocus(firstEp); return; }
+                    } else if (direction === 'up') {
                         const playBtn = slideUp.querySelector('#sh-slideup-play-btn, .sh-cinema-btn-play');
                         if (playBtn) { this._setFocus(playBtn); return; }
                     }
                 }
             }
 
-            // B. Dans le Dashboard classique
-            if (current.classList.contains('sh-card')) {
+            // D. Navigation dans les boutons d'action d'en-tête (Gauche/Droite)
+            if (current.closest('.sh-cinema-actions')) {
+                const actionBtns = Array.from(slideUp.querySelectorAll('.sh-cinema-btn-play, .sh-cinema-btn-glass'));
+                const curBIdx = actionBtns.indexOf(current);
+                if (curBIdx !== -1) {
+                    if (direction === 'right' && curBIdx + 1 < actionBtns.length) {
+                        this._setFocus(actionBtns[curBIdx + 1]);
+                        return;
+                    } else if (direction === 'left' && curBIdx > 0) {
+                        this._setFocus(actionBtns[curBIdx - 1]);
+                        return;
+                    } else if (direction === 'down') {
+                        const tabBtn = slideUp.querySelector('.sh-tab-btn.active') || slideUp.querySelector('.sh-tab-btn');
+                        if (tabBtn) { this._setFocus(tabBtn); return; }
+                    }
+                }
+            }
+        }
+
+        // ── 2. LOGIQUE DANS LE DASHBOARD & CARROUSELS ──
+        if (current.classList.contains('sh-card')) {
+            if (direction === 'left' || direction === 'right') {
+                const track = current.closest('.sh-card-grid, .sh-carousel-track');
+                if (track) {
+                    const siblingCards = Array.from(track.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
+                    const currentIndex = siblingCards.indexOf(current);
+                    if (currentIndex !== -1) {
+                        const targetIndex = direction === 'right' ? currentIndex + 1 : currentIndex - 1;
+                        if (targetIndex >= 0 && targetIndex < siblingCards.length) {
+                            this._setFocus(siblingCards[targetIndex]);
+                            return;
+                        }
+                    }
+                }
+            } else if (direction === 'up' || direction === 'down') {
                 const currentSection = current.closest('.sh-dashboard__item');
                 if (currentSection) {
                     const allSections = Array.from(document.querySelectorAll('.sh-dashboard__item'));
@@ -406,7 +456,7 @@ export class SpatialNavigation {
             }
         }
 
-        // 3. Fallback géométrique 2D classique
+        // ── 3. FALLBACK GÉOMÉTRIQUE 2D ──
         let bestCandidate = null;
         let minDistance = Infinity;
 
@@ -451,7 +501,7 @@ export class SpatialNavigation {
         element.classList.add('sh-tv-focused');
 
         const scroller = element.closest(
-            '.sh-card-grid, .sh-carousel-scroller, .sh-series-episodes-grid, .sh-season-pills-row, .sh-cinema-body, .sh-cinema-tabs-nav'
+            '.sh-card-grid, .sh-carousel-scroller, .sh-cinema-body, .sh-series-episodes-container, .sh-season-pills-row'
         );
         if (scroller) {
             element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
