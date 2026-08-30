@@ -13,19 +13,67 @@ import Logger from '../../core/Logger.js';
 import BazarrApi from './BazarrApi.js';
 
 class BazarrService {
-    constructor() {
-        this.api = new BazarrApi();
+    /**
+     * @param {Object} [options]
+     * @param {Object} [options.api]
+     * @param {import('../../core/CacheManager.js').default} [options.cache]
+     * @param {import('../../core/EventBus.js').default} [options.eventBus]
+     * @param {import('../../core/SettingsManager.js').default} [options.settings]
+     */
+    constructor({ api = null, cache = null, eventBus = null, settings = null } = {}) {
+        this.api = api || this._createDefaultApi();
         this._log = new Logger('BazarrService');
-        this._cache = window.SpaceHub?.core?.cache || null;
-        this._eventBus = window.SpaceHub?.core?.eventBus || null;
+        this._cache = cache || window.SpaceHub?.core?.cache || null;
+        this._eventBus = eventBus || window.SpaceHub?.core?.eventBus || null;
+        this._settings = settings || window.SpaceHub?.core?.settings || null;
+        this.status = 'unconfigured';
+        this.lastLatency = null;
 
-        // Mise à jour de l'API client si les paramètres changent
         if (this._eventBus) {
             this._eventBus.on('settings:changed', ({ key, value }) => {
-                if (key === 'bazarr.url') this.api.setBaseUrl(value);
-                if (key === 'bazarr.apiKey') this.api.setApiKey(value);
+                if (key === 'bazarr.url') this.api?.setBaseUrl?.(value);
+                if (key === 'bazarr.apiKey') this.api?.setApiKey?.(value);
             });
         }
+    }
+
+    _createDefaultApi() {
+        return this.api;
+    }
+
+    /**
+     * Vérifie la santé et la connectivité réelle du service.
+     * @returns {Promise<'unconfigured'|'connected'|'offline'|'auth_failed'|'error'>}
+     */
+    async checkHealth() {
+        const url = this._settings?.get('bazarr.url') || this.api?.baseUrl;
+        const key = this._settings?.get('bazarr.apiKey') || this.api?.apiKey;
+
+        if (!url) {
+            this.status = 'unconfigured';
+            this._eventBus?.emit('service:statusChanged', { id: 'bazarr', status: this.status });
+            return this.status;
+        }
+
+        this.status = 'connecting';
+        const start = Date.now();
+        try {
+            if (typeof this.api?.getSystemStatus === 'function') {
+                await this.api.getSystemStatus();
+            }
+            this.lastLatency = Date.now() - start;
+            this.status = 'connected';
+        } catch (err) {
+            this.lastLatency = Date.now() - start;
+            if (err.status === 401 || err.status === 403) {
+                this.status = 'auth_failed';
+            } else {
+                this.status = 'offline';
+            }
+        }
+
+        this._eventBus?.emit('service:statusChanged', { id: 'bazarr', status: this.status, latency: this.lastLatency });
+        return this.status;
     }
 
     /**

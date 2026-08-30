@@ -1,6 +1,6 @@
 /**
  * SpaceHub — ApiClient
- * Version: 0.2.0
+ * Version: 1.0.0
  *
  * Client HTTP générique avec support de la gestion d'erreurs,
  * du retry automatique, et d'une factory pour créer des clients
@@ -89,11 +89,18 @@ class BaseApiClient {
                     ? response.json()
                     : response.text();
 
-            } catch (err) {
+                        } catch (err) {
                 const isLast = attempt === retries;
+
+                // Ne pas retenter sur les erreurs clientes 4xx définitives (400, 401, 403, 404, 422) sauf 429
+                if (err instanceof ApiError && err.status >= 400 && err.status < 500 && err.status !== 429) {
+                    this._log.error(`[${method}] ${url} — Erreur client ${err.status} définitive : ${err.message}`);
+                    throw err;
+                }
+
                 // Si échec réseau direct/CORS, tenter le proxy universel immédiatement sur la tentative suivante
                 if (err.name === 'TypeError' && !isLast) {
-                    this._log.warn(`[${method}] ${url} échec CORS/réseau direct. Tentative via proxy universel /api-proxy...`);
+                    this._log.warn(`[${method}] ${url} échec direct/CORS. Bascule sur proxy universel /api-proxy...`);
                     await sleep(100);
                     continue;
                 }
@@ -102,7 +109,7 @@ class BaseApiClient {
                     this._log.error(`[${method}] ${url} — ${err.message}`);
                     throw err;
                 }
-                this._log.warn(`[${method}] ${url} — tentative ${attempt + 1}/${retries} échouée, retry...`);
+                this._log.warn(`[${method}] ${url} — tentative ${attempt + 1}/${retries} échouée, retry avec backoff...`);
                 await sleep(500 * (attempt + 1));
             }
         }

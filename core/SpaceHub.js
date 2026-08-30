@@ -16,6 +16,7 @@ import Logger          from './Logger.js';
 import EventBus        from './EventBus.js';
 import ModuleManager   from './ModuleManager.js';
 import PluginManager    from './PluginManager.js';
+import Router           from './Router.js';
 import SettingsManager from './SettingsManager.js';
 import CacheManager    from './CacheManager.js';
 import { ApiClient, JellyfinClient } from './ApiClient.js';
@@ -94,6 +95,7 @@ const SpaceHub = {
         eventBus: null,
         moduleManager: null,
         pluginManager: null,
+        router: null,
         settings: null,
         cache: null,
         api: null,
@@ -223,6 +225,12 @@ async function init() {
     SpaceHub.core.pluginManager = pluginManager;
     log.info('PluginManager prêt.');
 
+    // 5.5. Router Centralisé
+    const router = new Router({ eventBus });
+    SpaceHub.router = router;
+    SpaceHub.core.router = router;
+    log.info('Router centralisé prêt.');
+
     // 6. Appliquer le niveau de log
     const logLevel = settings.get('core.logLevel', 'info');
     log.setLevel(logLevel);
@@ -337,7 +345,7 @@ async function init() {
             name,
             enabled: settings.get(`${id}.enabled`, true),
             init: async () => {
-                const service = new ServiceClass();
+                const service = new ServiceClass({ cache, eventBus, settings });
                 SpaceHub.integrations[id] = service;
                 return service;
             }

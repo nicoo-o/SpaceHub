@@ -13,18 +13,67 @@ import Logger from '../../core/Logger.js';
 import QBittorrentApi from './QBittorrentApi.js';
 
 class QBittorrentService {
-    constructor() {
-        this.api = new QBittorrentApi();
+    /**
+     * @param {Object} [options]
+     * @param {Object} [options.api]
+     * @param {import('../../core/CacheManager.js').default} [options.cache]
+     * @param {import('../../core/EventBus.js').default} [options.eventBus]
+     * @param {import('../../core/SettingsManager.js').default} [options.settings]
+     */
+    constructor({ api = null, cache = null, eventBus = null, settings = null } = {}) {
+        this.api = api || this._createDefaultApi();
         this._log = new Logger('QBittorrentService');
-        this._cache = window.SpaceHub?.core?.cache || null;
-        this._eventBus = window.SpaceHub?.core?.eventBus || null;
+        this._cache = cache || window.SpaceHub?.core?.cache || null;
+        this._eventBus = eventBus || window.SpaceHub?.core?.eventBus || null;
+        this._settings = settings || window.SpaceHub?.core?.settings || null;
+        this.status = 'unconfigured';
+        this.lastLatency = null;
 
-        // Mise à jour de l'API client si les paramètres changent
         if (this._eventBus) {
-            this._eventBus.on('settings:changed', ({ key }) => {
-                if (key?.startsWith('qbittorrent.')) this.api.updateConfig();
+            this._eventBus.on('settings:changed', ({ key, value }) => {
+                if (key === 'qbittorrent.url') this.api?.setBaseUrl?.(value);
+                if (key === 'qbittorrent.apiKey') this.api?.setApiKey?.(value);
             });
         }
+    }
+
+    _createDefaultApi() {
+        return this.api;
+    }
+
+    /**
+     * Vérifie la santé et la connectivité réelle du service.
+     * @returns {Promise<'unconfigured'|'connected'|'offline'|'auth_failed'|'error'>}
+     */
+    async checkHealth() {
+        const url = this._settings?.get('qbittorrent.url') || this.api?.baseUrl;
+        const key = this._settings?.get('qbittorrent.apiKey') || this.api?.apiKey;
+
+        if (!url) {
+            this.status = 'unconfigured';
+            this._eventBus?.emit('service:statusChanged', { id: 'qbittorrent', status: this.status });
+            return this.status;
+        }
+
+        this.status = 'connecting';
+        const start = Date.now();
+        try {
+            if (typeof this.api?.getVersion === 'function') {
+                await this.api.getVersion();
+            }
+            this.lastLatency = Date.now() - start;
+            this.status = 'connected';
+        } catch (err) {
+            this.lastLatency = Date.now() - start;
+            if (err.status === 401 || err.status === 403) {
+                this.status = 'auth_failed';
+            } else {
+                this.status = 'offline';
+            }
+        }
+
+        this._eventBus?.emit('service:statusChanged', { id: 'qbittorrent', status: this.status, latency: this.lastLatency });
+        return this.status;
     }
 
     /**

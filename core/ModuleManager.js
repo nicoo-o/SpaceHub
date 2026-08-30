@@ -1,20 +1,10 @@
 /**
  * SpaceHub — ModuleManager
- * Version: 0.2.0
+ * Version: 1.0.0
  *
  * Gestion du cycle de vie des modules SpaceHub.
  * Chaque module est enregistré avec ses dépendances et chargé dans le bon ordre.
- *
- * Usage:
- *   SpaceHub.core.moduleManager.register({
- *       id: 'sonarr',
- *       name: 'Sonarr Integration',
- *       dependencies: ['core', 'api'],
- *       enabled: true,
- *       init: async () => new SonarrService(),
- *       destroy: async (instance) => instance.dispose(),
- *   });
- *   await SpaceHub.core.moduleManager.load('sonarr');
+ * Détecte les dépendances circulaires et supporte les dépendances optionnelles.
  */
 
 'use strict';
@@ -25,7 +15,8 @@ import Logger from './Logger.js';
  * @typedef {Object} ModuleConfig
  * @property {string} id                        - Identifiant unique du module
  * @property {string} [name]                    - Nom lisible (pour les logs)
- * @property {string[]} [dependencies]          - IDs des modules dont ce module dépend
+ * @property {string[]} [dependencies]          - IDs des modules dont ce module dépend strictement
+ * @property {string[]} [optionalDependencies]  - IDs des modules optionnels
  * @property {boolean} [enabled=true]           - Si false, le module est ignoré
  * @property {Function} [init]                  - Fonction async d'initialisation → retourne l'instance
  * @property {Function} [destroy]               - Fonction async de destruction (reçoit l'instance)
@@ -36,10 +27,11 @@ import Logger from './Logger.js';
  */
 
 class ModuleManager {
-    constructor(eventBus = null) {
+    constructor(eventBus = null, settings = null) {
         /** @type {Map<string, { config: ModuleConfig, instance: *, status: ModuleStatus, error: Error|null }>} */
         this.modules = new Map();
         this._eventBus = eventBus;
+        this._settings = settings;
         this._log = new Logger('ModuleManager');
     }
 
@@ -67,11 +59,12 @@ class ModuleManager {
     // ─── Chargement ──────────────────────────────────────────────────────────────
 
     /**
-     * Charge un module et ses dépendances récursivement.
+     * Charge un module et ses dépendances récursivement avec détection de cycles.
      * @param {string} moduleId
+     * @param {Set<string>} [loadingStack=new Set()]
      * @returns {Promise<*>} L'instance du module
      */
-    async load(moduleId) {
+    async load(moduleId, loadingStack = new Set()) {
         const entry = this.modules.get(moduleId);
 
         if (!entry) {
@@ -87,8 +80,14 @@ class ModuleManager {
             return entry.instance;
         }
 
+        if (loadingStack.has(moduleId)) {
+            const chain = Array.from(loadingStack).concat(moduleId).join(' ➔ ');
+            const err = new Error(`Dépendance circulaire détectée : ${chain}`);
+            this._log.error(err.message);
+            throw err;
+        }
+
         if (entry.status === 'loading') {
-            // Attendre que le chargement en cours se termine (évite les doubles initialisations)
             return this._waitForLoad(moduleId);
         }
 
@@ -96,21 +95,38 @@ class ModuleManager {
             throw new Error(`Module "${moduleId}" en erreur : ${entry.error?.message}`);
         }
 
-        // Charger les dépendances d'abord
+        loadingStack.add(moduleId);
         entry.status = 'loading';
+
+        // 1. Dépendances strictes requises
         for (const depId of entry.config.dependencies || []) {
             if (!this.modules.has(depId)) {
-                this._log.warn(`Dépendance "${depId}" de "${moduleId}" non trouvée. Ignorée.`);
-                continue;
+                this._log.warn(`Dépendance requise "${depId}" de "${moduleId}" non trouvée. Échec.`);
+                entry.status = 'error';
+                entry.error = new Error(`Dépendance requise manquante : "${depId}"`);
+                loadingStack.delete(moduleId);
+                throw entry.error;
             }
-            await this.load(depId);
+            await this.load(depId, new Set(loadingStack));
         }
 
-        // Initialiser le module
+        // 2. Dépendances optionnelles
+        for (const optDepId of entry.config.optionalDependencies || []) {
+            if (this.modules.has(optDepId)) {
+                try {
+                    await this.load(optDepId, new Set(loadingStack));
+                } catch (e) {
+                    this._log.warn(`Dépendance optionnelle "${optDepId}" ignorée pour "${moduleId}".`);
+                }
+            }
+        }
+
+        // 3. Initialiser le module
         try {
             this._log.info(`Chargement de "${entry.config.name || moduleId}"...`);
             entry.instance = entry.config.init ? await entry.config.init() : {};
             entry.status   = 'loaded';
+            loadingStack.delete(moduleId);
             this._log.info(`✅ Module "${entry.config.name || moduleId}" chargé.`);
 
             if (this._eventBus) {
@@ -119,6 +135,7 @@ class ModuleManager {
         } catch (err) {
             entry.status = 'error';
             entry.error  = err;
+            loadingStack.delete(moduleId);
             this._log.error(`❌ Échec du chargement de "${moduleId}":`, err);
             if (this._eventBus) {
                 this._eventBus.emit(`module:error:${moduleId}`, err);
@@ -130,8 +147,7 @@ class ModuleManager {
     }
 
     /**
-     * Charge tous les modules enregistrés (dans l'ordre d'enregistrement).
-     * Les erreurs non critiques sont loguées mais n'arrêtent pas le processus.
+     * Charge tous les modules enregistrés.
      */
     async loadAll() {
         this._log.info(`Chargement de ${this.modules.size} modules...`);
@@ -190,13 +206,14 @@ class ModuleManager {
         return this.modules.get(moduleId)?.status ?? null;
     }
 
-    /** Retourne un résumé de tous les modules (utile pour le debug panel). */
+    /** Retourne un résumé de tous les modules. */
     getSummary() {
         return [...this.modules.entries()].map(([id, entry]) => ({
             id,
             name: entry.config.name || id,
             status: entry.status,
             dependencies: entry.config.dependencies || [],
+            optionalDependencies: entry.config.optionalDependencies || []
         }));
     }
 

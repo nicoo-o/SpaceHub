@@ -1,6 +1,6 @@
 /**
  * SpaceHub — Dashboard Layout Manager
- * Version: 0.4.0
+ * Version: 1.0.0
  *
  * Gestionnaire de tableau de bord modulaire.
  * Gère une grille responsive de widgets, le réordonnancement, l'ajout/suppression,
@@ -121,9 +121,7 @@ class Dashboard {
      * @param {typeof Object} WidgetClass
      */
     registerWidget(id, WidgetClass) {
-        if (this._registeredWidgets.has(id)) {
-            this._log.warn(`Widget "${id}" déjà enregistré. Remplacement.`);
-        }
+        if (this._registeredWidgets.get(id) === WidgetClass) { return; }
         this._registeredWidgets.set(id, WidgetClass);
         this._log.debug(`Widget type enregistré : "${id}"`);
     }
