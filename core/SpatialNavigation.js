@@ -347,10 +347,13 @@ export class SpatialNavigation {
             return;
         }
 
-        // D. ZONE CARROUSELS & WIDGETS (.sh-widget, .sh-dashboard__item -> .sh-card)
+        // D. ZONE CARROUSELS (.sh-dashboard__item -> .sh-card)
         if (current.classList.contains('sh-card')) {
-            const allRows = Array.from(document.querySelectorAll('.sh-widget, .sh-dashboard__item, .sh-shelf')).filter(r => r.querySelector('.sh-card:not(.sh-card--skeleton)'));
-            const currentRow = current.closest('.sh-widget, .sh-dashboard__item, .sh-shelf');
+            // Sélection stricte des conteneurs de rangées de premier niveau uniquement (évite les doublons imbriqués)
+            const allRows = Array.from(document.querySelectorAll('.sh-dashboard__item, .sh-library-grid, .sh-shelf'))
+                .filter(r => r.querySelector('.sh-card:not(.sh-card--skeleton)'));
+            
+            const currentRow = current.closest('.sh-dashboard__item, .sh-library-grid, .sh-shelf');
             const rowIdx = allRows.indexOf(currentRow);
 
             if (currentRow && rowIdx !== -1) {
@@ -706,21 +709,24 @@ export class SpatialNavigation {
         }, 80);
     }
 
-    onModalClosed() {
+    onModalClosed(closedItem = null) {
         this.clearFocus();
+        const targetId = closedItem?.Id || closedItem?.id || this._lastDashboardFocusedCardId;
+
         const restore = () => {
-            let target = this._lastDashboardFocusedCard;
-            if (!target || !document.body.contains(target)) {
-                if (this._lastDashboardFocusedCardId) {
-                    target = document.querySelector(`.sh-card[data-id="${this._lastDashboardFocusedCardId}"], .sh-card[data-item-id="${this._lastDashboardFocusedCardId}"]`);
-                }
+            let target = null;
+            if (targetId) {
+                target = document.querySelector(`.sh-card[data-id="${targetId}"], .sh-card[data-item-id="${targetId}"]`);
+            }
+            if (!target && this._lastDashboardFocusedCard && document.body.contains(this._lastDashboardFocusedCard)) {
+                target = this._lastDashboardFocusedCard;
             }
             if (!target) {
                 const saved = this._invokingElementStack.pop();
                 if (saved?.element && document.body.contains(saved.element)) target = saved.element;
             }
             if (!target) {
-                target = document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton), .sh-widget .sh-card:not(.sh-card--skeleton)');
+                target = document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton), .sh-card:not(.sh-card--skeleton)');
             }
             if (target) {
                 this._setFocus(target);
@@ -728,7 +734,7 @@ export class SpatialNavigation {
         };
 
         restore();
-        setTimeout(restore, 120);
+        setTimeout(restore, 100);
     }
 
     _handleBack(event) {

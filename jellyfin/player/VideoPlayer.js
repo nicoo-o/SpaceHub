@@ -23,6 +23,7 @@ class VideoPlayer {
         this._video = null;
         this._hls = null;
         this._currentItem = null;
+        this._sourceMediaItem = null;
         this._progressInterval = null;
         this._idleTimer = null;
         this._isControlsVisible = true;
@@ -1458,9 +1459,16 @@ class VideoPlayer {
             }
 
             document.body.classList.remove('sh-cinema-active');
-            const nav = window.SpaceHub?.spatialNav || window.SpaceHub?.ui?.appLayout?._spatialNav;
-            nav?.onModalClosed?.();
             elToClose.remove();
+
+            // Retour en cascade : réouverture automatique de la fiche média (menu flottant)
+            const sourceItem = this._sourceMediaItem || this._currentItem;
+            if (sourceItem && window.SpaceHub?.ui?.modalSlideUpSheet) {
+                window.SpaceHub.ui.modalSlideUpSheet.open(sourceItem);
+            } else {
+                const nav = window.SpaceHub?.spatialNav || window.SpaceHub?.ui?.appLayout?._spatialNav;
+                nav?.onModalClosed?.();
+            }
         }, 320);
 
         this._el = null;
