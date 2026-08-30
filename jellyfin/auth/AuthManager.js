@@ -192,9 +192,10 @@ class AuthManager {
             getCurrentUserId: () => self.getUserId(),
             getCurrentUser: async () => self.getUser(),
             deviceId: () => self.getDeviceId(),
-            getUrl: (endpoint, query) => {
+                        getUrl: (endpoint, query) => {
+                const ep = endpoint ? (endpoint.startsWith('/') ? endpoint : `/${endpoint}`) : '';
                 const q = query ? '?' + new URLSearchParams(query).toString() : '';
-                return `${cleanUrl}${endpoint}${q}`;
+                return `${cleanUrl}${ep}${q}`;
             },
             getImageUrl: (itemId, opts = {}) => {
                 const params = new URLSearchParams({
@@ -213,7 +214,7 @@ class AuthManager {
                 return await r.json();
             },
             getJSON: async (url) => {
-                const fullUrl = url.startsWith('http') ? url : `${cleanUrl}${url}`;
+                const fullUrl = url.startsWith('http') ? url : (url.startsWith('/') ? `${cleanUrl}${url}` : `${cleanUrl}/${url}`);
                 const r = await fetch(fullUrl, { headers: self.getAuthHeaders() });
                 return await r.json();
             }

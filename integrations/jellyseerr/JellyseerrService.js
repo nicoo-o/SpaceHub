@@ -37,7 +37,7 @@ class JellyseerrService {
     }
 
     _createDefaultApi() {
-        return this.api;
+        return new JellyseerrApi();
     }
 
     /**

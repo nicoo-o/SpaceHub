@@ -38,7 +38,7 @@ class ProwlarrService {
     }
 
     _createDefaultApi() {
-        return this.api;
+        return new ProwlarrApi();
     }
 
     /**

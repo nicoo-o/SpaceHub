@@ -38,7 +38,7 @@ class QBittorrentService {
     }
 
     _createDefaultApi() {
-        return this.api;
+        return new QBittorrentApi();
     }
 
     /**

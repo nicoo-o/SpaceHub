@@ -38,7 +38,7 @@ class RadarrService {
     }
 
     _createDefaultApi() {
-        return this.api;
+        return new RadarrApi();
     }
 
     /**

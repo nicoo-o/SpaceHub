@@ -38,7 +38,7 @@ class BazarrService {
     }
 
     _createDefaultApi() {
-        return this.api;
+        return new BazarrApi();
     }
 
     /**
@@ -154,6 +154,14 @@ class BazarrService {
      * Déclenche une synchronisation des bibliothèques.
      * @returns {Promise<Object>}
      */
+        /**
+     * Synchronise les bibliothèques Bazarr (alias officiel de triggerSync).
+     * @returns {Promise<Object>}
+     */
+    async sync() {
+        return await this.triggerSync();
+    }
+
     async triggerSync() {
         this._log.info('Déclenchement de la synchronisation Bazarr...');
         const result = await this.api.syncLibraries();

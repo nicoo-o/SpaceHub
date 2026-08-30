@@ -38,7 +38,7 @@ class SonarrService {
     }
 
     _createDefaultApi() {
-        return this.api;
+        return new SonarrApi();
     }
 
     /**
