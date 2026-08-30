@@ -167,7 +167,7 @@ class LibraryView {
                         <div class="sh-lib-toolbar-actions">
                             <!-- Menu de Tri -->
                             <div class="sh-lib-dropdown-wrap">
-                                <button tabindex="0" data-nav-focusable="true" class="sh-lib-control-btn" id="sh-lib-sort-btn" title="Changer l'ordre de tri">
+                                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-control-btn" id="sh-lib-sort-btn" title="Changer l'ordre de tri">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <line x1="12" y1="5" x2="12" y2="19"></line>
                                         <polyline points="19 12 12 19 5 12"></polyline>
@@ -187,7 +187,7 @@ class LibraryView {
 
                             <!-- Menu Statut / Qualité -->
                             <div class="sh-lib-dropdown-wrap">
-                                <button tabindex="0" data-nav-focusable="true" class="sh-lib-control-btn" id="sh-lib-status-btn" title="Filtrer par état">
+                                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-control-btn" id="sh-lib-status-btn" title="Filtrer par état">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                                     </svg>
@@ -205,7 +205,7 @@ class LibraryView {
 
                             <!-- Commutateur de Mode de Vue (Poster / Backdrop / List) -->
                             <div class="sh-lib-viewmode-group">
-                                <button tabindex="0" data-nav-focusable="true" class="sh-lib-viewmode-btn ${this._viewMode === 'poster' ? 'active' : ''}" data-mode="poster" title="Vue Affiches 2:3">
+                                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-viewmode-btn ${this._viewMode === 'poster' ? 'active' : ''}" data-mode="poster" title="Vue Affiches 2:3">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect width="7" height="10" x="3" y="3" rx="1"></rect>
                                         <rect width="7" height="10" x="14" y="3" rx="1"></rect>
@@ -213,13 +213,13 @@ class LibraryView {
                                         <rect width="7" height="10" x="14" y="14" rx="1"></rect>
                                     </svg>
                                 </button>
-                                <button tabindex="0" data-nav-focusable="true" class="sh-lib-viewmode-btn ${this._viewMode === 'backdrop' ? 'active' : ''}" data-mode="backdrop" title="Vue Paysage 16:9">
+                                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-viewmode-btn ${this._viewMode === 'backdrop' ? 'active' : ''}" data-mode="backdrop" title="Vue Paysage 16:9">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect width="18" height="8" x="3" y="3" rx="1"></rect>
                                         <rect width="18" height="8" x="3" y="13" rx="1"></rect>
                                     </svg>
                                 </button>
-                                <button tabindex="0" data-nav-focusable="true" class="sh-lib-viewmode-btn ${this._viewMode === 'list' ? 'active' : ''}" data-mode="list" title="Vue Tableau Détaillé">
+                                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-viewmode-btn ${this._viewMode === 'list' ? 'active' : ''}" data-mode="list" title="Vue Tableau Détaillé">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <line x1="8" y1="6" x2="21" y2="6"></line>
                                         <line x1="8" y1="12" x2="21" y2="12"></line>
@@ -235,14 +235,14 @@ class LibraryView {
 
                     <!-- Ligne des Genres Dynamiques -->
                     <div class="sh-lib-genres-carousel" id="sh-lib-genres-carousel">
-                        <button tabindex="0" data-nav-focusable="true" class="sh-lib-genre-chip ${this._activeGenre === 'all' ? 'active' : ''}" data-genre="all">Tous les genres</button>
+                        <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-genre-chip ${this._activeGenre === 'all' ? 'active' : ''}" data-genre="all">Tous les genres</button>
                     </div>
 
                     <!-- Index Alphabétique Rapide (A-Z Dock) -->
                     <div class="sh-lib-alphabet-dock" id="sh-lib-alphabet-dock" style="${this._sortBy.includes('SortName') ? 'display:flex;' : 'display:none;'}">
-                        <button tabindex="0" data-nav-focusable="true" class="sh-lib-alpha-btn ${!this._alphabetFilter ? 'active' : ''}" data-char="">#</button>
+                        <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-alpha-btn ${!this._alphabetFilter ? 'active' : ''}" data-char="">#</button>
                         ${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(ch => `
-                            <button tabindex="0" data-nav-focusable="true" class="sh-lib-alpha-btn ${this._alphabetFilter === ch ? 'active' : ''}" data-char="${ch}">${ch}</button>
+                            <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-alpha-btn ${this._alphabetFilter === ch ? 'active' : ''}" data-char="${ch}">${ch}</button>
                         `).join('')}
                     </div>
                 </section>
@@ -350,7 +350,7 @@ class LibraryView {
         tabsTrack.innerHTML = `
             <div class="sh-lib-tabs-pill" id="sh-lib-tabs-pill"></div>
             ${this._libraries.map(lib => `
-                <button tabindex="0" data-nav-focusable="true" class="sh-lib-tab-btn ${lib.Id === this._activeLibrary?.Id ? 'active' : ''}" data-id="${lib.Id}" data-type="${lib.CollectionType || lib.Type || ''}">
+                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-tab-btn ${lib.Id === this._activeLibrary?.Id ? 'active' : ''}" data-id="${lib.Id}" data-type="${lib.CollectionType || lib.Type || ''}">
                     <span class="sh-lib-tab-icon">${this._getIconForType(lib.CollectionType || lib.Type)}</span>
                     <span class="sh-lib-tab-name">${this._escape(lib.Name)}</span>
                 </button>
@@ -649,9 +649,9 @@ class LibraryView {
         try {
             this._genresList = await this._api?.getGenres(this._activeLibrary.Id) || [];
             carousel.innerHTML = `
-                <button tabindex="0" data-nav-focusable="true" class="sh-lib-genre-chip ${this._activeGenre === 'all' ? 'active' : ''}" data-genre="all">Tous les genres</button>
+                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-genre-chip ${this._activeGenre === 'all' ? 'active' : ''}" data-genre="all">Tous les genres</button>
                 ${this._genresList.slice(0, 24).map(genre => `
-                    <button tabindex="0" data-nav-focusable="true" class="sh-lib-genre-chip ${this._activeGenre === genre ? 'active' : ''}" data-genre="${this._escape(genre)}">
+                    <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-genre-chip ${this._activeGenre === genre ? 'active' : ''}" data-genre="${this._escape(genre)}">
                         ${this._escape(genre)}
                     </button>
                 `).join('')}

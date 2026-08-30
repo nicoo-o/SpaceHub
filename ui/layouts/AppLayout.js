@@ -28,6 +28,13 @@ class AppLayout {
         this._clockInterval = null;
         this._spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation || null;
         this._injectStyles();
+
+        if (typeof window !== 'undefined' && window.SpaceHub) {
+            window.SpaceHub.appLayout = this;
+            if (!window.SpaceHub.ui) window.SpaceHub.ui = {};
+            window.SpaceHub.ui.sidebar = this._sidebar;
+            window.SpaceHub.ui.appLayout = this;
+        }
     }
 
     get _auth() {

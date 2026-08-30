@@ -147,7 +147,7 @@ export class GamepadInput {
         const stickRightY = gp.axes[3] || 0;
 
         // Toggle Mode Souris Virtuelle sur R3
-        if (btnR3 && !this._buttonStates.get('r3')) {
+        if (btnR3 && !this._buttonStates.get('btnR3')) {
             this._buttonStates.set('r3', true);
             this._virtualMouseMode = !this._virtualMouseMode;
             this.vibrate(120, 0.8, 0.4);

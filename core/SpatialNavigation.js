@@ -250,7 +250,7 @@ export class SpatialNavigation {
         window.removeEventListener('orientationchange', this._boundResize);
     }
 
-    _handleKeyDown(e) {
+        _handleKeyDown(e) {
         if (!this._isEnabled) return;
 
         const action = mapKeyboardEvent(e);
@@ -260,10 +260,19 @@ export class SpatialNavigation {
         const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
         if (isInput && action !== NavAction.BACK && action !== NavAction.DOWN && action !== NavAction.UP) return;
 
-        // 1. Priorité absolue au lecteur vidéo (Player Bypass)
+        // 1. Priorité au lecteur vidéo avec transmission des touches et sortie BACK
         const scope = this._detectCurrentScope();
         if (scope === 'player') {
-            return; // Le VideoPlayer gère 100% de ses propres touches
+            if (action === NavAction.BACK || action === NavAction.MENU) {
+                this._handleBack(e);
+                return;
+            }
+            const player = window.SpaceHub?.player;
+            if (player && typeof player.handleNavAction === 'function') {
+                e.preventDefault();
+                player.handleNavAction(action);
+            }
+            return;
         }
 
         this._activateTvMode();
@@ -305,16 +314,23 @@ export class SpatialNavigation {
                 }
                 return;
             }
+
+            // Réinitialisation propre de l'état long-press
+            this._isLongPressActive = false;
+            if (this._selectHoldTimer) {
+                clearTimeout(this._selectHoldTimer);
+                this._selectHoldTimer = null;
+            }
+
             if (!e.repeat && this._focusedElement?.classList.contains('sh-card')) {
-                // Timer de Long-Press (600ms) pour ouvrir le menu contextuel rapide
                 this._selectHoldTimer = setTimeout(() => {
                     this._isLongPressActive = true;
                     this._openCardContextMenu(this._focusedElement);
                 }, 600);
             }
-            if (this._focusedElement && !this._isLongPressActive) {
+
+            if (this._focusedElement && !e.repeat) {
                 e.preventDefault();
-                this._activateFocused();
             }
         } else if (action === NavAction.BACK) {
             this._handleBack(e);
@@ -382,10 +398,13 @@ export class SpatialNavigation {
         if (this._selectHoldTimer) {
             clearTimeout(this._selectHoldTimer);
             this._selectHoldTimer = null;
+            if (!this._isLongPressActive && this._focusedElement) {
+                this._activateFocused();
+            }
         }
         setTimeout(() => {
             this._isLongPressActive = false;
-        }, 100);
+        }, 150);
     }
 
     _handlePaging(direction) {
@@ -1210,7 +1229,11 @@ export class SpatialNavigation {
     }
 
     _toggleSidebar() {
-        const sidebar = window.SpaceHub?.ui?.sidebar || window.SpaceHub?.sidebar;
+        const sidebar = window.SpaceHub?.ui?.sidebar 
+            || window.SpaceHub?.sidebar 
+            || window.SpaceHub?.ui?.appLayout?._sidebar
+            || window.SpaceHub?.appLayout?._sidebar;
+
         if (sidebar && typeof sidebar.toggle === 'function') {
             sidebar.toggle();
             const openDrawer = document.querySelector('.sh-sidebar--open, .sh-sidebar-drawer.open');
