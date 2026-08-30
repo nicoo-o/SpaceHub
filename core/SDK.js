@@ -3,12 +3,7 @@
  * Version: 1.0.0
  *
  * Kit de développement (SDK) officiel pour créer des modules, widgets,
- * intégrations et thèmes tiers pour SpaceHub.
- *
- * Usage:
- *   SpaceHub.sdk.registerWidget('my-widget', MyCustomWidgetClass);
- *   SpaceHub.sdk.registerTheme({ id: 'my-theme', name: 'Mon Thème', emoji: '🌟', variables: { ... } });
- *   SpaceHub.sdk.on('sonarr:seriesAdded', (data) => { ... });
+ * plugins de cycle de vie et thèmes tiers pour SpaceHub.
  */
 
 'use strict';
@@ -18,6 +13,48 @@ import Logger from './Logger.js';
 class SpaceHubSDK {
     constructor() {
         this._log = new Logger('SDK');
+    }
+
+    // ─── Plugins & Cycle de Vie ───────────────────────────────────────────────
+
+    /**
+     * Enregistre un plugin SDK avec cycle de vie (onLoad, onEnable, onDisable, onUnload).
+     * @param {Object} pluginManifest
+     */
+    registerPlugin(pluginManifest) {
+        const pm = window.SpaceHub?.plugins || window.SpaceHub?.core?.pluginManager;
+        if (!pm) {
+            this._log.error('PluginManager non initialisé.');
+            return false;
+        }
+        return pm.registerPlugin(pluginManifest);
+    }
+
+    /**
+     * Retourne tous les plugins SDK installés.
+     * @returns {Array<Object>}
+     */
+    getPlugins() {
+        const pm = window.SpaceHub?.plugins || window.SpaceHub?.core?.pluginManager;
+        return pm?.getPlugins() || [];
+    }
+
+    /**
+     * Active un plugin SDK par son identifiant.
+     * @param {string} id
+     */
+    async enablePlugin(id) {
+        const pm = window.SpaceHub?.plugins || window.SpaceHub?.core?.pluginManager;
+        return await pm?.enablePlugin(id);
+    }
+
+    /**
+     * Désactive un plugin SDK par son identifiant.
+     * @param {string} id
+     */
+    async disablePlugin(id) {
+        const pm = window.SpaceHub?.plugins || window.SpaceHub?.core?.pluginManager;
+        return await pm?.disablePlugin(id);
     }
 
     // ─── Widgets ─────────────────────────────────────────────────────────────
@@ -39,16 +76,21 @@ class SpaceHubSDK {
     // ─── Thèmes ───────────────────────────────────────────────────────────────
 
     /**
-     * Enregistre un thème personnalisé.
-     * @param {{ id: string, name: string, emoji?: string, variables: Record<string,string> }} theme
+     * Enregistre et applique un thème personnalisé.
+     * @param {{ id: string, name: string, icon?: string, emoji?: string, variables: Record<string,string> }} theme
      */
     registerTheme(theme) {
-        if (!theme.id || !theme.variables) {
+        if (!theme || !theme.id || !theme.variables) {
             this._log.error('Un thème doit avoir un id et un objet variables.');
             return;
         }
-        window.SpaceHub?.ui?.themes?.apply(theme.id);
-        this._log.info(`Thème tiers enregistré : "${theme.name || theme.id}"`);
+        
+        const tm = window.SpaceHub?.ui?.themes;
+        if (tm && typeof tm.register === 'function') {
+            tm.register(theme);
+        }
+        tm?.apply(theme.id);
+        this._log.info(`Thème tiers enregistré et appliqué : "${theme.name || theme.id}"`);
     }
 
     // ─── Modules & Intégrations ───────────────────────────────────────────────
@@ -97,14 +139,6 @@ class SpaceHubSDK {
 
     setSetting(key, value) {
         window.SpaceHub?.core?.settings?.set(key, value);
-    }
-
-    get cache() {
-        return window.SpaceHub?.core?.cache;
-    }
-
-    get api() {
-        return window.SpaceHub?.core?.api;
     }
 }
 

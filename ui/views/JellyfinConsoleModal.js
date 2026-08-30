@@ -806,42 +806,42 @@ export class JellyfinConsoleModal {
         if (defaultLog) await loadSelectedLog();
     }
 
-    // ─── 7. Onglet Extensions & Plugins (Double Support SDK + Backend) ────────
+        // ─── 7. Onglet Extensions & Intégrations Dynamiques (SDK + Backend) ────────
 
     async _renderPluginsTab(container, modal) {
         const api = window.SpaceHub?.jellyfin?.api;
         const serverPlugins = await api?.getPlugins?.() || [];
 
-        // Modules enregistrés dans le SDK SpaceHub
-        const builtInSdkModules = [
-            { id: 'sonarr', name: 'Sonarr Series Integration', desc: 'Gestion des séries TV, saisons et calendrier des épisodes', icon: '📺', isDefault: true },
-            { id: 'radarr', name: 'Radarr Movies Integration', desc: 'Gestion des films, formats numériques et sorties cinéma', icon: '🎬', isDefault: true },
-            { id: 'prowlarr', name: 'Prowlarr Indexers Integration', desc: 'Surveillance des indexeurs BitTorrent et Usenet', icon: '⚡', isDefault: true },
-            { id: 'bazarr', name: 'Bazarr Subtitles Sync', desc: 'Recherche et synchronisation automatique des sous-titres FR', icon: '📝', isDefault: true },
-            { id: 'jellyseerr', name: 'Jellyseerr Media Requests', desc: 'Hub de découverte TMDB et demandes de streaming', icon: '🍿', isDefault: true },
-            { id: 'qbittorrent', name: 'qBittorrent Download Client', desc: 'Supervision des téléchargements et métriques de débit', icon: '📥', isDefault: true },
-            { id: 'intro-skipper', name: 'Intro Skipper SDK Plugin', desc: 'Saut automatique des génériques de début et de fin d\'épisodes', icon: '⏭️', isDefault: true },
-            { id: 'smart-collections', name: 'Smart Collections & BoxSets', desc: 'Moteur de regroupement automatique des sagas et collections', icon: '📦', isDefault: true },
-            { id: 'unified-watchlist', name: 'Unified Watchlist & Favoris', desc: 'Synchronisation de la liste de lecture multi-appareils', icon: '⭐', isDefault: true },
-            { id: 'snowverlay', name: 'Snowverlay Atmospheric Plugin', desc: 'Effet météo cinématique en particules douces sur l\'accueil', icon: '❄️', isDefault: false }
+        // 1. Vraies Intégrations Servarr & Média
+        const servarrIntegrations = [
+            { id: 'sonarr', name: 'Sonarr Series Integration', desc: 'Gestion des séries TV, saisons et calendrier des épisodes', icon: '📺' },
+            { id: 'radarr', name: 'Radarr Movies Integration', desc: 'Gestion des films, formats numériques et sorties cinéma', icon: '🎬' },
+            { id: 'prowlarr', name: 'Prowlarr Indexers Integration', desc: 'Surveillance des indexeurs BitTorrent et Usenet', icon: '⚡' },
+            { id: 'bazarr', name: 'Bazarr Subtitles Sync', desc: 'Recherche et synchronisation automatique des sous-titres FR', icon: '📝' },
+            { id: 'jellyseerr', name: 'Jellyseerr Media Requests', desc: 'Hub de découverte TMDB et demandes de streaming', icon: '🍿' },
+            { id: 'qbittorrent', name: 'qBittorrent Download Client', desc: 'Supervision des téléchargements et métriques de débit', icon: '📥' }
         ];
 
+        // 2. Vrais Plugins SDK enregistrés dans PluginManager
+        const sdkPlugins = window.SpaceHub?.sdk?.getPlugins?.() || [];
         const settings = window.SpaceHub?.core?.settings;
 
         container.innerHTML = `
             <div class="sh-console-section">
-                <!-- Section 1 : Extensions & Plugins SpaceHub SDK (Client) -->
+                <!-- Section 1 : Intégrations Natives Servarr -->
                 <div class="sh-console-section-header">
                     <div>
-                        <div class="sh-console-brand-badge small">SPACEHUB SDK CLIENT</div>
-                        <h3 class="sh-console-section-title">Modules & Extensions SDK (${builtInSdkModules.length})</h3>
-                        <p class="sh-console-section-sub">Extensions natives client gérées par le ModuleManager et le SDK SpaceHub.</p>
+                        <div class="sh-console-brand-badge small">INTÉGRATIONS MÉDIAS & SERVARR</div>
+                        <h3 class="sh-console-section-title">Services Connectés (${servarrIntegrations.length})</h3>
+                        <p class="sh-console-section-sub">Services multimédias managés par SpaceHub avec supervision opérationnelle.</p>
                     </div>
                 </div>
 
                 <div class="sh-console-plugins-grid">
-                    ${builtInSdkModules.map(mod => {
+                    ${servarrIntegrations.map(mod => {
                         const isEnabled = settings?.get(`${mod.id}.enabled`, true) !== false;
+                        const serviceInstance = window.SpaceHub?.integrations?.[mod.id];
+                        const isConfigured = Boolean(settings?.get(`${mod.id}.url`) || settings?.get(`${mod.id}.apiKey`));
 
                         return `
                             <div class="sh-console-plugin-card">
@@ -849,10 +849,10 @@ export class JellyfinConsoleModal {
                                     <div class="sh-console-plugin-icon">${mod.icon}</div>
                                     <div class="sh-console-plugin-info">
                                         <strong>${mod.name}</strong>
-                                        <code>ID: ${mod.id}</code>
+                                        <code>${isConfigured ? '🟢 Configuré & Actif' : '⚪ Non configuré'}</code>
                                     </div>
                                     <label class="sh-apple-switch">
-                                        <input type="checkbox" class="sh-plugin-sdk-toggle" data-module-id="${mod.id}" ${isEnabled ? 'checked' : ''} />
+                                        <input type="checkbox" class="sh-servarr-toggle" data-module-id="${mod.id}" ${isEnabled ? 'checked' : ''} />
                                         <span class="sh-apple-switch-slider"></span>
                                     </label>
                                 </div>
@@ -862,12 +862,44 @@ export class JellyfinConsoleModal {
                     }).join('')}
                 </div>
 
-                <!-- Section 2 : Plugins Serveur Jellyfin (Backend) avec Statut de Compatibilité -->
+                <!-- Section 2 : Extensions & Plugins SDK Reconnus -->
+                <div class="sh-console-section-header" style="margin-top: 32px;">
+                    <div>
+                        <div class="sh-console-brand-badge small">SPACEHUB SDK CLIENT</div>
+                        <h3 class="sh-console-section-title">Extensions & Plugins SDK (${sdkPlugins.length})</h3>
+                        <p class="sh-console-section-sub">Plugins tiers et communautaires gérés par le PluginManager officiel.</p>
+                    </div>
+                </div>
+
+                <div class="sh-console-plugins-grid" id="sh-console-sdk-plugins-grid">
+                    ${sdkPlugins.length > 0 ? sdkPlugins.map(plugin => `
+                        <div class="sh-console-plugin-card">
+                            <div class="sh-console-plugin-header">
+                                <div class="sh-console-plugin-icon">${plugin.icon}</div>
+                                <div class="sh-console-plugin-info">
+                                    <strong>${plugin.name}</strong>
+                                    <code>v${plugin.version} • ${plugin.author}</code>
+                                </div>
+                                <label class="sh-apple-switch">
+                                    <input type="checkbox" class="sh-sdk-plugin-toggle" data-plugin-id="${plugin.id}" ${plugin.isEnabled ? 'checked' : ''} />
+                                    <span class="sh-apple-switch-slider"></span>
+                                </label>
+                            </div>
+                            <p class="sh-console-plugin-desc">${plugin.description || 'Extension SDK active.'}</p>
+                        </div>
+                    `).join('') : `
+                        <div class="sh-console-empty-plugin-state" style="grid-column: 1 / -1; padding: 24px; text-align: center; background: rgba(255,255,255,0.02); border-radius: 16px; border: 1px dashed rgba(255,255,255,0.1);">
+                            <p style="color: rgba(255,255,255,0.5); font-size: 13.5px; margin: 0;">Aucun plugin SDK tiers installé. Vous pouvez enregistrer des extensions via <code>SpaceHub.sdk.registerPlugin()</code>.</p>
+                        </div>
+                    `}
+                </div>
+
+                <!-- Section 3 : Plugins Serveur Jellyfin (Backend) -->
                 <div class="sh-console-section-header" style="margin-top: 32px;">
                     <div>
                         <div class="sh-console-brand-badge small">JELLYFIN BACKEND SERVEUR</div>
                         <h3 class="sh-console-section-title">Plugins Installés sur le Serveur (${serverPlugins.length})</h3>
-                        <p class="sh-console-section-sub">Extensions installées directement dans le répertoire plugins de votre instance Jellyfin.</p>
+                        <p class="sh-console-section-sub">Extensions installées directement sur votre instance Jellyfin.</p>
                     </div>
                 </div>
 
@@ -875,11 +907,6 @@ export class JellyfinConsoleModal {
                     ${serverPlugins.length > 0 ? serverPlugins.map(p => {
                         const nameLower = (p.Name || '').toLowerCase();
                         const isLegacySkin = nameLower.includes('skin') || nameLower.includes('css') || nameLower.includes('tweak');
-                        const isCompat = !isLegacySkin;
-
-                        let compatBadge = isCompat
-                            ? `<span class="sh-plugin-status-badge loaded">🟢 Compatible SpaceHub</span>`
-                            : `<span class="sh-plugin-status-badge warn">⚠️ Incompatible (Remplacé par SpaceHub)</span>`;
 
                         return `
                             <div class="sh-console-plugin-card server ${isLegacySkin ? 'legacy' : ''}">
@@ -889,9 +916,9 @@ export class JellyfinConsoleModal {
                                         <strong>${p.Name}</strong>
                                         <code>v${p.Version} • Statut: ${p.Status || 'Actif'}</code>
                                     </div>
-                                    ${compatBadge}
+                                    <span class="sh-plugin-status-badge loaded">🟢 Serveur</span>
                                 </div>
-                                <p class="sh-console-plugin-desc">${p.Description || 'Extension serveur officielle Jellyfin.'}</p>
+                                <p class="sh-console-plugin-desc">${p.Description || 'Extension serveur Jellyfin.'}</p>
                             </div>
                         `;
                     }).join('') : `
@@ -903,12 +930,28 @@ export class JellyfinConsoleModal {
             </div>
         `;
 
-        // Toggles SDK Client
-        container.querySelectorAll('.sh-plugin-sdk-toggle').forEach(chk => {
-            chk.addEventListener('change', () => {
-                const modId = chk.dataset.moduleId;
-                settings?.set(`${modId}.enabled`, chk.checked);
-                window.SpaceHub?.ui?.components?.toaster?.info?.(`Module "${modId}" ${chk.checked ? 'activé' : 'désactivé'}.`);
+        // Écouteurs pour les toggles Servarr
+        container.querySelectorAll('.sh-servarr-toggle').forEach(chk => {
+            chk.addEventListener('change', (e) => {
+                const modId = e.currentTarget.dataset.moduleId;
+                settings?.set(`${modId}.enabled`, e.currentTarget.checked);
+                window.SpaceHub?.ui?.components?.toaster?.info?.(`Intégration ${modId} ${e.currentTarget.checked ? 'activée' : 'désactivée'}.`);
+            });
+        });
+
+        // Écouteurs pour les vrais plugins SDK
+        container.querySelectorAll('.sh-sdk-plugin-toggle').forEach(chk => {
+            chk.addEventListener('change', async (e) => {
+                const pluginId = e.currentTarget.dataset.pluginId;
+                const isChecked = e.currentTarget.checked;
+                
+                if (isChecked) {
+                    await window.SpaceHub?.sdk?.enablePlugin(pluginId);
+                    window.SpaceHub?.ui?.components?.toaster?.success?.(`Plugin "${pluginId}" activé !`);
+                } else {
+                    await window.SpaceHub?.sdk?.disablePlugin(pluginId);
+                    window.SpaceHub?.ui?.components?.toaster?.info?.(`Plugin "${pluginId}" désactivé.`);
+                }
             });
         });
     }

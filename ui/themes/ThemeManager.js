@@ -1,6 +1,6 @@
 /**
  * SpaceHub — ThemeManager
- * Version: 0.3.0
+ * Version: 1.0.0
  *
  * Gestion dynamique des thèmes CSS.
  * Charge les tokens de base, applique les presets, et réagit aux changements
@@ -29,8 +29,9 @@ class ThemeManager {
         this._log      = new Logger('ThemeManager');
         this._settings = settings;
         this._eventBus = eventBus;
-        this._current  = null;
+                this._current  = null;
         this._styleEl  = null;
+        this._customThemes = [];
 
         // Écouter les changements de thème via settings
         if (this._eventBus) {
@@ -57,21 +58,56 @@ class ThemeManager {
      * @param {string} themeId
      * @returns {boolean} true si le thème a été trouvé et appliqué
      */
+        /**
+     * Enregistre un thème personnalisé dans le catalogue.
+     * @param {{ id: string, name: string, icon?: string, emoji?: string, variables: Record<string, string> }} theme
+     * @returns {boolean}
+     */
+    register(theme) {
+        if (!theme || !theme.id || !theme.variables) {
+            this._log.error('Un thème valide requiert un id et des variables CSS.');
+            return false;
+        }
+
+        const idx = this._customThemes.findIndex(t => t.id === theme.id);
+        const entry = {
+            id: theme.id,
+            name: theme.name || theme.id,
+            icon: theme.icon || theme.emoji || '🌟',
+            variables: theme.variables
+        };
+
+        if (idx >= 0) {
+            this._customThemes[idx] = entry;
+        } else {
+            this._customThemes.push(entry);
+        }
+
+        this._log.info(`Thème personnalisé enregistré : "${entry.name}"`);
+        this._eventBus?.emit('theme:registered', entry);
+        return true;
+    }
+
+    /**
+     * Applique un thème par son ID (recherche dans les presets et thèmes personnalisés).
+     * @param {string} themeId
+     * @returns {boolean}
+     */
     apply(themeId) {
-        const preset = getPreset(themeId);
+        let preset = getPreset(themeId);
+        if (!preset) {
+            preset = this._customThemes.find(t => t.id === themeId);
+        }
 
         if (!preset) {
-            this._log.warn(`Thème "${themeId}" introuvable. Thèmes disponibles : ${PRESETS.map(p => p.id).join(', ')}`);
+            this._log.warn(`Thème "${themeId}" introuvable.`);
             return false;
         }
 
         this._applyVariables(preset.variables);
         this._current = themeId;
 
-        // Marque le body avec le data-attribute (utile pour les surcharges CSS externes)
         document.documentElement.setAttribute('data-sh-theme', themeId);
-
-        // Sauvegarde
         this._settings?.set(SETTINGS_KEY, themeId);
 
         if (this._eventBus) {
