@@ -6,11 +6,11 @@
  * - Architecture modulaire avec InputMapper (Clavier, Télécommande Smart TV, Gamepad).
  * - Gestion du cycle de vie des écouteurs (named listeners, bind, unbind, destroy sans fuite).
  * - Priorité absolue au VideoPlayer (Player Bypass).
- * - Détection de visibilité réelle des scopes (offsetParent).
- * - Algorithme universel 2D géométrique (_findSpatialTarget).
+ * - Détection géométrique réelle des scopes (getBoundingClientRect).
+ * - Algorithme universel 2D géométrique par bandes naturelles (_findSpatialTarget - zéro saut de ligne).
  * - Verrouillage absolu du scroll Hero à 0px (aucun décalage, filtre noir préservé).
  * - Entourage halo orange pur sur le bouton Regarder blanc.
- * - Back Stack propre respectant le cycle de vie des composants (aucun .remove sauvage).
+ * - Back Stack propre avec notification immédiate onModalClosed et reconnexion automatique.
  * - Mode TV dynamique (sh-tv-mode) et compatibilité :focus-visible.
  */
 
@@ -364,9 +364,9 @@ export class SpatialNavigation {
         }
     }
 
-    // ─── ALGORITHME SPATIAL UNIVERSEL 2D GÉOMÉTRIQUE ─────────────────────────
+    // ─── ALGORITHME SPATIAL UNIVERSEL 2D PAR BANDES NATURELLES (ZÉRO SAUT) ───
     /**
-     * Recherche la meilleure cible dans une direction donnée parmi les candidats
+     * Recherche la meilleure cible dans une direction donnée sans jamais sauter de rangée
      * @param {HTMLElement} current
      * @param {HTMLElement[]} candidates
      * @param {string} direction 'up' | 'down' | 'left' | 'right'
@@ -379,65 +379,139 @@ export class SpatialNavigation {
         const currentCenterX = currentRect.left + currentRect.width / 2;
         const currentCenterY = currentRect.top + currentRect.height / 2;
 
-        const filtered = candidates.filter(candidate => {
-            if (candidate === current) return false;
-            const r = candidate.getBoundingClientRect();
-            if (r.width === 0 || r.height === 0) return false;
+        if (direction === 'down') {
+            const below = candidates.filter(c => {
+                if (c === current) return false;
+                const r = c.getBoundingClientRect();
+                return r.width > 0 && r.height > 0 && r.top >= currentRect.bottom - 4;
+            });
 
-            switch (direction) {
-                case 'right':
-                    return r.left >= currentRect.left + 5;
-                case 'left':
-                    return r.right <= currentRect.right - 5;
-                case 'down':
-                    return r.top >= currentRect.top + 15;
-                case 'up':
-                    return r.bottom <= currentRect.bottom - 15;
-                default:
-                    return false;
-            }
-        });
+            if (below.length === 0) return null;
 
-        if (filtered.length === 0) return null;
+            let minTop = Infinity;
+            below.forEach(c => {
+                const top = c.getBoundingClientRect().top;
+                if (top < minTop) minTop = top;
+            });
 
-        let bestTarget = null;
-        let minDistance = Infinity;
+            // Ne considérer que la rangée immédiatement inférieure (marge de 45px)
+            const immediateRow = below.filter(c => c.getBoundingClientRect().top <= minTop + 45);
 
-        filtered.forEach(candidate => {
-            const r = candidate.getBoundingClientRect();
-            const candidateCenterX = r.left + r.width / 2;
-            const candidateCenterY = r.top + r.height / 2;
+            let best = immediateRow[0];
+            let minDx = Infinity;
+            immediateRow.forEach(c => {
+                const r = c.getBoundingClientRect();
+                const centerX = r.left + r.width / 2;
+                const dx = Math.abs(centerX - currentCenterX);
+                if (dx < minDx) {
+                    minDx = dx;
+                    best = c;
+                }
+            });
+            return best;
+        }
 
-            const dx = Math.abs(candidateCenterX - currentCenterX);
-            const dy = Math.abs(candidateCenterY - currentCenterY);
+        if (direction === 'up') {
+            const above = candidates.filter(c => {
+                if (c === current) return false;
+                const r = c.getBoundingClientRect();
+                return r.width > 0 && r.height > 0 && r.bottom <= currentRect.top + 4;
+            });
 
-            let distance;
-            if (direction === 'left' || direction === 'right') {
-                distance = dx + (dy * 2.2);
-            } else {
-                distance = dy + (dx * 1.5);
-            }
+            if (above.length === 0) return null;
 
-            if (distance < minDistance) {
-                minDistance = distance;
-                bestTarget = candidate;
-            }
-        });
+            let maxBottom = -Infinity;
+            above.forEach(c => {
+                const bottom = c.getBoundingClientRect().bottom;
+                if (bottom > maxBottom) maxBottom = bottom;
+            });
 
-        return bestTarget;
+            // Ne considérer que la rangée immédiatement supérieure
+            const immediateRow = above.filter(c => c.getBoundingClientRect().bottom >= maxBottom - 45);
+
+            let best = immediateRow[0];
+            let minDx = Infinity;
+            immediateRow.forEach(c => {
+                const r = c.getBoundingClientRect();
+                const centerX = r.left + r.width / 2;
+                const dx = Math.abs(centerX - currentCenterX);
+                if (dx < minDx) {
+                    minDx = dx;
+                    best = c;
+                }
+            });
+            return best;
+        }
+
+        if (direction === 'right') {
+            const rightCandidates = candidates.filter(c => {
+                if (c === current) return false;
+                const r = c.getBoundingClientRect();
+                const centerY = r.top + r.height / 2;
+                const inHorizontalBand = Math.abs(centerY - currentCenterY) < Math.max(currentRect.height, r.height) + 20;
+                return r.width > 0 && r.height > 0 && r.left >= currentRect.left + 5 && inHorizontalBand;
+            });
+
+            if (rightCandidates.length === 0) return null;
+
+            let best = rightCandidates[0];
+            let minDx = Infinity;
+            rightCandidates.forEach(c => {
+                const r = c.getBoundingClientRect();
+                const dx = r.left - currentRect.right;
+                if (dx < minDx) {
+                    minDx = dx;
+                    best = c;
+                }
+            });
+            return best;
+        }
+
+        if (direction === 'left') {
+            const leftCandidates = candidates.filter(c => {
+                if (c === current) return false;
+                const r = c.getBoundingClientRect();
+                const centerY = r.top + r.height / 2;
+                const inHorizontalBand = Math.abs(centerY - currentCenterY) < Math.max(currentRect.height, r.height) + 20;
+                return r.width > 0 && r.height > 0 && r.right <= currentRect.left - 5 && inHorizontalBand;
+            });
+
+            if (leftCandidates.length === 0) return null;
+
+            let best = leftCandidates[0];
+            let minDx = Infinity;
+            leftCandidates.forEach(c => {
+                const r = c.getBoundingClientRect();
+                const dx = currentRect.left - r.right;
+                if (dx < minDx) {
+                    minDx = dx;
+                    best = c;
+                }
+            });
+            return best;
+        }
+
+        return null;
     }
 
     // ─── 1. SCOPE DASHBOARD (Dynamic Island ⇄ Hero ⇄ Genres ⇄ Carrousels) ───
     _navigateDashboard(direction) {
         let current = this._focusedElement;
 
-        if (!current || !document.body.contains(current)) {
+        const isCurrentHiddenOrInSheet = current && (
+            current.closest('.sh-slideup-sheet') || 
+            !document.body.contains(current) || 
+            current.getBoundingClientRect().width === 0
+        );
+
+        if (!current || isCurrentHiddenOrInSheet) {
             current = this._reconnectDashboardFocus();
             if (!current) {
                 const defaultEl = document.getElementById('sh-hero-btn-play') || document.querySelector('.sh-card:not(.sh-card--skeleton)');
                 if (defaultEl) this._setFocus(defaultEl);
                 return;
             }
+            this._setFocus(current);
         }
 
         // A. ZONE DYNAMIC ISLAND (.sh-nav-tab-btn, .sh-nav-action-btn, .sh-user-avatar-btn)
@@ -527,7 +601,6 @@ export class SpatialNavigation {
 
         // D. ZONE CARROUSELS & CARTES MÉDIAS (.sh-card)
         if (current.classList.contains('sh-card')) {
-            // 1. Navigation Horizontale (← / →) : Intra-carrousel
             const parentScroller = current.closest('.sh-card-grid, .sh-widget__items-container, .sh-carousel-scroller, .sh-library-grid') || current.parentElement;
             const siblingCards = Array.from(parentScroller.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
             const cardIdx = siblingCards.indexOf(current);
@@ -546,7 +619,6 @@ export class SpatialNavigation {
                 return;
             }
 
-            // 2. Navigation Verticale (↓ / ↑) : Recherche géométrique universelle 2D
             const allCards = Array.from(document.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
             const targetCard = this._findSpatialTarget(current, allCards, direction);
 
@@ -555,7 +627,6 @@ export class SpatialNavigation {
             }
 
             if (direction === 'up') {
-                // Si aucune carte au-dessus : remonter vers la barre de genres
                 const activeChip = document.querySelector('.sh-genre-chip.active') || document.querySelector('.sh-genre-chip');
                 if (activeChip) return this._setFocus(activeChip);
             }
@@ -607,7 +678,6 @@ export class SpatialNavigation {
             return this._setFocus(target);
         }
 
-        // Fallback linéaire si non trouvé spatialement
         const curIdx = focusables.indexOf(current);
         if (direction === 'down' && curIdx + 1 < focusables.length) {
             this._setFocus(focusables[curIdx + 1]);
@@ -651,21 +721,21 @@ export class SpatialNavigation {
 
     // ─── UTILITAIRES & FOCUS MANAGEMENT ──────────────────────────────────────
     _reconnectDashboardFocus() {
-        if (this._lastDashboardFocusedCard && document.body.contains(this._lastDashboardFocusedCard)) {
+        if (this._lastDashboardFocusedCard && document.body.contains(this._lastDashboardFocusedCard) && !this._lastDashboardFocusedCard.closest('.sh-slideup-sheet')) {
             return this._lastDashboardFocusedCard;
         }
         if (this._lastDashboardFocusedCardId) {
-            const reconnected = document.querySelector(`.sh-card[data-id="${this._lastDashboardFocusedCardId}"], .sh-card[data-item-id="${this._lastDashboardFocusedCardId}"]`);
+            const reconnected = document.querySelector(`.sh-dashboard__grid .sh-card[data-id="${this._lastDashboardFocusedCardId}"], .sh-dashboard__grid .sh-card[data-item-id="${this._lastDashboardFocusedCardId}"]`);
             if (reconnected) {
                 this._lastDashboardFocusedCard = reconnected;
                 return reconnected;
             }
         }
         if (this._lastFocusedId) {
-            const reconnected = document.querySelector(`[data-id="${this._lastFocusedId}"], [data-item-id="${this._lastFocusedId}"], #${this._lastFocusedId}`);
+            const reconnected = document.querySelector(`.sh-dashboard__grid [data-id="${this._lastFocusedId}"], .sh-dashboard__grid [data-item-id="${this._lastFocusedId}"]`);
             if (reconnected) return reconnected;
         }
-        return null;
+        return document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton)');
     }
 
     _getFocusablesInContainer(container) {
@@ -723,7 +793,7 @@ export class SpatialNavigation {
         this._recordElementId(element);
 
         // Si l'élément est une carte du Dashboard, mémoriser de façon permanente
-        if (element.classList.contains('sh-card')) {
+        if (element.classList.contains('sh-card') && !element.closest('.sh-slideup-sheet')) {
             this._lastDashboardFocusedCard = element;
             this._lastDashboardFocusedCardId = element.dataset?.id || element.dataset?.itemId || null;
         }
@@ -738,7 +808,7 @@ export class SpatialNavigation {
         }
 
         // Cartes média : centrage vertical et horizontal
-        if (element.classList.contains('sh-card')) {
+        if (element.classList.contains('sh-card') && !element.closest('.sh-slideup-sheet')) {
             element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
             return;
         }
@@ -790,32 +860,31 @@ export class SpatialNavigation {
         const restore = () => {
             let target = null;
             if (targetId) {
-                target = document.querySelector(`.sh-card[data-id="${targetId}"], .sh-card[data-item-id="${targetId}"]`);
+                target = document.querySelector(`.sh-dashboard__grid .sh-card[data-id="${targetId}"], .sh-dashboard__grid .sh-card[data-item-id="${targetId}"]`);
             }
-            if (!target && this._lastDashboardFocusedCard && document.body.contains(this._lastDashboardFocusedCard)) {
+            if (!target && this._lastDashboardFocusedCard && document.body.contains(this._lastDashboardFocusedCard) && !this._lastDashboardFocusedCard.closest('.sh-slideup-sheet')) {
                 target = this._lastDashboardFocusedCard;
             }
             if (!target) {
                 const saved = this._invokingElementStack.pop();
-                if (saved?.element && document.body.contains(saved.element)) target = saved.element;
+                if (saved?.element && document.body.contains(saved.element) && !saved.element.closest('.sh-slideup-sheet')) {
+                    target = saved.element;
+                }
             }
             if (!target) {
-                target = document.querySelector('.sh-card:not(.sh-card--skeleton)');
+                target = document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton)');
             }
             if (target) {
                 this._setFocus(target);
+                return true;
             }
+            return false;
         };
 
-        requestAnimationFrame(() => {
-            restore();
-        });
-
-        setTimeout(() => {
-            if (!this._focusedElement) {
-                restore();
-            }
-        }, 120);
+        restore();
+        requestAnimationFrame(() => restore());
+        setTimeout(() => restore(), 60);
+        setTimeout(() => restore(), 160);
     }
 
     _handleBack(event) {
@@ -824,7 +893,9 @@ export class SpatialNavigation {
         // 1. Modale fiche média
         const slideUpModal = document.querySelector('.sh-slideup-sheet--open');
         if (slideUpModal) {
+            const currentItem = window.SpaceHub?.ui?.modalSlideUpSheet?._currentItem;
             window.SpaceHub?.ui?.modalSlideUpSheet?.close?.();
+            this.onModalClosed(currentItem);
             return;
         }
 

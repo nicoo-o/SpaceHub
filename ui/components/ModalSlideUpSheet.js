@@ -183,6 +183,7 @@ class ModalSlideUpSheet {
 
     close() {
         if (!this._isOpen) return;
+        const closedItem = this._currentItem;
         this._closeAudioPopover();
         this._sheet.classList.remove('sh-slideup-sheet--open');
         this._overlay.classList.remove('sh-slideup-overlay--open');
@@ -193,6 +194,11 @@ class ModalSlideUpSheet {
         this._history = [];
         this._currentItem = null;
         document.body.style.overflow = '';
+
+        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        if (spatialNav && typeof spatialNav.onModalClosed === 'function') {
+            spatialNav.onModalClosed(closedItem);
+        }
         // Nettoyage du listener global pour éviter les fuites
         if (this._docClickHandler) {
             document.removeEventListener('click', this._docClickHandler);
