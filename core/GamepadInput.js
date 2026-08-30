@@ -148,7 +148,7 @@ export class GamepadInput {
 
         // Toggle Mode Souris Virtuelle sur R3
         if (btnR3 && !this._buttonStates.get('btnR3')) {
-            this._buttonStates.set('r3', true);
+            this._buttonStates.set('btnR3', true);
             this._virtualMouseMode = !this._virtualMouseMode;
             this.vibrate(120, 0.8, 0.4);
             this._ensureCursor();
@@ -157,7 +157,7 @@ export class GamepadInput {
                 this._virtualMouseMode ? '🖱️ Souris Virtuelle Manette Activée' : '📺 Mode Navigation TV Restauré'
             );
         } else if (!btnR3) {
-            this._buttonStates.set('r3', false);
+            this._buttonStates.set('btnR3', false);
         }
 
         // Mode Souris Virtuelle
@@ -222,8 +222,18 @@ export class GamepadInput {
         });
 
         this._handleButtonPress('btnStart', btnStart, () => {
+            this.vibrate(20);
+            this._onAction(NavAction.PLAY_PAUSE || 'play_pause');
+        });
+
+        this._handleButtonPress('btnSelect', btnSelect, () => {
             this.vibrate(25);
             this._onAction(NavAction.MENU);
+        });
+
+        this._handleButtonPress('btnX', btnX, () => {
+            this.vibrate(15);
+            this._onAction(NavAction.PLAY_PAUSE || 'play_pause');
         });
 
         this._handleButtonPress('btnL2', btnL2, () => {

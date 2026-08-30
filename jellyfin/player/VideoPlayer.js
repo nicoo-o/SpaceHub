@@ -1641,6 +1641,45 @@ class VideoPlayer {
         }).catch(() => {});
     }
 
+    
+    /**
+     * Reçoit et exécute les actions de navigation émises par SpatialNavigation ou GamepadInput
+     * @param {string} action - Action (play_pause, left, right, up, down, select, back, menu)
+     */
+    handleNavAction(action) {
+        if (!this._el) return;
+
+        switch (action) {
+            case 'play_pause':
+                this._togglePlayPause();
+                break;
+            case 'left':
+                this._seekRelative(-10);
+                break;
+            case 'right':
+                this._seekRelative(+10);
+                break;
+            case 'up':
+                this._setVolumeDelta(+0.05);
+                break;
+            case 'down':
+                this._setVolumeDelta(-0.05);
+                break;
+            case 'select':
+                if (document.activeElement && this._el.contains(document.activeElement) && document.activeElement !== this._el) {
+                    document.activeElement.click();
+                } else {
+                    this._togglePlayPause();
+                }
+                break;
+            case 'back':
+            case 'menu':
+                this.close();
+                break;
+        }
+    }
+
+
     close(exitFullscreen = true) {
         if (!this._el) return;
 
