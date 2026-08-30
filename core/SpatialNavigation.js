@@ -660,13 +660,16 @@ export class SpatialNavigation {
     }
 
     onModalOpened(container, defaultFocusEl = null) {
-        if (this._focusedElement) {
-            this._invokingElementStack.push(this._focusedElement);
+        const invokingEl = this._focusedElement || this._lastInteractedElement;
+        if (invokingEl) {
+            this._invokingElementStack.push({
+                element: invokingEl,
+                id: invokingEl.dataset?.id || invokingEl.dataset?.itemId || invokingEl.dataset?.epId || invokingEl.id || null
+            });
         }
         this.clearFocus();
 
         setTimeout(() => {
-            // Cibler en priorité absolue le bouton Regarder
             const target = defaultFocusEl || container?.querySelector('#sh-slideup-play-btn, .sh-cinema-btn-play, #sh-search-input, .sh-btn--primary');
             if (target) {
                 this._setFocus(target);
@@ -679,9 +682,19 @@ export class SpatialNavigation {
 
     onModalClosed() {
         this.clearFocus();
-        const invokingEl = this._invokingElementStack.pop();
-        if (invokingEl && document.body.contains(invokingEl)) {
-            setTimeout(() => this._setFocus(invokingEl), 50);
+        const saved = this._invokingElementStack.pop();
+        if (saved) {
+            setTimeout(() => {
+                let target = saved.element;
+                if (!target || !document.body.contains(target)) {
+                    if (saved.id) {
+                        target = document.querySelector(`[data-id="${saved.id}"], [data-item-id="${saved.id}"], #${saved.id}`);
+                    }
+                }
+                if (target && document.body.contains(target)) {
+                    this._setFocus(target);
+                }
+            }, 60);
         }
     }
 
@@ -690,7 +703,6 @@ export class SpatialNavigation {
         if (slideUpModal) {
             event?.preventDefault();
             window.SpaceHub?.ui?.modalSlideUpSheet?.close?.();
-            this.onModalClosed();
             return;
         }
 
@@ -698,7 +710,6 @@ export class SpatialNavigation {
         if (openSettings) {
             event?.preventDefault();
             openSettings.querySelector('[data-action="close"]')?.click?.();
-            this.onModalClosed();
             return;
         }
 

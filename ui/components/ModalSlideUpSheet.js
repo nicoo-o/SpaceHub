@@ -22,7 +22,7 @@ class ModalSlideUpSheet {
         this._ambientGlow = null;
         this._isOpen = false;
         const nav = window.SpaceHub?.spatialNav || window.SpaceHub?.ui?.appLayout?._spatialNav;
-        nav?.onModalClosed();
+        nav?.onModalClosed?.();
         this._currentItem = null;
         this._activeTab = 'synopsis';
         this._selectedAudioIndex = 0;
