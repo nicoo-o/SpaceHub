@@ -276,8 +276,16 @@ export class SpatialNavigation {
         ].join(', ');
 
         const all = Array.from(container.querySelectorAll(selector));
-        return all.filter(el => {
-            if (el.classList.contains('sh-hero-badge') || el.classList.contains('sh-score-rt') || el.classList.contains('sh-score-imdb')) {
+                return all.filter(el => {
+            if (
+                el.classList.contains('sh-hero-badge') ||
+                el.classList.contains('sh-score-rt') ||
+                el.classList.contains('sh-score-imdb') ||
+                el.classList.contains('sh-modal-header-badge') ||
+                el.classList.contains('sh-critics-bento-card') ||
+                el.closest('.sh-cinema-meta-line') ||
+                el.closest('.sh-hero-meta')
+            ) {
                 return false;
             }
             const rect = el.getBoundingClientRect();
