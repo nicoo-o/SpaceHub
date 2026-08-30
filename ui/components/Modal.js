@@ -81,6 +81,10 @@ class Modal {
         // Empêche le scroll du body
         document.body.style.overflow = 'hidden';
 
+        // Accessibilité : aria-hidden sur les conteneurs frères
+        const mainApp = document.getElementById('app') || document.querySelector('.sh-app-shell');
+        if (mainApp) mainApp.setAttribute('aria-hidden', 'true');
+
         // Animation d'entrée
         requestAnimationFrame(() => {
             this._el.classList.add('sh-modal--open');
@@ -103,8 +107,12 @@ class Modal {
         document.removeEventListener('keydown', this._handleKey);
         activeModals.delete(this);
 
-        // Restaure le scroll si plus aucune modale ouverte
-        if (activeModals.size === 0) document.body.style.overflow = '';
+        // Restaure le scroll et aria-hidden si plus aucune modale ouverte
+        if (activeModals.size === 0) {
+            document.body.style.overflow = '';
+            const mainApp = document.getElementById('app') || document.querySelector('.sh-app-shell');
+            if (mainApp) mainApp.removeAttribute('aria-hidden');
+        }
 
         // Restaure le focus
         this._prevFocus?.focus?.();
@@ -222,24 +230,38 @@ class Modal {
         }
     }
 
+    _getFocusableElements() {
+        if (!this._el) return [];
+        return Array.from(this._el.querySelectorAll(
+            '[data-nav-focusable], button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )).filter(el => {
+            const rect = el.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).display !== 'none' && window.getComputedStyle(el).visibility !== 'hidden';
+        });
+    }
+
     _focusFirstElement() {
-        const focusable = this._el.querySelectorAll(
-            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusable.length) focusable[0].focus();
+        const focusable = this._getFocusableElements();
+        if (focusable.length > 0) focusable[0].focus();
     }
 
     _trapFocus(e) {
-        const focusable = [...this._el.querySelectorAll(
-            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        )];
+        const focusable = this._getFocusableElements();
+        if (focusable.length === 0) return;
+
         const first = focusable[0];
         const last  = focusable[focusable.length - 1];
 
         if (e.shiftKey) {
-            if (document.activeElement === first) { last.focus(); e.preventDefault(); }
+            if (document.activeElement === first || !this._el.contains(document.activeElement)) { 
+                last.focus(); 
+                e.preventDefault(); 
+            }
         } else {
-            if (document.activeElement === last)  { first.focus(); e.preventDefault(); }
+            if (document.activeElement === last || !this._el.contains(document.activeElement)) { 
+                first.focus(); 
+                e.preventDefault(); 
+            }
         }
     }
 

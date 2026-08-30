@@ -17,6 +17,7 @@ export const NavAction = Object.freeze({
     RIGHT: 'right',
     SELECT: 'select',
     BACK: 'back',
+    MENU: 'menu',
     PLAY_PAUSE: 'play_pause',
     PAGE_UP: 'page_up',
     PAGE_DOWN: 'page_down'
@@ -56,11 +57,15 @@ export function mapKeyboardEvent(event) {
         case 'Ok':
             return NavAction.SELECT;
 
-        // Retour Arrière / Annulation
+        // Menu / Sidebar / ContextMenu
         case 'ContextMenu':
         case 'Menu':
         case 'Guide':
+        case 'F10':
+        case 'Apps':
             return NavAction.MENU;
+
+        // Retour Arrière / Annulation
         case 'Escape':
         case 'Esc':
         case 'Backspace':
@@ -85,12 +90,6 @@ export function mapKeyboardEvent(event) {
         case 'PageDown':
         case 'ChannelDown':
         case 'MediaTrackNext':
-            return NavAction.PAGE_DOWN;
-        case 'ChannelUp':
-            return NavAction.PAGE_UP;
-
-        case 'PageDown':
-        case 'ChannelDown':
             return NavAction.PAGE_DOWN;
 
         default:

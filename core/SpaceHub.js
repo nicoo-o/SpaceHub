@@ -23,6 +23,7 @@ import { ApiClient, JellyfinClient } from './ApiClient.js';
 import SpaceHubSDK     from './SDK.js';
 import TouchEngine     from './TouchEngine.js';
 import AudioFeedback    from './AudioFeedback.js';
+import SpatialNavigation from './SpatialNavigation.js';
 
 import ThemeManager    from '../ui/themes/ThemeManager.js';
 import Toaster         from '../ui/components/Toaster.js';
@@ -173,10 +174,16 @@ const SpaceHub = {
 // ─── Initialisation ──────────────────────────────────────────────────────────
 
 async function init() {
-        // 1. Logger
+        // 1. Logger & Moteurs Fondamentaux
     const log = new Logger('SpaceHub');
     const touchEngine = new TouchEngine();
     const audioFeedback = new AudioFeedback();
+    const spatialNav = new SpatialNavigation();
+
+    SpaceHub.spatialNav = spatialNav;
+    SpaceHub.gamepad = spatialNav.getGamepad ? spatialNav.getGamepad() : spatialNav._gamepad;
+    SpaceHub.core.spatialNavigation = spatialNav;
+    SpaceHub.core.gamepad = SpaceHub.gamepad;
     SpaceHub.core.audioFeedback = audioFeedback;
     SpaceHub.core.touchEngine = touchEngine;
     SpaceHub.core.log = log;

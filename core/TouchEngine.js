@@ -198,13 +198,23 @@ export class TouchEngine {
             this._isPullingRefresh = true;
         }
 
-        // 3. Gestion Double-Tap (Favori / Quick Action)
+        // 3. Gestion Double-Tap (Favori / Quick Action Réel)
         const cardTarget = e.target.closest('.sh-card');
         if (cardTarget) {
             const now = Date.now();
             if (now - this._lastTapTime < 320 && this._lastTapTarget === cardTarget) {
                 this._vibrate(30);
-                window.SpaceHub?.ui?.components?.toaster?.info('★ Ajouté aux Favoris');
+                const itemId = cardTarget.dataset?.id || cardTarget.dataset?.itemId;
+                const title = cardTarget.querySelector('.sh-card__title')?.textContent || 'Média';
+                const bookmarkBtn = cardTarget.querySelector('.sh-card__bookmark-btn');
+                if (bookmarkBtn) {
+                    bookmarkBtn.click(); // Déclenche la vraie persistance + animation
+                } else if (itemId && window.SpaceHub?.jellyfin?.api?.setFavorite) {
+                    window.SpaceHub.jellyfin.api.setFavorite(itemId, true).catch(() => {});
+                    window.SpaceHub?.ui?.components?.toaster?.info(`★ Ajouté aux Favoris : ${title}`);
+                } else {
+                    window.SpaceHub?.ui?.components?.toaster?.info(`★ Ajouté aux Favoris : ${title}`);
+                }
                 this._lastTapTime = 0;
             } else {
                 this._lastTapTime = now;
@@ -293,7 +303,7 @@ export class TouchEngine {
         // C. Swipe Horizontal entre Vues Principales
         const isModalOpen = document.querySelector('.sh-slideup-sheet--open, .sh-modal-overlay.open, .sh-console-modal-overlay.open');
         if (!isModalOpen && Math.abs(deltaX) > 90 && Math.abs(deltaX) > Math.abs(deltaY) * 2 && duration < 500) {
-            const views = ['dashboard', 'library', 'downloads', 'settings'];
+            const views = ['dashboard', 'library', 'downloads'];
             const appLayout = window.SpaceHub?.appLayout || window.SpaceHub?.ui?.appLayout;
             const currentView = appLayout?._currentView || 'dashboard';
             const curIdx = views.indexOf(currentView);

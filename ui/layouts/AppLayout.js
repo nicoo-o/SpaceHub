@@ -26,7 +26,7 @@ class AppLayout {
         };
                 this._sidebar = new AppSidebarDrawer();
         this._clockInterval = null;
-        this._spatialNav = null;
+        this._spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation || null;
         this._injectStyles();
     }
 

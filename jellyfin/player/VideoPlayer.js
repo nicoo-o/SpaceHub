@@ -406,17 +406,17 @@ class VideoPlayer {
                     <!-- Section Gauche : Commandes Transport Proportionnées & Temps Écoulé -->
                     <div class="sh-ribbon-group sh-ribbon-group--left">
                         <!-- Play / Pause Master Pearl (32px Calibré) -->
-                        <button class="sh-pearl-play-btn" id="sh-btn-play-pause" title="Lecture / Pause (Espace)">
+                        <button class="sh-pearl-play-btn" id="sh-btn-play-pause" tabindex="0" data-nav-focusable="true" title="Lecture / Pause (Espace)">
                             <svg class="sh-icon-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
                             <svg class="sh-icon-pause" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
                         </button>
 
                         <!-- Sauts ±10s (30px) -->
-                        <button class="sh-micro-btn" id="sh-btn-skip-back" title="Reculer de 10s (←)">
+                        <button class="sh-micro-btn" id="sh-btn-skip-back" tabindex="0" data-nav-focusable="true" title="Reculer de 10s (←)">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                             <span class="sh-micro-num">10</span>
                         </button>
-                        <button class="sh-micro-btn" id="sh-btn-skip-fwd" title="Avancer de 10s (→)">
+                        <button class="sh-micro-btn" id="sh-btn-skip-fwd" tabindex="0" data-nav-focusable="true" title="Avancer de 10s (→)">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
                             <span class="sh-micro-num">10</span>
                         </button>
@@ -427,7 +427,7 @@ class VideoPlayer {
 
                     <!-- Section Centrale : Timeline Scrubber Étendu (Zéro Vide) -->
                     <div class="sh-ribbon-timeline-wrapper">
-                        <div class="sh-ribbon-timeline" id="sh-timeline-track">
+                        <div class="sh-ribbon-timeline" id="sh-player-timeline-focus" tabindex="0" data-nav-focusable="true" role="slider" aria-label="Position de lecture" aria-valuemin="0" aria-valuemax="100">
                             <div class="sh-ribbon-timeline-bg"></div>
                             <div class="sh-ribbon-timeline-buffered" id="sh-timeline-buffer"></div>
                             <div class="sh-ribbon-timeline-played" id="sh-timeline-played"></div>
@@ -446,7 +446,7 @@ class VideoPlayer {
                         
                         <!-- Volume Coulissant Compact -->
                         <div class="sh-volume-flow-box">
-                            <button class="sh-micro-btn" id="sh-btn-volume" title="Volume / Muet (M)">
+                            <button class="sh-micro-btn" id="sh-btn-volume" tabindex="0" data-nav-focusable="true" title="Volume / Muet (M)">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
                             </button>
                             <div class="sh-volume-track">
@@ -455,10 +455,10 @@ class VideoPlayer {
                         </div>
 
                         <!-- Épisode Précédent / Suivant (Séries) -->
-                        <button class="sh-micro-btn" id="sh-btn-prev-ep" title="Épisode précédent" style="display:none;">
+                        <button class="sh-micro-btn" id="sh-btn-prev-ep" tabindex="0" data-nav-focusable="true" title="Épisode précédent" style="display:none;">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
                         </button>
-                        <button class="sh-micro-btn" id="sh-btn-next-ep" title="Épisode suivant" style="display:none;">
+                        <button class="sh-micro-btn" id="sh-btn-next-ep" tabindex="0" data-nav-focusable="true" title="Épisode suivant" style="display:none;">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
                         </button>
 
@@ -580,6 +580,18 @@ class VideoPlayer {
         }, 400);
 
         this._bindEvents();
+
+        // Enregistrement officiel dans le Focus Registry
+        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        if (spatialNav?.registerFocusables) {
+            spatialNav.registerFocusables('player', (container) => {
+                const root = this._el || container;
+                return Array.from(root.querySelectorAll(
+                    '#sh-btn-back, #sh-player-timeline-focus, #sh-btn-prev-ep, #sh-btn-skip-back, #sh-btn-play-pause, #sh-btn-skip-fwd, #sh-btn-next-ep, #sh-btn-volume, #sh-btn-open-audio-subs, #sh-btn-open-settings, #sh-btn-open-episodes, #sh-btn-fullscreen, .sh-popover-item'
+                ));
+            });
+        }
+
         this._renderDrawerContent();
 
         if (this._el.requestFullscreen) {

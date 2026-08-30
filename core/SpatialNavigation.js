@@ -46,6 +46,9 @@ export class SpatialNavigation {
         this._selectHoldTimer = null;
         this._isLongPressActive = false;
 
+        // Registre Central de Focus (Source Unique de Vérité)
+        this._focusRegistry = new Map();
+
         // Module de gestion Gamepad
         this._gamepadInput = new GamepadInput({
             onAction: (action) => this._handleAction(action)
@@ -233,6 +236,8 @@ export class SpatialNavigation {
         window.addEventListener('mousemove', this._boundMouseMove, { passive: true });
         document.addEventListener('mouseover', this._boundMouseOver, { passive: true });
         document.addEventListener('pointerdown', this._boundPointerDown, { passive: true });
+        window.addEventListener('resize', this._boundResize, { passive: true });
+        window.addEventListener('orientationchange', this._boundResize, { passive: true });
     }
 
     _unbindEvents() {
@@ -1218,6 +1223,54 @@ export class SpatialNavigation {
         }
     }
 
+    
+    // ─── API PUBLIQUE DU FOCUS REGISTRY (Source de Vérité) ───────────────────
+    /**
+     * Enregistre un résolveur ou une liste d'éléments focusables pour un scope donné.
+     * @param {string} scope - Nom du scope ('dashboard', 'settings', 'player', 'library', etc.)
+     * @param {Function|HTMLElement[]|string} resolverOrElements - Fonction (container) => HTMLElement[], Array d'éléments ou sélecteur
+     */
+    registerFocusables(scope, resolverOrElements) {
+        if (!scope || !resolverOrElements) return;
+        this._focusRegistry.set(scope, resolverOrElements);
+        this._log.debug(`[FocusRegistry] Scope "${scope}" enregistré.`);
+    }
+
+    /**
+     * Supprime un scope du registre de focus.
+     * @param {string} scope
+     */
+    unregisterFocusables(scope) {
+        if (!scope) return;
+        this._focusRegistry.delete(scope);
+        this._log.debug(`[FocusRegistry] Scope "${scope}" supprimé.`);
+    }
+
+    /**
+     * Récupère les éléments focusables enregistrés pour un scope ou conteneur.
+     * @param {string|HTMLElement} scopeOrContainer
+     * @returns {HTMLElement[]}
+     */
+    getFocusables(scopeOrContainer) {
+        if (typeof scopeOrContainer === 'string') {
+            const resolver = this._focusRegistry.get(scopeOrContainer);
+            if (typeof resolver === 'function') {
+                return this._filterVisibleFocusables(resolver(document));
+            } else if (Array.isArray(resolver)) {
+                return this._filterVisibleFocusables(resolver);
+            }
+        }
+        return this._getFocusablesInContainer(scopeOrContainer || document.body);
+    }
+
+    /**
+     * Accès officiel au module Gamepad
+     * @returns {GamepadInput}
+     */
+    getGamepad() {
+        return this._gamepadInput;
+    }
+
     // ─── UTILITAIRES & FOCUS MANAGEMENT ──────────────────────────────────────
     _reconnectDashboardFocus() {
         const heroPlay = document.getElementById('sh-hero-btn-play') || document.querySelector('.sh-hero-btn-play');
@@ -1234,24 +1287,69 @@ export class SpatialNavigation {
         return document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton)');
     }
 
+    _filterVisibleFocusables(elements) {
+        if (!Array.isArray(elements)) return [];
+        return elements.filter(el => {
+            if (!el || !(el instanceof HTMLElement)) return false;
+            if (
+                el.classList.contains('sh-hero-badge') ||
+                el.classList.contains('sh-score-rt') ||
+                el.classList.contains('sh-score-imdb') ||
+                el.classList.contains('sh-modal-header-badge') ||
+                el.classList.contains('sh-critics-bento-card') ||
+                el.closest('.sh-cinema-meta-line') ||
+                el.closest('.sh-hero-meta')
+            ) {
+                return false;
+            }
+            const rect = el.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0 && 
+                   window.getComputedStyle(el).visibility !== 'hidden' && 
+                   window.getComputedStyle(el).display !== 'none';
+        });
+    }
+
     _getFocusablesInContainer(container) {
         if (!container) return [];
 
-        // 1. Focus Registry de vue active si disponible
+        const currentScope = this._detectCurrentScope();
+
+        // 1. Source de Vérité n°1 : Registre Central Focus Registry
+        if (this._focusRegistry.has(currentScope)) {
+            const resolver = this._focusRegistry.get(currentScope);
+            let registered = [];
+            if (typeof resolver === 'function') {
+                registered = resolver(container);
+            } else if (Array.isArray(resolver)) {
+                registered = resolver;
+            } else if (typeof resolver === 'string') {
+                registered = Array.from(container.querySelectorAll(resolver));
+            }
+            if (Array.isArray(registered) && registered.length > 0) {
+                const filtered = this._filterVisibleFocusables(registered);
+                if (filtered.length > 0) return filtered;
+            }
+        }
+
+        // 2. Source de Vérité n°2 : Convention getFocusables() de la vue active
         const currentView = window.SpaceHub?.router?.getCurrentView?.();
         if (currentView?.getFocusables && typeof currentView.getFocusables === 'function') {
             const customFocusables = currentView.getFocusables(container);
             if (Array.isArray(customFocusables) && customFocusables.length > 0) {
-                return customFocusables.filter(el => {
-                    const rect = el.getBoundingClientRect();
-                    return rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden';
-                });
+                const filtered = this._filterVisibleFocusables(customFocusables);
+                if (filtered.length > 0) return filtered;
             }
         }
 
-        // 2. Sélecteur universel haute couverture
-        const selector = [
-            '[data-nav-focusable]',
+        // 3. Source de Vérité n°3 : Attribut universel [data-nav-focusable]
+        const dataNavElements = Array.from(container.querySelectorAll('[data-nav-focusable]:not([disabled])'));
+        if (dataNavElements.length > 0) {
+            const filtered = this._filterVisibleFocusables(dataNavElements);
+            if (filtered.length > 0) return filtered;
+        }
+
+        // 4. Repli Sécurisé ordonné (Sélecteurs Legacy en dernier recours uniquement)
+        const fallbackSelector = [
             '#sh-hero-btn-play',
             '#sh-hero-btn-trailer',
             '#sh-hero-btn-details',
@@ -1297,21 +1395,7 @@ export class SpatialNavigation {
             '[tabindex="0"]:not(.sh-hero-badge):not(.sh-score-rt):not(.sh-score-imdb)'
         ].join(', ');
 
-        return Array.from(container.querySelectorAll(selector)).filter(el => {
-            if (
-                el.classList.contains('sh-hero-badge') ||
-                el.classList.contains('sh-score-rt') ||
-                el.classList.contains('sh-score-imdb') ||
-                el.classList.contains('sh-modal-header-badge') ||
-                el.classList.contains('sh-critics-bento-card') ||
-                el.closest('.sh-cinema-meta-line') ||
-                el.closest('.sh-hero-meta')
-            ) {
-                return false;
-            }
-            const rect = el.getBoundingClientRect();
-            return rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden' && window.getComputedStyle(el).display !== 'none';
-        });
+        return this._filterVisibleFocusables(Array.from(container.querySelectorAll(fallbackSelector)));
     }
 
     _setFocus(element) {
