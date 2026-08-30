@@ -207,25 +207,25 @@ class HeroSpotlightComponent {
                         </div>
                         <p class="sh-hero-overview">${this._escape(item.Overview)}</p>
                         <div class="sh-hero-actions">
-                            <button class="sh-hero-btn-play" id="sh-hero-btn-play">
+                            <button tabindex="0" data-nav-focusable="true" class="sh-hero-btn-play" id="sh-hero-btn-play">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                                 <span>Regarder</span>
                             </button>
-                            <button class="sh-hero-btn-glass" id="sh-hero-btn-trailer">
+                            <button tabindex="0" data-nav-focusable="true" class="sh-hero-btn-glass" id="sh-hero-btn-trailer">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
                                 <span>Bande-annonce</span>
                             </button>
-                            <button class="sh-hero-btn-glass" id="sh-hero-btn-details">
+                            <button tabindex="0" data-nav-focusable="true" class="sh-hero-btn-glass" id="sh-hero-btn-details">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                                 <span>Plus d'infos</span>
                             </button>
                         </div>
                     </div>
                 </div>
-                <button class="sh-hero-edge-btn sh-hero-edge-btn--prev" id="sh-hero-edge-prev" title="Affiche précédente" aria-label="Affiche précédente">
+                <button tabindex="0" data-nav-focusable="true" class="sh-hero-edge-btn sh-hero-edge-btn--prev" id="sh-hero-edge-prev" title="Affiche précédente" aria-label="Affiche précédente">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 </button>
-                <button class="sh-hero-edge-btn sh-hero-edge-btn--next" id="sh-hero-edge-next" title="Affiche suivante" aria-label="Affiche suivante">
+                <button tabindex="0" data-nav-focusable="true" class="sh-hero-edge-btn sh-hero-edge-btn--next" id="sh-hero-edge-next" title="Affiche suivante" aria-label="Affiche suivante">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
                 <div class="sh-hero-progress-track">

@@ -100,7 +100,7 @@ class AppLayout {
                                 </button>
 
                                 <div class="sh-user-menu-wrapper">
-                                    <button class="sh-user-avatar-btn" id="sh-user-menu-btn" title="${user?.Name || 'Utilisateur'}">
+                                    <button class="sh-user-avatar-btn" id="sh-user-menu-btn" tabindex="0" data-nav-focusable="true" title="${user?.Name || 'Utilisateur'}">
                                         <div class="sh-avatar-pill" ${userAvatarUrl ? `style="background-image: url('${userAvatarUrl}'); background-size: cover; background-position: center;"` : ''}>
                                             ${userAvatarUrl ? '' : (user?.Name || 'U').charAt(0).toUpperCase()}
                                         </div>
@@ -111,7 +111,7 @@ class AppLayout {
                                             <span class="sh-user-server sh-truncate">${serverUrl || 'Jellyfin Server'}</span>
                                         </div>
                                         <hr style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin:10px 0;"/>
-                                        <button class="sh-user-dropdown__item" id="sh-btn-switch-theme" style="--item-idx: 0;">
+                                        <button tabindex="0" data-nav-focusable="true" class="sh-user-dropdown__item" id="sh-btn-switch-theme" style="--item-idx: 0;">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
                                                 <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
@@ -121,7 +121,7 @@ class AppLayout {
                                             </svg>
                                             <span>Changer de thème</span>
                                         </button>
-                                        <button class="sh-user-dropdown__item" id="sh-btn-customize-dashboard" style="--item-idx: 1;">
+                                        <button tabindex="0" data-nav-focusable="true" class="sh-user-dropdown__item" id="sh-btn-customize-dashboard" style="--item-idx: 1;">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <rect x="3" y="3" width="7" height="7"></rect>
                                                 <rect x="14" y="3" width="7" height="7"></rect>
@@ -130,13 +130,13 @@ class AppLayout {
                                             </svg>
                                             <span>Personnaliser l'accueil</span>
                                         </button>
-                                        <button class="sh-user-dropdown__item" id="sh-btn-refresh-app" style="--item-idx: 2;">
+                                        <button tabindex="0" data-nav-focusable="true" class="sh-user-dropdown__item" id="sh-btn-refresh-app" style="--item-idx: 2;">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
                                             </svg>
                                             <span>Actualiser l'affichage</span>
                                         </button>
-                                        <button class="sh-user-dropdown__item" id="sh-btn-open-analytics" style="--item-idx: 3;">
+                                        <button tabindex="0" data-nav-focusable="true" class="sh-user-dropdown__item" id="sh-btn-open-analytics" style="--item-idx: 3;">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <line x1="18" y1="20" x2="18" y2="10"></line>
                                                 <line x1="12" y1="20" x2="12" y2="4"></line>
@@ -144,13 +144,13 @@ class AppLayout {
                                             </svg>
                                             <span>Mes Statistiques</span>
                                         </button>
-                                        <button class="sh-user-dropdown__item" id="sh-btn-open-admin" style="--item-idx: 4;">
+                                        <button tabindex="0" data-nav-focusable="true" class="sh-user-dropdown__item" id="sh-btn-open-admin" style="--item-idx: 4;">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                                             </svg>
                                             <span>Administration Serveur</span>
                                         </button>
-                                        <button class="sh-user-dropdown__item" id="sh-btn-open-settings" style="--item-idx: 5;">
+                                        <button tabindex="0" data-nav-focusable="true" class="sh-user-dropdown__item" id="sh-btn-open-settings" style="--item-idx: 5;">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                                             <span>Réglages</span>
                                         </button>
@@ -278,6 +278,8 @@ class AppLayout {
         const userBtn = container.querySelector('#sh-user-menu-btn');
         const dropdown = container.querySelector('#sh-user-dropdown');
 
+        window.SpaceHub = window.SpaceHub || {};
+        window.SpaceHub._toggleUserDropdown = (show) => toggleDropdown(show);
         const toggleDropdown = (show) => {
             if (!dropdown) return;
             const isOpen = dropdown.classList.contains('sh-dropdown--open');

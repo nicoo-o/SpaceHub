@@ -265,15 +265,23 @@ export class SpatialNavigation {
 
         if (isDirectionAction(action)) {
             e.preventDefault();
+            const now = Date.now();
             if (!e.repeat) {
-                this._dirHoldStart = Date.now();
+                this._dirHoldStart = now;
+                this._lastFastScrollTick = now;
+                this._queueDirection(action);
+            } else {
+                const holdTime = now - this._dirHoldStart;
+                // Fast-scroll cadencé à 95ms pendant le maintien (zéro spam de file, zéro blocage)
+                if (holdTime > 700) {
+                    if (!this._lastFastScrollTick || now - this._lastFastScrollTick >= 95) {
+                        this._lastFastScrollTick = now;
+                        this._queueDirection(action);
+                    }
+                } else {
+                    this._queueDirection(action);
+                }
             }
-            const holdTime = Date.now() - this._dirHoldStart;
-            // Si la touche est maintenue plus de 800ms ➔ Fast-scroll (saut de 5 cartes)
-            if (holdTime > 800) {
-                for (let i = 0; i < 4; i++) this._queueDirection(action);
-            }
-            this._queueDirection(action);
         } else if (action === NavAction.PAGE_DOWN) {
             e.preventDefault();
             this._handlePaging('down');
@@ -281,6 +289,17 @@ export class SpatialNavigation {
             e.preventDefault();
             this._handlePaging('up');
         } else if (action === NavAction.SELECT) {
+            if (this._focusedElement?.id === 'sh-user-menu-btn' || this._focusedElement?.classList.contains('sh-user-avatar-btn')) {
+                e.preventDefault();
+                if (window.SpaceHub?._toggleUserDropdown) {
+                    window.SpaceHub._toggleUserDropdown(true);
+                    setTimeout(() => {
+                        const firstItem = document.querySelector('#sh-user-dropdown .sh-user-dropdown__item');
+                        if (firstItem) this._setFocus(firstItem);
+                    }, 60);
+                }
+                return;
+            }
             if (!e.repeat && this._focusedElement?.classList.contains('sh-card')) {
                 // Timer de Long-Press (600ms) pour ouvrir le menu contextuel rapide
                 this._selectHoldTimer = setTimeout(() => {
@@ -433,6 +452,8 @@ export class SpatialNavigation {
     }
 
     _detectCurrentScope() {
+        const userDropdown = document.querySelector('#sh-user-dropdown.sh-dropdown--open');
+        if (userDropdown && window.getComputedStyle(userDropdown).display !== 'none') return 'user-dropdown';
         // 1. Popover ou Menu Déroulant Actif (Fiche Média ou Dashboard)
         const openPopover = document.querySelector(
             '#sh-audio-popover-menu.open, .sh-audio-popover-menu.open, .sh-popover.open, .sh-dropdown-menu.open'
@@ -484,6 +505,9 @@ export class SpatialNavigation {
         const scope = this._detectCurrentScope();
         
         switch (scope) {
+            case 'user-dropdown':
+                this._navigateUserDropdown(direction);
+                break;
             case 'popover-menu':
                 this._navigatePopoverMenu(direction);
                 break;
@@ -652,6 +676,46 @@ export class SpatialNavigation {
         return null;
     }
 
+    _navigateUserDropdown(direction) {
+        const dropdown = document.getElementById('sh-user-dropdown');
+        if (!dropdown) return;
+
+        const items = Array.from(dropdown.querySelectorAll('.sh-user-dropdown__item, button'));
+        if (items.length === 0) return;
+
+        let current = this._focusedElement;
+        if (!current || !dropdown.contains(current)) {
+            return this._setFocus(items[0]);
+        }
+
+        const curIdx = items.indexOf(current);
+
+        if (direction === 'down') {
+            if (curIdx !== -1 && curIdx + 1 < items.length) {
+                this._setFocus(items[curIdx + 1]);
+            }
+        } else if (direction === 'up') {
+            if (curIdx > 0) {
+                this._setFocus(items[curIdx - 1]);
+            } else if (curIdx === 0) {
+                // Remonter sur le bouton avatar
+                this._closeUserDropdown();
+                const avatarBtn = document.getElementById('sh-user-menu-btn');
+                if (avatarBtn) this._setFocus(avatarBtn);
+            }
+        } else if (direction === 'left' || direction === 'right') {
+            this._closeUserDropdown();
+            const avatarBtn = document.getElementById('sh-user-menu-btn');
+            if (avatarBtn) this._setFocus(avatarBtn);
+        }
+    }
+
+    _closeUserDropdown() {
+        if (window.SpaceHub?._toggleUserDropdown) {
+            window.SpaceHub._toggleUserDropdown(false);
+        }
+    }
+
     // ─── 0. SCOPE POPOVER / MENUS DÉROULANTS (Audio & Sous-titres) ───────────
     _navigatePopoverMenu(direction) {
         const popover = document.querySelector(
@@ -745,7 +809,9 @@ export class SpatialNavigation {
                 }
 
                 const heroPlay = document.getElementById('sh-hero-btn-play') || document.querySelector('.sh-hero-btn-play');
-                if (heroPlay) return this._setFocus(heroPlay);
+                if (heroPlay && heroPlay.getBoundingClientRect().height > 0) {
+                    return this._setFocus(heroPlay);
+                }
 
                 const firstChip = document.querySelector('.sh-genre-chip.active') || document.querySelector('.sh-genre-chip');
                 if (firstChip) return this._setFocus(firstChip);
@@ -876,26 +942,99 @@ export class SpatialNavigation {
         );
         if (!modal) return;
 
-        const allFocusables = this._getFocusablesInContainer(modal);
-        if (allFocusables.length === 0) return;
+        const navTabs = Array.from(modal.querySelectorAll('.sh-console-nav-tab, .sh-tab-btn'));
+        const bodyFocusables = Array.from(modal.querySelectorAll(
+            '#sh-console-body-content button, #sh-console-body-content input, #sh-console-body-content select, #sh-console-body-content a, ' +
+            '.sh-admin-bento-grid button, .sh-admin-bento-grid a, .sh-admin-bento-grid [data-nav-focusable]'
+        )).filter(el => {
+            const rect = el.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).display !== 'none';
+        });
+        const doneBtn = modal.querySelector('.sh-console-done-btn, .sh-admin-modal-close, #sh-console-btn-done');
 
         let current = this._focusedElement;
+
+        // Si aucun focus dans la modale, focaliser l'onglet actif
         if (!current || !modal.contains(current)) {
-            const activeTab = modal.querySelector('.sh-console-nav-tab.active, .sh-tab-btn.active, .sh-btn--primary') || allFocusables[0];
-            return this._setFocus(activeTab);
+            const activeTab = navTabs.find(t => t.classList.contains('active')) || navTabs[0] || bodyFocusables[0] || doneBtn;
+            if (activeTab) return this._setFocus(activeTab);
+            return;
         }
 
-        const target = this._findSpatialTarget(current, allFocusables, direction);
-        if (target) {
-            return this._setFocus(target);
+        // 1. Navigation dans les onglets du haut
+        if (navTabs.includes(current)) {
+            const curIdx = navTabs.indexOf(current);
+            if (direction === 'right') {
+                if (curIdx !== -1 && curIdx + 1 < navTabs.length) {
+                    const nextTab = navTabs[curIdx + 1];
+                    this._setFocus(nextTab);
+                    nextTab.click(); // Changement automatique de l'onglet actif
+                }
+                return;
+            }
+            if (direction === 'left') {
+                if (curIdx > 0) {
+                    const prevTab = navTabs[curIdx - 1];
+                    this._setFocus(prevTab);
+                    prevTab.click();
+                }
+                return;
+            }
+            if (direction === 'down') {
+                if (bodyFocusables.length > 0) {
+                    return this._setFocus(bodyFocusables[0]);
+                } else if (doneBtn) {
+                    return this._setFocus(doneBtn);
+                }
+                return;
+            }
+            return;
         }
 
-        // Fallback linéaire si seuil angulaire strict non satisfait
-        const curIdx = allFocusables.indexOf(current);
-        if (direction === 'down' && curIdx !== -1 && curIdx + 1 < allFocusables.length) {
-            this._setFocus(allFocusables[curIdx + 1]);
-        } else if (direction === 'up' && curIdx > 0) {
-            this._setFocus(allFocusables[curIdx - 1]);
+        // 2. Navigation dans le corps de la console
+        if (bodyFocusables.includes(current)) {
+            const curIdx = bodyFocusables.indexOf(current);
+            if (direction === 'down') {
+                if (curIdx !== -1 && curIdx + 1 < bodyFocusables.length) {
+                    return this._setFocus(bodyFocusables[curIdx + 1]);
+                } else if (doneBtn) {
+                    return this._setFocus(doneBtn);
+                }
+                return;
+            }
+            if (direction === 'up') {
+                if (curIdx > 0) {
+                    return this._setFocus(bodyFocusables[curIdx - 1]);
+                } else {
+                    const activeTab = navTabs.find(t => t.classList.contains('active')) || navTabs[0];
+                    if (activeTab) return this._setFocus(activeTab);
+                }
+                return;
+            }
+            if (direction === 'left' || direction === 'right') {
+                const target = this._findSpatialTarget(current, bodyFocusables, direction);
+                if (target) return this._setFocus(target);
+                if (direction === 'right' && curIdx + 1 < bodyFocusables.length) {
+                    return this._setFocus(bodyFocusables[curIdx + 1]);
+                } else if (direction === 'left' && curIdx > 0) {
+                    return this._setFocus(bodyFocusables[curIdx - 1]);
+                }
+                return;
+            }
+            return;
+        }
+
+        // 3. Navigation depuis le bouton de pied de page (Fermer)
+        if (current === doneBtn) {
+            if (direction === 'up') {
+                if (bodyFocusables.length > 0) {
+                    return this._setFocus(bodyFocusables[bodyFocusables.length - 1]);
+                } else {
+                    const activeTab = navTabs.find(t => t.classList.contains('active')) || navTabs[0];
+                    if (activeTab) return this._setFocus(activeTab);
+                }
+                return;
+            }
         }
     }
 

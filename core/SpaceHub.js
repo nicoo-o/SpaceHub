@@ -381,6 +381,9 @@ async function init() {
                 SpaceHub.ui.appLayout = appLayout;
                 appLayout.render(appTarget);
                 log.info('AppLayout monté dans #app (Session active).');
+                window.SpaceHub.gamepad = appLayout?._spatialNav?._gamepad;
+                if (!window.SpaceHub.core) window.SpaceHub.core = {};
+                window.SpaceHub.core.gamepad = appLayout?._spatialNav?._gamepad;
             } else {
                 const loginView = new LoginView(() => {
                     log.info('Connexion réussie ! Montage du AppLayout...');
