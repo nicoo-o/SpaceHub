@@ -81,6 +81,21 @@ export class SpatialNavigation {
                 transform: translateY(12px) !important;
             }
 
+            /* ── BOUTON REGARDER HERO HAUTE COUTURE ── */
+            #sh-hero-btn-play.sh-tv-focused,
+            .sh-hero-btn-play.sh-tv-focused {
+                outline: none !important;
+                background: #ff9f0a !important;
+                color: #000000 !important;
+                border-color: #ff9f0a !important;
+                box-shadow: 
+                    0 0 0 2.5px #ffffff,
+                    0 0 28px rgba(255, 159, 10, 0.85),
+                    0 8px 24px rgba(0, 0, 0, 0.60) !important;
+                transform: scale(1.04) !important;
+                z-index: 9999 !important;
+            }
+
             /* ── HALO PARFAITEMENT ÉPOUSANT SUR TOUS LES BOUTONS ET PILULES (ZÉRO DÉCALAGE / ZÉRO BOXY) ── */
             .sh-genre-chip.sh-tv-focused,
             .sh-season-pill-btn.sh-tv-focused,
@@ -350,68 +365,76 @@ export class SpatialNavigation {
             return;
         }
 
-        // D. ZONE CARROUSELS (.sh-dashboard__item -> .sh-card)
+        // D. ZONE CARROUSELS & CARTES MÉDIAS (.sh-card) ── NAVIGATION 4D DIRECTE SANS ROLLBACK
         if (current.classList.contains('sh-card')) {
-            // Sélection stricte des conteneurs de rangées de premier niveau uniquement (évite les doublons imbriqués)
-            const allRows = Array.from(document.querySelectorAll('.sh-dashboard__item, .sh-library-grid, .sh-shelf'))
-                .filter(r => r.querySelector('.sh-card:not(.sh-card--skeleton)'));
-            
-            const currentRow = current.closest('.sh-dashboard__item, .sh-library-grid, .sh-shelf');
-            const rowIdx = allRows.indexOf(currentRow);
+            // 1. Navigation Horizontale (← / →) : Directe au sein de la grille locale
+            const localGrid = current.closest('.sh-card-grid, .sh-widget__items-container, .sh-carousel-scroller, .sh-library-grid, .sh-widget, .sh-dashboard__item') || current.parentElement;
+            const siblingCards = Array.from(localGrid.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
+            const cardIdx = siblingCards.indexOf(current);
 
-            if (currentRow && rowIdx !== -1) {
-                const currentCards = Array.from(currentRow.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
-                const cardIdx = currentCards.indexOf(current);
-
-                this._rowMemory.set(rowIdx, Math.max(0, cardIdx));
-
-                if (direction === 'right' && cardIdx !== -1 && cardIdx + 1 < currentCards.length) {
-                    return this._setFocus(currentCards[cardIdx + 1]);
-                } else if (direction === 'left' && cardIdx !== -1 && cardIdx > 0) {
-                    return this._setFocus(currentCards[cardIdx - 1]);
+            if (direction === 'right') {
+                if (cardIdx !== -1 && cardIdx + 1 < siblingCards.length) {
+                    return this._setFocus(siblingCards[cardIdx + 1]);
                 }
-
-                if (direction === 'down') {
-                    if (rowIdx + 1 < allRows.length) {
-                        const nextRow = allRows[rowIdx + 1];
-                        const nextCards = Array.from(nextRow.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
-                        if (nextCards.length > 0) {
-                            const currentX = current.getBoundingClientRect().left;
-                            let bestCard = nextCards[0];
-                            let minDeltaX = Infinity;
-                            nextCards.forEach(c => {
-                                const dx = Math.abs(c.getBoundingClientRect().left - currentX);
-                                if (dx < minDeltaX) { minDeltaX = dx; bestCard = c; }
-                            });
-                            return this._setFocus(bestCard);
-                        }
-                    }
-                } else if (direction === 'up') {
-                    if (rowIdx > 0) {
-                        const prevRow = allRows[rowIdx - 1];
-                        const prevCards = Array.from(prevRow.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
-                        if (prevCards.length > 0) {
-                            const currentX = current.getBoundingClientRect().left;
-                            let bestCard = prevCards[0];
-                            let minDeltaX = Infinity;
-                            prevCards.forEach(c => {
-                                const dx = Math.abs(c.getBoundingClientRect().left - currentX);
-                                if (dx < minDeltaX) { minDeltaX = dx; bestCard = c; }
-                            });
-                            return this._setFocus(bestCard);
-                        }
-                    } else if (rowIdx === 0) {
-                        const activeChip = document.querySelector('.sh-genre-chip.active') || document.querySelector('.sh-genre-chip');
-                        if (activeChip) return this._setFocus(activeChip);
-                    }
-                }
+                return; // Arrivé au bout à droite : rester fermement sur la carte
             }
+
+            if (direction === 'left') {
+                if (cardIdx !== -1 && cardIdx > 0) {
+                    return this._setFocus(siblingCards[cardIdx - 1]);
+                }
+                return; // Arrivé au bout à gauche : rester fermement sur la carte
+            }
+
+            // 2. Navigation Verticale (↓ / ↑) : Déplacement entre conteneurs de rangées réels
+            const allGrids = Array.from(document.querySelectorAll('.sh-card-grid, .sh-widget__items-container, .sh-carousel-scroller, .sh-library-grid'))
+                .filter(g => g.querySelector('.sh-card:not(.sh-card--skeleton)'));
+            
+            const currentCardGrid = current.closest('.sh-card-grid, .sh-widget__items-container, .sh-carousel-scroller, .sh-library-grid');
+            const gridIdx = allGrids.indexOf(currentCardGrid);
+
+            if (direction === 'down') {
+                if (gridIdx !== -1 && gridIdx + 1 < allGrids.length) {
+                    const nextGrid = allGrids[gridIdx + 1];
+                    const nextCards = Array.from(nextGrid.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
+                    if (nextCards.length > 0) {
+                        const currentX = current.getBoundingClientRect().left;
+                        let bestCard = nextCards[0];
+                        let minDeltaX = Infinity;
+                        nextCards.forEach(c => {
+                            const dx = Math.abs(c.getBoundingClientRect().left - currentX);
+                            if (dx < minDeltaX) { minDeltaX = dx; bestCard = c; }
+                        });
+                        return this._setFocus(bestCard);
+                    }
+                }
+                return; // Bas de page : rester sur la carte active
+            }
+
+            if (direction === 'up') {
+                if (gridIdx > 0) {
+                    const prevGrid = allGrids[gridIdx - 1];
+                    const prevCards = Array.from(prevGrid.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
+                    if (prevCards.length > 0) {
+                        const currentX = current.getBoundingClientRect().left;
+                        let bestCard = prevCards[0];
+                        let minDeltaX = Infinity;
+                        prevCards.forEach(c => {
+                            const dx = Math.abs(c.getBoundingClientRect().left - currentX);
+                            if (dx < minDeltaX) { minDeltaX = dx; bestCard = c; }
+                        });
+                        return this._setFocus(bestCard);
+                    }
+                } else if (gridIdx === 0 || gridIdx === -1) {
+                    // Tout en haut du catalogue : remonter sur la barre de genres
+                    const activeChip = document.querySelector('.sh-genre-chip.active') || document.querySelector('.sh-genre-chip');
+                    if (activeChip) return this._setFocus(activeChip);
+                }
+                return;
+            }
+
             return;
         }
-
-        // Fallback
-        const focusables = this._getFocusablesInContainer(document.body);
-        if (focusables.length > 0) this._setFocus(focusables[0]);
     }
 
     // ─── 2. SCOPE FICHE MÉDIA (ModalSlideUpSheet) ───────────────────────────
