@@ -1,10 +1,9 @@
 /**
- * SpaceHub — Spatial Navigation (TV Remote & Mobile/D-Pad Engine)
- * Version: 3.0.0
+ * SpaceHub — Spatial Navigation (TV Remote & Mouse Seamless Transition)
+ * Version: 3.5.0
  *
- * Moteur de navigation spatiale unifié pour télécommandes TV, claviers, manettes et tactile.
- * Supporte la bascule instantanée Souris ⇄ Flèches, la navigation intra-modale
- * et l'harmonisation visuelle parfaite.
+ * Moteur de navigation spatiale unifié.
+ * Gère la transition invisible et immédiate entre la Souris et la Télécommande/Flèches.
  */
 
 'use strict';
@@ -20,13 +19,14 @@ export class SpatialNavigation {
         this._log = new Logger('SpatialNavigation');
         this._root = root;
         this._focusedElement = null;
+        this._lastInteractedElement = null;
         this._isEnabled = true;
         this._isTvMode = false;
         this._lastMouseX = null;
         this._lastMouseY = null;
         this._injectStyles();
         this._bindEvents();
-        this._log.info('Moteur SpatialNavigation TV & Mobile v3.0 actif.');
+        this._log.info('Moteur SpatialNavigation TV v3.5 prêt.');
     }
 
     _injectStyles() {
@@ -34,19 +34,39 @@ export class SpatialNavigation {
         const style = document.createElement('style');
         style.id = 'sh-spatial-nav-styles';
         style.textContent = `
-            /* Halo Luminescent Apple TV 4K Subtil & Non-Coupeur */
-            .sh-tv-focused {
-                outline: 2.5px solid #ff9f0a !important;
-                outline-offset: 3px !important;
-                box-shadow: 0 0 20px rgba(255, 159, 10, 0.55), 0 8px 24px rgba(0, 0, 0, 0.8) !important;
-                z-index: 999 !important;
+            /* Halo Luminescent Apple TV 4K sur le Poster du Média */
+            .sh-card.sh-tv-focused {
+                outline: none !important;
+                box-shadow: none !important;
+                transform: translateY(-6px) scale(1.025) !important;
             }
 
-            .sh-card.sh-tv-focused {
+            .sh-card.sh-tv-focused .sh-card__image-wrap {
+                outline: 3px solid #ff9f0a !important;
+                outline-offset: 3px !important;
+                box-shadow: 0 0 28px rgba(255, 159, 10, 0.70), 0 16px 40px rgba(0, 0, 0, 0.95) !important;
+            }
+
+            .sh-card.sh-tv-focused .sh-card__action-pill {
+                transform: translateX(-50%) translateY(0) !important;
+                opacity: 1 !important;
+            }
+
+            .sh-card.sh-tv-focused .sh-card__image {
+                transform: scale(1.04) !important;
+            }
+
+            .sh-card.sh-tv-focused .sh-card__codec-tag {
+                opacity: 0 !important;
+                transform: translateY(10px) !important;
+            }
+
+            /* Halo Luminescent sur Boutons et Onglets */
+            .sh-tv-focused:not(.sh-card) {
                 outline: 2.5px solid #ff9f0a !important;
                 outline-offset: 3px !important;
-                box-shadow: 0 0 24px rgba(255, 159, 10, 0.60), 0 12px 30px rgba(0, 0, 0, 0.85) !important;
-                transform: translateY(-5px) scale(1.025) !important;
+                box-shadow: 0 0 22px rgba(255, 159, 10, 0.60), 0 8px 24px rgba(0, 0, 0, 0.8) !important;
+                z-index: 999 !important;
             }
 
             .sh-genre-chip.sh-tv-focused,
@@ -63,7 +83,6 @@ export class SpatialNavigation {
         window.addEventListener('keydown', (e) => {
             if (!this._isEnabled) return;
 
-            // Ignorer si l'utilisateur saisit du texte dans un champ (sauf Escape)
             const activeEl = document.activeElement;
             const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
             if (isInput && e.key !== 'Escape') return;
@@ -94,7 +113,7 @@ export class SpatialNavigation {
             }
         });
 
-        // 2. Bascule instantanée Souris (Désactive le mode TV dès que la souris bouge)
+        // 2. Mouvement Souris : Désactivation instantanée du focus TV et suivi de la position souris
         window.addEventListener('mousemove', (e) => {
             if (this._lastMouseX === null || this._lastMouseY === null) {
                 this._lastMouseX = e.clientX;
@@ -103,13 +122,32 @@ export class SpatialNavigation {
             }
 
             const delta = Math.abs(e.clientX - this._lastMouseX) + Math.abs(e.clientY - this._lastMouseY);
-            if (delta > 4) {
+            if (delta > 2) {
                 this._lastMouseX = e.clientX;
                 this._lastMouseY = e.clientY;
-                if (this._isTvMode || this._focusedElement) {
+
+                if (this._focusedElement) {
                     this.clearFocus();
-                    this._isTvMode = false;
                 }
+                this._isTvMode = false;
+            }
+        }, { passive: true });
+
+        // 3. Suivi du survol souris sur les éléments interactifs pour reprise de position immédiate
+        document.addEventListener('mouseover', (e) => {
+            const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, .sh-hero-btn-play, .sh-hero-btn-glass, button, a');
+            if (target) {
+                this._lastInteractedElement = target;
+            }
+        }, { passive: true });
+
+        // 4. Clic Souris : Nettoyage immédiat du mode TV et mémorisation
+        document.addEventListener('pointerdown', (e) => {
+            this.clearFocus();
+            this._isTvMode = false;
+            const target = e.target.closest('.sh-card:not(.sh-card--skeleton), .sh-genre-chip, .sh-nav-tab-btn, button, a');
+            if (target) {
+                this._lastInteractedElement = target;
             }
         }, { passive: true });
     }
@@ -136,7 +174,6 @@ export class SpatialNavigation {
     }
 
     _getActiveContainer() {
-        // Si une modale ou fiche média est ouverte, restreindre le focus à son contenu
         const slideUp = document.querySelector('.sh-slideup-sheet--open');
         if (slideUp) return slideUp;
 
@@ -186,20 +223,41 @@ export class SpatialNavigation {
         const focusables = this._getFocusableElements();
         if (focusables.length === 0) return;
 
-        // Si aucun élément n'est sélectionné, cibler le premier élément visible à l'écran
+        // Si aucun élément n'est sélectionné au clavier (ex: reprise après souris)
         if (!this._focusedElement || !document.body.contains(this._focusedElement)) {
-            const visible = focusables.find(el => {
+            // 1. Reprendre depuis le dernier élément survolé par la souris s'il est encore visible
+            if (this._lastInteractedElement && document.body.contains(this._lastInteractedElement)) {
+                const rect = this._lastInteractedElement.getBoundingClientRect();
+                if (rect.top >= 0 && rect.bottom <= window.innerHeight && rect.width > 0) {
+                    this._setFocus(this._lastInteractedElement);
+                    return;
+                }
+            }
+
+            // 2. Sinon cibler la carte visible la plus proche du centre de l'écran
+            const centerY = window.innerHeight / 2;
+            let closestEl = focusables[0];
+            let minCenterDelta = Infinity;
+
+            focusables.forEach(el => {
                 const r = el.getBoundingClientRect();
-                return r.top >= 40 && r.bottom <= window.innerHeight - 40 && r.left >= 0 && r.right <= window.innerWidth;
-            }) || focusables[0];
-            this._setFocus(visible);
+                if (r.top >= 40 && r.bottom <= window.innerHeight - 40) {
+                    const deltaY = Math.abs((r.top + r.height / 2) - centerY);
+                    if (deltaY < minCenterDelta) {
+                        minCenterDelta = deltaY;
+                        closestEl = el;
+                    }
+                }
+            });
+
+            this._setFocus(closestEl);
             return;
         }
 
         const current = this._focusedElement;
         const currentRect = current.getBoundingClientRect();
 
-        // 1. Navigation intra-carrousel ou intra-liste (Gauche / Droite)
+        // 1. Déplacement horizontal intra-carrousel (Gauche / Droite)
         if ((direction === 'left' || direction === 'right')) {
             const listParent = current.closest('.sh-card-grid, .sh-carousel-track, .sh-slideup-episodes-scroller, .sh-slideup-seasons-track, .sh-genre-bar-track');
             if (listParent) {
@@ -215,7 +273,7 @@ export class SpatialNavigation {
             }
         }
 
-        // 2. Navigation inter-sections verticale (Haut / Bas)
+        // 2. Déplacement vertical inter-sections (Haut / Bas)
         if ((direction === 'up' || direction === 'down') && current.classList.contains('sh-card')) {
             const currentSection = current.closest('.sh-dashboard__item');
             if (currentSection) {
@@ -239,7 +297,6 @@ export class SpatialNavigation {
                             return;
                         }
                     } else if (direction === 'up') {
-                        // Monter vers la barre de genres
                         const chips = document.querySelectorAll('.sh-genre-chip');
                         if (chips.length > 0) {
                             this._setFocus(chips[0]);
@@ -250,7 +307,7 @@ export class SpatialNavigation {
             }
         }
 
-        // 3. Fallback géométrique 2D
+        // 3. Fallback géométrique 2D classique
         let bestCandidate = null;
         let minDistance = Infinity;
 
@@ -291,9 +348,9 @@ export class SpatialNavigation {
         this.clearFocus();
 
         this._focusedElement = element;
+        this._lastInteractedElement = element;
         element.classList.add('sh-tv-focused');
 
-        // Défilement automatique fluide
         const scroller = element.closest('.sh-card-grid, .sh-carousel-scroller, .sh-slideup-episodes-scroller, .sh-slideup-seasons-track');
         if (scroller) {
             element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
