@@ -23,6 +23,8 @@ export class SpatialNavigation {
         this._lastFocusedId = null;
         this._lastInteractedElement = null;
         this._invokingElementStack = [];
+        this._lastDashboardFocusedCard = null;
+        this._lastDashboardFocusedCardId = null;
         this._rowMemory = new Map();
         this._isEnabled = true;
         this._isTvMode = false;
@@ -577,10 +579,18 @@ export class SpatialNavigation {
 
     // ─── UTILITAIRES & FOCUS MANAGEMENT ──────────────────────────────────────
     _reconnectDashboardFocus() {
+        if (this._lastDashboardFocusedCard && document.body.contains(this._lastDashboardFocusedCard)) {
+            return this._lastDashboardFocusedCard;
+        }
+        if (this._lastDashboardFocusedCardId) {
+            const reconnected = document.querySelector(`.sh-card[data-id="${this._lastDashboardFocusedCardId}"], .sh-card[data-item-id="${this._lastDashboardFocusedCardId}"]`);
+            if (reconnected) {
+                this._lastDashboardFocusedCard = reconnected;
+                return reconnected;
+            }
+        }
         if (this._lastFocusedId) {
-            const reconnected = document.querySelector(
-                `[data-id="${this._lastFocusedId}"], [data-item-id="${this._lastFocusedId}"], #${this._lastFocusedId}`
-            );
+            const reconnected = document.querySelector(`[data-id="${this._lastFocusedId}"], [data-item-id="${this._lastFocusedId}"], #${this._lastFocusedId}`);
             if (reconnected) return reconnected;
         }
         return null;
@@ -638,6 +648,13 @@ export class SpatialNavigation {
         this._focusedElement = element;
         this._lastInteractedElement = element;
         this._recordElementId(element);
+
+        // Si l'élément est une carte du Dashboard, mémoriser de façon permanente
+        if (element.classList.contains('sh-card')) {
+            this._lastDashboardFocusedCard = element;
+            this._lastDashboardFocusedCardId = element.dataset?.id || element.dataset?.itemId || null;
+        }
+
         element.classList.add('sh-tv-focused');
 
         const scroller = element.closest(
@@ -682,20 +699,24 @@ export class SpatialNavigation {
 
     onModalClosed() {
         this.clearFocus();
-        const saved = this._invokingElementStack.pop();
-        if (saved) {
-            setTimeout(() => {
-                let target = saved.element;
-                if (!target || !document.body.contains(target)) {
-                    if (saved.id) {
-                        target = document.querySelector(`[data-id="${saved.id}"], [data-item-id="${saved.id}"], #${saved.id}`);
-                    }
+        setTimeout(() => {
+            let target = this._lastDashboardFocusedCard;
+            if (!target || !document.body.contains(target)) {
+                if (this._lastDashboardFocusedCardId) {
+                    target = document.querySelector(`.sh-card[data-id="${this._lastDashboardFocusedCardId}"], .sh-card[data-item-id="${this._lastDashboardFocusedCardId}"]`);
                 }
-                if (target && document.body.contains(target)) {
-                    this._setFocus(target);
-                }
-            }, 60);
-        }
+            }
+            if (!target) {
+                const saved = this._invokingElementStack.pop();
+                if (saved?.element && document.body.contains(saved.element)) target = saved.element;
+            }
+            if (!target) {
+                target = document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton)');
+            }
+            if (target) {
+                this._setFocus(target);
+            }
+        }, 50);
     }
 
     _handleBack(event) {
