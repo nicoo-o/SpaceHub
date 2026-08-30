@@ -329,7 +329,7 @@ class VideoPlayer {
                 
                 <!-- Bloc Gauche : Capsule Titre Tout-en-un -->
                 <div class="sh-topbar-brand-capsule">
-                    <button class="sh-back-btn" id="sh-btn-back" title="Quitter la lecture (Échap)">
+                    <button class="sh-back-btn" id="sh-btn-back" tabindex="0" data-nav-focusable="true" title="Quitter la lecture (Échap)">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                         <span>Quitter</span>
                     </button>
@@ -348,13 +348,13 @@ class VideoPlayer {
 
                 <!-- Bloc Droite : Actions Secondaires Flottantes -->
                 <div class="sh-topbar-actions-pill">
-                    <button class="sh-top-icon-btn" id="sh-btn-aspect" title="Format d'image (16:9, 21:9, Plein écran)">
+                    <button tabindex="0" data-nav-focusable="true" class="sh-top-icon-btn" id="sh-btn-aspect" title="Format d'image (16:9, 21:9, Plein écran)">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
                     </button>
-                    <button class="sh-top-icon-btn" id="sh-btn-pip" title="Fenêtre flottante (PiP)">
+                    <button tabindex="0" data-nav-focusable="true" class="sh-top-icon-btn" id="sh-btn-pip" title="Fenêtre flottante (PiP)">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><rect width="8" height="6" x="12" y="12" rx="1" fill="currentColor"/></svg>
                     </button>
-                    <button class="sh-top-icon-btn" id="sh-btn-fullscreen" title="Plein écran (F)">
+                    <button tabindex="0" data-nav-focusable="true" class="sh-top-icon-btn" id="sh-btn-fullscreen" title="Plein écran (F)">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
                     </button>
                 </div>
@@ -1436,7 +1436,7 @@ class VideoPlayer {
             }
             if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                const backBtn = this._el.querySelector('#sh-player-btn-back');
+                const backBtn = this._el.querySelector('#sh-btn-back, #sh-player-btn-back');
                 if (backBtn) backBtn.focus();
                 return;
             }
@@ -1448,7 +1448,7 @@ class VideoPlayer {
         }
 
         // C. GESTION DE LA TOPBAR (Bouton Retour)
-        const topBackBtn = this._el.querySelector('#sh-player-btn-back');
+        const topBackBtn = this._el.querySelector('#sh-btn-back, #sh-player-btn-back');
         if (document.activeElement === topBackBtn) {
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
