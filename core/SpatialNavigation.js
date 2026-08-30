@@ -474,7 +474,64 @@ export class SpatialNavigation {
             }
         }
 
-        // ── 2. LOGIQUE DANS LE DASHBOARD & CARROUSELS ──
+        
+        // ── 2. LOGIQUE DANS LE HERO BANNER & LA BARRE DE GENRES ──
+        // A. Depuis les Boutons d'Action du Hero Spotlight
+        if (current.id === 'sh-hero-btn-play' || current.id === 'sh-hero-btn-trailer' || current.id === 'sh-hero-btn-details' || current.id === 'sh-hero-scroll-hint') {
+            if (direction === 'right') {
+                if (current.id === 'sh-hero-btn-play') { const next = document.getElementById('sh-hero-btn-trailer'); if (next) { this._setFocus(next); return; } }
+                if (current.id === 'sh-hero-btn-trailer') { const next = document.getElementById('sh-hero-btn-details'); if (next) { this._setFocus(next); return; } }
+            } else if (direction === 'left') {
+                if (current.id === 'sh-hero-btn-details') { const prev = document.getElementById('sh-hero-btn-trailer'); if (prev) { this._setFocus(prev); return; } }
+                if (current.id === 'sh-hero-btn-trailer') { const prev = document.getElementById('sh-hero-btn-play'); if (prev) { this._setFocus(prev); return; } }
+            } else if (direction === 'down') {
+                // Descendre vers la barre de genres ou directement le premier carrousel
+                const firstChip = document.querySelector('.sh-genre-chip.active') || document.querySelector('.sh-genre-chip');
+                if (firstChip) {
+                    this._setFocus(firstChip);
+                    return;
+                }
+                const firstCard = document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton)');
+                if (firstCard) {
+                    this._setFocus(firstCard);
+                    return;
+                }
+            } else if (direction === 'up') {
+                const islandBtn = document.querySelector('.sh-dynamic-island, .sh-nav-tab-btn.active, .sh-nav-tab-btn');
+                if (islandBtn) {
+                    this._setFocus(islandBtn);
+                    return;
+                }
+            }
+        }
+
+        // B. Depuis la Barre de Genres
+        if (current.classList.contains('sh-genre-chip')) {
+            const chips = Array.from(document.querySelectorAll('.sh-genre-chip'));
+            const curIdx = chips.indexOf(current);
+            if (direction === 'right' && curIdx !== -1 && curIdx + 1 < chips.length) {
+                this._setFocus(chips[curIdx + 1]);
+                return;
+            } else if (direction === 'left' && curIdx !== -1 && curIdx > 0) {
+                this._setFocus(chips[curIdx - 1]);
+                return;
+            } else if (direction === 'up') {
+                const heroPlay = document.getElementById('sh-hero-btn-play') || document.querySelector('.sh-hero-btn-play');
+                if (heroPlay) {
+                    this._setFocus(heroPlay);
+                    return;
+                }
+            } else if (direction === 'down') {
+                // Descendre dans les carrousels de médias
+                const firstCard = document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton)');
+                if (firstCard) {
+                    this._setFocus(firstCard);
+                    return;
+                }
+            }
+        }
+
+        // ── 3. LOGIQUE DANS LE DASHBOARD & CARROUSELS ──
         if (current.classList.contains('sh-card')) {
             if (direction === 'left' || direction === 'right') {
                 const track = current.closest('.sh-card-grid, .sh-carousel-track');
@@ -512,9 +569,14 @@ export class SpatialNavigation {
                                 return;
                             }
                         } else if (direction === 'up') {
-                            const chips = document.querySelectorAll('.sh-genre-chip');
-                            if (chips.length > 0) {
-                                this._setFocus(chips[0]);
+                            const activeChip = document.querySelector('.sh-genre-chip.active') || document.querySelector('.sh-genre-chip');
+                            if (activeChip) {
+                                this._setFocus(activeChip);
+                                return;
+                            }
+                            const heroPlay = document.getElementById('sh-hero-btn-play');
+                            if (heroPlay) {
+                                this._setFocus(heroPlay);
                                 return;
                             }
                         }
