@@ -177,7 +177,11 @@ class AppLayout {
         this._sidebar.render(document.body);
         this.navigate(this._currentView);
         this._spatialNav = new SpatialNavigation({ root: container });
-        if (window.SpaceHub) window.SpaceHub.spatialNav = this._spatialNav;
+        if (window.SpaceHub) {
+            window.SpaceHub.spatialNav = this._spatialNav;
+            if (!window.SpaceHub.core) window.SpaceHub.core = {};
+            window.SpaceHub.core.spatialNavigation = this._spatialNav;
+        }
     }
 
     _bindHeaderEvents(container) {
