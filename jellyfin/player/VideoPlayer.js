@@ -1,6 +1,6 @@
 /**
  * SpaceHub — Grand Cinema Video Player (Apple TV 4K & VisionOS Ultra-Sleek)
- * Version: 3.1.0 (Liquid Ribbon Masterpiece)
+ * Version: 4.0.0 (Liquid Ribbon Masterpiece)
  *
  * Conception Ultra-Aérodynamique & Épurée :
  *  - Dock Ultra-Fin 52px : Capsule liquide unique fusionnant timeline ambrée, transport perlé et tiroirs
@@ -64,7 +64,7 @@ class VideoPlayer {
         return window.SpaceHub?.jellyfin?.api;
     }
 
-    play(item, startPositionTicks = 0) {
+        play(item, startPositionTicks = 0) {
         if (!item) return;
 
         // Si une Série entière est envoyée directement au player, résolution automatique de l'épisode
@@ -75,12 +75,23 @@ class VideoPlayer {
 
         this._currentItem = item;
         this._nextEpCancelled = false;
+        clearInterval(this._nextEpCountdownInterval);
+        this._nextEpCountdownInterval = null;
+        this._nextEpRemaining = 8;
         const itemId = item.Id || item.id;
         this._log.info(`🎬 Lancement Grand Cinema Ultra-Sleek pour "${item.Name || item.title}" (ID: ${itemId})`);
 
-        // Montage DOM instantané (0ms)
-        this._createPlayerDOM(item);
-        this._initMediaStreams(item);
+        const isAlreadyOpen = Boolean(this._el && document.body.contains(this._el) && this._video);
+
+        if (isAlreadyOpen) {
+            // Transition in-place fluide sans écran noir ni destruction du DOM
+            this._updatePlayerMetadataInPlace(item);
+            this._initMediaStreams(item);
+        } else {
+            // Premier montage DOM
+            this._createPlayerDOM(item);
+            this._initMediaStreams(item);
+        }
 
         const serverUrl = this._auth?.getServerUrl() || '';
         const token = this._auth?.getToken() || '';
@@ -95,6 +106,33 @@ class VideoPlayer {
 
         // Enrichissement asynchrone
         this._enrichMediaData(item, itemId);
+    }
+
+    _updatePlayerMetadataInPlace(item) {
+        const title = item.Name || item.title || 'Média';
+        const isEpisode = item.Type === 'Episode' || Boolean(item.SeriesName);
+        const seriesName = item.SeriesName || (isEpisode ? title : '');
+        const episodeNumber = isEpisode ? `S${String(item.ParentIndexNumber || 1).padStart(2, '0')}E${String(item.IndexNumber || 1).padStart(2, '0')}` : '';
+        const episodeTitle = isEpisode ? (item.Name || title) : '';
+        const year = item.ProductionYear || '';
+
+        const mainTitleEl = this._el?.querySelector('#sh-player-main-title');
+        const subTitleEl = this._el?.querySelector('#sh-player-sub-title');
+        const yearTagEl = this._el?.querySelector('#sh-player-year-tag');
+
+        if (mainTitleEl) mainTitleEl.textContent = seriesName || title;
+        if (subTitleEl) subTitleEl.textContent = isEpisode && episodeNumber ? `${episodeNumber} · ${episodeTitle}` : episodeTitle;
+        if (yearTagEl) yearTagEl.textContent = year ? String(year) : '';
+
+        // Masquer la carte de fin d'épisode
+        this._hideNextEpCard();
+        this._closeAllPopovers();
+
+        // Réinitialiser la barre de progression
+        const elPlayed = this._el?.querySelector('#sh-timeline-played');
+        const elHandle = this._el?.querySelector('#sh-timeline-handle');
+        if (elPlayed) elPlayed.style.width = '0%';
+        if (elHandle) elHandle.style.left = '0%';
     }
 
     async _enrichMediaData(item, itemId) {
@@ -596,8 +634,39 @@ class VideoPlayer {
             this._lastTapTime = now;
             this._lastTapSide = side;
         };
-        leftZone?.addEventListener('touchend', () => handleTap('left', -10));
-        rightZone?.addEventListener('touchend', () => handleTap('right', 10));
+                // Écouteur de fin de média natif
+        video.addEventListener('ended', () => {
+            this._log.info('Lecture terminée (event ended). Passage automatique à l\'épisode suivant.');
+            this._reportPlaybackStopped();
+            if (this._nextEpisode && !this._nextEpCancelled) {
+                this.play(this._nextEpisode);
+            }
+        });
+
+        // Protection tactile multi-touch contre les conflits avec le scroll
+        let touchStartX = 0;
+        let touchStartY = 0;
+        el.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }
+            this._onUserActivity();
+        }, { passive: true });
+
+        const handleTouchTapSafe = (side, delta, e) => {
+            if (e.changedTouches && e.changedTouches.length === 1) {
+                const deltaX = Math.abs(e.changedTouches[0].clientX - touchStartX);
+                const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY);
+                if (deltaX > 15 || deltaY > 15) {
+                    return; // Geste de défilement ou glissement ignoré
+                }
+            }
+            handleTap(side, delta);
+        };
+
+        leftZone?.addEventListener('touchend', (e) => handleTouchTapSafe('left', -10, e));
+        rightZone?.addEventListener('touchend', (e) => handleTouchTapSafe('right', 10, e));
 
         el.querySelector('#sh-btn-skip-back')?.addEventListener('click', (e) => {
             this._animateButtonSpring(e.currentTarget);
@@ -1048,20 +1117,48 @@ class VideoPlayer {
         });
     }
 
+        /**
+     * Détecte l'intervalle réel de l'introduction via les chapitres Jellyfin.
+     * @param {Object} item
+     * @returns {{ start: number, end: number } | null}
+     */
+    _getIntroInterval(item) {
+        const chapters = item?.Chapters || [];
+        for (let i = 0; i < chapters.length; i++) {
+            const ch = chapters[i];
+            const name = (ch.Name || '').toLowerCase();
+            const isIntro = ch.ChapterType === 'Intro' || name.includes('intro') || name.includes('opening') || name.includes('générique');
+            if (isIntro) {
+                const startSec = (ch.StartPositionTicks || 0) / 10000000;
+                let endSec = ch.EndPositionTicks ? (ch.EndPositionTicks / 10000000) : null;
+                if (!endSec && i + 1 < chapters.length) {
+                    endSec = (chapters[i + 1].StartPositionTicks || 0) / 10000000;
+                }
+                if (!endSec || endSec <= startSec) {
+                    endSec = startSec + 85;
+                }
+                return { start: startSec, end: endSec };
+            }
+        }
+        // Fallback pour les séries sans chapitres explicites : fenêtre d'intro standard
+        if (item?.Type === 'Episode' || item?.SeriesName) {
+            return { start: 15, end: 100 };
+        }
+        return null;
+    }
+
     _performSkipIntro() {
-        const chapters = this._currentItem.Chapters || [];
-        const introChapter = chapters.find(c => /intro|générique|opening/i.test(c.Name || ''));
-        if (introChapter && introChapter.StartPositionTicks) {
-            const nextTime = (introChapter.StartPositionTicks / 10000000) + 85;
-            this._video.currentTime = nextTime;
-        } else {
+        const interval = this._getIntroInterval(this._currentItem);
+        if (interval && this._video) {
+            this._video.currentTime = interval.end;
+        } else if (this._video) {
             this._video.currentTime += 85;
         }
         this._showFlashOSD('⏭️', 'Introduction passée');
-        this._el.querySelector('#sh-smart-skip-btn')?.classList.remove('visible');
+        this._el?.querySelector('#sh-smart-skip-btn')?.classList.remove('visible');
     }
 
-    _onTimeUpdate() {
+        _onTimeUpdate() {
         if (!this._video || this._isScrubbing) return;
         const cur = this._video.currentTime || 0;
         const dur = this._video.duration || 0;
@@ -1080,15 +1177,21 @@ class VideoPlayer {
         if (elPlayed) elPlayed.style.width = `${pct}%`;
         if (elHandle) elHandle.style.left = `${pct}%`;
 
+        // 1. Bouton Passer l'introduction basé sur les chapitres réels
+        const introInterval = this._getIntroInterval(this._currentItem);
         const skipBtn = this._el?.querySelector('#sh-smart-skip-btn');
-        if (cur >= 15 && cur <= 130) {
+        if (introInterval && cur >= introInterval.start && cur < introInterval.end) {
             skipBtn?.classList.add('visible');
         } else {
             skipBtn?.classList.remove('visible');
         }
 
-        if (dur > 60 && dur - cur <= 30 && this._nextEpisode) {
-            this._startNextEpCountdown();
+        // 2. Carte & Countdown du prochain épisode
+        if (dur > 45 && rem <= 30 && this._nextEpisode) {
+            this._showNextEpCard();
+            if (rem <= 8 && !this._nextEpCancelled && !this._nextEpCountdownInterval) {
+                this._startNextEpCountdown();
+            }
         } else {
             this._hideNextEpCard();
         }
