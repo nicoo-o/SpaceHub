@@ -451,7 +451,7 @@ class HeroSpotlightComponent {
             }, { passive: true });
         }
 
-        // ── Raccourcis Clavier Hero (Power-User) ──
+        // ── Raccourcis Clavier Hero (Power-User - Sans conflit TV Spatial Navigation) ──
         if (!this._hasBoundKeyboard) {
             this._hasBoundKeyboard = true;
             window.addEventListener('keydown', (e) => {
@@ -460,22 +460,15 @@ class HeroSpotlightComponent {
                     return;
                 }
 
-                if (window.scrollY < window.innerHeight * 0.45) {
-                    if (e.key === 'ArrowLeft') {
-                        e.preventDefault();
-                        this._goToSlide(container, this._currentIndex - 1);
-                    } else if (e.key === 'ArrowRight') {
-                        e.preventDefault();
-                        this._goToSlide(container, this._currentIndex + 1);
-                    } else if (e.key === ' ' || e.key === 'p' || e.key === 'P') {
-                        e.preventDefault();
-                        const currentItem = this._featuredItems[this._currentIndex];
-                        if (currentItem) {
-                            if (window.Emby?.Page?.showItem) {
-                                window.Emby.Page.showItem(currentItem.Id || currentItem.id);
-                            } else {
-                                window.location.hash = `#/details?id=${currentItem.Id || currentItem.id}`;
-                            }
+                // Touche 'P' pour afficher les détails du Hero sans intercepter les flèches directionnelles
+                if (e.key === 'p' || e.key === 'P') {
+                    e.preventDefault();
+                    const currentItem = this._featuredItems[this._currentIndex];
+                    if (currentItem) {
+                        if (window.Emby?.Page?.showItem) {
+                            window.Emby.Page.showItem(currentItem.Id || currentItem.id);
+                        } else {
+                            window.location.hash = `#/details?id=${currentItem.Id || currentItem.id}`;
                         }
                     }
                 }
