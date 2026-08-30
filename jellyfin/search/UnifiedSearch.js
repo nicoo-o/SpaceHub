@@ -265,7 +265,12 @@ class UnifiedSearch {
         else this.open();
     }
 
-    open() {
+        open() {
+        const isEnabled = window.SpaceHub?.core?.settings?.get('jellyfin.search.enabled', true);
+        if (isEnabled === false) {
+            this._log.debug('Recherche unifiée désactivée dans les paramètres.');
+            return;
+        }
         if (this._isOpen) return;
 
         const island = document.getElementById('sh-dynamic-island');

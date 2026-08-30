@@ -952,11 +952,11 @@ class SettingsPanel {
             s.set('core.logLevel', el.querySelector('#cfg-log-level')?.value);
             s.set('jellyfin.search.enabled', el.querySelector('#cfg-unified-search')?.checked);
 
-            s.set('sonarr.url', el.querySelector('#cfg-sonarr-url')?.value?.trim());
-            s.set('sonarr.apiKey', el.querySelector('#cfg-sonarr-key')?.value?.trim());
+            s.set('sonarr.url', el.querySelector('#cfg-sonarr-url')?.value?.trim() || '');
+            s.set('sonarr.apiKey', el.querySelector('#cfg-sonarr-key')?.value?.trim() || '');
 
-            s.set('radarr.url', el.querySelector('#cfg-radarr-url')?.value?.trim());
-            s.set('radarr.apiKey', el.querySelector('#cfg-radarr-key')?.value?.trim());
+            s.set('radarr.url', el.querySelector('#cfg-radarr-url')?.value?.trim() || '');
+            s.set('radarr.apiKey', el.querySelector('#cfg-radarr-key')?.value?.trim() || '');
 
             s.set('prowlarr.url', el.querySelector('#cfg-prowlarr-url')?.value?.trim());
             s.set('prowlarr.apiKey', el.querySelector('#cfg-prowlarr-key')?.value?.trim());
@@ -964,8 +964,8 @@ class SettingsPanel {
             s.set('bazarr.url', el.querySelector('#cfg-bazarr-url')?.value?.trim());
             s.set('bazarr.apiKey', el.querySelector('#cfg-bazarr-key')?.value?.trim());
 
-            s.set('jellyseerr.url', el.querySelector('#cfg-jellyseerr-url')?.value?.trim());
-            s.set('jellyseerr.apiKey', el.querySelector('#cfg-jellyseerr-key')?.value?.trim());
+            s.set('jellyseerr.url', el.querySelector('#cfg-jellyseerr-url')?.value?.trim() || '');
+            s.set('jellyseerr.apiKey', el.querySelector('#cfg-jellyseerr-key')?.value?.trim() || '');
 
             s.set('qbittorrent.url', (el.querySelector('#cfg-qbit-url')?.value || el.querySelector('#cfg-qbittorrent-url')?.value)?.trim());
             s.set('qbittorrent.username', (el.querySelector('#cfg-qbit-user')?.value || el.querySelector('#cfg-qbittorrent-user')?.value)?.trim());

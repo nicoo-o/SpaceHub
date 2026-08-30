@@ -522,36 +522,25 @@ class Dashboard {
             return true;
         });
 
-        // Garantir la présence des sections essentielles
-        const ensureWidget = (type, colSpan = 12) => {
-            if (!layout.some(i => i.widgetType === type)) {
-                layout.push({ widgetType: type, colSpan });
-            }
-        };
+                const hasUserCustomOrder = Boolean(localStorage.getItem('sh_dashboard_sections_order') || this._settings?.has('dashboard.sectionsOrder'));
 
-        ensureWidget('user-libraries');
-        ensureWidget('continue-watching');
-        ensureWidget('latest-additions');
-        ensureWidget('movies');
-        ensureWidget('tv-shows');
-        ensureWidget('anime');
-        ensureWidget('collections-sagas');
-        ensureWidget('music-soundtracks');
-        for (const c of customLibraryWidgetConfigs) {
-            ensureWidget(c.widgetType, c.colSpan);
+        if (!hasUserCustomOrder) {
+            // Layout par défaut épuré et percutant (6 sections clés)
+            const DEFAULT_CLEAN_LAYOUT = [
+                { widgetType: 'continue-watching', colSpan: 12 },
+                { widgetType: 'latest-additions', colSpan: 12 },
+                { widgetType: 'movies', colSpan: 12 },
+                { widgetType: 'tv-shows', colSpan: 12 },
+                { widgetType: 'jellyseerr-trending', colSpan: 12 },
+                { widgetType: 'unified-calendar', colSpan: 12 }
+            ];
+
+            for (const item of DEFAULT_CLEAN_LAYOUT) {
+                if (!layout.some(i => i.widgetType === item.widgetType)) {
+                    layout.push(item);
+                }
+            }
         }
-        ensureWidget('jellyseerr-trending');
-        ensureWidget('jellyseerr-popular-movies');
-        ensureWidget('jellyseerr-popular-series');
-        ensureWidget('jellyseerr-upcoming');
-        ensureWidget('jellyseerr-requests');
-        ensureWidget('unified-calendar');
-        ensureWidget('media-analytics');
-        ensureWidget('qbittorrent-speed', 6);
-        ensureWidget('qbittorrent-active', 6);
-        ensureWidget('sonarr-upcoming');
-        ensureWidget('radarr-upcoming');
-        ensureWidget('bazarr-wanted');
 
         // Hiérarchie de tri stricte pour l'affichage
         const sectionRankMap = new Map([

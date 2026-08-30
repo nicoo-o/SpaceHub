@@ -14,6 +14,7 @@ import DownloadsView from '../views/DownloadsView.js';
 import AppSidebarDrawer from '../components/AppSidebarDrawer.js';
 import AnalyticsModal from '../components/AnalyticsModal.js';
 import AdminDashboardView from '../views/AdminDashboardView.js';
+import SpatialNavigation  from '../../core/SpatialNavigation.js';
 
 class AppLayout {
     constructor() {
@@ -23,7 +24,9 @@ class AppLayout {
             library: new LibraryView(),
             downloads: new DownloadsView()
         };
-        this._sidebar = new AppSidebarDrawer();
+                this._sidebar = new AppSidebarDrawer();
+        this._clockInterval = null;
+        this._spatialNav = null;
         this._injectStyles();
     }
 
@@ -173,6 +176,7 @@ class AppLayout {
         this._bindHeaderEvents(container);
         this._sidebar.render(document.body);
         this.navigate(this._currentView);
+        this._spatialNav = new SpatialNavigation({ root: container });
     }
 
     _bindHeaderEvents(container) {
@@ -213,6 +217,14 @@ class AppLayout {
         // Initialisation immédiate en mode Compact permanent
         setIslandState('compact');
 
+        // Support tactile mobile et focus TV
+        island?.addEventListener('click', (e) => {
+            if (island?.classList.contains('sh-island--compact')) {
+                setIslandState('expanded');
+            }
+        });
+        island?.addEventListener('focusin', () => setIslandState('expanded'));
+
         // Horloge dynamique en temps réel
         const updateClock = () => {
             const badge = container.querySelector('#sh-island-clock-badge');
@@ -226,7 +238,7 @@ class AppLayout {
             if (mmEl) mmEl.textContent = mm;
         };
         updateClock();
-        setInterval(updateClock, 10000);
+        this._clockInterval = setInterval(updateClock, 10000);
 
         island?.addEventListener('mouseenter', () => {
             if (island?.classList.contains('sh-island--search')) return;
@@ -477,6 +489,17 @@ class AppLayout {
      * @param {'dashboard'|'library'|'flux'|'downloads'|'home'|'movies'|'series'|'music'} viewName
      * @param {Object} [params]
      */
+    async     destroy() {
+        if (this._clockInterval) {
+            clearInterval(this._clockInterval);
+            this._clockInterval = null;
+        }
+        if (this._spatialNav) {
+            this._spatialNav.destroy();
+            this._spatialNav = null;
+        }
+    }
+
     async navigate(viewName, params = {}) {
         let normalizedView = viewName;
         if (viewName === 'home' || viewName === 'dashboard') {
