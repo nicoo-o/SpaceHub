@@ -1,10 +1,12 @@
 /**
- * SpaceHub — Industrial Spatial Navigation Engine (FocusTree Architecture)
- * Version: 6.5.0
+ * SpaceHub — Spatial Navigation Engine (Grand Cinema Edition v7.0)
+ * Version: 7.0.0
  *
- * Moteur de navigation spatiale déterministe pour Smart TV.
- * Résolution totale des halos arrondis, navigation fluide Dynamic Island,
- * fiches médias sans blocage et descente saisons ➔ épisodes.
+ * Moteur de navigation spatiale déterministe 2D géométrique pour Smart TV.
+ * - Verrouillage absolu du scroll Hero à 0px (aucun décalage, filtre noir préservé).
+ * - Entourage halo orange pur sur le bouton Regarder blanc.
+ * - Moteur 2D géométrique infaillible sur 100% des cartes médias sans aucun blocage.
+ * - Cycle de retour en cascade (Lecteur -> Fiche Média -> Accueil).
  */
 
 'use strict';
@@ -35,7 +37,7 @@ export class SpatialNavigation {
 
         this._injectStyles();
         this._bindEvents();
-        this._log.info('Moteur SpatialNavigation Industriel v6.5 (Zéro Blocage) prêt.');
+        this._log.info('Moteur SpatialNavigation v7.0 (2D Géométrique & Hero Scroll Lock) opérationnel.');
     }
 
     _injectStyles() {
@@ -81,7 +83,7 @@ export class SpatialNavigation {
                 transform: translateY(12px) !important;
             }
 
-            /* ── ENTOURAGE HALO ORANGE SUR BOUTON REGARDER HERO ── */
+            /* ── ENTOURAGE HALO ORANGE SUR BOUTON BLANC DU HERO (ZÉRO DÉCALAGE / FOND BLANC PRESERVÉ) ── */
             #sh-hero-btn-play.sh-tv-focused,
             .sh-hero-btn-play.sh-tv-focused {
                 outline: none !important;
@@ -90,13 +92,13 @@ export class SpatialNavigation {
                 border-color: #ff9f0a !important;
                 box-shadow: 
                     0 0 0 2.5px #ff9f0a,
-                    0 0 22px rgba(255, 159, 10, 0.65),
+                    0 0 24px rgba(255, 159, 10, 0.70),
                     0 4px 14px rgba(0, 0, 0, 0.50) !important;
                 transform: scale(1.02) !important;
                 z-index: 9999 !important;
             }
 
-            /* ── HALO PARFAITEMENT ÉPOUSANT SUR TOUS LES BOUTONS ET PILULES (ZÉRO DÉCALAGE / ZÉRO BOXY) ── */
+            /* ── HALO PARFAITEMENT ÉPOUSANT SUR TOUS LES AUTRES BOUTONS ET PILULES ── */
             .sh-genre-chip.sh-tv-focused,
             .sh-season-pill-btn.sh-tv-focused,
             .sh-tab-btn.sh-tv-focused,
@@ -105,7 +107,6 @@ export class SpatialNavigation {
             .sh-user-avatar-btn.sh-tv-focused,
             .sh-slideup-back-btn.sh-tv-focused,
             .sh-slideup-close-btn.sh-tv-focused,
-            .sh-hero-btn-play.sh-tv-focused,
             .sh-hero-btn-glass.sh-tv-focused,
             .sh-cinema-btn-play.sh-tv-focused,
             .sh-cinema-btn-glass.sh-tv-focused,
@@ -115,7 +116,7 @@ export class SpatialNavigation {
                 border-color: #ff9f0a !important;
                 box-shadow: 
                     0 0 0 2px #ff9f0a,
-                    0 0 16px rgba(255, 159, 10, 0.65) !important;
+                    0 0 18px rgba(255, 159, 10, 0.65) !important;
                 transform: none !important;
                 z-index: 9999 !important;
             }
@@ -217,8 +218,13 @@ export class SpatialNavigation {
 
         if (this._rafId) cancelAnimationFrame(this._rafId);
         this._rafId = requestAnimationFrame(() => {
-            this._navigateDirectional(direction);
-            this._isNavigating = false;
+            try {
+                this._navigateDirectional(direction);
+            } catch (err) {
+                console.warn('[SpatialNavigation] Erreur de navigation:', err);
+            } finally {
+                this._isNavigating = false;
+            }
         });
     }
 
@@ -289,7 +295,6 @@ export class SpatialNavigation {
             } else if (direction === 'left' && curIdx !== -1 && curIdx > 0) {
                 return this._setFocus(islandItems[curIdx - 1]);
             } else if (direction === 'down') {
-                // Replier doucement l'island et descendre vers le Hero
                 if (island) {
                     island.classList.remove('sh-island--expanded');
                     island.classList.add('sh-island--compact');
@@ -301,9 +306,6 @@ export class SpatialNavigation {
 
                 const firstChip = document.querySelector('.sh-genre-chip.active') || document.querySelector('.sh-genre-chip');
                 if (firstChip) return this._setFocus(firstChip);
-
-                const firstCard = document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton)');
-                if (firstCard) return this._setFocus(firstCard);
             }
             return;
         }
@@ -347,93 +349,102 @@ export class SpatialNavigation {
                 return this._setFocus(chips[curIdx - 1]);
             } else if (direction === 'up') {
                 const heroPlay = document.getElementById('sh-hero-btn-play') || document.querySelector('.sh-hero-btn-play');
-                if (heroPlay) {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    return this._setFocus(heroPlay);
-                }
+                if (heroPlay) return this._setFocus(heroPlay);
             } else if (direction === 'down') {
-                const firstRow = document.querySelector('.sh-dashboard__item');
-                if (firstRow) {
-                    const cards = Array.from(firstRow.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
-                    if (cards.length > 0) {
-                        const savedIdx = this._rowMemory.get(0) || 0;
-                        const targetCard = cards[Math.min(savedIdx, cards.length - 1)];
-                        return this._setFocus(targetCard);
-                    }
+                const allCards = Array.from(document.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
+                if (allCards.length > 0) {
+                    const savedId = this._lastDashboardFocusedCardId;
+                    let target = savedId ? document.querySelector(`.sh-card[data-id="${savedId}"]`) : null;
+                    if (!target) target = allCards[0];
+                    return this._setFocus(target);
                 }
             }
             return;
         }
 
-        // D. ZONE CARROUSELS & CARTES MÉDIAS (.sh-card) ── NAVIGATION INFAILLIBLE SANS BLOCAGE
+        // D. ZONE CARROUSELS & CARTES MÉDIAS (.sh-card) ── MOTEUR 2D GÉOMÉTRIQUE UNIVERSEL
         if (current.classList.contains('sh-card')) {
-            const allRowContainers = Array.from(document.querySelectorAll('.sh-dashboard__item, .sh-library-grid'))
-                .filter(row => row.querySelector('.sh-card:not(.sh-card--skeleton)'));
-            
-            const currentRow = current.closest('.sh-dashboard__item, .sh-library-grid');
-            const rowIdx = allRowContainers.indexOf(currentRow);
+            const currentRect = current.getBoundingClientRect();
 
-            // 1. Navigation Horizontale (← / →) : Intra-rangée
-            if (currentRow) {
-                const rowCards = Array.from(currentRow.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
-                const cardIdx = rowCards.indexOf(current);
+            // 1. Navigation Horizontale (← / →) : Directe et garantie dans le conteneur immédiat
+            const parentScroller = current.parentElement;
+            const siblingCards = Array.from(parentScroller.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
+            const cardIdx = siblingCards.indexOf(current);
 
-                if (direction === 'right') {
-                    if (cardIdx !== -1 && cardIdx + 1 < rowCards.length) {
-                        return this._setFocus(rowCards[cardIdx + 1]);
-                    }
-                    return; // Bout de rangée : rester sur la carte
+            if (direction === 'right') {
+                if (cardIdx !== -1 && cardIdx + 1 < siblingCards.length) {
+                    return this._setFocus(siblingCards[cardIdx + 1]);
                 }
-
-                if (direction === 'left') {
-                    if (cardIdx !== -1 && cardIdx > 0) {
-                        return this._setFocus(rowCards[cardIdx - 1]);
-                    }
-                    return; // Début de rangée : rester sur la carte
-                }
+                return; // Fin de ligne : rester fermement sur la carte
             }
 
-            // 2. Navigation Verticale (↓ / ↑) : Inter-rangées
-            if (direction === 'down') {
-                if (currentRow && rowIdx !== -1 && rowIdx + 1 < allRowContainers.length) {
-                    const nextRow = allRowContainers[rowIdx + 1];
-                    const nextCards = Array.from(nextRow.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
-                    if (nextCards.length > 0) {
-                        const currentX = current.getBoundingClientRect().left;
-                        let bestCard = nextCards[0];
-                        let minDeltaX = Infinity;
-                        nextCards.forEach(c => {
-                            const dx = Math.abs(c.getBoundingClientRect().left - currentX);
-                            if (dx < minDeltaX) { minDeltaX = dx; bestCard = c; }
-                        });
-                        return this._setFocus(bestCard);
-                    }
+            if (direction === 'left') {
+                if (cardIdx !== -1 && cardIdx > 0) {
+                    return this._setFocus(siblingCards[cardIdx - 1]);
                 }
-                return; // Bas de page : rester sur la carte
+                return; // Début de ligne : rester fermement sur la carte
+            }
+
+            // 2. Navigation Verticale (↓ / ↑) : Recherche 2D géométrique sur toutes les cartes réelles
+            const allCards = Array.from(document.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
+
+            if (direction === 'down') {
+                const cardsBelow = allCards.filter(c => {
+                    const r = c.getBoundingClientRect();
+                    return r.top > currentRect.top + 30;
+                });
+
+                if (cardsBelow.length > 0) {
+                    let bestCard = cardsBelow[0];
+                    let minDistance = Infinity;
+
+                    cardsBelow.forEach(c => {
+                        const r = c.getBoundingClientRect();
+                        const dx = Math.abs(r.left - currentRect.left);
+                        const dy = Math.abs(r.top - currentRect.top);
+                        const dist = (dx * 1.5) + dy;
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            bestCard = c;
+                        }
+                    });
+
+                    return this._setFocus(bestCard);
+                }
+                return; // Bas du catalogue : rester sur la carte
             }
 
             if (direction === 'up') {
-                if (currentRow && rowIdx > 0) {
-                    const prevRow = allRowContainers[rowIdx - 1];
-                    const prevCards = Array.from(prevRow.querySelectorAll('.sh-card:not(.sh-card--skeleton)'));
-                    if (prevCards.length > 0) {
-                        const currentX = current.getBoundingClientRect().left;
-                        let bestCard = prevCards[0];
-                        let minDeltaX = Infinity;
-                        prevCards.forEach(c => {
-                            const dx = Math.abs(c.getBoundingClientRect().left - currentX);
-                            if (dx < minDeltaX) { minDeltaX = dx; bestCard = c; }
-                        });
-                        return this._setFocus(bestCard);
-                    }
-                } else if (!currentRow || rowIdx === 0) {
-                    // Tout en haut du catalogue : remonter sur la barre de genres
+                const cardsAbove = allCards.filter(c => {
+                    const r = c.getBoundingClientRect();
+                    return r.bottom < currentRect.bottom - 30;
+                });
+
+                if (cardsAbove.length > 0) {
+                    let bestCard = cardsAbove[0];
+                    let minDistance = Infinity;
+
+                    cardsAbove.forEach(c => {
+                        const r = c.getBoundingClientRect();
+                        const dx = Math.abs(r.left - currentRect.left);
+                        const dy = Math.abs(currentRect.top - r.bottom);
+                        const dist = (dx * 1.5) + dy;
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            bestCard = c;
+                        }
+                    });
+
+                    return this._setFocus(bestCard);
+                } else {
+                    // Aucune carte au-dessus : remonter sur la barre de genres
                     const activeChip = document.querySelector('.sh-genre-chip.active') || document.querySelector('.sh-genre-chip');
                     if (activeChip) return this._setFocus(activeChip);
                 }
                 return;
             }
 
+            return;
         }
     }
 
@@ -504,7 +515,6 @@ export class SpatialNavigation {
                 const playBtn = sheet.querySelector('#sh-slideup-play-btn, .sh-cinema-btn-play');
                 if (playBtn) return this._setFocus(playBtn);
             } else if (direction === 'down') {
-                // Descendre vers les saisons ou les épisodes
                 const seasonPill = sheet.querySelector('.sh-season-pill-btn.active') || sheet.querySelector('.sh-season-pill-btn');
                 if (seasonPill) return this._setFocus(seasonPill);
 
@@ -527,7 +537,6 @@ export class SpatialNavigation {
                 const tabBtn = sheet.querySelector('.sh-tab-btn.active') || sheet.querySelector('.sh-tab-btn');
                 if (tabBtn) return this._setFocus(tabBtn);
             } else if (direction === 'down') {
-                // Descendre impérativement dans les épisodes de la saison
                 const firstEp = sheet.querySelector('.sh-episodes-cards-grid .sh-episode-card') || sheet.querySelector('.sh-episode-card');
                 if (firstEp) return this._setFocus(firstEp);
             }
@@ -686,25 +695,26 @@ export class SpatialNavigation {
 
         element.classList.add('sh-tv-focused');
 
-        // Gestion du défilement : Hero = Scroll 0px strict / Cartes = Centrage
+        // 🛑 HERO SCROLL LOCK : Verrouillage strict à top 0px sans scrollIntoView
         const isHeroBtn = element.id === 'sh-hero-btn-play' || element.id === 'sh-hero-btn-trailer' || element.id === 'sh-hero-btn-details';
         if (isHeroBtn) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else if (element.classList.contains('sh-card')) {
-            const containerRow = element.closest('.sh-widget, .sh-dashboard__item, .sh-shelf, .sh-section, .sh-library-grid');
-            if (containerRow) {
-                containerRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+            return;
+        }
+
+        // Cartes média : centrage vertical et horizontal
+        if (element.classList.contains('sh-card')) {
             element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            return;
+        }
+
+        const scroller = element.closest(
+            '.sh-card-grid, .sh-carousel-scroller, .sh-cinema-body, .sh-series-episodes-container, .sh-season-pills-row'
+        );
+        if (scroller) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         } else {
-            const scroller = element.closest(
-                '.sh-card-grid, .sh-carousel-scroller, .sh-cinema-body, .sh-series-episodes-container, .sh-season-pills-row'
-            );
-            if (scroller) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-            } else {
-                element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-            }
+            element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
         }
 
         if (typeof element.focus === 'function') {
@@ -755,7 +765,7 @@ export class SpatialNavigation {
                 if (saved?.element && document.body.contains(saved.element)) target = saved.element;
             }
             if (!target) {
-                target = document.querySelector('.sh-dashboard__grid .sh-card:not(.sh-card--skeleton), .sh-card:not(.sh-card--skeleton)');
+                target = document.querySelector('.sh-card:not(.sh-card--skeleton)');
             }
             if (target) {
                 this._setFocus(target);
