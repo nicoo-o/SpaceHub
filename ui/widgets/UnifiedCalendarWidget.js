@@ -125,7 +125,8 @@ export class UnifiedCalendarWidget {
             // Injection du scroller inertiel avec chevrons
             const carousel = contentEl.querySelector('#sh-cal-carousel');
             if (carousel) {
-                GooeyCarouselScroller.attach(carousel);
+                this._scroller = this._scroller || new GooeyCarouselScroller();
+                this._scroller.attach(carousel);
             }
 
             // Clic sur une carte pour ouvrir la fiche

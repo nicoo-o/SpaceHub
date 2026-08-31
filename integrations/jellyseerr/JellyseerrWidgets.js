@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../core/utils/domUtils.js';
 
 /**
  * Ouvre le menu modal interactif de demande Jellyseerr avec profils et sélection de saisons.
@@ -91,7 +92,9 @@ function openJellyseerrRequestModal(item, jellyseerr) {
  */
 function renderJellyseerrMediaCard(item) {
     const title = item.title || item.name || 'Média';
+    const safeTitle = escapeHtml(title);
     const poster = item.posterPath ? `https://image.tmdb.org/t/p/w300${item.posterPath}` : '';
+    const safePoster = /^https?:\/\//i.test(poster) ? escapeHtml(poster) : '';
     const rawType = (item.mediaType || item.Type || item.type || '').toLowerCase();
     const isTv = rawType === 'tv' || rawType === 'series' || rawType === 'tvshow' || Boolean(item.firstAirDate) || Boolean(item.name && !item.title) || Boolean(item.seasons) || item.isSeries;
     const type = isTv ? 'tv' : 'movie';
@@ -101,26 +104,28 @@ function renderJellyseerrMediaCard(item) {
     const rating = item.voteAverage ? Number(item.voteAverage).toFixed(1) : null;
 
     return `
-        <div tabindex="0" data-nav-focusable="true" data-nav-role="card" data-nav-scope="jellyseerr" class="sh-jellyseerr-bento-card" data-media-id="${item.id}" data-media-type="${type}" data-overview="${encodeURIComponent(item.overview || '')}">
+
+        <div tabindex="0" data-nav-focusable="true" data-nav-role="card" data-nav-scope="jellyseerr" class="sh-jellyseerr-bento-card" data-media-id="${escapeHtml(String(item.id ?? ''))}" data-media-type="${type}" data-overview="${escapeHtml(encodeURIComponent(item.overview || ''))}">
             <div class="sh-jellyseerr-bento-card__poster-wrap">
-                ${poster 
-                    ? `<img class="sh-jellyseerr-bento-card__img" src="${poster}" alt="${title}" loading="lazy" />` 
+                ${safePoster
+                    ? `<img class="sh-jellyseerr-bento-card__img" src="${safePoster}" alt="${safeTitle}" loading="lazy" />`
                     : `<div class="sh-jellyseerr-bento-card__placeholder">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.8"><rect width="20" height="20" x="2" y="2" rx="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>
                        </div>`}
                 
                 <div class="sh-jellyseerr-bento-card__floating-badges">
                     <span class="sh-jellyseerr-pill-badge sh-jellyseerr-pill-badge--type">${typeLabel}</span>
-                    ${rating ? `<span class="sh-jellyseerr-pill-badge sh-jellyseerr-pill-badge--rating">⭐ ${rating}</span>` : ''}
+                    ${rating ? `<span class="sh-jellyseerr-pill-badge sh-jellyseerr-pill-badge--rating">⭐ ${escapeHtml(rating)}</span>` : ''}
                 </div>
             </div>
 
             <div class="sh-jellyseerr-bento-card__body">
                 <div class="sh-jellyseerr-bento-card__meta">
-                    <h4 class="sh-jellyseerr-bento-card__title sh-truncate" title="${title}">${title}</h4>
-                    <span class="sh-jellyseerr-bento-card__year">${year ? year : typeLabel}</span>
+                    <h4 class="sh-jellyseerr-bento-card__title sh-truncate" title="${safeTitle}">${safeTitle}</h4>
+                    <span class="sh-jellyseerr-bento-card__year">${year ? escapeHtml(year) : typeLabel}</span>
                 </div>
-                <button tabindex="0" data-nav-focusable="true" class="sh-jellyseerr-req-action-btn" data-type="${type}" data-id="${item.id}">
+
+                <button tabindex="0" data-nav-focusable="true" class="sh-jellyseerr-req-action-btn" data-type="${escapeHtml(type)}" data-id="${escapeHtml(String(item.id ?? ''))}">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     <span>Demander</span>
                 </button>
@@ -175,7 +180,7 @@ function bindJellyseerrRequestButtons(container, jellyseerr) {
             } catch (err) {
                 btn.disabled = false;
                 btn.innerHTML = `<span>Réessayer</span>`;
-                window.SpaceHub?.ui?.components?.toaster?.error(`Erreur: ${err.message || 'Impossible de faire la demande'}`);
+                window.SpaceHub?.ui?.components?.toaster?.error(`Erreur: ${escapeHtml(err.message)}`);
             }
         });
     });
@@ -1198,7 +1203,8 @@ class JellyseerrTrendingWidget {
                 return Array.from(root.querySelectorAll('.sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, [data-nav-scope="jellyseerr"]'));
             });
         }
-    
+
+
         container.innerHTML = `
             <div class="sh-widget sh-widget--jellyseerr-trending">
                 <div class="sh-widget__header">
@@ -1254,7 +1260,7 @@ class JellyseerrTrendingWidget {
                 }
             }, 60);
         } catch (err) {
-            contentEl.innerHTML = `<div class="sh-widget-empty"><p>Erreur: ${err.message}</p></div>`;
+            contentEl.innerHTML = `<div class="sh-widget-empty"><p>Erreur: ${escapeHtml(err.message)}</p></div>`;
         }
     }
 
@@ -1327,7 +1333,7 @@ class JellyseerrPopularMoviesWidget {
                 }
             }, 60);
         } catch (err) {
-            contentEl.innerHTML = `<div class="sh-widget-empty"><p>Erreur: ${err.message}</p></div>`;
+            contentEl.innerHTML = `<div class="sh-widget-empty"><p>Erreur: ${escapeHtml(err.message)}</p></div>`;
         }
     }
 
@@ -1400,7 +1406,7 @@ class JellyseerrPopularSeriesWidget {
                 }
             }, 60);
         } catch (err) {
-            contentEl.innerHTML = `<div class="sh-widget-empty"><p>Erreur: ${err.message}</p></div>`;
+            contentEl.innerHTML = `<div class="sh-widget-empty"><p>Erreur: ${escapeHtml(err.message)}</p></div>`;
         }
     }
 
@@ -1473,7 +1479,7 @@ class JellyseerrUpcomingWidget {
                 }
             }, 60);
         } catch (err) {
-            contentEl.innerHTML = `<div class="sh-widget-empty"><p>Erreur: ${err.message}</p></div>`;
+            contentEl.innerHTML = `<div class="sh-widget-empty"><p>Erreur: ${escapeHtml(err.message)}</p></div>`;
         }
     }
 
@@ -1591,7 +1597,7 @@ class JellyseerrRequestsWidget {
             });
 
         } catch (err) {
-            contentEl.innerHTML = `<div class="sh-widget-empty"><p>Erreur: ${err.message}</p></div>`;
+            contentEl.innerHTML = `<div class="sh-widget-empty"><p>Erreur: ${escapeHtml(err.message)}</p></div>`;
         }
     }
 

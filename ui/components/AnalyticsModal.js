@@ -6,6 +6,7 @@
 'use strict';
 
 import MediaAnalyticsService from '../../jellyfin/analytics/MediaAnalyticsService.js';
+import { escapeHtml } from '../../core/utils/domUtils.js';
 
 export class AnalyticsModal {
     constructor() {
@@ -21,6 +22,10 @@ export class AnalyticsModal {
         const modal = document.createElement('div');
         modal.id = 'sh-analytics-modal';
         modal.className = 'sh-analytics-modal-overlay';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-labelledby', 'sh-analytics-title');
+        const previousFocus = document.activeElement;
         modal.innerHTML = `
             <div class="sh-analytics-modal-card sh-scrollbar">
                 <div class="sh-analytics-header">
@@ -29,10 +34,10 @@ export class AnalyticsModal {
                             <span class="sh-pulse-dot"></span>
                             <span>STATISTIQUES & ACTIVITÉ PERSONNELLE</span>
                         </div>
-                        <h2 class="sh-analytics-title">Mes Statistiques SpaceHub</h2>
+                        <h2 class="sh-analytics-title" id="sh-analytics-title">Mes Statistiques SpaceHub</h2>
                         <p class="sh-analytics-subtitle">Analyse détaillée de vos habitudes de visionnage et de votre médiathèque.</p>
                     </div>
-                    <button class="sh-analytics-close-btn" id="sh-analytics-close">✕</button>
+                    <button class="sh-analytics-close-btn" id="sh-analytics-close" aria-label="Fermer les statistiques">✕</button>
                 </div>
 
                 <div class="sh-analytics-body" id="sh-analytics-content">
@@ -51,18 +56,56 @@ export class AnalyticsModal {
         document.body.appendChild(modal);
         requestAnimationFrame(() => modal.classList.add('open'));
 
+        let isClosed = false;
+        let closeTimer = null;
         const closeModal = () => {
+            if (isClosed) return;
+            isClosed = true;
             modal.classList.remove('open');
-            setTimeout(() => modal.remove(), 260);
+            if (closeTimer) clearTimeout(closeTimer);
+            closeTimer = setTimeout(() => {
+                modal.remove();
+                previousFocus?.focus?.();
+            }, 260);
         };
 
-        modal.querySelector('#sh-analytics-close')?.addEventListener('click', closeModal);
-        modal.querySelector('#sh-analytics-done')?.addEventListener('click', closeModal);
+        const onKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeAndCleanup();
+                return;
+            }
+            if (event.key === 'Tab') {
+                const focusables = Array.from(modal.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+                if (focusables.length === 0) return;
+                const first = focusables[0];
+                const last = focusables[focusables.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+        document.addEventListener('keydown', onKeyDown);
+        requestAnimationFrame(() => modal.querySelector('#sh-analytics-close')?.focus());
+        const originalCloseModal = closeModal;
+        const closeAndCleanup = () => {
+            document.removeEventListener('keydown', onKeyDown);
+            originalCloseModal();
+        };
+
+        modal.querySelector('#sh-analytics-close')?.addEventListener('click', closeAndCleanup);
+
+        modal.querySelector('#sh-analytics-done')?.addEventListener('click', closeAndCleanup);
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
+            if (e.target === modal) closeAndCleanup();
         });
 
         await this._loadStats(modal);
+        if (isClosed) return;
     }
 
     async _loadStats(modal) {
@@ -77,17 +120,17 @@ export class AnalyticsModal {
                 <div class="sh-analytics-counters-grid">
                     <div class="sh-stat-card primary">
                         <span class="sh-stat-card-icon">⏱️</span>
-                        <div class="sh-stat-card-val">${stats.totalWatchTimeHours} h</div>
-                        <div class="sh-stat-card-label">Temps Total Regardé (${stats.totalWatchTimeDays} jours)</div>
+                        <div class="sh-stat-card-val">${escapeHtml(stats.totalWatchTimeHours)} h</div>
+                        <div class="sh-stat-card-label">Temps Total Regardé (${escapeHtml(stats.totalWatchTimeDays)} jours)</div>
                     </div>
                     <div class="sh-stat-card">
                         <span class="sh-stat-card-icon">🎬</span>
-                        <div class="sh-stat-card-val">${stats.playedMoviesCount}</div>
+                        <div class="sh-stat-card-val">${escapeHtml(stats.playedMoviesCount)}</div>
                         <div class="sh-stat-card-label">Films Visionnés</div>
                     </div>
                     <div class="sh-stat-card">
                         <span class="sh-stat-card-icon">📺</span>
-                        <div class="sh-stat-card-val">${stats.playedEpisodesCount}</div>
+                        <div class="sh-stat-card-val">${escapeHtml(stats.playedEpisodesCount)}</div>
                         <div class="sh-stat-card-label">Épisodes de Séries Vus</div>
                     </div>
                 </div>
@@ -100,11 +143,11 @@ export class AnalyticsModal {
                             ${stats.topGenres.length > 0 ? stats.topGenres.map(g => `
                                 <div class="sh-genre-bar-item">
                                     <div class="sh-genre-bar-header">
-                                        <span class="sh-genre-name">${g.name}</span>
-                                        <span class="sh-genre-percent">${g.percentage}%</span>
+                                        <span class="sh-genre-name">${escapeHtml(g.name)}</span>
+                                        <span class="sh-genre-percent">${escapeHtml(g.percentage)}%</span>
                                     </div>
                                     <div class="sh-genre-progress-track">
-                                        <div class="sh-genre-progress-fill" style="width: ${g.percentage}%"></div>
+                                        <div class="sh-genre-progress-fill" style="width: ${escapeHtml(g.percentage)}%"></div>
                                     </div>
                                 </div>
                             `).join('') : '<p style="color:rgba(255,255,255,0.4); font-size:13px;">Pas encore assez de données de visionnage.</p>'}
@@ -119,21 +162,21 @@ export class AnalyticsModal {
                                 <span class="sh-quality-dot uhd"></span>
                                 <div class="sh-quality-text">
                                     <strong>4K Ultra HD</strong>
-                                    <small>${stats.qualityDistribution.uhd4k} titres (${stats.resolutionPercentages.uhd4k}%)</small>
+                                    <small>${escapeHtml(stats.qualityDistribution.uhd4k)} titres (${escapeHtml(stats.resolutionPercentages.uhd4k)}%)</small>
                                 </div>
                             </div>
                             <div class="sh-quality-pill">
                                 <span class="sh-quality-dot fhd"></span>
                                 <div class="sh-quality-text">
                                     <strong>Full HD 1080p</strong>
-                                    <small>${stats.qualityDistribution.fhd1080p} titres (${stats.resolutionPercentages.fhd1080p}%)</small>
+                                    <small>${escapeHtml(stats.qualityDistribution.fhd1080p)} titres (${escapeHtml(stats.resolutionPercentages.fhd1080p)}%)</small>
                                 </div>
                             </div>
                             <div class="sh-quality-pill">
                                 <span class="sh-quality-dot hdr"></span>
                                 <div class="sh-quality-text">
                                     <strong>Dolby Vision / HDR10</strong>
-                                    <small>${stats.qualityDistribution.hdr} titres masterisés</small>
+                                    <small>${escapeHtml(stats.qualityDistribution.hdr)} titres masterisés</small>
                                 </div>
                             </div>
                         </div>

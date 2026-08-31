@@ -69,7 +69,8 @@ function dynamicCorsProxyPlugin() {
             'access-control-allow-origin': '*',
             'access-control-allow-methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
             'access-control-allow-headers': '*',
-            'access-control-allow-credentials': 'true',
+            // 'access-control-allow-credentials' est incompatible avec origin: *
+            // (la spec CORS interdit cette combinaison — les navigateurs ignorent le header).
           });
           res.end();
           return;
@@ -114,7 +115,10 @@ function dynamicCorsProxyPlugin() {
               headers: forwardHeaders,
               // Pour les serveurs locaux LAN avec certificat auto-signé, autoriser le certificat
               rejectUnauthorized: !isLocal,
-              timeout: 15000,
+              // Les endpoints Jellyfin d'agrégation peuvent dépasser 15 s sur un NAS.
+              // Le client tente d'abord le serveur directement ; le proxy doit rester
+              // suffisamment patient lorsqu'il prend le relais pour un serveur sans CORS.
+              timeout: 30000,
             };
 
             const proxyReq = client.request(requestOptions, (proxyRes) => {
@@ -122,7 +126,9 @@ function dynamicCorsProxyPlugin() {
               responseHeaders['access-control-allow-origin'] = '*';
               responseHeaders['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
               responseHeaders['access-control-allow-headers'] = '*';
-              responseHeaders['access-control-allow-credentials'] = 'true';
+              // 'access-control-allow-credentials' est incompatible avec origin: *
+              // (la spec CORS interdit cette combinaison — les navigateurs ignorent le header).
+              delete responseHeaders['access-control-allow-credentials'];
 
               // Nettoyage des cookies de session pour compatibilité maximale
               if (responseHeaders['set-cookie']) {
@@ -211,6 +217,13 @@ export default defineConfig({
     target: 'esnext',
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          hls: ['hls.js'],
+        },
+      },
+    },
   },
 });
 

@@ -32,7 +32,6 @@ class QBittorrentService {
         if (this._eventBus) {
             this._eventBus.on('settings:changed', ({ key, value }) => {
                 if (key === 'qbittorrent.url') this.api?.setBaseUrl?.(value);
-                if (key === 'qbittorrent.apiKey') this.api?.setApiKey?.(value);
             });
         }
     }
@@ -49,7 +48,8 @@ class QBittorrentService {
         const url = this._settings?.get('qbittorrent.url') || this.api?.baseUrl;
         const key = this._settings?.get('qbittorrent.apiKey') || this.api?.apiKey;
 
-        if (!url) {
+        const explicitlyConfigured = this._settings?.has?.('qbittorrent.url') || this._settings?.has?.('qbittorrent.password');
+        if (!url || (this._settings && !explicitlyConfigured)) {
             this.status = 'unconfigured';
             this._eventBus?.emit('service:statusChanged', { id: 'qbittorrent', status: this.status });
             return this.status;
@@ -58,19 +58,17 @@ class QBittorrentService {
         this.status = 'connecting';
         const start = Date.now();
         try {
-            if (typeof this.api?.getVersion === 'function') {
-                await this.api.getVersion();
-            }
-            this.lastLatency = Date.now() - start;
-            this.status = 'connected';
-        } catch (err) {
-            this.lastLatency = Date.now() - start;
-            if (err.status === 401 || err.status === 403) {
-                this.status = 'auth_failed';
+            const result = await this.api.testConnection();
+            if (!result.success) {
+                const authFail = result.error?.includes('401') || result.error?.includes('403') || result.error?.includes('Unauthorized');
+                this.status = authFail ? 'auth_failed' : 'offline';
             } else {
-                this.status = 'offline';
+                this.status = 'connected';
             }
+        } catch (err) {
+            this.status = (err.status === 401 || err.status === 403) ? 'auth_failed' : 'offline';
         }
+        this.lastLatency = Date.now() - start;
 
         this._eventBus?.emit('service:statusChanged', { id: 'qbittorrent', status: this.status, latency: this.lastLatency });
         return this.status;

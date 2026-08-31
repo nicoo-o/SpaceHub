@@ -1,4 +1,11 @@
-﻿window.SpaceHubDefaultConfig = {
+﻿/**
+ * IMPORTANT : Ce fichier et spaceHub.minimal.js doivent rester synchronisés.
+ * Ordre de chargement requis :
+ * 1. spaceHub-default-config.js (expose window.SpaceHubDefaultConfig)
+ * 2. spaceHub.minimal.js (expose window.SpaceHubConfig)
+ * 3. spaceHub-injector.js
+ */
+window.SpaceHubDefaultConfig = {
   "SpaceHubRoot": "",
   "scripts": {
     "homeScreen": true,
@@ -36,7 +43,9 @@
         "cardFormat": "Poster",
         "order": 30,
         "minAgeInDays": null,
-        "maxAgeInDays": null
+        "maxAgeInDays": null,
+        "minPremiereDate": "",
+        "maxPremiereDate": ""
       },
       "episodes": {
         "name": "Recently Aired Episodes",
@@ -47,7 +56,9 @@
         "cardFormat": "Backdrop",
         "order": 31,
         "minAgeInDays": null,
-        "maxAgeInDays": null
+        "maxAgeInDays": null,
+        "minPremiereDate": "",
+        "maxPremiereDate": ""
       }
     },
     "trending": {
@@ -394,7 +405,8 @@
     "enableJellyseerr": false
   },
   "flattenSingleSeasonShows": {
-    "hideSingleSeasonContainer": false
+    "hideSingleSeasonContainer": false,
+    "showEpisodesOnSeriesPage": false
   },
   "skins": [],
   "defaultSkin": null,

@@ -24,6 +24,10 @@ class VideoPlayer {
         this._hls = null;
         this._currentItem = null;
         this._sourceMediaItem = null;
+        this._mediaObjectUrl = null;
+        this._closeTimer = null;
+        this._playGeneration = 0;
+        this._playbackOptions = {};
         this._progressInterval = null;
         this._idleTimer = null;
         this._isControlsVisible = true;
@@ -33,6 +37,7 @@ class VideoPlayer {
         this._volume = parseFloat(localStorage.getItem('SpaceHub_player_volume') ?? '1.0');
         this._playbackRate = parseFloat(localStorage.getItem('SpaceHub_playback_speed') ?? '1.0');
         this._subOffset = 0.0;
+        this._appliedSubOffset = 0.0;
         this._selectedAudioIndex = null;
         this._selectedSubIndex = -1;
         this._aspectRatioIndex = 0;
@@ -68,7 +73,18 @@ class VideoPlayer {
         return window.SpaceHub?.jellyfin?.api;
     }
 
-        play(item, startPositionTicks = 0) {
+    play(item, startPositionTicks = 0, options = {}) {
+        if (startPositionTicks && typeof startPositionTicks === 'object') {
+            options = startPositionTicks;
+            startPositionTicks = options.startPositionTicks ?? 0;
+        }
+        if (this._closeTimer) {
+            clearTimeout(this._closeTimer);
+            this._closeTimer = null;
+        }
+        this._playGeneration += 1;
+        this._playbackOptions = options || {};
+        this._el?.classList.remove('sh-player--exiting');
         setTimeout(() => {
             const playPause = this._el?.querySelector('#sh-btn-play-pause');
             if (playPause) playPause.focus();
@@ -83,6 +99,7 @@ class VideoPlayer {
 
         this._currentItem = item;
         this._nextEpCancelled = false;
+        this._sourceMediaItem = item;
         clearInterval(this._nextEpCountdownInterval);
         this._nextEpCountdownInterval = null;
         this._nextEpRemaining = 8;
@@ -103,11 +120,29 @@ class VideoPlayer {
 
         const serverUrl = this._auth?.getServerUrl() || '';
         const token = this._auth?.getToken() || '';
-        const startPositionSeconds = (startPositionTicks || item.UserData?.PlaybackPositionTicks || 0) / 10000000;
+        const numericStartTicks = Number(startPositionTicks || item.UserData?.PlaybackPositionTicks || 0);
+        const startPositionSeconds = Number.isFinite(numericStartTicks) && numericStartTicks > 0
+            ? numericStartTicks / 10000000
+            : 0;
+        this._playbackStartTicks = Math.round(startPositionSeconds * 10000000);
 
-        const streamUrl = `${serverUrl}/Videos/${itemId}/master.m3u8?DeviceId=${this._auth?.getDeviceId?.() || 'sh_web'}&MediaSourceId=${itemId}&VideoCodec=h264,hevc,vp9,av1&AudioCodec=aac,mp3,opus,flac&TranscodingMaxAudioChannels=6&RequireAvc=false&Tag=${item.Etag || ''}&StartTimeTicks=${Math.round(startPositionSeconds * 10000000)}&api_key=${token}`;
+        const streamParams = new URLSearchParams({
+            DeviceId: this._auth?.getDeviceId?.() || 'sh_web',
+            MediaSourceId: itemId,
+            VideoCodec: 'h264,hevc,vp9,av1',
+            AudioCodec: 'aac,mp3,opus,flac',
+            TranscodingMaxAudioChannels: '6',
+            RequireAvc: 'false',
+            Tag: item.Etag || '',
+            StartTimeTicks: String(Math.round(startPositionSeconds * 10000000))
+        });
+        const audioIndex = options.audioStreamIndex ?? options.AudioStreamIndex;
+        const subtitleIndex = options.subtitleStreamIndex ?? options.SubtitleStreamIndex;
+        if (Number.isInteger(Number(audioIndex)) && Number(audioIndex) >= 0) streamParams.set('AudioStreamIndex', String(audioIndex));
+        if (Number.isInteger(Number(subtitleIndex)) && Number(subtitleIndex) >= -1) streamParams.set('SubtitleStreamIndex', String(subtitleIndex));
+        const streamUrl = `${serverUrl}/Videos/${encodeURIComponent(itemId)}/master.m3u8?${streamParams}`;
 
-        this._setupVideoSource(streamUrl, startPositionSeconds, token);
+        this._setupVideoSource(streamUrl, startPositionSeconds, token, this._playGeneration);
         this._reportPlaybackStart();
         this._startProgressReporting();
         this._resetIdleTimer();
@@ -159,7 +194,7 @@ class VideoPlayer {
         this._prepareSeasonEpisodes(this._currentItem || item);
     }
 
-    _setupVideoSource(streamUrl, startPositionSeconds, token) {
+    _setupVideoSource(streamUrl, startPositionSeconds, token, generation = this._playGeneration) {
         const spinner = this._el?.querySelector('#sh-player-buffering-spinner');
         if (spinner) spinner.classList.add('visible');
 
@@ -177,34 +212,46 @@ class VideoPlayer {
             this._hls.attachMedia(this._video);
 
             this._hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                if (generation !== this._playGeneration || !this._video) return;
+                this._video.currentTime = startPositionSeconds;
                 this._video.playbackRate = this._playbackRate;
                 this._video.volume = this._volume;
                 this._video.play().catch(e => this._log.warn('Auto-play empêché:', e));
             });
 
             this._hls.on(Hls.Events.ERROR, (event, data) => {
-                if (data.fatal) {
+                if (data.fatal && generation === this._playGeneration) {
                     this._log.warn('Bascule sur flux direct:', data);
-                    this._fallbackDirectStream(startPositionSeconds, token);
+                    this._fallbackDirectStream(startPositionSeconds, token, generation);
                 }
             });
         } else if (this._video.canPlayType('application/vnd.apple.mpegurl')) {
-            this._video.src = streamUrl;
+            // Les éléments <video> natifs ne permettent pas d'ajouter un header d'authentification.
+            // Safari nécessite donc le mécanisme officiel api_key de Jellyfin pour les segments.
+            // Le token reste en sessionStorage et n'est jamais persisté dans les réglages.
+            const nativeUrl = token ? `${streamUrl}&api_key=${encodeURIComponent(token)}` : streamUrl;
+            this._video.src = nativeUrl;
             this._video.addEventListener('loadedmetadata', () => {
+                if (generation !== this._playGeneration || !this._video) return;
                 this._video.currentTime = startPositionSeconds;
                 this._video.playbackRate = this._playbackRate;
                 this._video.volume = this._volume;
                 this._video.play().catch(e => this._log.warn('Auto-play Safari:', e));
-            });
+            }, { once: true });
         } else {
-            this._fallbackDirectStream(startPositionSeconds, token);
+            this._fallbackDirectStream(startPositionSeconds, token, generation);
         }
     }
 
-    _fallbackDirectStream(startPositionSeconds, token) {
+    _fallbackDirectStream(startPositionSeconds, token, generation = this._playGeneration) {
+        if (generation !== this._playGeneration || !this._video) return;
         const serverUrl = this._auth?.getServerUrl() || '';
-        const itemId = this._currentItem.Id || this._currentItem.id;
-        this._video.src = `${serverUrl}/Videos/${itemId}/stream?static=true&api_key=${token}`;
+        const itemId = this._currentItem?.Id || this._currentItem?.id;
+        if (!serverUrl || !itemId) return;
+        // Le flux natif ne peut pas recevoir de header : api_key est le seul fallback
+        // compatible avec Safari lorsque Jellyfin n'a pas de cookie de session exploitable.
+        const tokenQuery = token ? `&api_key=${encodeURIComponent(token)}` : '';
+        this._video.src = `${serverUrl}/Videos/${encodeURIComponent(itemId)}/stream?static=true${tokenQuery}`;
         this._video.currentTime = startPositionSeconds;
         this._video.playbackRate = this._playbackRate;
         this._video.volume = this._volume;
@@ -710,9 +757,15 @@ class VideoPlayer {
         video.addEventListener('progress', () => this._onBufferProgress());
 
         // Scrubbing Timeline
-        const trackWrap = el.querySelector('#sh-timeline-track');
+        // Le markup expose `sh-player-timeline-focus` (et non `sh-timeline-track`).
+        // Garder une garde ici afin qu'un skin incomplet ne fasse pas tomber tout le player.
+        const trackWrap = el.querySelector('#sh-player-timeline-focus');
         const tooltip = el.querySelector('#sh-timeline-tooltip');
         const tooltipTime = el.querySelector('#sh-tooltip-time');
+        if (!trackWrap) {
+            this._log.warn('Timeline indisponible dans le player.');
+            return;
+        }
 
         const onScrubMove = (e) => {
             const rect = trackWrap.getBoundingClientRect();
@@ -887,10 +940,12 @@ class VideoPlayer {
                 audioList.querySelectorAll('.sh-popover-item').forEach(el => {
                     el.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        this._selectedAudioIndex = parseInt(el.dataset.audioIdx, 10);
+                        const selectedIndex = parseInt(el.dataset.audioIdx, 10);
+                        this._selectedAudioIndex = selectedIndex;
                         this._renderAudioSubsPopover();
                         const title = el.querySelector('.sh-popover-item-name')?.textContent || 'Audio';
                         this._showFlashOSD('🔊', title);
+                        this._reloadCurrentSourceWithOptions({ audioStreamIndex: selectedIndex });
                     });
                 });
             }
@@ -924,10 +979,12 @@ class VideoPlayer {
             subsList.querySelectorAll('.sh-popover-item').forEach(el => {
                 el.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    this._selectedSubIndex = parseInt(el.dataset.subIdx, 10);
+                    const selectedIndex = parseInt(el.dataset.subIdx, 10);
+                    this._selectedSubIndex = selectedIndex;
                     this._renderAudioSubsPopover();
                     const title = el.querySelector('.sh-popover-item-name')?.textContent || 'Sous-titre';
                     this._showFlashOSD('💬', `Sous-titres : ${title}`);
+                    this._reloadCurrentSourceWithOptions({ subtitleStreamIndex: selectedIndex });
                 });
             });
         }
@@ -999,7 +1056,7 @@ class VideoPlayer {
             const isCur = ep.Id === currentId;
             const sNum = String(ep.ParentIndexNumber || 1).padStart(2, '0');
             const eNum = String(ep.IndexNumber || 1).padStart(2, '0');
-            const imgUrl = this._api?.getImageUrl(ep.Id, 'Primary', { maxWidth: 200, maxHeight: 112 }) || '';
+            const imgUrl = this._escapeUrl(this._api?.getImageUrl(ep.Id, 'Primary', { maxWidth: 200, maxHeight: 112 }) || '');
 
             return `
                 <div class="sh-popover-episode-row ${isCur ? 'selected' : ''}" data-ep-id="${ep.Id}">
@@ -1049,18 +1106,18 @@ class VideoPlayer {
     }
 
     _applySubtitleOffset() {
-        if (this._video?.textTracks) {
-            for (let i = 0; i < this._video.textTracks.length; i++) {
-                const track = this._video.textTracks[i];
-                if (track.cues) {
-                    for (let j = 0; j < track.cues.length; j++) {
-                        const cue = track.cues[j];
-                        cue.startTime += this._subOffset;
-                        cue.endTime += this._subOffset;
-                    }
-                }
+        const delta = this._subOffset - this._appliedSubOffset;
+        if (!delta || !this._video?.textTracks) return;
+        for (let i = 0; i < this._video.textTracks.length; i++) {
+            const track = this._video.textTracks[i];
+            if (!track.cues) continue;
+            for (let j = 0; j < track.cues.length; j++) {
+                const cue = track.cues[j];
+                cue.startTime += delta;
+                cue.endTime += delta;
             }
         }
+        this._appliedSubOffset = this._subOffset;
     }
 
     _openRemoteSubtitleModal() {
@@ -1132,7 +1189,7 @@ class VideoPlayer {
                     });
                 });
             } catch (err) {
-                resultsEl.innerHTML = `<p style="color:var(--sh-color-danger); font-size:13px;">Erreur : ${err.message}</p>`;
+                resultsEl.innerHTML = `<p style="color:var(--sh-color-danger); font-size:13px;">Erreur : ${this._escape(err.message)}</p>`;
             }
         });
     }
@@ -1155,25 +1212,21 @@ class VideoPlayer {
                     endSec = (chapters[i + 1].StartPositionTicks || 0) / 10000000;
                 }
                 if (!endSec || endSec <= startSec) {
-                    endSec = startSec + 85;
+                    // Sans borne de fin fournie par Jellyfin, l'intervalle est ambigu.
+                    // Ne pas inventer une durée d'introduction côté client.
+                    continue;
                 }
                 return { start: startSec, end: endSec };
             }
         }
-        // Fallback pour les séries sans chapitres explicites : fenêtre d'intro standard
-        if (item?.Type === 'Episode' || item?.SeriesName) {
-            return { start: 15, end: 100 };
-        }
+        // Sans chapitre explicite, aucune introduction ne peut être identifiée de manière fiable.
         return null;
     }
 
     _performSkipIntro() {
         const interval = this._getIntroInterval(this._currentItem);
-        if (interval && this._video) {
-            this._video.currentTime = interval.end;
-        } else if (this._video) {
-            this._video.currentTime += 85;
-        }
+        if (!interval || !this._video) return;
+        this._video.currentTime = Math.min(this._video.duration || interval.end, interval.end);
         this._showFlashOSD('⏭️', 'Introduction passée');
         this._el?.querySelector('#sh-smart-skip-btn')?.classList.remove('visible');
     }
@@ -1228,32 +1281,38 @@ class VideoPlayer {
         }
     }
 
-    _startNextEpCountdown() {
+    _showNextEpCard() {
         const card = this._el?.querySelector('#sh-next-ep-card');
-        if (!card || card.classList.contains('visible') || this._nextEpCancelled) return;
+        if (!card || !this._nextEpisode || this._nextEpCancelled) return;
 
         card.classList.add('visible');
         const img = card.querySelector('#sh-next-ep-img');
         const title = card.querySelector('#sh-next-ep-title');
-        const secTxt = card.querySelector('#sh-next-ep-sec');
-
-        if (this._nextEpisode) {
-            title.textContent = `S${String(this._nextEpisode.ParentIndexNumber || 1).padStart(2, '0')}E${String(this._nextEpisode.IndexNumber || 1).padStart(2, '0')} · « ${this._nextEpisode.Name} »`;
-            if (this._api) {
-                img.src = this._api.getImageUrl(this._nextEpisode.Id, 'Primary', { maxWidth: 240, maxHeight: 135 });
-            }
+        if (title) {
+            title.textContent = `S${String(this._nextEpisode.ParentIndexNumber || 1).padStart(2, '0')}E${String(this._nextEpisode.IndexNumber || 1).padStart(2, '0')} · « ${this._nextEpisode.Name || 'Épisode suivant'} »`;
         }
+        if (img && this._api) {
+            img.src = this._api.getImageUrl(this._nextEpisode.Id, 'Primary', { maxWidth: 240, maxHeight: 135 });
+        }
+    }
 
+    _startNextEpCountdown() {
+        const card = this._el?.querySelector('#sh-next-ep-card');
+        if (!card || !this._nextEpisode || this._nextEpCancelled) return;
+
+        this._showNextEpCard();
+        const secTxt = card.querySelector('#sh-next-ep-sec');
         this._nextEpRemaining = 5;
         secTxt.textContent = '5';
 
         if (this._nextEpCountdownInterval) clearInterval(this._nextEpCountdownInterval);
         this._nextEpCountdownInterval = setInterval(() => {
             this._nextEpRemaining--;
-            secTxt.textContent = String(this._nextEpRemaining);
+            if (secTxt) secTxt.textContent = String(this._nextEpRemaining);
             if (this._nextEpRemaining <= 0) {
                 clearInterval(this._nextEpCountdownInterval);
-                if (this._nextEpisode) this.play(this._nextEpisode);
+                this._nextEpCountdownInterval = null;
+                if (this._nextEpisode && !this._nextEpCancelled) this.play(this._nextEpisode);
             }
         }, 1000);
     }
@@ -1265,6 +1324,10 @@ class VideoPlayer {
     }
 
     _hideNextEpCard() {
+        if (this._nextEpCountdownInterval) {
+            clearInterval(this._nextEpCountdownInterval);
+            this._nextEpCountdownInterval = null;
+        }
         this._el?.querySelector('#sh-next-ep-card')?.classList.remove('visible');
     }
 
@@ -1577,6 +1640,59 @@ class VideoPlayer {
         }
     }
 
+    _reloadCurrentSourceWithOptions(partialOptions = {}) {
+        if (!this._currentItem || !this._video) return;
+        const positionTicks = Math.round((this._video.currentTime || 0) * 10000000);
+        const options = { ...this._playbackOptions, ...partialOptions };
+        this.play(this._currentItem, positionTicks, options);
+    }
+
+    _togglePlayPause() {
+        if (!this._video) return;
+        if (this._video.paused) {
+            this._video.play().catch(error => this._log.warn('Lecture impossible:', error));
+        } else {
+            this._video.pause();
+        }
+    }
+
+    async _resolveAndPlaySeries(item) {
+        const seriesId = item?.Id || item?.id;
+        if (!seriesId || !this._api) return;
+        try {
+            const next = await this._api.getNextUp?.(seriesId);
+            if (next) {
+                this.play(next);
+                return;
+            }
+            const episodes = await this._api.getEpisodes?.(seriesId);
+            const first = Array.isArray(episodes)
+                ? episodes.find(episode => !episode.UserData?.Played) || episodes[0]
+                : null;
+            if (first) this.play(first);
+            else this._log.warn('Aucun épisode disponible pour cette série.');
+        } catch (error) {
+            this._log.warn('Impossible de résoudre le prochain épisode:', error);
+        }
+    }
+
+    _renderDrawerContent() {
+        this._renderPopoversContent();
+        this._updateEpisodeNavButtons();
+    }
+
+    _escapeUrl(value) {
+        const url = String(value || '').trim();
+        if (!url) return '';
+        try {
+            const parsed = new URL(url, window.location.origin);
+            if (!['http:', 'https:'].includes(parsed.protocol)) return '';
+            return parsed.href.replace(/["'\\]/g, character => `\\${character}`);
+        } catch {
+            return '';
+        }
+    }
+
     _setVolumeDelta(delta) {
         if (!this._video) return;
         const newVol = Math.max(0, Math.min(1, this._video.volume + delta));
@@ -1599,7 +1715,7 @@ class VideoPlayer {
             body: JSON.stringify({
                 ItemId: itemId,
                 PlayMethod: 'DirectStream',
-                PositionTicks: 0
+                PositionTicks: this._playbackStartTicks || Math.round((this._video?.currentTime || 0) * 10000000)
             })
         }).catch(e => this._log.debug('Report play start failed:', e));
     }
@@ -1716,43 +1832,60 @@ class VideoPlayer {
         if (this._nextEpCountdownInterval) clearInterval(this._nextEpCountdownInterval);
         if (this._osdTimer) clearTimeout(this._osdTimer);
 
-        if (this._keyHandler) document.removeEventListener('keydown', this._keyHandler);
+        if (this._keyHandler) {
+            document.removeEventListener('keydown', this._keyHandler);
+            this._keyHandler = null;
+        }
 
         const elToClose = this._el;
+        const videoToClose = this._video;
+        const hlsToClose = this._hls;
+        const mediaObjectUrlToClose = this._mediaObjectUrl;
+        this._playGeneration += 1;
+        const sourceItem = this._sourceMediaItem || this._currentItem;
         elToClose.classList.add('sh-player--exiting');
 
-        setTimeout(() => {
-            if (this._hls) {
-                this._hls.destroy();
-                this._hls = null;
-            }
+        this._hls = null;
+        this._mediaObjectUrl = null;
+        this._el = null;
+        this._video = null;
+        this._currentItem = null;
+        this._sourceMediaItem = null;
+        this._playbackOptions = {};
+        this._playbackStartTicks = 0;
+        this._appliedSubOffset = 0.0;
 
-            if (this._video) {
-                this._video.pause();
-                this._video.src = '';
-                this._video.load();
+        this._closeTimer = setTimeout(() => {
+            this._closeTimer = null;
+            hlsToClose?.destroy?.();
+            if (videoToClose) {
+                videoToClose.pause();
+                videoToClose.removeAttribute('src');
+                videoToClose.load();
             }
+            if (mediaObjectUrlToClose) URL.revokeObjectURL(mediaObjectUrlToClose);
 
             if (exitFullscreen && document.fullscreenElement) {
                 document.exitFullscreen().catch(() => {});
             }
 
-            document.body.classList.remove('sh-cinema-active');
+            const anotherPlayerIsActive = Boolean(document.querySelector('#sh-grand-cinema-player'));
+            if (!anotherPlayerIsActive) document.body.classList.remove('sh-cinema-active');
             elToClose.remove();
 
-            // Retour en cascade : réouverture automatique de la fiche média (menu flottant)
-            const sourceItem = this._sourceMediaItem || this._currentItem;
+            // Ne pas rouvrir la fiche si un nouveau player a déjà remplacé celui-ci.
+            if (anotherPlayerIsActive) {
+                this._closeTimer = null;
+                return;
+            }
             if (sourceItem && window.SpaceHub?.ui?.modalSlideUpSheet) {
                 window.SpaceHub.ui.modalSlideUpSheet.open(sourceItem);
             } else {
                 const nav = window.SpaceHub?.spatialNav || window.SpaceHub?.ui?.appLayout?._spatialNav;
                 nav?.onModalClosed?.();
             }
+            this._closeTimer = null;
         }, 320);
-
-        this._el = null;
-        this._video = null;
-        this._currentItem = null;
     }
 
     _formatTime(seconds) {

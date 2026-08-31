@@ -1,24 +1,18 @@
 {
   "name": "spacehub",
   "version": "1.0.0",
-  "description": "SpaceHub — Standalone Unified Jellyfin Media Center & Servarr Client",
+  "description": "SpaceHub — Client web unifié pour Jellyfin & l'écosystème Servarr (Sonarr, Radarr, Bazarr, Prowlarr, Jellyseerr, qBittorrent)",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:smoke": "node scripts/smoke-tests.mjs",
+    "lint": "node scripts/syntax-check.mjs"
   },
-  "keywords": [
-    "jellyfin",
-    "client",
-    "media-center",
-    "sonarr",
-    "radarr",
-    "prowlarr",
-    "bazarr",
-    "jellyseerr",
-    "qbittorrent"
-  ],
+  "keywords": ["jellyfin", "sonarr", "radarr", "media", "homelab", "servarr"],
+  "repository": { "type": "git", "url": "https://github.com/nicoo-o/SpaceHub.git" },
+  "bugs": { "url": "https://github.com/nicoo-o/SpaceHub/issues" },
   "author": "SpaceHub Team",
   "license": "GPL-3.0",
   "devDependencies": {

@@ -5,6 +5,13 @@
 (function() {
     'use strict';
 
+// Shared XSS-safe escaping (mirrors core/utils/domUtils.escapeHtml)
+function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = String(str);
+    return d.innerHTML;
+}
+
     console.log('[SpaceHub Configuration] Initializing...');
 
     const MODAL_ID = 'SpaceHubConfigModal';
@@ -3027,7 +3034,7 @@
                         }
                     } catch (error) {
                         console.error('[SpaceHub Configuration] Error rendering preview:', error);
-                        container.innerHTML = `<div style="color: #ff6b6b; text-align: center;">Failed to load preview: ${error?.message || error}</div>`;
+                        container.innerHTML = `<div style="color: #ff6b6b; text-align: center;">Failed to load preview: ${escapeHtml(String(error?.message || error))}</div>`;
                     }
                 }
             });

@@ -21,6 +21,7 @@ export class Router {
         this._routes = new Map();
         this._currentRoute = 'dashboard';
         this._history = [];
+        this._keydownHandler = null;
 
         this._setupKeyboardNavigation();
         this._log.info('Router centralisé initialisé.');
@@ -43,12 +44,12 @@ export class Router {
      */
     async navigate(routeName, params = {}) {
         const from = this._currentRoute;
-        const target = this._routes.get(routeName);
 
-        if (!target && routeName !== 'dashboard') {
+        if (!this._routes.has(routeName) && routeName !== 'dashboard') {
             this._log.warn(`Route inconnue : "${routeName}". Redirection vers "dashboard".`);
             routeName = 'dashboard';
         }
+        const target = this._routes.get(routeName);
 
         const prevHandler = this._routes.get(from);
         if (prevHandler && typeof prevHandler.close === 'function') {
@@ -56,6 +57,9 @@ export class Router {
         }
 
         this._currentRoute = routeName;
+        if (this._history.length >= 100) {
+            this._history.shift(); // retire l'entrée la plus ancienne
+        }
         this._history.push({ route: routeName, params, timestamp: Date.now() });
 
         if (target) {
@@ -82,7 +86,7 @@ export class Router {
     _setupKeyboardNavigation() {
         if (typeof window === 'undefined') return;
 
-        window.addEventListener('keydown', (e) => {
+        this._keydownHandler = (e) => {
             // Ignorer si l'utilisateur saisit dans un champ de formulaire
             const activeEl = document.activeElement;
             const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
@@ -109,7 +113,18 @@ export class Router {
             if (e.key === 'Escape') {
                 this._eventBus?.emit('navigation:back');
             }
-        });
+        };
+        window.addEventListener('keydown', this._keydownHandler);
+    }
+
+    destroy() {
+        if (this._keydownHandler) {
+            window.removeEventListener('keydown', this._keydownHandler);
+            this._keydownHandler = null;
+        }
+        this._routes.clear();
+        this._history = [];
+        this._log.info('Router détruit.');
     }
 }
 

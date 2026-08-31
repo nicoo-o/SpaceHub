@@ -803,11 +803,11 @@
     
     // Spotlight configuration
     const spotlightConfig = homeScreenConfig.spotlight || {};
-    const spotlightAutoPlay = spotlightConfig.autoPlay || true;
+    const spotlightAutoPlay = spotlightConfig.autoPlay ?? true;
     const spotlightInterval = spotlightConfig.interval || 5000;
-    const spotlightShowDots = spotlightConfig.showDots || true;
-    const spotlightShowNavButtons = spotlightConfig.showNavButtons || true;
-    const spotlightShowClearArt = spotlightConfig.showClearArt || true;
+    const spotlightShowDots = spotlightConfig.showDots ?? true;
+    const spotlightShowNavButtons = spotlightConfig.showNavButtons ?? true;
+    const spotlightShowClearArt = spotlightConfig.showClearArt ?? true;
     
     // Custom home sections configuration
     const customHomeSections = homeScreenConfig.customSections || [];

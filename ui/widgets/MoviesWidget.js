@@ -77,7 +77,7 @@ class MoviesWidget {
                         Limit: 48, 
                         SortBy: 'DateCreated', 
                         SortOrder: 'Descending',
-                        Fields: 'PrimaryImageAspectRatio,Overview,Genres,CommunityRating,CriticRating,UserData,RunTimeTicks,ProductionYear'
+                        Fields: 'PrimaryImageAspectRatio,Overview,Genres,CommunityRating,CriticRating,UserData,RunTimeTicks,ProductionYear,ProviderIds'
                     });
                     items = response?.Items || (Array.isArray(response) ? response : []);
                 } catch (e) {
@@ -94,7 +94,7 @@ class MoviesWidget {
                         Limit: 48,
                         SortBy: 'DateCreated',
                         SortOrder: 'Descending',
-                        Fields: 'PrimaryImageAspectRatio,Overview,Genres,CommunityRating,CriticRating,UserData,RunTimeTicks,ProductionYear'
+                        Fields: 'PrimaryImageAspectRatio,Overview,Genres,CommunityRating,CriticRating,UserData,RunTimeTicks,ProductionYear,ProviderIds'
                     });
                     items = rawRes?.Items || (Array.isArray(rawRes) ? rawRes : []);
                 } catch (e) {

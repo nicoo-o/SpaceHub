@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../core/utils/domUtils.js';
 /**
  * SpaceHub — Prowlarr Dashboard Widgets
  * Version: 0.8.0
@@ -101,7 +102,7 @@ class ProwlarrStatusWidget {
         } catch (err) {
             contentEl.innerHTML = `
                 <div class="sh-widget-error">
-                    <p>Impossible de joindre Prowlarr (${err.message}). Vérifiez vos identifiants.</p>
+                    <p>Impossible de joindre Prowlarr (${escapeHtml(err.message)}). Vérifiez vos identifiants.</p>
                 </div>
             `;
         }

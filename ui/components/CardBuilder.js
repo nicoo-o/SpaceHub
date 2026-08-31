@@ -26,12 +26,18 @@ class CardBuilder {
         this._injectContextMenu();
         this._injectPopovers();
         this._setupGlobalHoverDelegation();
+        this._setupGlobalFocusDelegation();
         this._log.info('Initialisé avec capsule ultra-compacte et détection d intention.');
     }
 
     // ─── SVG Icons Officielles ───────────────────────────────────────────────────
 
     getRtIconSvg(score) {
+        if (!Number.isFinite(Number(score))) {
+            // Aucun score critique Jellyfin : ne pas afficher d'icône ou de statut inventé.
+            return '<span class="sh-score-placeholder" aria-hidden="true"></span>';
+        }
+        score = Number(score);
         if (score >= 75) {
             // Certified Fresh
             return `<svg class="sh-rt-svg" width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#00C05B"/></svg>`;
@@ -59,7 +65,7 @@ class CardBuilder {
         const {
             id, title, subtitle = '', imageUrl = '',
             type = 'poster', itemType = '', badge, progress, rating,
-            rottenScore, codec = '4K DV • ATMOS', isFolder = false,
+            rottenScore, codec = '', isFolder = false,
             isNew = false, remainingMin, isFavorite = false, onClick, onContextMenu,
         } = options;
 
@@ -72,39 +78,34 @@ class CardBuilder {
         card.setAttribute('data-nav-role', 'card');
         card.setAttribute('aria-label', title);
 
+        const rawItem = options.rawItem || {};
+        const rawGenres = Array.isArray(rawItem.Genres)
+            ? rawItem.Genres
+            : (typeof rawItem.Genres === 'string' ? rawItem.Genres.split(/[,•/]/).map(value => value.trim()) : []);
+        if (rawGenres.length > 0) card.dataset.genres = rawGenres.join('|');
+
         const fallbackSvg = this._generateSvgPoster(title, type);
         const encodedFallback = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(fallbackSvg)}`;
 
         // Exclusion stricte des notes pour les dossiers racines, bibliothèques et playlists
-        const isFolderItem = isFolder || (rottenScore === null && rating === null) ||
-            ['CollectionFolder', 'UserView', 'Folder', 'Playlist', 'Channel'].includes(itemType);
+        const isFolderItem = isFolder || ['CollectionFolder', 'UserView', 'Folder', 'Playlist', 'Channel'].includes(itemType);
 
-        const hasScores = !isFolderItem && (
-            (rottenScore !== null && rottenScore !== undefined) ||
-            (rating !== null && rating !== undefined)
-        );
+        const numericRating = Number(rating);
+        const hasRating = !isFolderItem && Number.isFinite(numericRating) && numericRating >= 0 && numericRating <= 10;
+        const displayRating = hasRating ? numericRating.toFixed(1) : null;
 
-        let rtScore = null;
-        let imdbScore = null;
-        let critic = null;
+        // 🍅 Note presse depuis Jellyfin (CriticRating, pourcentage 0-100)
+        const criticScoreValue = Number(rottenScore);
+        const hasCriticScore = !isFolderItem && Number.isFinite(criticScoreValue) && criticScoreValue > 0;
 
-        if (hasScores) {
-            if (rottenScore !== null && rottenScore !== undefined) {
-                rtScore = Math.round(Number(rottenScore));
-            } else if (rating !== null && rating !== undefined) {
-                rtScore = Math.min(99, Math.max(55, Math.round(Number(rating) * 10 + 2)));
-            } else {
-                rtScore = 88;
-            }
-
-            if (rating !== null && rating !== undefined) {
-                imdbScore = Number(rating).toFixed(1);
-            } else {
-                imdbScore = (rtScore / 10).toFixed(1);
-            }
-
-            critic = this.getCriticData(options.rawItem || { Name: title, title, Genres: [], ProductionYear: '' }, rtScore, imdbScore);
-            card._criticData = critic; // Attaché directement pour la délégation de survol
+        if (!isFolderItem && (hasRating || hasCriticScore)) {
+            card._criticData = {
+                rtScore: hasCriticScore ? Math.round(criticScoreValue) : null,
+                imdb: null,
+                imdbVotes: null,
+                metacritic: null,
+                sourceLabel: hasCriticScore ? 'Jellyfin' : null
+            };
         }
 
         card.innerHTML = `
@@ -120,7 +121,7 @@ class CardBuilder {
                 ${isNew ? `<span class="sh-card__badge sh-card__badge--new">NEW</span>` : ''}
 
                 <!-- Master Codec Badge (Infuse Pro style) -->
-                <div class="sh-card__codec-tag">${this._escape(codec)}</div>
+                ${codec ? `<div class="sh-card__codec-tag">${this._escape(codec)}</div>` : ''}
 
                 <!-- Liquid Action Pill (Apparaît au survol en bas de carte) -->
                 ${(() => {
@@ -162,18 +163,12 @@ class CardBuilder {
                     : ''}
             </div>
 
-            <!-- Dual Score Micro-Capsule Délicate (Films, séries, animés uniquement) -->
-            ${hasScores && critic ? `
-            <div class="sh-card__dual-score" data-rt="${rtScore}">
-                <button class="sh-score-btn sh-score-rt" aria-label="Critiques Rotten Tomatoes" type="button" title="Consensus et avis Rotten Tomatoes">
-                    ${this.getRtIconSvg(rtScore)}
-                    <span class="sh-score-val">${rtScore}%</span>
-                </button>
-                <span class="sh-score-sep">│</span>
-                <button class="sh-score-btn sh-score-imdb sh-score-imdb--stars" aria-label="Note spectateurs IMDb" type="button" title="Note et répartition des votes IMDb">
-                    ${this.getImdbIconSvg()}
-                    <span class="sh-score-val">${imdbScore}</span>
-                </button>
+            <!-- Capsule de notes : Jellyfin ★ + 🍅 presse (CriticRating) + notes externes asynchrones -->
+            ${!isFolderItem ? `
+            <div class="sh-card__dual-score" aria-hidden="true">
+                ${hasRating ? `<span class="sh-score-btn sh-score-jellyfin" title="Note Jellyfin"><span aria-hidden="true">★</span><span class="sh-score-val">${displayRating}</span></span>` : ''}
+                ${hasCriticScore ? `<span class="sh-score-btn sh-score-rt" title="Note presse (Jellyfin)">${this.getRtIconSvg(criticScoreValue)}<span class="sh-score-val">${Math.round(criticScoreValue)}%</span></span>` : ''}
+                <span class="sh-score-ext" data-item-id="${this._escape(id || '')}"></span>
             </div>
             ` : ''}
 
@@ -315,7 +310,79 @@ class CardBuilder {
             if (onContextMenu) onContextMenu(e);
         });
 
+        // Chargement asynchrone des notes externes (RT / IMDb / Metacritic)
+        if (!isFolderItem) {
+            this._attachExternalRatings(card, rawItem);
+        }
+
         return card;
+    }
+
+    _attachExternalRatings(card, rawItem) {
+        if (!rawItem?.Id) return;
+        const ratingCache = window.SpaceHub?.core?.ratingCache;
+        if (!ratingCache) return;
+        card._rawItem = rawItem;
+
+        // Rafraîchissement des cartes déjà montées après enregistrement d'une clé OMDb
+        if (!this._ratingsRefreshBound) {
+            this._ratingsRefreshBound = true;
+            document.addEventListener('spacehub:ratings-updated', () => {
+                document.querySelectorAll('.sh-card').forEach(c => {
+                    if (!c._rawItem || !c.querySelector('.sh-score-ext')) return;
+                    const ext = c.querySelector('.sh-score-ext');
+                    ext.innerHTML = '';
+                    this._attachExternalRatings(c, c._rawItem);
+                });
+            });
+        }
+
+        const extEl = card.querySelector('.sh-score-ext');
+        const capsule = card.querySelector('.sh-card__dual-score');
+        if (!extEl || !capsule) return;
+
+        ratingCache.get(rawItem).then(ratings => {
+            if (!document.contains(card)) return;
+            // Mise à jour du badge 🍅 Jellyfin avec la valeur OMDb — pas de doublon
+            const existingRtBtn = capsule.querySelector('.sh-score-rt');
+            if (ratings.rt != null && existingRtBtn) {
+                const valEl = existingRtBtn.querySelector('.sh-score-val');
+                if (valEl) valEl.textContent = `${ratings.rt}%`;
+                existingRtBtn.title = 'Rotten Tomatoes (OMDb)';
+            }
+            // Hiérarchie : dès que l'OMDb fournit un score IMDb, le ★ Jellyfin fait doublon → retiré.
+            // Sans clé / sans données OMDb, le ★ Jellyfin reste le repli.
+            const jellyfinStar = capsule.querySelector('.sh-score-jellyfin');
+            if (jellyfinStar && ratings.imdb != null) jellyfinStar.remove();
+
+            let html = '';
+            if (ratings.rt != null && !capsule.querySelector('.sh-score-rt')) {
+                html += `<span class="sh-score-btn sh-score-rt" title="Rotten Tomatoes (OMDb)">${this.getRtIconSvg(ratings.rt)}<span class="sh-score-val">${ratings.rt}%</span></span>`;
+            }
+            if (ratings.imdb != null) {
+                const imdbTitle = ratings.isSeriesFallback ? 'Note de la série — IMDb (OMDb)' : 'IMDb (OMDb)';
+                html += `<span class="sh-score-btn sh-score-imdb" title="${imdbTitle}">${this.getImdbIconSvg()}<span class="sh-score-val">${ratings.imdb.toFixed(1)}</span></span>`;
+            }
+            if (ratings.metacritic != null) {
+                html += `<span class="sh-score-btn sh-score-mc" title="Metacritic (OMDb)"><span class="sh-score-val">MC ${ratings.metacritic}</span></span>`;
+            }
+            if (html) {
+                extEl.innerHTML = html;
+            }
+            // Fusion des données réelles : Jellyfin 🍅 (base) + OMDb (IMDb/MC/RT)
+            const base = card._criticData || {};
+            card._criticData = {
+                rtScore: ratings.rt ?? base.rtScore ?? null,
+                imdb: ratings.imdb ?? null,
+                imdbVotes: ratings.imdbVotes ?? null,
+                metacritic: ratings.metacritic ?? null,
+                sourceLabel: ratings.rt != null ? 'OMDb' : (base.sourceLabel || null),
+                isSeriesFallback: ratings.isSeriesFallback ?? base.isSeriesFallback ?? false
+            };
+            if (!html && !capsule.querySelector('.sh-score-jellyfin') && !capsule.querySelector('.sh-score-rt')) {
+                capsule.style.display = 'none';
+            }
+        }).catch(() => {});
     }
 
     _setupGlobalHoverDelegation() {
@@ -337,7 +404,7 @@ class CardBuilder {
 
             if (rtBtn) {
                 if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
-                const containerEl = rtBtn.closest('.sh-card') || rtBtn.closest('.sh-hero-meta') || rtBtn.closest('.sh-cinema-hero-details') || rtBtn.closest('.sh-saga-movie-card') || rtBtn.closest('.sh-bento-card');
+                const containerEl = rtBtn.closest('.sh-card') || rtBtn.closest('.sh-hero-meta') || rtBtn.closest('.sh-cinema-hero-details') || rtBtn.closest('.sh-cinema-meta-line') || rtBtn.closest('.sh-saga-movie-card') || rtBtn.closest('.sh-bento-card');
                 const criticData = containerEl?._criticData || this._currentItemCriticData;
                 
                 if (criticData) {
@@ -353,7 +420,7 @@ class CardBuilder {
 
             if (imdbBtn) {
                 if (this._popoverHideTimer) clearTimeout(this._popoverHideTimer);
-                const containerEl = imdbBtn.closest('.sh-card') || imdbBtn.closest('.sh-hero-meta') || imdbBtn.closest('.sh-cinema-hero-details') || imdbBtn.closest('.sh-saga-movie-card') || imdbBtn.closest('.sh-bento-card');
+                const containerEl = imdbBtn.closest('.sh-card') || imdbBtn.closest('.sh-hero-meta') || imdbBtn.closest('.sh-cinema-hero-details') || imdbBtn.closest('.sh-cinema-meta-line') || imdbBtn.closest('.sh-saga-movie-card') || imdbBtn.closest('.sh-bento-card');
                 const criticData = containerEl?._criticData || this._currentItemCriticData;
                 
                 if (criticData) {
@@ -392,7 +459,70 @@ class CardBuilder {
         }, { passive: true });
     }
 
-    getCriticData(itemOrTitle, rtScore = 88, imdb = 8.2, genresInput = null, yearInput = null) {
+    /**
+     * Délégation globale du FOCUS (mode TV / télécommande) : les popovers 🍅/IMDb
+     * s'ouvrent aussi quand une carte, le Hero ou la ligne de notes d'une fiche
+     * reçoit le focus — aucun survol souris requis. Une stabilisation de 320 ms
+     * évite le scintillement pendant le défilement rapide des rails.
+     */
+    _setupGlobalFocusDelegation() {
+        if (this._hasGlobalFocusSetup) return;
+        this._hasGlobalFocusSetup = true;
+        const CONTAINER_SELECTOR = '.sh-card, .sh-hero-meta, .sh-hero-container, .sh-cinema-hero-details, .sh-cinema-meta-line, .sh-saga-movie-card, .sh-bento-card';
+        let intentTimer = null;
+        let lastFocusedContainer = null;
+
+        const handleFocusCandidate = (target) => {
+            // Focus à l'intérieur d'un popover : géré par le survol, ne pas interférer
+            if (!target || target.closest?.('.sh-global-popover')) return;
+
+            const containerEl = target.closest?.(CONTAINER_SELECTOR) || null;
+            if (intentTimer) clearTimeout(intentTimer);
+
+            // Changement de conteneur ou sortie : masquer immédiatement l'ancien popover
+            if (!containerEl || containerEl !== lastFocusedContainer) {
+                this._hideRTPopover(true);
+                this._hideIMDbPopover(true);
+            }
+            lastFocusedContainer = containerEl;
+
+            if (!containerEl) return;
+            const criticData = containerEl._criticData || this._currentItemCriticData;
+            if (!criticData) return;
+
+            // Stabilisation : n'affiche que si le focus reste dans ce conteneur
+            intentTimer = setTimeout(() => {
+                if (!document.activeElement || !containerEl.contains(document.activeElement)) return;
+                const rtBtn = containerEl.querySelector('.sh-score-rt');
+                const imdbBtn = containerEl.querySelector('.sh-score-imdb');
+                if (rtBtn) {
+                    this._hideIMDbPopover(true);
+                    this.showRTPopover(rtBtn, criticData);
+                } else if (imdbBtn) {
+                    this._hideRTPopover(true);
+                    this.showIMDbPopover(imdbBtn, criticData);
+                }
+            }, 320);
+        };
+
+        // Source 1 : événements natifs de focus (souris/clavier/tab)
+        document.addEventListener('focusin', (e) => handleFocusCandidate(e.target));
+
+        // Source 2 : moteur de navigation spatiale (télécommande) — certains environnements
+        // n'émettent pas focusin lors du focus programmatique.
+        window.SpaceHub?.core?.eventBus?.on?.('navigation:focusChanged', ({ current } = {}) => {
+            if (current) handleFocusCandidate(current);
+        });
+    }
+
+    /**
+     * Les données Rotten Tomatoes/IMDb ne sont pas fournies par Jellyfin.
+     * Retourner null évite de présenter des scores ou citations générés localement
+     * comme des informations critiques vérifiées.
+     */
+    getCriticData() {
+        return null;
+        /*
         let title = '';
         let genres = [];
         let year = '';
@@ -507,6 +637,7 @@ class CardBuilder {
             neutralVotes,
             negativeVotes
         };
+        */
     }
 
     _injectPopovers() {
@@ -574,28 +705,26 @@ class CardBuilder {
         this._injectPopovers();
         const popover = document.getElementById('sh-global-rt-popover');
         if (!popover || !btnEl || !criticData) return;
+        const rtScore = Math.round(Number(criticData.rtScore));
+        if (!Number.isFinite(rtScore) || rtScore <= 0) return; // aucune note réelle : aucun popover fabriqué
 
-        const rtIcon = this.getRtIconSvg(criticData.rtScore);
-        const statusLabel = criticData.rtScore >= 75 ? 'Certified Fresh' : (criticData.rtScore >= 60 ? 'Fresh' : 'Rotten');
+        const statusLabel = rtScore >= 75 ? 'Certified Fresh' : (rtScore >= 60 ? 'Fresh' : 'Rotten');
 
         popover.innerHTML = `
             <div class="sh-rt-popover__header">
                 <div class="sh-rt-brand">
-                    ${rtIcon}
-                    <span class="sh-rt-popover__title">${statusLabel} • ${criticData.rtScore}%</span>
+                    ${this.getRtIconSvg(rtScore)}
+                    <span class="sh-rt-popover__title">${statusLabel} • ${rtScore}%</span>
                 </div>
-                <span class="sh-rt-popover__audience">🍿 ${criticData.audience}% public</span>
+                ${criticData.imdb != null ? `<span class="sh-rt-popover__audience">★ ${Number(criticData.imdb).toFixed(1)}/10</span>` : ''}
             </div>
-            <div class="sh-popover-tag">Consensus de la Presse</div>
-            <p class="sh-rt-popover__consensus">${criticData.consensus}</p>
-            <div class="sh-rt-popover__quote">
-                <span>${criticData.quote}</span>
-                <span class="sh-rt-popover__author">${criticData.outlet}</span>
-            </div>
+            <div class="sh-popover-tag">Note de la presse</div>
+            <p class="sh-rt-popover__consensus" style="font-size:12px; color:rgba(255,255,255,0.8); margin:6px 0;">Score agrégé Rotten Tomatoes.</p>
             <div class="sh-rt-popover__footer">
-                <span class="sh-meta-tag">🟢 ${criticData.metacritic} Metascore</span>
+                ${criticData.metacritic != null ? `<span class="sh-meta-tag">🟢 ${criticData.metacritic} Metascore</span>` : ''}
+                ${criticData.isSeriesFallback ? '<span class="sh-meta-tag">📺 Note de la série</span>' : ''}
                 <span class="sh-rt-popover__dot">•</span>
-                <span>Rotten Tomatoes Verified</span>
+                <span>Source : ${this._escape(criticData.sourceLabel || 'OMDb')}</span>
             </div>
         `;
 
@@ -614,35 +743,22 @@ class CardBuilder {
         this._injectPopovers();
         const popover = document.getElementById('sh-global-imdb-popover');
         if (!popover || !btnEl || !criticData) return;
+        const imdbScore = Number(criticData.imdb);
+        if (!Number.isFinite(imdbScore) || imdbScore <= 0) return; // aucune note réelle : aucun popover fabriqué
 
         popover.innerHTML = `
             <div class="sh-imdb-popover__header">
                 <div class="sh-imdb-brand">
                     <span class="sh-imdb-badge">IMDb</span>
-                    <span class="sh-imdb-score">★ ${criticData.imdb}<small>/10</small></span>
+                    <span class="sh-imdb-score">★ ${imdbScore.toFixed(1)}<small>/10</small></span>
                 </div>
-                <div class="sh-imdb-stars-row">★★★★★</div>
+                ${criticData.imdbVotes ? `<span class="sh-imdb-votes" style="font-size:11px; color:rgba(255,255,255,0.6);">${criticData.imdbVotes.toLocaleString('fr-FR')} votes</span>` : ''}
             </div>
-            <div class="sh-popover-tag">Avis des Spectateurs</div>
-            <div class="sh-imdb-breakdown">
-                <div class="sh-imdb-bar-row">
-                    <span>Positifs (8-10★)</span>
-                    <div class="sh-imdb-bar"><div class="sh-imdb-bar-fill green" style="width:${criticData.positiveVotes}%"></div></div>
-                    <strong>${criticData.positiveVotes}%</strong>
-                </div>
-                <div class="sh-imdb-bar-row">
-                    <span>Moyens (5-7★)</span>
-                    <div class="sh-imdb-bar"><div class="sh-imdb-bar-fill yellow" style="width:${criticData.neutralVotes}%"></div></div>
-                    <strong>${criticData.neutralVotes}%</strong>
-                </div>
-                <div class="sh-imdb-bar-row">
-                    <span>Négatifs (1-4★)</span>
-                    <div class="sh-imdb-bar"><div class="sh-imdb-bar-fill red" style="width:${criticData.negativeVotes}%"></div></div>
-                    <strong>${criticData.negativeVotes}%</strong>
-                </div>
-            </div>
-            <div class="sh-imdb-footer">
-                <span>🔥 Recommandé à ${criticData.positiveVotes}% par la communauté</span>
+            <div class="sh-popover-tag">Avis des spectateurs</div>
+            <div class="sh-imdb-footer" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                ${criticData.metacritic != null ? `<span class="sh-meta-tag">🟢 ${criticData.metacritic} Metascore</span>` : ''}
+                ${criticData.rtScore != null ? `<span class="sh-meta-tag">🍅 ${criticData.rtScore}% Rotten Tomatoes</span>` : ''}
+                <span style="font-size:11px; color:rgba(255,255,255,0.55);">Source : OMDb</span>
             </div>
         `;
 
@@ -698,8 +814,10 @@ class CardBuilder {
             const genresText = genresArr.slice(0, 2).join(' • ');
 
             // Récupération des vraies notes Jellyfin
-            const rtScore = !isFolder ? (item.CriticRating !== undefined && item.CriticRating !== null ? Math.round(item.CriticRating) : (item.rottenScore !== undefined ? item.rottenScore : (item.CommunityRating ? Math.min(99, Math.round(item.CommunityRating * 10 + 2)) : 88))) : null;
-            const rating = !isFolder ? (item.CommunityRating !== undefined ? item.CommunityRating : (item.rating !== undefined ? item.rating : 8.4)) : null;
+            const rating = !isFolder && item.CommunityRating !== undefined && item.CommunityRating !== null
+                ? item.CommunityRating
+                : null;
+            const rottenScore = !isFolder && Number(item.CriticRating) > 0 ? Number(item.CriticRating) : null;
 
             const subtitleText = item.customSubtitle || (isFolder ? (item.CollectionType || 'Dossier racine') : (item.subtitle || (item.ProductionYear ? `${item.ProductionYear}${genresText ? ' • ' + genresText : ''}` : (genresText || item.Type || ''))));
 
@@ -712,9 +830,9 @@ class CardBuilder {
                 type,
                 itemType: item.Type,
                 isFolder,
-                rottenScore: rtScore,
+                rottenScore: rottenScore,
                 rating: rating,
-                codec: item.codec || (isFolder ? (item.CollectionType || 'DOSSIER') : (type === 'backdrop' ? '4K DOLBY VISION' : '4K DV • ATMOS')),
+                codec: item.codec || (isFolder ? (item.CollectionType || 'DOSSIER') : ''),
                 progress: item.UserData?.PlayedPercentage
                     ? item.UserData.PlayedPercentage / 100
                     : (item.UserData?.PlaybackPositionTicks 
@@ -822,7 +940,13 @@ class CardBuilder {
 
         menu.querySelector('#sh-ctx-trailer').onclick = () => {
             this._hideContextMenu();
-            this._showTrailerLightbox(item.title);
+            // Bandes-annonces via notre TrailerService : serveur Jellyfin d'abord,
+            // puis YouTube dans la fenêtre SpaceHub (plus d'iframe brute).
+            if (window.SpaceHub?.trailers) {
+                window.SpaceHub.trailers.open({ Id: item.id, Name: item.title });
+            } else {
+                window.SpaceHub?.ui?.components?.toaster?.info?.('Bande-annonce indisponible.');
+            }
         };
     }
 
@@ -834,39 +958,6 @@ class CardBuilder {
         setTimeout(() => {
             menu.classList.remove('sh-context-menu--closing');
         }, 160);
-    }
-
-    _showTrailerLightbox(title) {
-        let lightbox = document.getElementById('sh-trailer-lightbox');
-        if (!lightbox) {
-            lightbox = document.createElement('div');
-            lightbox.id = 'sh-trailer-lightbox';
-            lightbox.className = 'sh-trailer-lightbox';
-            lightbox.innerHTML = `
-                <div class="sh-trailer-box">
-                    <button class="sh-trailer-close" id="sh-trailer-close" aria-label="Fermer" type="button">✕</button>
-                    <div class="sh-trailer-content">
-                        <iframe id="sh-trailer-iframe" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(lightbox);
-
-            lightbox.querySelector('#sh-trailer-close').onclick = () => {
-                lightbox.classList.remove('sh-lightbox--open');
-                lightbox.querySelector('#sh-trailer-iframe').src = '';
-            };
-            lightbox.onclick = (e) => {
-                if (e.target === lightbox) {
-                    lightbox.classList.remove('sh-lightbox--open');
-                    lightbox.querySelector('#sh-trailer-iframe').src = '';
-                }
-            };
-        }
-
-        const iframe = lightbox.querySelector('#sh-trailer-iframe');
-        iframe.src = `https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(title + ' official trailer')}&autoplay=1`;
-        lightbox.classList.add('sh-lightbox--open');
     }
 
     _generateSvgPoster(title = 'Média', type = 'poster') {
@@ -1094,6 +1185,15 @@ class CardBuilder {
 .sh-score-imdb {
     color: #f5c518 !important;
     font-weight: 750 !important;
+}
+.sh-score-jellyfin {
+    color: #ffd700 !important;
+    font-weight: 750 !important;
+}
+.sh-score-mc {
+    color: #54c96a !important;
+    font-weight: 750 !important;
+    font-size: 10px !important;
 }
 
 .sh-rt-svg {

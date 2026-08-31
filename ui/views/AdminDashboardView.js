@@ -1,11 +1,14 @@
 'use strict';
 
 import JellyfinConsoleModal from './JellyfinConsoleModal.js';
+import { escapeHtml } from '../../core/utils/domUtils.js';
 
 export class AdminDashboardView {
     constructor() {
         this._container = null;
         this._refreshTimer = null;
+        this._closeTimer = null;
+        this._modal = null;
         this._autoRefreshInterval = 8000; // Rafraîchissement automatique toutes les 8s
     }
 
@@ -13,10 +16,16 @@ export class AdminDashboardView {
      * Ouvre la modale Grand Cinema d'Administration Serveur.
      */
     open() {
+        const user = window.SpaceHub?.auth?.getUser?.();
+        if (user?.Policy?.IsAdministrator !== true) {
+            window.SpaceHub?.ui?.components?.toaster?.error?.('Accès réservé aux administrateurs Jellyfin.');
+            return false;
+        }
         document.getElementById('sh-admin-dashboard-modal')?.remove();
 
         const modal = document.createElement('div');
         modal.id = 'sh-admin-dashboard-modal';
+        this._modal = modal;
         modal.className = 'sh-admin-modal-overlay';
         modal.innerHTML = `
             <div class="sh-admin-modal-card sh-scrollbar">
@@ -183,7 +192,12 @@ export class AdminDashboardView {
             modal.classList.remove('open');
             const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
             if (spatialNav) spatialNav.onModalClosed();
-            setTimeout(() => modal.remove(), 260);
+            if (this._closeTimer) clearTimeout(this._closeTimer);
+            this._closeTimer = setTimeout(() => {
+                modal.remove();
+                if (this._modal === modal) this._modal = null;
+                this._closeTimer = null;
+            }, 260);
         };
 
         modal.querySelector('#sh-admin-modal-close')?.addEventListener('click', closeModal);
@@ -231,7 +245,7 @@ export class AdminDashboardView {
                 }
             } catch (err) {
                 console.error('[AdminDashboardView] Erreur sync Bazarr:', err);
-                window.SpaceHub?.ui?.components?.toaster?.error?.(`Erreur Bazarr: ${err.message || 'Échec de synchronisation'}`);
+                window.SpaceHub?.ui?.components?.toaster?.error?.(`Erreur Bazarr : ${escapeHtml(err?.message || 'Échec de synchronisation')}`);
             }
         });
 
@@ -244,12 +258,25 @@ export class AdminDashboardView {
 
         // Polling en direct toutes les 8s pour le monitoring
         this._refreshTimer = setInterval(() => {
-            if (document.getElementById('sh-admin-dashboard-modal')) {
+            if (document.getElementById('sh-admin-dashboard-modal') === modal) {
                 this._loadSessions(modal);
             } else {
-                clearInterval(this._refreshTimer);
+                this.destroy();
             }
         }, this._autoRefreshInterval);
+    }
+
+    destroy() {
+        if (this._refreshTimer) {
+            clearInterval(this._refreshTimer);
+            this._refreshTimer = null;
+        }
+        if (this._closeTimer) {
+            clearTimeout(this._closeTimer);
+            this._closeTimer = null;
+        }
+        this._modal?.remove();
+        this._modal = null;
     }
 
     /**
@@ -275,14 +302,15 @@ export class AdminDashboardView {
             const info = await jfApi?.getSystemInfo?.();
             if (info && infoEl) {
                 const serverName = info.ServerName || 'Serveur Jellyfin';
-                const version = info.Version || '10.9.x';
-                const os = info.OperatingSystem || 'Linux/Windows';
-                infoEl.textContent = `${serverName} • v${version} • ${os} • En ligne`;
+                const version = info.Version || 'Version indisponible';
+                const os = info.OperatingSystem || info.OS || 'Système non communiqué par Jellyfin';
+                const state = info?.Version ? 'En ligne' : 'Réponse partielle';
+                infoEl.textContent = `${serverName} • v${version} • ${os} • ${state}`;
             } else if (infoEl) {
-                infoEl.textContent = 'Serveur SpaceHub connecté et opérationnel';
+                infoEl.textContent = 'Informations du serveur indisponibles';
             }
         } catch (e) {
-            if (infoEl) infoEl.textContent = 'Serveur SpaceHub connecté';
+            if (infoEl) infoEl.textContent = 'État du serveur inconnu';
         }
     }
 
@@ -337,16 +365,16 @@ export class AdminDashboardView {
                 const imgUrl = jfApi?.getImageUrl?.(item.Id, 'Primary', { fillWidth: 80, fillHeight: 120 }) || '';
 
                 return `
-                    <div class="sh-admin-session-item" data-session-id="${s.Id}">
+                    <div class="sh-admin-session-item" data-session-id="${escapeHtml(s.Id)}">
                         <div class="sh-session-poster">
-                            <img src="${imgUrl}" alt="${title}" onerror="this.style.display='none'" />
+                            <img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(title)}" onerror="this.style.display='none'" />
                         </div>
                         <div class="sh-session-details">
                             <div class="sh-session-top-line">
-                                <span class="sh-session-user">👤 <strong>${user}</strong> sur ${client}</span>
+                                <span class="sh-session-user">👤 <strong>${escapeHtml(user)}</strong> sur ${escapeHtml(client)}</span>
                                 ${transcodeBadge}
                             </div>
-                            <h4 class="sh-session-title">${title}</h4>
+                            <h4 class="sh-session-title">${escapeHtml(title)}</h4>
                             <div class="sh-session-progress-wrapper">
                                 <div class="sh-session-progress-bar" style="width: ${percent}%"></div>
                             </div>
@@ -400,7 +428,10 @@ export class AdminDashboardView {
             if (counts) {
                 const setVal = (id, val) => {
                     const el = modal.querySelector(id);
-                    if (el) el.textContent = (val !== undefined && val !== null) ? val.toLocaleString() : '0';
+                    if (!el) return;
+                    el.textContent = (val !== undefined && val !== null)
+                        ? Number(val).toLocaleString()
+                        : '—';
                 };
                 setVal('#sh-admin-count-movies', counts.MovieCount);
                 setVal('#sh-admin-count-series', counts.SeriesCount);
@@ -408,7 +439,8 @@ export class AdminDashboardView {
                 setVal('#sh-admin-count-songs', counts.SongCount);
             }
         } catch (e) {
-            // Silencieux
+            ['#sh-admin-count-movies', '#sh-admin-count-series', '#sh-admin-count-episodes', '#sh-admin-count-songs']
+                .forEach(id => { const el = modal.querySelector(id); if (el) el.textContent = '—'; });
         }
     }
 
@@ -421,10 +453,10 @@ export class AdminDashboardView {
         const badge = modal.querySelector('#sh-admin-health-badge');
 
         try {
-            const bazarrApi = window.SpaceHub?.integrations?.bazarr?.api;
-            if (bazarrApi?.getWantedSummary) {
-                const summary = await bazarrApi.getWantedSummary();
-                const missing = (summary?.total || 0);
+            const bazarr = window.SpaceHub?.integrations?.bazarr;
+            if (bazarr?.getWantedSummary) {
+                const summary = await bazarr.getWantedSummary();
+                const missing = Number(summary?.totalWanted || 0);
                 if (bazarrText) {
                     bazarrText.textContent = missing > 0
                         ? `${missing} sous-titres français manquants à récupérer`
@@ -435,16 +467,18 @@ export class AdminDashboardView {
             }
 
             if (qualityText) {
-                qualityText.textContent = 'Médiathèque 100% opérationnelle en 4K UHD & 1080p';
+                qualityText.textContent = 'Qualité non analysée : aucune métrique de résolution n\'a été chargée.';
             }
 
             if (badge) {
-                badge.textContent = '🟢 Optimale';
-                badge.style.background = 'rgba(48, 209, 88, 0.2)';
-                badge.style.color = '#30d158';
+                badge.textContent = '⚪ Données partielles';
+                badge.style.background = 'rgba(255, 255, 255, 0.10)';
+                badge.style.color = 'rgba(255, 255, 255, 0.75)';
             }
         } catch (e) {
-            if (badge) badge.textContent = '⚪ Vérifié';
+            if (bazarrText) bazarrText.textContent = 'Bazarr indisponible ou non configuré.';
+            if (qualityText) qualityText.textContent = 'Qualité non analysée.';
+            if (badge) badge.textContent = '⚪ Inconnu';
         }
     }
 
@@ -455,49 +489,80 @@ export class AdminDashboardView {
         const container = modal.querySelector('#sh-admin-services-container');
         if (!container) return;
 
-        const services = [
-            { id: 'jellyfin', name: 'Jellyfin Server', icon: '🪐', port: '8096', checker: async () => true },
-            { id: 'sonarr', name: 'Sonarr (Séries)', icon: '📺', port: '8989', checker: async () => Boolean(window.SpaceHub?.core?.settings?.get('sonarr.apiKey')) },
-            { id: 'radarr', name: 'Radarr (Films)', icon: '🎬', port: '7878', checker: async () => Boolean(window.SpaceHub?.core?.settings?.get('radarr.apiKey')) },
-            { id: 'prowlarr', name: 'Prowlarr (Indexeurs)', icon: '⚡', port: '9696', checker: async () => Boolean(window.SpaceHub?.core?.settings?.get('prowlarr.apiKey')) },
-            { id: 'bazarr', name: 'Bazarr (Sous-titres)', icon: '📝', port: '6767', checker: async () => Boolean(window.SpaceHub?.core?.settings?.get('bazarr.apiKey')) },
-            { id: 'jellyseerr', name: 'Jellyseerr (Demandes)', icon: '🍿', port: '5055', checker: async () => Boolean(window.SpaceHub?.core?.settings?.get('jellyseerr.apiKey')) },
-            { id: 'qbittorrent', name: 'qBittorrent (Torrents)', icon: '📥', port: '8080', checker: async () => true }
-        ];
-
-        container.innerHTML = services.map(s => {
-            return `
-                <div class="sh-admin-service-card" id="sh-svc-${s.id}">
-                    <div class="sh-svc-top">
-                        <span class="sh-svc-icon">${s.icon}</span>
-                        <div class="sh-svc-status-pill online">
-                            <span class="sh-svc-dot"></span>
-                            <span>En ligne</span>
-                        </div>
+        const services = this._getServiceHealthDescriptors();
+        this._healthServices = services;
+        container.innerHTML = services.map(s => `
+            <div class="sh-admin-service-card" id="sh-svc-${s.id}" data-status="unknown">
+                <div class="sh-svc-top">
+                    <span class="sh-svc-icon">${s.icon}</span>
+                    <div class="sh-svc-status-pill unknown">
+                        <span class="sh-svc-dot"></span>
+                        <span>Non testé</span>
                     </div>
-                    <div class="sh-svc-name">${s.name}</div>
-                    <div class="sh-svc-port">Port ${s.port}</div>
                 </div>
-            `;
-        }).join('');
+                <div class="sh-svc-name">${s.name}</div>
+                <div class="sh-svc-port">${s.port ? `Port ${s.port}` : 'Service Jellyfin'}</div>
+            </div>
+        `).join('');
+    }
+
+    _getServiceHealthDescriptors() {
+        const integrations = window.SpaceHub?.integrations || {};
+        return [
+            { id: 'jellyfin', name: 'Jellyfin Server', icon: '🪐', port: '', check: async () => {
+                const info = await window.SpaceHub?.jellyfin?.api?.getSystemInfo?.();
+                return info ? 'connected' : 'offline';
+            } },
+            ...[
+                ['sonarr', 'Sonarr (Séries)', '📺', '8989'],
+                ['radarr', 'Radarr (Films)', '🎬', '7878'],
+                ['prowlarr', 'Prowlarr (Indexeurs)', '⚡', '9696'],
+                ['bazarr', 'Bazarr (Sous-titres)', '📝', '6767'],
+                ['jellyseerr', 'Jellyseerr (Demandes)', '🍿', '5055'],
+                ['qbittorrent', 'qBittorrent (Torrents)', '📥', '8080']
+            ].map(([id, name, icon, port]) => ({
+                id, name, icon, port,
+                check: async () => integrations[id]?.checkHealth?.() || 'unconfigured'
+            }))
+        ];
+    }
+
+    _setServiceStatus(modal, descriptor, status, latency = null) {
+        const card = modal.querySelector(`#sh-svc-${descriptor.id}`);
+        if (!card) return;
+        const pill = card.querySelector('.sh-svc-status-pill');
+        const label = {
+            connected: 'En ligne', connecting: 'Test...', unconfigured: 'Non configuré',
+            auth_failed: 'Accès refusé', offline: 'Hors ligne', error: 'Erreur', unknown: 'Inconnu'
+        }[status] || 'Inconnu';
+        const cssStatus = ['connected', 'connecting', 'unconfigured', 'auth_failed', 'offline', 'error'].includes(status) ? status : 'unknown';
+        card.dataset.status = cssStatus;
+        pill?.classList.remove('online', 'connected', 'connecting', 'unconfigured', 'auth_failed', 'offline', 'error', 'unknown');
+        pill?.classList.add(cssStatus);
+        if (pill) pill.querySelector('span:last-child').textContent = latency !== null ? `${label} · ${latency} ms` : label;
     }
 
     /**
-     * Teste la connectivité de tous les services.
+     * Teste réellement la connectivité de tous les services configurés.
      */
     async _testAllServices(modal) {
-        window.SpaceHub?.ui?.components?.toaster?.info?.('Test de connectivité de tous les microservices...');
-        const cards = modal.querySelectorAll('.sh-admin-service-card');
-        cards.forEach(c => {
-            const pill = c.querySelector('.sh-svc-status-pill');
-            if (pill) {
-                pill.style.transform = 'scale(1.08)';
-                setTimeout(() => pill.style.transform = 'scale(1)', 200);
+        const services = this._healthServices || this._getServiceHealthDescriptors();
+        window.SpaceHub?.ui?.components?.toaster?.info?.('Test réel des services en cours...');
+        await Promise.all(services.map(async descriptor => {
+            this._setServiceStatus(modal, descriptor, 'connecting');
+            const startedAt = performance.now();
+            try {
+                const status = await descriptor.check();
+                this._setServiceStatus(modal, descriptor, status, Math.round(performance.now() - startedAt));
+            } catch (err) {
+                this._setServiceStatus(modal, descriptor, err?.status === 401 || err?.status === 403 ? 'auth_failed' : 'offline', Math.round(performance.now() - startedAt));
             }
-        });
-        setTimeout(() => {
-            window.SpaceHub?.ui?.components?.toaster?.success?.('Tous les microservices répondent avec succès (latence < 12ms) !');
-        }, 600);
+        }));
+        const statuses = services.map(s => modal.querySelector(`#sh-svc-${s.id}`)?.dataset.status);
+        const failed = statuses.filter(status => !['connected'].includes(status));
+        window.SpaceHub?.ui?.components?.toaster?.[failed.length ? 'warning' : 'success']?.(
+            failed.length ? `${failed.length} service(s) nécessitent une vérification.` : 'Tous les services testés répondent correctement.'
+        );
     }
 
     /**

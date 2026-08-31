@@ -1,4 +1,11 @@
-﻿window.SpaceHubConfig = {
+﻿/**
+ * IMPORTANT : Ce fichier et spaceHub-default-config.js doivent rester synchronisés.
+ * Ordre de chargement requis :
+ * 1. spaceHub-default-config.js (expose window.SpaceHubDefaultConfig)
+ * 2. spaceHub.minimal.js (expose window.SpaceHubConfig)
+ * 3. spaceHub-injector.js
+ */
+window.SpaceHubConfig = {
     "SpaceHubRoot": "",
     "scripts": {
         "homeScreen": true,
@@ -106,6 +113,7 @@
         "seasonal": {
             "enabled": true,
             "enableSeasonalAnimations": true,
+            "enableSeasonalBackground": false,
             "defaultItemLimit": 16,
             "defaultSortOrder": "Random",
             "defaultCardFormat": "Poster",
@@ -395,6 +403,7 @@
         "enableJellyseerr": false
     },
     "flattenSingleSeasonShows": {
+        "hideSingleSeasonContainer": false,
         "showEpisodesOnSeriesPage": false
     },
     "skins": [],

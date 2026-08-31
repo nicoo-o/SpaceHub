@@ -63,8 +63,8 @@ class Dashboard {
         const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
         if (spatialNav?.registerFocusables) {
             spatialNav.registerFocusables('dashboard', (container) => {
-                const root = container || document;
-                return Array.from(root.querySelectorAll('#sh-hero-play-btn, #sh-hero-info-btn, .sh-hero-edge-btn, .sh-dynamic-island .sh-nav-tab-btn, .sh-dynamic-island .sh-nav-action-btn, .sh-card, .sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, [data-nav-focusable="true"]'));
+                const root = container || document.querySelector('.sh-dashboard') || document;
+                return Array.from(root.querySelectorAll('#sh-hero-play-btn, #sh-hero-info-btn, .sh-hero-edge-btn, .sh-dynamic-island .sh-nav-tab-btn, .sh-dynamic-island .sh-nav-action-btn, .sh-card, .sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, [data-nav-focusable="true"], .sh-dashboard, #sh-hero-btn-play, #sh-hero-btn-info'));
             });
         }
         this.containerId = options.containerId || 'sh-dashboard';
@@ -80,6 +80,11 @@ class Dashboard {
 
         /** @type {HTMLElement|null} */
         this._container = null;
+        this._renderToken = 0;
+        this._renderCleanup = [];
+        this._resumeDockCleanup = null;
+        this._attachTimer = null;
+        this._resizeHandler = null;
 
         this._heroComponent = new HeroSpotlightComponent();
         this._sidebarDrawer = new AppSidebarDrawer();
@@ -135,6 +140,16 @@ class Dashboard {
     }
 
     /**
+     * Retire un widget tiers du registre si sa classe correspond.
+     */
+    unregisterWidget(id, WidgetClass = null) {
+        if (!this._registeredWidgets.has(id)) return false;
+        if (WidgetClass && this._registeredWidgets.get(id) !== WidgetClass) return false;
+        this._registeredWidgets.delete(id);
+        return true;
+    }
+
+    /**
      * Retourne tous les types de widgets enregistrés.
      * @returns {string[]}
      */
@@ -149,6 +164,8 @@ class Dashboard {
      * @param {HTMLElement|string} [target] - Élément ou sélecteur cible
      */
     async render(target = null) {
+        this._cleanupRender();
+        const renderToken = ++this._renderToken;
         if (target) {
             this._container = typeof target === 'string' ? document.querySelector(target) : target;
         }
@@ -268,10 +285,10 @@ class Dashboard {
                         const type = (card.closest('[data-widget-type]')?.dataset.widgetType || '').toLowerCase();
                         const codec = card.querySelector('.sh-card__codec-tag')?.textContent?.toLowerCase() || '';
                         if (genre === 'series') show = type.includes('tv') || codec.includes('saison') || codec.includes('série');
-                        else if (genre === 'scifi') show = codec.includes('4k') || codec.includes('imax') || true; // all shown for demo
+                        else if (genre === 'scifi') show = this._cardMatchesGenre(card, ['science fiction', 'science-fiction', 'sci-fi', 'sf']);
                         else if (genre === '4k') show = codec.includes('4k') || codec.includes('uhd') || codec.includes('imax');
-                        else if (genre === 'action') show = true; // à brancher sur les genres réels Jellyfin
-                        else if (genre === 'oscars') show = true;
+                        else if (genre === 'action') show = this._cardMatchesGenre(card, ['action', 'aventure']);
+                        else if (genre === 'oscars') show = this._cardMatchesGenre(card, ['oscar', 'academy award']);
                     }
                     card.style.transition = `opacity 280ms ease ${Math.min(i * 20, 200)}ms, transform 320ms cubic-bezier(0.175, 0.885, 0.32, 1.275) ${Math.min(i * 20, 200)}ms`;
                     if (show) {
@@ -292,13 +309,15 @@ class Dashboard {
             const activeChip = this._container.querySelector('.sh-genre-chip.active');
             if (activeChip) updatePill(activeChip, false);
         });
-        window.addEventListener('resize', () => {
-            const activeChip = this._container.querySelector('.sh-genre-chip.active');
+        if (this._resizeHandler) window.removeEventListener('resize', this._resizeHandler);
+        this._resizeHandler = () => {
+            const activeChip = this._container?.querySelector('.sh-genre-chip.active');
             if (activeChip) updatePill(activeChip, false);
-        });
+        };
+        window.addEventListener('resize', this._resizeHandler, { passive: true });
 
         // ── Quick-Resume Floating Mini-Dock (Uniquement si une vraie lecture est en cours) ──
-        this._initResumeDock();
+        this._initResumeDock(renderToken);
 
         const hiddenSections = new Set(this._settings?.get('dashboard.hiddenSections', []));
 
@@ -307,7 +326,13 @@ class Dashboard {
         if (heroEl) {
             if (!hiddenSections.has('hero-spotlight')) {
                 heroEl.style.display = '';
-                await this._heroComponent.render(heroEl);
+                // Le Hero dépend d'une requête serveur et ne doit pas bloquer
+                // l'affichage des contrôles TV ni des premiers skeletons.
+                this._heroRenderPromise = this._heroComponent.render(heroEl).catch(err => {
+                    if (renderToken === this._renderToken) {
+                        this._log.warn('Rendu Hero indisponible :', err);
+                    }
+                });
             } else {
                 heroEl.style.display = 'none';
                 heroEl.innerHTML = '';
@@ -320,30 +345,60 @@ class Dashboard {
             genreTrack.style.display = hiddenSections.has('user-genres') ? 'none' : '';
         }
 
-        // Charger et monter les étagères et widgets du Dashboard
-        await this._loadLayout();
+        // Charger et monter les étagères et widgets du Dashboard sans bloquer le
+        // premier affichage : les wrappers et leurs skeletons apparaissent tout de
+        // suite, tandis que chaque widget termine son appel Jellyfin en arrière-plan.
+        // Le token de rendu empêche une navigation rapide de repeupler une ancienne vue.
+        this._layoutLoadPromise = this._loadLayout(renderToken).catch(err => {
+            if (renderToken === this._renderToken) {
+                this._log.warn('Chargement de la grille interrompu :', err);
+            }
+        });
 
         // Attacher le défilement tactile Gooey Carousel sur toutes les étagères horizontales uniquement
-        setTimeout(() => {
+        this._attachTimer = setTimeout(() => {
+            if (renderToken !== this._renderToken) return;
             this._gooeyScroller.attach('.sh-genre-chips-container, .sh-card-grid, .sh-shelf-row, .sh-cards-row');
         }, 500);
+    }
+
+    _cardMatchesGenre(card, genres = []) {
+        const rawGenres = card.dataset.genres || card.getAttribute('data-genres') || '';
+        const normalized = String(rawGenres).toLowerCase();
+        return genres.some(genre => normalized.includes(String(genre).toLowerCase()));
+    }
+
+    /**
+     * Échappe une valeur avant insertion dans un fragment HTML.
+     * Les données Jellyfin sont externes : ne jamais appeler replace directement
+     * sur une valeur dont le type n'est pas garanti par le serveur.
+     */
+    _escape(value) {
+        if (value === null || value === undefined) return '';
+        return String(value).replace(/[&<>\"']/g, (match) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '\"': '&quot;',
+            "'": '&#39;'
+        })[match]);
     }
 
     /**
      * Initialise le mini-dock flottant de reprise uniquement si une vraie lecture existe.
      */
-    async _initResumeDock() {
+    async _initResumeDock(renderToken = this._renderToken) {
         try {
             const api = window.SpaceHub?.jellyfin?.api;
             if (!api?.getResumeItems) return;
             const items = await api.getResumeItems(1);
-            if (!items || items.length === 0) return;
+            if (renderToken !== this._renderToken || !this._container || !items || items.length === 0) return;
 
             const resumeItem = items[0];
             const percent = Math.round(resumeItem.UserData?.PlayedPercentage || 0);
             const remainingMin = resumeItem.RunTimeTicks && resumeItem.UserData?.PlaybackPositionTicks
                 ? Math.max(1, Math.round((resumeItem.RunTimeTicks - resumeItem.UserData.PlaybackPositionTicks) / 600000000))
-                : 20;
+                : null;
 
             const imageType = (resumeItem.BackdropImageTags && resumeItem.BackdropImageTags.length > 0)
                 ? 'Backdrop'
@@ -358,12 +413,12 @@ class Dashboard {
             resumeDock.className = 'sh-resume-dock';
             resumeDock.innerHTML = `
                 <div class="sh-resume-dock__thumb-wrap">
-                    <img class="sh-resume-dock__thumb" src="${thumbUrl}" alt="${resumeItem.Name}" onerror="this.style.display='none'" />
+                    <img class="sh-resume-dock__thumb" src="${this._escape(thumbUrl)}" alt="${this._escape(resumeItem.Name)}" loading="lazy" onerror="this.style.display='none'" />
                     <div class="sh-resume-dock__play-icon">▶</div>
                 </div>
                 <div class="sh-resume-dock__info">
-                    <span class="sh-resume-dock__title">${resumeItem.Name}</span>
-                    <span class="sh-resume-dock__meta">Reprendre • ${remainingMin}m restantes (${percent}%)</span>
+                    <span class="sh-resume-dock__title">${this._escape(resumeItem.Name)}</span>
+                    <span class="sh-resume-dock__meta">Reprendre${remainingMin !== null ? ` • ${remainingMin}m restantes` : ''} (${percent}%)</span>
                     <div class="sh-resume-dock__progress-bar">
                         <div class="sh-resume-dock__progress-fill" style="width: ${percent}%;"></div>
                     </div>
@@ -399,17 +454,51 @@ class Dashboard {
                 }
             };
 
+            const dockContainer = this._container;
             window.addEventListener('scroll', updateResumeDock, { passive: true });
-            this._container?.addEventListener('scroll', updateResumeDock, { passive: true });
+            dockContainer?.addEventListener('scroll', updateResumeDock, { passive: true });
+            this._resumeDockCleanup = () => {
+                window.removeEventListener('scroll', updateResumeDock);
+                dockContainer?.removeEventListener('scroll', updateResumeDock);
+                resumeDock.remove();
+            };
         } catch (err) {
             console.warn('[Dashboard] Erreur initialisation resume dock:', err);
         }
     }
 
+    _cleanupRender() {
+        this._renderToken += 1;
+        if (this._attachTimer) {
+            clearTimeout(this._attachTimer);
+            this._attachTimer = null;
+        }
+        this._resumeDockCleanup?.();
+        this._resumeDockCleanup = null;
+        if (this._resizeHandler) {
+            window.removeEventListener('resize', this._resizeHandler);
+            this._resizeHandler = null;
+        }
+        for (const { widget } of this._activeWidgets.values()) {
+            try { widget?.destroy?.(); } catch (err) { this._log.warn('Nettoyage widget échoué:', err); }
+        }
+        this._activeWidgets.clear();
+        this._gooeyScroller?.destroy?.();
+        document.getElementById('sh-resume-dock')?.remove();
+    }
+
+    destroy() {
+        this._cleanupRender();
+        this._heroComponent?.destroy?.();
+        this._sidebarDrawer?.destroy?.();
+        this._container = null;
+    }
+
     /**
      * Charge l'agencement sauvegardé ou applique l'agencement par défaut.
      */
-    async _loadLayout() {
+    async _loadLayout(renderToken = this._renderToken) {
+        if (renderToken !== this._renderToken || !this._container) return;
         const gridEl = this._container.querySelector(`#${this.containerId}-grid`);
         if (!gridEl) return;
 
@@ -430,6 +519,7 @@ class Dashboard {
         } catch (e) {
             console.warn('[Dashboard] Erreur récupération getUserViews:', e);
         }
+        if (renderToken !== this._renderToken) return;
 
         // Identifier les bibliothèques déjà couvertes par des widgets dédiés (Films, Séries, Animés, Musique, Collections)
         const coveredLibraryIds = new Set();
@@ -587,8 +677,10 @@ class Dashboard {
         });
 
         let mountedIndex = 0;
+        const mountTasks = [];
 
         for (const item of layout) {
+            if (renderToken !== this._renderToken || !this._container) return;
             if (hiddenSections.has(item.widgetType)) {
                 continue;
             }
@@ -599,15 +691,20 @@ class Dashboard {
                 continue;
             }
 
-            await this._mountWidget(WidgetClass, item, gridEl, mountedIndex);
+            // Monter les wrappers et lancer les requêtes en parallèle : un service
+            // externe lent ne doit plus bloquer les rayons Jellyfin déjà disponibles.
+            mountTasks.push(this._mountWidget(WidgetClass, item, gridEl, mountedIndex, renderToken));
             mountedIndex++;
         }
+
+        await Promise.allSettled(mountTasks);
     }
 
     /**
      * Instancie et monte un widget dans la grille.
      */
-    async _mountWidget(WidgetClass, itemConfig, gridEl, index = 0) {
+    async _mountWidget(WidgetClass, itemConfig, gridEl, index = 0, renderToken = this._renderToken) {
+        if (renderToken !== this._renderToken) return;
         const widget = new WidgetClass();
         const instanceId = `sh-widget-${widget.id || itemConfig.widgetType}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
 
@@ -623,6 +720,11 @@ class Dashboard {
         try {
             if (typeof widget.render === 'function') {
                 await widget.render(widgetWrapper);
+            }
+            if (renderToken !== this._renderToken) {
+                widget.destroy?.();
+                widgetWrapper.remove();
+                return;
             }
             this._activeWidgets.set(instanceId, { widget, element: widgetWrapper, config: itemConfig });
         } catch (err) {

@@ -134,7 +134,7 @@ class AppSidebarDrawer {
                             </svg>
                             <span>Flux & Contrôle</span>
                         </button>
-                        <button tabindex="0" data-nav-focusable="true" class="sh-sidebar-item sh-sidebar-btn" id="sh-sidebar-btn-admin">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-sidebar-item sh-sidebar-btn" id="sh-sidebar-btn-admin" style="${this._auth?.getUser?.()?.Policy?.IsAdministrator === true ? '' : 'display:none;'}">
                             <svg class="sh-sidebar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                             </svg>
@@ -169,6 +169,38 @@ class AppSidebarDrawer {
         container.appendChild(drawerEl);
         this._bindEvents(drawerEl);
         this._loadDynamicLibraries(drawerEl);
+    }
+
+    /** Ouvre ou ferme le drawer pour les commandes Menu de la télécommande. */
+    toggle() {
+        if (!this._drawerEl) return;
+        const panel = this._drawerEl.querySelector('#sh-sidebar-panel');
+        if (!panel) return;
+
+        if (this._isOpen) {
+            this._closePanel?.();
+            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            spatialNav?.restorePreviousFocus?.();
+            return;
+        }
+
+        panel.classList.add('open');
+        this._isOpen = true;
+        const firstItem = panel.querySelector('.sh-sidebar-item.active, .sh-sidebar-item:not(.sh-sidebar-item-loading), .sh-sidebar-footer-btn');
+        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        if (firstItem) {
+            spatialNav?.setFocus?.(firstItem, { reason: 'sidebar-open', instantScroll: true });
+        }
+        const activeEl = panel.querySelector('.sh-sidebar-item.active');
+        if (activeEl) requestAnimationFrame(() => this._updateActiveIndicator(activeEl, false));
+    }
+
+    open() {
+        if (!this._isOpen) this.toggle();
+    }
+
+    close() {
+        if (this._isOpen) this.toggle();
     }
 
     _getLibrarySvgIcon(lib) {
@@ -289,7 +321,8 @@ class AppSidebarDrawer {
                     if (window.SpaceHub?.ui?.appLayout?.navigate) {
                         window.SpaceHub.ui.appLayout.navigate('library', { libraryId: libId });
                     }
-                    // La Side Bar reste ouverte pour admirer la transition et naviguer librement tant que la souris est dessus
+                    // En mode TV, le choix doit rendre immédiatement le focus au contenu.
+                    this._closePanel?.();
                 });
             });
 
@@ -430,8 +463,8 @@ class AppSidebarDrawer {
                     if (window.SpaceHub?.ui?.appLayout?.navigate) {
                         window.SpaceHub.ui.appLayout.navigate(nav);
                     }
+                    this._closePanel?.();
                 }
-                // Reste ouvert tant que la souris est sur la taskbar
             });
         });
 
@@ -540,10 +573,16 @@ class AppSidebarDrawer {
         `;
 
         document.body.appendChild(modal);
-        requestAnimationFrame(() => modal.classList.add('open'));
+        requestAnimationFrame(() => {
+            modal.classList.add('open');
+            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            spatialNav?.onModalOpened?.(modal, modal.querySelector('#sh-ambilight-toggle'));
+        });
 
         const closeModal = () => {
             modal.classList.remove('open');
+            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            spatialNav?.onModalClosed?.();
             setTimeout(() => modal.remove(), 240);
         };
 
@@ -626,10 +665,16 @@ class AppSidebarDrawer {
         `;
 
         document.body.appendChild(modal);
-        requestAnimationFrame(() => modal.classList.add('open'));
+        requestAnimationFrame(() => {
+            modal.classList.add('open');
+            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            spatialNav?.onModalOpened?.(modal, modal.querySelector('.sh-hub-tab-btn.active'));
+        });
 
         const closeModal = () => {
             modal.classList.remove('open');
+            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            spatialNav?.onModalClosed?.();
             setTimeout(() => modal.remove(), 240);
         };
 
@@ -708,7 +753,7 @@ class AppSidebarDrawer {
                 }
             } catch (err) {
                 console.error('[DownloadsHub] Erreur rendu onglet:', err);
-                slot1.innerHTML = `<p style="color:var(--sh-color-error, #ff453a); text-align:center; padding: 20px;">Erreur : ${err.message}</p>`;
+                slot1.innerHTML = `<p style="color:var(--sh-color-error, #ff453a); text-align:center; padding: 20px;">Erreur : ${this._escape(err.message)}</p>`;
             }
         };
 

@@ -513,6 +513,8 @@ export class SpatialNavigation {
 
         const activeEl = document.activeElement;
         const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
+        // Champ de saisie : Backspace efface du texte (et non « Retour ») ; Échap reste « Retour ».
+        if (isInput && e.key === "Backspace") return;
         if (isInput && action !== NavAction.BACK && action !== NavAction.DOWN && action !== NavAction.UP) return;
 
         const scope = this._detectCurrentScope();
@@ -576,7 +578,12 @@ export class SpatialNavigation {
         const settingsModal = document.querySelector('#sh-modal-spacehub-settings.sh-modal--open');
         if (settingsModal) {
             e?.preventDefault?.();
-            window.SpaceHub?.settingsPanel?.close?.();
+            const panel = window.SpaceHub?.ui?.settingsPanel || window.SpaceHub?.settingsPanel;
+            if (panel && typeof panel.close === "function") {
+                panel.close();
+            } else {
+                settingsModal.querySelector(".sh-modal__close")?.click();
+            }
             this.onModalClosed();
             return;
         }

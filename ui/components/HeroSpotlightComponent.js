@@ -17,6 +17,7 @@ class HeroSpotlightComponent {
         this._sliderTimer = null;
         this._isTransitioning = false;
         this._featuredItems = [];
+        this._slideRenderId = 0;
         this._injectStyles();
     }
 
@@ -57,8 +58,13 @@ class HeroSpotlightComponent {
                         Overview: item.Overview || 'Aucun synopsis disponible.',
                         Type: item.Type,
                         ProductionYear: item.ProductionYear || '',
-                        OfficialRating: item.OfficialRating || 'HD',
-                        CommunityRating: item.CommunityRating ? Number(item.CommunityRating).toFixed(1) : '8.5',
+                        OfficialRating: item.OfficialRating || '',
+                        CommunityRating: item.CommunityRating !== undefined && item.CommunityRating !== null
+                            ? Number(item.CommunityRating)
+                            : null,
+                        CriticRating: item.CriticRating !== undefined && item.CriticRating !== null
+                            ? Number(item.CriticRating)
+                            : null,
                         backdropUrl: api.getImageUrl(item.Id, 'Backdrop', { maxWidth: 1920, maxHeight: 1080, quality: 90 }) || api.getImageUrl(item.Id, 'Primary', { maxWidth: 1920, maxHeight: 1080, quality: 90 }),
                         posterUrl: api.getImageUrl(item.Id, 'Primary', { maxWidth: 600, maxHeight: 900, quality: 90 }),
                         rawItem: item
@@ -74,7 +80,9 @@ class HeroSpotlightComponent {
         this._currentIndex = index;
         const item = this._featuredItems[index] || this._featuredItems[0];
         if (!item) return;
-        const backdropUrl = item.backdropUrl;
+        const renderId = ++this._slideRenderId;
+        const backdropUrl = item.backdropUrl || '';
+        const safeBackdropUrl = this._escapeUrl(backdropUrl);
 
         const buildKineticTitle = (name) => {
             let globalCharIndex = 0;
@@ -116,8 +124,9 @@ class HeroSpotlightComponent {
             }
 
             setTimeout(() => {
+                if (renderId !== this._slideRenderId || !document.contains(existingHero)) return;
                 if (heroBg) {
-                    heroBg.style.backgroundImage = `url('${backdropUrl}')`;
+                    heroBg.style.backgroundImage = safeBackdropUrl ? `url("${safeBackdropUrl}")` : '';
                     heroBg.style.opacity = '1';
                     heroBg.style.transform = 'scale(1.02)';
                 }
@@ -126,32 +135,20 @@ class HeroSpotlightComponent {
                     tagEl.textContent = item.tagline || item.categoryTag;
                 }
                 if (titleEl) titleEl.innerHTML = buildKineticTitle(item.Name);
-                                if (metaEl) {
-                    const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
-                    const rating = item.CommunityRating ? Number(item.CommunityRating) : null;
-                    const rtScore = item.CriticRating ? Math.round(item.CriticRating) : (rating ? Math.min(99, Math.round(rating * 10 + 2)) : 88);
-                    const imdbScore = rating ? rating.toFixed(1) : (rtScore / 10).toFixed(1);
-                    const rtSvg = cardBuilder?.getRtIconSvg?.(rtScore) || '<svg class="sh-rt-svg" width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#00C05B"/></svg>';
-                    const imdbSvg = cardBuilder?.getImdbIconSvg?.() || '<svg class="sh-imdb-star-svg" width="12" height="12" viewBox="0 0 24 24" fill="#F5C518"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>';
-
-                    const criticData = cardBuilder?.getCriticData?.(item.Name, rtScore, imdbScore);
-                    metaEl._criticData = criticData;
+                if (metaEl) {
+                    const rating = Number(item.CommunityRating);
+                    const criticRatingValue = Number(item.CriticRating);
+                    const hasCriticRating = Number.isFinite(criticRatingValue) && criticRatingValue > 0;
+                    const hasCommunityRating = Number.isFinite(rating);
 
                     metaEl.innerHTML = `
-                        <span class="sh-hero-badge sh-hero-badge--rt sh-score-rt">
-                            ${rtSvg}
-                            <span>${rtScore}%</span>
-                            
-                        </span>
-                        <span class="sh-hero-badge sh-hero-badge--imdb sh-score-imdb">
-                            ${imdbSvg}
-                            <span>${imdbScore}</span>
-                            
-                        </span>
-                        <span class="sh-hero-meta-item">${item.ProductionYear || ''}</span>
-                        <span class="sh-hero-badge">4K UHD</span>
-                        <span class="sh-hero-badge">${item.OfficialRating || 'TOUS PUBLICS'}</span>
+                        ${hasCriticRating ? `<span class="sh-hero-badge sh-hero-badge--critic sh-score-btn sh-score-rt" title="Note presse Jellyfin"><span aria-hidden="true">🍅</span><span>${Math.round(criticRatingValue)}%</span></span>` : ''}
+                        ${hasCommunityRating ? `<span class="sh-hero-badge sh-hero-badge--community" title="Note utilisateurs Jellyfin"><span>★ ${rating.toFixed(1)}/10</span></span>` : ''}
+                        <span class="sh-hero-meta-item">${this._escape(item.ProductionYear || '')}</span>
+                        ${item.MediaSources?.some(source => (source.MediaStreams || source.VideoStreams || []).some(stream => /hevc|h265/i.test(stream.Codec || '') && (stream.Width || 0) >= 3840)) ? '<span class="sh-hero-badge">4K UHD</span>' : ''}
+                            ${item.OfficialRating ? `<span class="sh-hero-badge">${this._escape(item.OfficialRating)}</span>` : ''}
                     `;
+                    this._attachExternalRatings(metaEl, item);
                 }
                 if (overviewEl) overviewEl.textContent = item.Overview;
                 if (playBtnSpan) playBtnSpan.textContent = 'Regarder';
@@ -184,26 +181,20 @@ class HeroSpotlightComponent {
         const kineticTitle = buildKineticTitle(item.Name);
         container.innerHTML = `
             <div class="sh-hero-container">
-                <div class="sh-hero-bg" style="background-image: url('${backdropUrl}');"></div>
+                <div class="sh-hero-bg"${safeBackdropUrl ? ` style="background-image: url('${safeBackdropUrl}');"` : ''}></div>
                 <div class="sh-hero-gradient-overlay"></div>
                 <div class="sh-hero-content">
                     <div class="sh-hero-info sh-hero-info--active">
                         <div class="sh-hero-series-tag">${this._escape(item.tagline || item.categoryTag)}</div>
                         <h1 class="sh-hero-title sh-hero-title--kinetic">${kineticTitle}</h1>
                         <div class="sh-hero-meta">
-                            <span class="sh-hero-badge sh-hero-badge--rt sh-score-rt">
-                                ${window.SpaceHub?.ui?.components?.cardBuilder?.getRtIconSvg?.(item.CriticRating ? Math.round(item.CriticRating) : (item.CommunityRating ? Math.min(99, Math.round(item.CommunityRating * 10 + 2)) : 88)) || '<svg class="sh-rt-svg" width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#00C05B"/></svg>'}
-                                <span>${item.CriticRating ? Math.round(item.CriticRating) : (item.CommunityRating ? Math.min(99, Math.round(item.CommunityRating * 10 + 2)) : 88)}%</span>
-                                
-                            </span>
-                            <span class="sh-hero-badge sh-hero-badge--imdb sh-score-imdb">
-                                ${window.SpaceHub?.ui?.components?.cardBuilder?.getImdbIconSvg?.() || '<svg class="sh-imdb-star-svg" width="12" height="12" viewBox="0 0 24 24" fill="#F5C518"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>'}
-                                <span>${item.CommunityRating ? Number(item.CommunityRating).toFixed(1) : '8.5'}</span>
-                                
-                            </span>
-                            <span class="sh-hero-meta-item">${item.ProductionYear || ''}</span>
-                            <span class="sh-hero-badge">4K UHD</span>
-                            <span class="sh-hero-badge">${item.OfficialRating || 'TOUS PUBLICS'}</span>
+                            ${Number.isFinite(Number(item.CriticRating)) && Number(item.CriticRating) > 0 ? `<span class="sh-hero-badge sh-hero-badge--critic sh-score-btn sh-score-rt" title="Note presse Jellyfin"><span aria-hidden="true">🍅</span><span>${Math.round(Number(item.CriticRating))}%</span></span>` : ''}
+                            ${Number.isFinite(Number(item.CommunityRating)) ? `<span class="sh-hero-badge sh-hero-badge--community" title="Note utilisateurs Jellyfin"><span>★ ${this._escape(Number(item.CommunityRating).toFixed(1))}/10</span></span>` : ''}
+                                <!--<svg class="sh-rt-svg" width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#00C05B"/></svg>-->
+
+                            <span class="sh-hero-meta-item">${this._escape(item.ProductionYear || '')}</span>
+                            ${item.MediaSources?.some(source => (source.MediaStreams || source.VideoStreams || []).some(stream => /hevc|h265/i.test(stream.Codec || '') && (stream.Width || 0) >= 3840)) ? '<span class="sh-hero-badge">4K UHD</span>' : ''}
+                            ${item.OfficialRating ? `<span class="sh-hero-badge">${this._escape(item.OfficialRating)}</span>` : ''}
                         </div>
                         <p class="sh-hero-overview">${this._escape(item.Overview)}</p>
                         <div class="sh-hero-actions">
@@ -222,10 +213,10 @@ class HeroSpotlightComponent {
                         </div>
                     </div>
                 </div>
-                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-hero-edge-btn sh-hero-edge-btn--prev" id="sh-hero-edge-prev" title="Affiche précédente" aria-label="Affiche précédente">
+                <button tabindex="0" data-nav-focusable="true" class="sh-hero-edge-btn sh-hero-edge-btn--prev" id="sh-hero-edge-prev" title="Affiche précédente" aria-label="Affiche précédente">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 </button>
-                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-hero-edge-btn sh-hero-edge-btn--next" id="sh-hero-edge-next" title="Affiche suivante" aria-label="Affiche suivante">
+                <button tabindex="0" data-nav-focusable="true" class="sh-hero-edge-btn sh-hero-edge-btn--next" id="sh-hero-edge-next" title="Affiche suivante" aria-label="Affiche suivante">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
                 <div class="sh-hero-progress-track">
@@ -243,6 +234,75 @@ class HeroSpotlightComponent {
             </div>
         `;
         this._bindEvents(container, item);
+        const metaEl = container.querySelector('.sh-hero-meta');
+        if (metaEl) this._attachExternalRatings(metaEl, item);
+    }
+
+    _attachExternalRatings(metaEl, item) {
+        const ratingCache = window.SpaceHub?.core?.ratingCache;
+        if (!ratingCache || !metaEl) return;
+        metaEl._heroItem = item;
+
+        // Rafraîchissement des badges déjà affichés après enregistrement d'une clé OMDb
+        if (!this._ratingsRefreshBound) {
+            this._ratingsRefreshBound = true;
+            document.addEventListener('spacehub:ratings-updated', () => {
+                document.querySelectorAll('.sh-hero-meta').forEach(m => {
+                    if (!m._heroItem) return;
+                    m.querySelectorAll('.sh-hero-badge--rt, .sh-hero-badge--imdb, .sh-hero-badge--mc').forEach(b => b.remove());
+                    this._attachExternalRatings(m, m._heroItem);
+                });
+            });
+        }
+
+        ratingCache.get(item).then(ratings => {
+            if (!document.contains(metaEl)) return;
+            // Fusion des données réelles : Jellyfin 🍅 (base) + OMDb (IMDb/MC/RT)
+            const base = metaEl._criticData || {};
+            if (ratings.rt != null || ratings.imdb != null) {
+                metaEl._criticData = {
+                    rtScore: ratings.rt ?? base.rtScore ?? null,
+                    imdb: ratings.imdb ?? null,
+                    imdbVotes: ratings.imdbVotes ?? null,
+                    metacritic: ratings.metacritic ?? null,
+                    sourceLabel: ratings.rt != null ? 'OMDb' : (base.sourceLabel || null),
+                    isSeriesFallback: ratings.isSeriesFallback ?? base.isSeriesFallback ?? false
+                };
+            }
+            // Hiérarchie : avec un score IMDb OMDb, le ★ Jellyfin fait doublon → retiré
+            const communityBadge = metaEl.querySelector('.sh-hero-badge--community');
+            if (communityBadge && ratings.imdb != null) communityBadge.remove();
+            const yearEl = metaEl.querySelector('.sh-hero-meta-item');
+            let html = '';
+            // Mise à jour du badge 🍅 existant (base Jellyfin) avec la valeur OMDb — pas de doublon
+            const existingRt = metaEl.querySelector('.sh-score-rt');
+            if (ratings.rt != null) {
+                if (existingRt) {
+                    const valEl = existingRt.querySelector('span:last-of-type');
+                    if (valEl) valEl.textContent = `${ratings.rt}%`;
+                    existingRt.title = 'Rotten Tomatoes (OMDb)';
+                } else {
+                    html += `<span class="sh-hero-badge sh-hero-badge--rt sh-score-btn sh-score-rt" title="Rotten Tomatoes (OMDb)"><span aria-hidden="true">🍅</span><span>${ratings.rt}%</span></span>`;
+                }
+            }
+            const existingImdb = metaEl.querySelector('.sh-score-imdb');
+            if (ratings.imdb != null) {
+                const imdbTitle = ratings.isSeriesFallback ? 'Note de la série — IMDb (OMDb)' : 'IMDb (OMDb)';
+                if (existingImdb) {
+                    const valEl = existingImdb.querySelector('span:last-of-type');
+                    if (valEl) valEl.textContent = `IMDb ${ratings.imdb.toFixed(1)}`;
+                    existingImdb.title = imdbTitle;
+                } else {
+                    html += `<span class="sh-hero-badge sh-hero-badge--imdb sh-score-btn sh-score-imdb" title="${imdbTitle}"><span>IMDb ${ratings.imdb.toFixed(1)}</span></span>`;
+                }
+            }
+            if (ratings.metacritic != null) {
+                html += `<span class="sh-hero-badge sh-hero-badge--mc" title="Metacritic (OMDb)"><span>MC ${ratings.metacritic}</span></span>`;
+            }
+            if (html && yearEl) {
+                yearEl.insertAdjacentHTML('afterend', html);
+            }
+        }).catch(() => {});
     }
 
     async _fetchFeaturedItem() {
@@ -262,8 +322,10 @@ class HeroSpotlightComponent {
                         Overview: it.Overview || '',
                         Type: it.Type,
                         ProductionYear: it.ProductionYear,
-                        OfficialRating: it.OfficialRating || 'HD',
-                        CommunityRating: it.CommunityRating || 8.5,
+                        OfficialRating: it.OfficialRating || '',
+                        CommunityRating: it.CommunityRating !== undefined && it.CommunityRating !== null
+                            ? Number(it.CommunityRating).toFixed(1)
+                            : null,
                         backdropUrl: apiClient.getImageUrl(it.BackdropImageTags?.length ? it.Id : (it.SeriesId || it.Id), 'Backdrop', { maxWidth: 1920, quality: 90 }),
                         posterUrl: apiClient.getImageUrl(it.Id, 'Primary', { maxWidth: 500, quality: 85 })
                     };
@@ -272,6 +334,20 @@ class HeroSpotlightComponent {
         } catch (e) {
             console.warn('[HeroSpotlight] Impossible de récupérer le média Jellyfin:', e);
         }
+    }
+
+    destroy() {
+        this._pauseAutoSlide();
+        if (this._scrollHandler) {
+            window.removeEventListener('scroll', this._scrollHandler);
+            this._scrollHandler = null;
+        }
+        if (this._keyHandler) {
+            window.removeEventListener('keydown', this._keyHandler);
+            this._keyHandler = null;
+        }
+        this._slideRenderId++;
+        this._featuredItems = [];
     }
 
     _startAutoSlide(container) {
@@ -321,11 +397,11 @@ class HeroSpotlightComponent {
     _bindCriticEvents(container, item) {
         const metaEl = container?.querySelector('.sh-hero-meta');
         if (metaEl && item) {
-            const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
-            const rating = item.CommunityRating ? Number(item.CommunityRating) : null;
-            const rtScore = item.CriticRating ? Math.round(item.CriticRating) : (rating ? Math.min(99, Math.round(rating * 10 + 2)) : 88);
-            const imdbScore = rating ? rating.toFixed(1) : (rtScore / 10).toFixed(1);
-            metaEl._criticData = cardBuilder?.getCriticData?.(item.Name, rtScore, imdbScore);
+            // Base réelle depuis Jellyfin (CriticRating) ; OMDb complète via _attachExternalRatings.
+            const criticRating = Number(item.CriticRating);
+            metaEl._criticData = Number.isFinite(criticRating) && criticRating > 0
+                ? { rtScore: Math.round(criticRating), imdb: null, imdbVotes: null, metacritic: null, sourceLabel: 'Jellyfin' }
+                : null;
         }
 
         // ⏸️ Mise en pause intelligente & garantie du défilement lorsque l'utilisateur s'intéresse aux critiques
@@ -337,17 +413,31 @@ class HeroSpotlightComponent {
             this._isHoveringCritique = false;
             setTimeout(() => {
                 const isHoveringPop = Boolean(document.querySelector('.sh-global-popover:hover, .sh-global-rt-popover:hover, .sh-global-imdb-popover:hover'));
-                const isHoveringBadge = Boolean(container?.querySelector('.sh-hero-badge--rt:hover, .sh-hero-badge--imdb:hover'));
+                const isHoveringBadge = Boolean(container?.querySelector('.sh-hero-badge--critic:hover, .sh-hero-badge--community:hover, .sh-score-rt:hover, .sh-score-imdb:hover'));
                 if (!isHoveringPop && !isHoveringBadge && !this._isHoveringCritique) {
                     this._resumeAutoSlide(container);
                 }
             }, 160);
         };
 
-        container?.querySelectorAll('.sh-hero-badge--rt, .sh-hero-badge--imdb').forEach(badge => {
+        container?.querySelectorAll('.sh-hero-badge--critic, .sh-hero-badge--community').forEach(badge => {
             badge.onmouseenter = onCriticEnter;
             badge.onmouseleave = onCriticLeave;
         });
+
+        // ⏸️ Mode TV / télécommande : pause du défilement automatique pendant que le
+        // focus reste sur le Hero (le popover 🍅/IMDb reste alors visible sur le slide courant).
+        if (!container._tvFocusPauseBound) {
+            container._tvFocusPauseBound = true;
+            container.addEventListener('focusin', () => {
+                this._pauseAutoSlide(container);
+            });
+            container.addEventListener('focusout', (e) => {
+                if (!container.contains(e.relatedTarget)) {
+                    this._resumeAutoSlide(container);
+                }
+            });
+        }
 
         // Liaison avec les popovers globaux s'ils existent
         const globalRTPop = document.getElementById('sh-global-rt-popover');
@@ -416,10 +506,10 @@ class HeroSpotlightComponent {
 
 
         // ── Effet Parallaxe & Immersion au Scroll ──
-        if (!this._hasBoundScroll) {
-            this._hasBoundScroll = true;
+        if (this._scrollHandler) window.removeEventListener('scroll', this._scrollHandler);
+        {
             let isTicking = false;
-            window.addEventListener('scroll', () => {
+            this._scrollHandler = () => {
                 if (!isTicking) {
                     requestAnimationFrame(() => {
                         const scrollY = window.scrollY;
@@ -448,13 +538,14 @@ class HeroSpotlightComponent {
                     });
                     isTicking = true;
                 }
-            }, { passive: true });
+            };
+            window.addEventListener('scroll', this._scrollHandler, { passive: true });
         }
 
         // ── Raccourcis Clavier Hero (Power-User - Sans conflit TV Spatial Navigation) ──
-        if (!this._hasBoundKeyboard) {
-            this._hasBoundKeyboard = true;
-            window.addEventListener('keydown', (e) => {
+        if (this._keyHandler) window.removeEventListener('keydown', this._keyHandler);
+        {
+            this._keyHandler = (e) => {
                 const activeTag = document.activeElement?.tagName?.toLowerCase();
                 if (activeTag === 'input' || activeTag === 'textarea' || document.querySelector('.sh-modal--open, .sh-slideup-sheet--open, .sh-trailer-lightbox.sh-lightbox--open')) {
                     return;
@@ -472,7 +563,8 @@ class HeroSpotlightComponent {
                         }
                     }
                 }
-            });
+            };
+            window.addEventListener('keydown', this._keyHandler);
         }
 
         container.querySelector('#sh-hero-edge-prev')?.addEventListener('click', (e) => {
@@ -509,14 +601,19 @@ class HeroSpotlightComponent {
             }
         });
 
-        container.querySelector('#sh-hero-btn-trailer')?.addEventListener('click', () => {
+        container.querySelector('#sh-hero-btn-trailer')?.addEventListener('click', (e) => {
             const current = getCurrentItem();
             if (!current) return;
-            const title = current.Name || current.title || 'Film';
-            if (window.SpaceHub?.ui?.components?.cardBuilder?._showTrailerLightbox) {
-                window.SpaceHub.ui.components.cardBuilder._showTrailerLightbox(title);
+            const mediaItem = current.rawItem || current;
+            // Bandes-annonces via notre TrailerService : serveur Jellyfin d'abord,
+            // puis YouTube dans la fenêtre SpaceHub (plus d'iframe brute).
+            if (window.SpaceHub?.trailers) {
+                window.SpaceHub.trailers.open(
+                    { Id: mediaItem.Id || mediaItem.id, Name: mediaItem.Name || mediaItem.title || 'Film', RemoteTrailers: mediaItem.RemoteTrailers },
+                    e.currentTarget
+                );
             } else {
-                this._showTrailerLightbox(title);
+                window.SpaceHub?.ui?.components?.toaster?.info?.('Bande-annonce indisponible.');
             }
         });
 
@@ -531,49 +628,21 @@ class HeroSpotlightComponent {
         });
     }
 
-    _showTrailerLightbox(title) {
-        let lightbox = document.getElementById('sh-trailer-lightbox');
-        if (!lightbox) {
-            lightbox = document.createElement('div');
-            lightbox.id = 'sh-trailer-lightbox';
-            lightbox.className = 'sh-trailer-lightbox';
-            lightbox.innerHTML = `
-                <div class="sh-trailer-box">
-                    <button class="sh-trailer-close" id="sh-trailer-close" aria-label="Fermer" title="Fermer">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                    <div class="sh-trailer-content">
-                        <iframe id="sh-trailer-iframe" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(lightbox);
-
-            lightbox.querySelector('#sh-trailer-close').onclick = () => {
-                lightbox.classList.remove('sh-lightbox--open');
-                lightbox.querySelector('#sh-trailer-iframe').src = '';
-            };
-            lightbox.onclick = (e) => {
-                if (e.target === lightbox) {
-                    lightbox.classList.remove('sh-lightbox--open');
-                    lightbox.querySelector('#sh-trailer-iframe').src = '';
-                }
-            };
+    _escapeUrl(value) {
+        const url = String(value || '').trim();
+        if (!url) return '';
+        try {
+            const parsed = new URL(url, window.location.origin);
+            if (!['http:', 'https:'].includes(parsed.protocol)) return '';
+            return parsed.href.replace(/(["'\\])/g, '\\$1');
+        } catch {
+            return '';
         }
-
-        const iframe = lightbox.querySelector('#sh-trailer-iframe');
-        if (iframe) {
-            iframe.src = `https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(title + ' bande annonce official trailer')}&autoplay=1`;
-        }
-        lightbox.classList.add('sh-lightbox--open');
     }
 
-    _escape(str) {
-        if (!str) return '';
-        return str.replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
+    _escape(value) {
+        if (value === null || value === undefined) return '';
+        return String(value).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
     }
 
     _injectStyles() {
@@ -630,7 +699,7 @@ class HeroSpotlightComponent {
     -webkit-backdrop-filter: blur(10px);
 }
 
-.sh-hero-badge--rt, .sh-hero-badge--imdb {
+.sh-hero-badge--rt, .sh-hero-badge--imdb, .sh-hero-badge--critic {
     position: relative;
     cursor: pointer !important;
     display: inline-flex !important;

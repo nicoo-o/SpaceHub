@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../core/utils/domUtils.js';
 /**
  * SpaceHub — Radarr Dashboard Widgets
  * Version: 0.7.0
@@ -110,7 +111,7 @@ class UpcomingMoviesWidget {
         } catch (err) {
             contentEl.innerHTML = `
                 <div class="sh-widget-error">
-                    <p>Impossible de joindre Radarr (${err.message}). Vérifiez vos identifiants.</p>
+                    <p>Impossible de joindre Radarr (${escapeHtml(err.message)}). Vérifiez vos identifiants.</p>
                 </div>
             `;
         }
@@ -337,7 +338,7 @@ class RadarrQueueWidget {
                 </div>
             `;
         } catch (err) {
-            contentEl.innerHTML = `<p style="color:#ff453a; text-align:center; padding:16px;">${err.message}</p>`;
+            contentEl.innerHTML = `<p style="color:#ff453a; text-align:center; padding:16px;">${escapeHtml(err.message)}</p>`;
         }
     }
 

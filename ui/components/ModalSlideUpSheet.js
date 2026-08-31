@@ -10,7 +10,7 @@
  * - Popover Audio & Sous-Titres à Double Colonne ergonomique (Apple Ice Blue).
  * - Animations échelonnées en cascade (Staggered Motion).
  * - Grille dense 3x2 (6 titres) dans l'onglet Similaires avec bouton lecture rapide et mini-synopsis.
- * - Onglet Casting enrichi avec Réalisateur, Compositeur (Hans Zimmer) et Directeur Photo.
+ * - Onglet Casting enrichi à partir des personnes réellement renvoyées par Jellyfin.
  */
 
 'use strict';
@@ -21,8 +21,6 @@ class ModalSlideUpSheet {
         this._overlay = null;
         this._ambientGlow = null;
         this._isOpen = false;
-        const nav = window.SpaceHub?.spatialNav || window.SpaceHub?.ui?.appLayout?._spatialNav;
-        nav?.onModalClosed?.();
         this._currentItem = null;
         this._activeTab = 'synopsis';
         this._selectedAudioIndex = 0;
@@ -30,6 +28,8 @@ class ModalSlideUpSheet {
         this._audioPopoverOpen = false;
         this._history = [];
         this._docClickHandler = null; // Référence unique pour éviter la fuite de listeners
+        this._escHandler = null;
+        this._detailsGeneration = 0;
         document.body.style.overflow = '';
         this._injectSheetDOM();
         this._injectStyles();
@@ -68,18 +68,19 @@ class ModalSlideUpSheet {
 
         this._overlay.onclick = () => this.close();
 
-        if (!this._hasEscListener) {
-            this._hasEscListener = true;
-            window.addEventListener('keydown', (e) => {
+        if (!this._escHandler) {
+            this._escHandler = (e) => {
                 if (e.key === 'Escape' && this._isOpen) {
                     if (this._audioPopoverOpen) this._closeAudioPopover();
                     else this.close();
                 }
-            });
+            };
+            window.addEventListener('keydown', this._escHandler);
         }
     }
 
     open(item = {}, options = {}) {
+        this._detailsGeneration += 1;
         this._injectSheetDOM();
         if (!options.isBack && this._currentItem && this._isOpen) {
             const currentTitle = this._currentItem.title || this._currentItem.Name;
@@ -151,10 +152,8 @@ class ModalSlideUpSheet {
         });
 
         if (this._ambientGlow) {
-            const bg = backdropUrl || posterUrl || item.backdropUrl || item.imageUrl || '';
-            if (bg) {
-                this._ambientGlow.style.backgroundImage = `url('${bg}')`;
-            }
+            const bg = this._escapeUrl(backdropUrl || posterUrl || item.backdropUrl || item.imageUrl || '');
+            this._ambientGlow.style.backgroundImage = bg ? `url("${bg}")` : '';
             this._ambientGlow.classList.add('sh-modal-ambient-glow--open');
         }
 
@@ -168,20 +167,189 @@ class ModalSlideUpSheet {
         const heroDetailsEl = this._sheet?.querySelector('.sh-cinema-hero-details');
         const metaLineEl = this._sheet?.querySelector('.sh-cinema-meta-line');
         if (heroDetailsEl || metaLineEl) {
-            const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
-            const rating = item.CommunityRating ? Number(item.CommunityRating) : null;
-            const rtScore = item.CriticRating ? Math.round(item.CriticRating) : (rating ? Math.min(99, Math.round(rating * 10 + 2)) : 88);
-            const imdbScore = rating ? rating.toFixed(1) : (rtScore / 10).toFixed(1);
-            const criticData = cardBuilder?.getCriticData?.(item.Name || item.title || 'Média', rtScore, imdbScore);
+            const rating = Number.isFinite(Number(item.CommunityRating)) ? Number(item.CommunityRating) : null;
+            const rtScore = Number.isFinite(Number(item.CriticRating)) && Number(item.CriticRating) > 0
+                ? Math.round(Number(item.CriticRating))
+                : null;
+            // Base réelle depuis Jellyfin (CriticRating) ; OMDb complète via _attachExternalRatings.
+            const criticData = rtScore !== null
+                ? { rtScore, imdb: null, imdbVotes: null, metacritic: null, sourceLabel: 'Jellyfin' }
+                : null;
             if (heroDetailsEl) heroDetailsEl._criticData = criticData;
             if (metaLineEl) metaLineEl._criticData = criticData;
         }
 
         // 2. Chargement asynchrone des métadonnées réelles enrichies
-        this._loadFullDetails(item);
+        this._loadFullDetails(item, this._detailsGeneration);
+        this._attachExternalRatings(item);
+    }
+
+    _attachExternalRatings(item) {
+        const ratingCache = window.SpaceHub?.core?.ratingCache;
+        if (!ratingCache) return;
+
+        // Idempotence : retirer les badges externes déjà insérés avant réinsertion
+        const metaLine = this._sheet?.querySelector('.sh-cinema-meta-line');
+        metaLine?.querySelectorAll('.sh-modal-header-badge--rt, .sh-modal-header-badge--imdb, .sh-modal-header-badge--mc, .sh-score-btn').forEach(b => b.remove());
+
+        // Rafraîchissement après enregistrement d'une clé OMDb (fiche déjà ouverte)
+        if (!this._ratingsRefreshBound) {
+            this._ratingsRefreshBound = true;
+            document.addEventListener('spacehub:ratings-updated', () => {
+                if (this._isOpen && this._currentItem) this._attachExternalRatings(this._currentItem);
+            });
+        }
+
+        ratingCache.get(item).then(ratings => {
+            if (!this._isOpen) return;
+            const metaLineEl = this._sheet?.querySelector('.sh-cinema-meta-line');
+            if (!metaLineEl) return;
+            const yearEl = metaLineEl.querySelector('.sh-meta-bullet');
+            if (!yearEl) return;
+
+            // Hiérarchie : avec un score IMDb OMDb, le ★ Jellyfin fait doublon → retiré
+            const communityBadge = metaLineEl.querySelector('.sh-modal-header-badge--community');
+            if (communityBadge && ratings.imdb != null) communityBadge.remove();
+            let html = '';
+            if (ratings.rt != null) {
+                html += `<span class="sh-modal-header-badge sh-score-btn sh-score-rt" tabindex="0" data-nav-focusable="true" title="Rotten Tomatoes"><span aria-hidden="true">🍅</span><span>${ratings.rt}%</span></span>`;
+            }
+            if (ratings.imdb != null) {
+                const imdbTitle = ratings.isSeriesFallback ? 'Note de la série — IMDb' : 'IMDb';
+                html += `<span class="sh-modal-header-badge sh-score-btn sh-score-imdb" tabindex="0" data-nav-focusable="true" title="${imdbTitle}"><span>IMDb ${ratings.imdb.toFixed(1)}</span></span>`;
+            }
+            if (ratings.metacritic != null) {
+                html += `<span class="sh-modal-header-badge sh-modal-header-badge--mc" title="Metacritic"><span>MC ${ratings.metacritic}</span></span>`;
+            }
+            if (html) {
+                yearEl.insertAdjacentHTML('beforebegin', html);
+                // Activation clavier/télécommande : Entrée/Espace déclenche le comportement clic
+                metaLineEl.querySelectorAll('.sh-score-btn[tabindex="0"]').forEach(badge => {
+                    badge.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            badge.click();
+                        }
+                    });
+                });
+            }
+            // Fusion des données réelles : Jellyfin 🍅 (base) + OMDb (IMDb/MC/RT)
+            const base = metaLineEl._criticData || {};
+            metaLineEl._criticData = {
+                rtScore: ratings.rt ?? base.rtScore ?? null,
+                imdb: ratings.imdb ?? null,
+                imdbVotes: ratings.imdbVotes ?? null,
+                metacritic: ratings.metacritic ?? null,
+                sourceLabel: ratings.rt != null ? 'OMDb' : (base.sourceLabel || null),
+                isSeriesFallback: ratings.isSeriesFallback ?? base.isSeriesFallback ?? false
+            };
+            this._updateCriticsBento(metaLineEl._criticData);
+
+            // Texte critique réel (TMDB) — chargé en parallèle, jamais inventé
+            ratingCache.getText(item).then(text => {
+                if (!this._isOpen) return;
+                this._updateCriticsBento(metaLineEl._criticData, text);
+            }).catch(() => {});
+        }).catch(() => {});
+    }
+
+    /**
+     * Met à jour la section À propos (bento critiques) avec les données réelles disponibles.
+     * Carte sans score réel ET sans texte TMDB → masquée proprement (rien d'inventé).
+     */
+    _updateCriticsBento(criticData, criticText = null) {
+        if (!criticData) return;
+        const q = (sel) => this._sheet?.querySelector(sel);
+
+        const rtScore = Number(criticData.rtScore);
+        const hasRt = Number.isFinite(rtScore) && rtScore > 0;
+        const rtCard = q('.sh-critics-bento-card--rt');
+        if (!hasRt && !criticText?.text) {
+            if (rtCard) {
+                rtCard.classList.add('sh-critics-bento-card--hidden');
+                rtCard.setAttribute('hidden', '');
+            }
+        } else {
+            if (rtCard) {
+                rtCard.classList.remove('sh-critics-bento-card--hidden');
+                rtCard.removeAttribute('hidden');
+            }
+            if (hasRt) {
+                const scoreEl = q('#sh-critics-rt-score');
+                if (scoreEl) scoreEl.textContent = `${rtScore}%`;
+                const statusEl = q('#sh-critics-rt-status');
+                if (statusEl) {
+                    statusEl.textContent = rtScore >= 75 ? 'Certified Fresh' : (rtScore >= 60 ? 'Fresh' : 'Rotten');
+                    statusEl.classList.remove('certified', 'fresh', 'rotten');
+                    statusEl.classList.add(rtScore >= 75 ? 'certified' : (rtScore >= 60 ? 'fresh' : 'rotten'));
+                    statusEl.style.display = '';
+                }
+            }
+            const noteEl = q('#sh-critics-rt-note');
+            if (noteEl) {
+                if (criticText?.text) {
+                    noteEl.textContent = criticText.text;
+                } else {
+                    noteEl.textContent = hasRt ? 'Score de la presse agrégé par Rotten Tomatoes.' : '';
+                }
+            }
+            const srcEl = q('#sh-critics-rt-source');
+            if (srcEl) {
+                const parts = [];
+                if (hasRt) parts.push(`Score : ${criticData.sourceLabel || 'OMDb'}`);
+                if (criticText?.text) parts.push(`Texte : ${criticText.source || 'TMDB'}${criticText.author && criticText.author !== 'TMDB' ? ' — ' + criticText.author : ''}`);
+                srcEl.textContent = parts.length > 0 ? parts.join(' • ') : '';
+            }
+        }
+
+        const imdbCard = q('.sh-critics-bento-card--community');
+        const imdb = Number(criticData.imdb);
+        if (!Number.isFinite(imdb) || imdb <= 0) {
+            if (imdbCard) {
+                imdbCard.classList.add('sh-critics-bento-card--hidden');
+                imdbCard.setAttribute('hidden', '');
+            }
+        } else {
+            if (imdbCard) {
+                imdbCard.classList.remove('sh-critics-bento-card--hidden');
+                imdbCard.removeAttribute('hidden');
+            }
+            const el = q('#sh-critics-imdb-score');
+            if (el) el.innerHTML = `★ ${imdb.toFixed(1)}<small>/10</small>`;
+            const votesEl = q('#sh-critics-imdb-votes');
+            if (votesEl) {
+                if (criticData.imdbVotes != null) {
+                    const votesNum = Number(String(criticData.imdbVotes).replace(/[^\d]/g, ''));
+                    votesEl.textContent = (Number.isFinite(votesNum) && votesNum > 0)
+                        ? `${votesNum.toLocaleString('fr-FR')} votes spectateurs`
+                        : (criticData.isSeriesFallback ? 'Note de la série' : 'Note spectateurs IMDb');
+                } else {
+                    votesEl.textContent = criticData.isSeriesFallback ? 'Note de la série' : 'Note spectateurs IMDb';
+                }
+            }
+            const srcEl = q('#sh-critics-community-source');
+            if (srcEl) srcEl.textContent = criticData.isSeriesFallback ? 'Source : OMDb (IMDb) — note de la série' : 'Source : OMDb (IMDb)';
+        }
+
+        const mc = Number(criticData.metacritic);
+        const mcEl = q('#sh-critics-mc');
+        if (mcEl) {
+            if (Number.isFinite(mc) && mc > 0) {
+                mcEl.removeAttribute('hidden');
+                mcEl.style.removeProperty('display');
+                mcEl.textContent = `🟢 ${mc} Metascore`;
+            } else {
+                mcEl.setAttribute('hidden', '');
+            }
+        }
+        const mcInline = q('#sh-critics-mc-inline');
+        if (mcInline) {
+            mcInline.textContent = (Number.isFinite(mc) && mc > 0) ? `Metascore : ${mc}` : '';
+        }
     }
 
     close() {
+        this._detailsGeneration += 1;
         if (!this._isOpen) return;
         const closedItem = this._currentItem;
         this._closeAudioPopover();
@@ -206,12 +374,22 @@ class ModalSlideUpSheet {
         }
     }
 
+    destroy() {
+        this.close();
+        if (this._escHandler) {
+            window.removeEventListener('keydown', this._escHandler);
+            this._escHandler = null;
+        }
+        this._sheet?.replaceChildren();
+    }
+
     _renderContent(item, images = {}) {
         const rawType = (item.Type || item.type || item.MediaType || item.mediaType || '').toLowerCase();
         const isMovie = rawType === 'movie' || item.isMovie;
         const isEpisode = rawType === 'episode';
         const isCollection = rawType === 'boxset' || rawType === 'collection' || rawType === 'saga' || item.isCollection;
         const isMusic = rawType === 'musicalbum' || rawType === 'music' || rawType === 'album' || rawType === 'audio' || item.isMusic;
+        const isCalendarOrServarr = item.source === 'sonarr' || item.source === 'radarr' || item.source === 'jellyseerr' || (typeof item.Id === 'string' && (item.Id.startsWith('sonarr-') || item.Id.startsWith('radarr-') || item.Id.startsWith('sh-cal-') || item.Id.startsWith('jellyseerr-')));
         const isSeries = !isMovie && !isCollection && !isMusic && (
             rawType === 'series' || 
             rawType === 'tv' || 
@@ -227,40 +405,42 @@ class ModalSlideUpSheet {
 
         const title = item.Name || item.title || 'Média';
         const year = item.ProductionYear || item.year || '';
-        const rating = item.CommunityRating ? Number(item.CommunityRating) : null;
-        const rtScore = item.rottenScore || (rating ? Math.min(99, Math.round(rating * 10 + 5)) : 88);
-        const imdbScore = rating ? rating.toFixed(1) : '8.5';
-        const overview = item.Overview || item.overview || 'Chargement des informations du film...';
+        const rating = item.CommunityRating !== undefined && item.CommunityRating !== null
+            ? Number(item.CommunityRating)
+            : null;
+        const rtScore = item.CriticRating !== undefined && item.CriticRating !== null
+            ? Number(item.CriticRating)
+            : null;
+        const imdbScore = rating !== null ? rating.toFixed(1) : null;
+        const overview = item.Overview || item.overview || 'Synopsis non disponible sur le serveur.';
         const duration = item.RunTimeTicks ? Math.round(item.RunTimeTicks / 10000000 / 60) + ' min' : (item.duration || '');
         const posterUrl = images.posterUrl || item.posterUrl || item.imageUrl || '';
-        const genres = (item.Genres && item.Genres.length > 0) ? item.Genres.join(' • ') : 'Cinéma & Découverte';
+        const genres = Array.isArray(item.Genres) && item.Genres.length > 0
+            ? item.Genres.join(' • ')
+            : 'Non renseigné par Jellyfin';
+        const mediaStreams = Array.isArray(item.MediaStreams)
+            ? item.MediaStreams
+            : (Array.isArray(item.MediaSources) ? item.MediaSources.flatMap(source => source.MediaStreams || []) : []);
+        const has4K = mediaStreams.some(stream => Number(stream.Width) >= 3840 || /4k|uhd/i.test(stream.DisplayTitle || stream.Title || ''));
+        const hasAtmos = mediaStreams.some(stream => stream.Type === 'Audio' && /atmos/i.test(`${stream.Codec || ''} ${stream.DisplayTitle || ''} ${stream.Title || ''}`));
+        const hasDolbyVision = mediaStreams.some(stream => /dolby.?vision/i.test(`${stream.VideoRange || ''} ${stream.VideoRangeType || ''} ${stream.DisplayTitle || ''}`));
 
         const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
-        const criticData = cardBuilder?.getCriticData?.(title, rtScore, imdbScore) || {
-            title,
-            rtScore,
-            imdb: imdbScore,
-            audience: 91,
-            metacritic: 86,
-            consensus: "Unanimement salué par la critique comme une œuvre cinématographique majeure.",
-            quote: "« Une expérience immersive d'une grande maîtrise. »",
-            outlet: "Première",
-            positiveVotes: 89,
-            neutralVotes: 8,
-            negativeVotes: 3
-        };
+        const criticData = null; // Jellyfin ne fournit pas de données critiques externes vérifiées.
 
         const hasHistory = this._history.length > 0;
         const prevItem = hasHistory ? this._history[this._history.length - 1] : null;
         const prevItemName = prevItem ? (prevItem.Name || prevItem.title || 'Précédent') : '';
-        const backBtnLabel = hasHistory ? `Retour à ${this._escape(prevItemName)}` : 'Retour';
-        const backBtnTitle = hasHistory ? `Retour à : ${this._escape(prevItemName)}` : 'Fermer la fiche et revenir';
+        const backBtnLabel = hasHistory ? `Retour à ${prevItemName}` : 'Retour';
+        const backBtnTitle = hasHistory ? `Retour à : ${prevItemName}` : 'Fermer la fiche et revenir';
+        const safePosterUrl = this._escapeUrl(posterUrl);
+        const safeBackdropUrl = this._escapeUrl(images.backdropUrl || posterUrl);
 
         this._sheet.innerHTML = `
             <!-- 🎬 EN-TÊTE HERO CINÉMATIQUE ADAPTATIF -->
             <div class="sh-cinema-hero">
                 <div class="sh-cinema-hero-bg-container">
-                    <div class="sh-cinema-hero-backdrop" style="background-image: url('${images.backdropUrl || posterUrl}');"></div>
+                    <div class="sh-cinema-hero-backdrop"${safeBackdropUrl ? ` style="background-image: url(\"${safeBackdropUrl}\");"` : ''}></div>
                     <div class="sh-cinema-hero-gradient-bottom"></div>
                     <div class="sh-cinema-hero-gradient-left"></div>
                 </div>
@@ -284,8 +464,8 @@ class ModalSlideUpSheet {
                 <div class="sh-cinema-hero-content">
                     <!-- Visuel 2:3 (Film/Série/Saga) ou 1:1 Carré (Musique) -->
                     <div class="sh-cinema-hero-poster ${isMusic ? 'sh-cinema-hero-poster--music' : ''}">
-                        ${posterUrl ? `
-                            <img src="${posterUrl}" alt="${this._escape(title)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                        ${safePosterUrl ? `
+                            <img src="${safePosterUrl}" alt="${this._escape(title)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
                             <div class="sh-cinema-poster-fallback" style="display: none; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.08); border-radius: 16px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 12px; box-sizing: border-box;">
                                 <span style="font-size: 38px;">${isEpisode || isSeries ? '📺' : '🎬'}</span>
                                 <small style="font-size: 11px; color: rgba(255,255,255,0.7); font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${this._escape(title)}</small>
@@ -303,27 +483,19 @@ class ModalSlideUpSheet {
                         <!-- Badges Techniques Adaptatifs -->
                         <div class="sh-cinema-badge-top">
                             <span class="sh-badge-glass-pill" id="sh-badge-type">${isMusic ? 'ALBUM MUSICAL' : isCollection ? 'SAGA CINÉMA' : isSeries ? 'SÉRIE TV' : 'LONG-MÉTRAGE'}</span>
-                            <span class="sh-badge-glass-pill" id="sh-badge-quality">MASTER 4K</span>
-                            <span class="sh-badge-glass-pill" id="sh-badge-audio">DOLBY ATMOS</span>
-                            <span class="sh-badge-glass-pill" id="sh-badge-vision">DOLBY VISION</span>
+                            ${has4K ? '<span class="sh-badge-glass-pill" id="sh-badge-quality">4K UHD</span>' : ''}
+                            ${hasAtmos ? '<span class="sh-badge-glass-pill" id="sh-badge-audio">DOLBY ATMOS</span>' : ''}
+                            ${hasDolbyVision ? '<span class="sh-badge-glass-pill" id="sh-badge-vision">DOLBY VISION</span>' : ''}
                         </div>
 
                         <h1 class="sh-cinema-title">${this._escape(title)}</h1>
 
                         <!-- Ligne Typographique Épurée de Métadonnées avec Badges Critiques Officiels (Navigation Onglet À Propos) -->
                         <div class="sh-cinema-meta-line">
-                            ${!isMusic ? `
-                            <span class="sh-modal-header-badge sh-modal-header-badge--rt">
-                                ${cardBuilder?.getRtIconSvg?.(rtScore) || '<svg class="sh-rt-svg" width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#00C05B"/></svg>'}
-                                <span>${rtScore}%</span>
-                            </span>
-                            <span class="sh-modal-header-badge sh-modal-header-badge--imdb">
-                                ${cardBuilder?.getImdbIconSvg?.() || '<svg class="sh-imdb-star-svg" width="12" height="12" viewBox="0 0 24 24" fill="#F5C518"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>'}
-                                <span>${imdbScore}</span>
-                            </span>
-                            ` : ''}
-                            ${year ? `<span class="sh-meta-bullet">•</span><span class="sh-meta-text">${year}</span>` : ''}
-                            ${duration ? `<span class="sh-meta-bullet">•</span><span class="sh-meta-text">${duration}</span>` : ''}
+                            ${rating !== null ? `<span class="sh-modal-header-badge sh-modal-header-badge--community" title="Note Jellyfin"><span aria-hidden="true">★</span><span>${rating.toFixed(1)}/10</span></span>` : ''}
+                            <span class="sh-score-ext" data-item-id="${this._escape(item.Id || item.id || '')}" style="display:contents"></span>
+                            ${year ? `<span class="sh-meta-bullet">•</span><span class="sh-meta-text">${this._escape(year)}</span>` : ''}
+                            ${duration ? `<span class="sh-meta-bullet">•</span><span class="sh-meta-text">${this._escape(duration)}</span>` : ''}
                             <span class="sh-meta-bullet">•</span>
                             <span class="sh-meta-text" id="sh-hero-genres">${this._escape(genres)}</span>
                         </div>
@@ -334,6 +506,12 @@ class ModalSlideUpSheet {
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                                 <span>${isMusic ? 'Écouter tout' : isCollection ? 'Lancer la Saga' : isSeries ? 'Reprendre la série' : 'Regarder'}</span>
                             </button>
+                            ${isCalendarOrServarr ? `
+                                <button class="sh-cinema-btn-glass" id="sh-slideup-request-btn">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+                                    <span>Demander au serveur</span>
+                                </button>
+                            ` : ''}
 
                             <button class="sh-cinema-btn-glass" id="sh-slideup-trailer-btn">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
@@ -394,15 +572,13 @@ class ModalSlideUpSheet {
                                 <div class="sh-drawer-field">
                                     <label class="sh-drawer-label">Profil de Qualité (${isSeries ? 'Sonarr' : 'Radarr'})</label>
                                     <select class="sh-drawer-select" id="sh-drawer-profile-select">
-                                        <option value="1">4K UHD • Dolby Vision & HDR</option>
-                                        <option value="2" selected>1080p HD • Qualité Maximale Remux</option>
-                                        <option value="3">1080p HD • Standard WEB-DL</option>
+                                        <option value="" selected>Profil fourni par le serveur…</option>
                                     </select>
                                 </div>
                                 <div class="sh-drawer-field">
                                     <label class="sh-drawer-label">Dossier de Destination</label>
                                     <select class="sh-drawer-select" id="sh-drawer-folder-select">
-                                        <option value="/data/media/${isSeries ? 'series' : 'movies'}" selected>/data/media/${isSeries ? 'series' : 'movies'}</option>
+                                        <option value="" selected>Dossier fourni par le serveur…</option>
                                     </select>
                                 </div>
                             </div>
@@ -456,7 +632,7 @@ class ModalSlideUpSheet {
                         <div class="sh-tab-panel ${this._activeTab === 'episodes' ? 'active' : ''}" id="sh-panel-episodes">
                             <div class="sh-series-episodes-container">
                                 <div class="sh-season-pills-row">
-                                    <button class="sh-season-pill-btn" tabindex="0" active">Chargement des saisons...</button>
+                                    <button class="sh-season-pill-btn" tabindex="0" data-nav-focusable="true">Chargement des saisons...</button>
                                 </div>
                                 <div class="sh-episodes-cards-grid">
                                     <div style="color:rgba(255,255,255,0.4); padding:20px;">Chargement des épisodes...</div>
@@ -495,50 +671,43 @@ class ModalSlideUpSheet {
                                 <p class="sh-panel-overview" id="sh-panel-overview">${this._escape(overview)}</p>
                             </div>
 
-                            <!-- 2. 🏆 RÉPUTATION & CRITIQUES PRESSE & PUBLIC (2 Boîtes Bento Distinctes) -->
-                            ${(!isMusic && (rating || rtScore)) ? `
+                            <!-- 2. 🏆 RÉPUTATION & CRITIQUES PRESSE & PUBLIC — données réelles Jellyfin + OMDb (aucune valeur fabriquée) -->
+                            ${true ? `
                             <div class="sh-cinema-critics-block">
-                                <!-- Carte 1: Rotten Tomatoes & Presse Internationale -->
+                                <!-- Carte 1: Rotten Tomatoes — Presse -->
                                 <div class="sh-critics-bento-card sh-critics-bento-card--rt">
                                     <div class="sh-critics-card-header">
                                         <div class="sh-critics-brand-row">
-                                            ${cardBuilder?.getRtIconSvg?.(rtScore) || '<svg class="sh-rt-svg" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C9.5 2 8 3.5 8 3.5C8 3.5 9 5 11 5.5C8 6 4 9 4 14C4 18.5 7.5 22 12 22C16.5 22 20 18.5 20 14C20 9 16 6 13 5.5C15 5 16 3.5 16 3.5C16 3.5 14.5 2 12 2Z" fill="#FA320A"/><path d="M12 2C10.5 2 9 3 9 3.5C10 4 11 4.5 12 4.5C13 4.5 14 4 15 3.5C15 3 13.5 2 12 2Z" fill="#00C05B"/></svg>'}
-                                            <span class="sh-critics-title-label">Rotten Tomatoes</span>
-                                            <span class="sh-critics-badge ${rtScore >= 75 ? 'certified' : (rtScore >= 60 ? 'fresh' : 'rotten')}">${rtScore >= 75 ? 'Certified Fresh' : (rtScore >= 60 ? 'Fresh' : 'Rotten')}</span>
+                                            ${cardBuilder?.getRtIconSvg?.(rtScore) || ''}
+                                            <span class="sh-critics-title-label">Rotten Tomatoes — Presse</span>
+                                            <span class="sh-critics-badge ${rtScore ? (rtScore >= 75 ? 'certified' : (rtScore >= 60 ? 'fresh' : 'rotten')) : ''}" id="sh-critics-rt-status" ${rtScore ? '' : 'style="display:none;"'}>${rtScore ? (rtScore >= 75 ? 'Certified Fresh' : (rtScore >= 60 ? 'Fresh' : 'Rotten')) : ''}</span>
                                         </div>
-                                        <div class="sh-critics-score-val-large">${rtScore}%</div>
+                                        <div class="sh-critics-score-val-large" id="sh-critics-rt-score">${rtScore ? `${rtScore}%` : '—'}</div>
                                     </div>
-                                    <p class="sh-critics-consensus-text">${criticData?.consensus || 'Consensus de la critique.'}</p>
-                                    <div class="sh-critics-quote-box">
-                                        <span>${criticData?.quote || ''}</span>
-                                        <cite>${criticData?.outlet || ''}</cite>
-                                    </div>
+                                    <p class="sh-critics-consensus-text" id="sh-critics-rt-note">${rtScore ? 'Score de la presse agrégé par Rotten Tomatoes.' : 'Aucune note presse disponible pour ce titre.'}</p>
                                     <div class="sh-critics-footer-meta">
-                                        <span>🍿 ${criticData?.audience || 91}% d'avis public favorable</span>
+                                        <span id="sh-critics-rt-source">${rtScore ? 'Source : Jellyfin' : 'Source : aucune'}</span>
+                                        <span id="sh-critics-mc" style="display:none;"></span>
                                     </div>
                                 </div>
 
-                                <!-- Carte 2: IMDb & Communauté Spectateurs -->
-                                <div class="sh-critics-bento-card sh-critics-bento-card--imdb">
+                                <!-- Carte 2: Note des Spectateurs — Jellyfin ★ enrichi via OMDb (IMDb) -->
+                                <div class="sh-critics-bento-card sh-critics-bento-card--community">
                                     <div class="sh-critics-card-header">
                                         <div class="sh-critics-brand-row">
                                             <span class="sh-imdb-badge-solid">IMDb</span>
                                             <span class="sh-critics-title-label">Note des Spectateurs</span>
                                         </div>
-                                        <div class="sh-critics-score-val-large imdb-gold">★ ${imdbScore}<small>/10</small></div>
+                                        <div class="sh-critics-score-val-large imdb-gold" id="sh-critics-imdb-score">${imdbScore !== null ? `★ ${imdbScore}<small>/10</small>` : '—'}</div>
                                     </div>
-                                    <div class="sh-critics-stars-display">★★★★★</div>
                                     <div class="sh-critics-stat-section">
-                                        <div class="sh-critics-bar-track">
-                                            <div class="sh-critics-bar-fill" style="width: ${criticData?.positiveVotes || 88}%;"></div>
-                                        </div>
                                         <div class="sh-critics-legend-row">
-                                            <span>🔥 ${criticData?.positiveVotes || 88}% recommandent</span>
-                                            <span>Metascore: <strong>${criticData?.metacritic || 84}</strong></span>
+                                            <span id="sh-critics-imdb-votes">${imdbScore !== null ? 'Note du public' : 'Aucune note spectateur disponible'}</span>
+                                            <span id="sh-critics-mc-inline"></span>
                                         </div>
                                     </div>
                                     <div class="sh-critics-footer-meta">
-                                        <span>Basé sur les votes vérifiés de la communauté</span>
+                                        <span id="sh-critics-community-source">${imdbScore !== null ? 'Source : Jellyfin — enrichi via OMDb si configuré' : 'Source : aucune'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -552,15 +721,15 @@ class ModalSlideUpSheet {
                                 </div>
                                 <div class="sh-meta-card">
                                     <span class="sh-cell-label">Réalisation / Réseau</span>
-                                    <span class="sh-cell-val" id="sh-meta-director-val">${item.network || item.studio || 'À confirmer'}</span>
+                                    <span class="sh-cell-val" id="sh-meta-director-val">${this._escape(item.network || item.studio || 'Non renseigné par Jellyfin')}</span>
                                 </div>
                                 <div class="sh-meta-card">
                                     <span class="sh-cell-label">Format & Qualité</span>
-                                    <span class="sh-cell-val" id="sh-meta-format-val">${item.hasFile ? 'Disponible dans la médiathèque' : '4K UHD • HDR • Sortie attendue'}</span>
+                                    <span class="sh-cell-val" id="sh-meta-format-val">${item.hasFile ? 'Disponible dans la médiathèque' : 'Format non renseigné par Jellyfin'}</span>
                                 </div>
                                 <div class="sh-meta-card">
                                     <span class="sh-cell-label">Classification & Statut</span>
-                                    <span class="sh-cell-val" id="sh-meta-rating-val">${item.hasFile ? '✓ Téléchargé & Prêt' : (item.OfficialRating || '📅 Date de diffusion programmée')}</span>
+                                    <span class="sh-cell-val" id="sh-meta-rating-val">${item.hasFile ? '✓ Téléchargé & Prêt' : this._escape(item.OfficialRating || 'Statut non renseigné par Jellyfin')}</span>
                                 </div>
                             </div>
                         </div>
@@ -588,7 +757,8 @@ class ModalSlideUpSheet {
         this._bindSheetEvents(item);
     }
 
-                    async _loadFullDetails(item) {
+    async _loadFullDetails(item, generation = this._detailsGeneration) {
+        const isCurrent = () => this._isOpen && this._detailsGeneration === generation && this._currentItem === item;
         const itemId = item.Id || item.id;
         if (!itemId) return;
 
@@ -630,29 +800,26 @@ class ModalSlideUpSheet {
             }
 
             // Récupérer le tmdbId depuis Jellyfin ProviderIds ou recherche Jellyseerr
-            let tmdbId = item.tmdbId || item.id || localJellyfinItem?.ProviderIds?.Tmdb || (typeof itemId === 'string' && itemId.startsWith('jellyseerr-') ? itemId.replace('jellyseerr-', '') : null);
+            const externalId = [item.tmdbId, item.TmdbId, item.mediaId, item.id]
+                .find(value => /^\d+$/.test(String(value || '')));
+            let tmdbId = externalId || localJellyfinItem?.ProviderIds?.Tmdb || (typeof itemId === 'string' && itemId.startsWith('jellyseerr-') ? itemId.replace('jellyseerr-', '') : null);
+            if (tmdbId && !item.tmdbId) item.tmdbId = tmdbId;
             if (!tmdbId && jsApi?.search && searchTitle) {
                 try {
                     const jsRes = await jsApi.search(searchTitle);
-                    const found = (jsRes?.results || []).find(r => (r.title || r.name || '').toLowerCase().trim() === searchTitle.toLowerCase().trim() || true);
+                    const normalizedTitle = searchTitle.toLowerCase().trim();
+                    const found = (jsRes?.results || []).find(r => (r.title || r.name || '').toLowerCase().trim() === normalizedTitle);
                     if (found) tmdbId = found.id;
                 } catch (e) {}
             }
 
-            // Si média présent sur le serveur, adapter le bouton Hero
+            if (!isCurrent()) return;
+
+            // Si le média est présent sur le serveur, enrichir l'élément existant.
+            // Le bouton de lecture est déjà lié par _bindSheetEvents : ne pas lui ajouter
+            // un second handler qui pourrait lancer deux lectures.
             if (localJellyfinItem) {
                 Object.assign(item, localJellyfinItem);
-                const heroBtn = this._sheet?.querySelector('#sh-slideup-request-btn');
-                if (heroBtn && !heroBtn.classList.contains('sh-cinema-btn-play-ready')) {
-                    heroBtn.className = 'sh-cinema-btn-play sh-cinema-btn-play-ready';
-                    heroBtn.style.background = '#ffffff !important';
-                    heroBtn.style.color = '#000000 !important';
-                    heroBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg><span>${isSeries ? 'Reprendre la série' : 'Regarder'}</span>`;
-                    heroBtn.onclick = () => {
-                        this.close();
-                        window.SpaceHub?.player?.play?.(localJellyfinItem);
-                    };
-                }
             }
 
             // ── 2. GESTION DES SÉRIES AVEC DÉTECTION ROBUSTE ET PAILLES ÉPURÉES ──
@@ -667,7 +834,9 @@ class ModalSlideUpSheet {
                         try {
                             const res = await api.getSeasons(localJellyfinId);
                             localSeasons = Array.isArray(res) ? res : (res?.Items || []);
-                        } catch (e) {}
+                        } catch (e) {
+                            localSeasons = [];
+                        }
                     }
                     if (api?.getEpisodes) {
                         try {
@@ -682,6 +851,8 @@ class ModalSlideUpSheet {
                         } catch (e) {}
                     }
                 }
+
+                if (!isCurrent()) return;
 
                 // Récupération des saisons TMDB
                 let allTmdbSeasons = [];
@@ -752,51 +923,23 @@ class ModalSlideUpSheet {
                             name: `Saison ${sNum}`,
                             localId: ls.Id,
                             localEps: seasonLocalEps,
-                            tmdbCount: ls.ChildCount || seasonLocalEps.length || 8,
-                            localCount: seasonLocalEps.length || ls.ChildCount || 8,
-                            status: 'green',
-                            badgeText: '✓ Sur le serveur',
+                            tmdbCount: ls.ChildCount || seasonLocalEps.length,
+                            localCount: seasonLocalEps.length,
+                            status: seasonLocalEps.length > 0 ? 'green' : 'orange',
+                            badgeText: seasonLocalEps.length > 0 ? '✓ Sur le serveur' : 'Aucun épisode chargé',
                             badgeBg: 'rgba(16, 185, 129, 0.2)',
                             badgeColor: '#34d399'
                         };
                     });
                 } else {
-                    displaySeasons = [{ seasonNumber: 1, name: 'Saison 1', localId: null, localEps: [], tmdbCount: 8, localCount: 0, status: 'red', badgeText: '📥 Manquante', badgeBg: 'rgba(239, 68, 68, 0.2)', badgeColor: '#f87171' }];
-                }
-
-                // Bouton "Suivre la série" Apple TV
-                const actionsRow = this._sheet?.querySelector('.sh-cinema-actions');
-                if (actionsRow && !actionsRow.querySelector('#sh-btn-follow-series')) {
-                    const followBtn = document.createElement('button');
-                    followBtn.id = 'sh-btn-follow-series';
-                    followBtn.className = 'sh-cinema-btn-play';
-                    followBtn.style.cssText = 'background: rgba(255, 255, 255, 0.08) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.15) !important; margin-left: 8px !important; backdrop-filter: blur(12px) !important;';
-                    followBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span>Suivre la série</span>';
-                    followBtn.addEventListener('click', () => {
-                        followBtn.classList.toggle('active');
-                        const isActive = followBtn.classList.contains('active');
-                        if (isActive) {
-                            followBtn.style.background = 'rgba(16, 185, 129, 0.25) !important';
-                            followBtn.style.color = '#34d399 !important';
-                            followBtn.style.borderColor = 'rgba(16, 185, 129, 0.4) !important';
-                            followBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Série suivie (Sonarr)</span>';
-                            window.SpaceHub?.ui?.components?.toaster?.success(`Surveillance active pour les futures saisons de "${searchTitle}" !`);
-                        } else {
-                            followBtn.style.background = 'rgba(255, 255, 255, 0.08) !important';
-                            followBtn.style.color = '#ffffff !important';
-                            followBtn.style.borderColor = 'rgba(255, 255, 255, 0.15) !important';
-                            followBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg><span>Suivre la série</span>';
-                            window.SpaceHub?.ui?.components?.toaster?.info(`Surveillance désactivée pour "${searchTitle}"`);
-                        }
-                    });
-                    actionsRow.appendChild(followBtn);
+                    displaySeasons = [];
                 }
 
                 // Rendu des pastilles de saisons
                 if (seasonRow && displaySeasons.length > 0) {
                     seasonRow.style.display = 'flex';
                     seasonRow.innerHTML = displaySeasons.map((s, idx) => `
-                        <button class="sh-season-pill-btn" tabindex="0" ${idx === 0 ? 'active' : ''}" data-season-num="${s.seasonNumber}">
+                        <button class="sh-season-pill-btn ${idx === 0 ? 'active' : ''}" tabindex="0" data-season-num="${s.seasonNumber}">
                             <span class="sh-season-pill-title">${this._escape(s.name)}</span>
                             <span style="font-size:10px; margin-left:8px; padding:2px 7px; border-radius:6px; font-weight:750; background:${s.badgeBg}; color:${s.badgeColor};">
                                 ${s.badgeText}
@@ -805,7 +948,9 @@ class ModalSlideUpSheet {
                     `).join('');
 
                     // Fonction de chargement des épisodes hybrides pour la saison
+                    let seasonRenderId = 0;
                     const loadEpisodesForSeason = async (seasonObj) => {
+                        const currentSeasonRenderId = ++seasonRenderId;
                         if (!episodesGrid) return;
                         episodesGrid.innerHTML = '<div style="color:rgba(255,255,255,0.5); padding:24px; text-align:center;"><span class="sh-spinner-inline" style="margin-right:8px;"></span>Chargement des épisodes de la ' + seasonObj.name + '...</div>';
 
@@ -819,9 +964,11 @@ class ModalSlideUpSheet {
                         }
 
                         // Si saison 100% locale
+                        if (!isCurrent() || seasonRenderId !== currentSeasonRenderId) return;
+
                         if (seasonObj.status === 'green' && localEps.length > 0) {
                             episodesGrid.innerHTML = localEps.map((ep, idx) => {
-                                const epImg = api?.getImageUrl?.(ep.Id, 'Primary', { maxWidth: 500, maxHeight: 280 }) || api?.getImageUrl?.(ep.Id, 'Thumb', { maxWidth: 500, maxHeight: 280 }) || '';
+                                const epImg = this._escapeUrl(api?.getImageUrl?.(ep.Id, 'Primary', { maxWidth: 500, maxHeight: 280 }) || api?.getImageUrl?.(ep.Id, 'Thumb', { maxWidth: 500, maxHeight: 280 }) || '');
                                 const progress = Math.round(ep.UserData?.PlayedPercentage || 0);
                                 const dur = ep.RunTimeTicks ? Math.round(ep.RunTimeTicks / 10000000 / 60) + ' min' : '';
                                 return `
@@ -861,8 +1008,10 @@ class ModalSlideUpSheet {
                             return;
                         }
 
+                                if (!isCurrent() || seasonRenderId !== currentSeasonRenderId) return;
+
                         // Sinon : Rendu hybride sans bandeau encombrant, avec boutons de demande animés directs
-                        const totalEpsCount = Math.max(tmdbEps.length, localEps.length, seasonObj.tmdbCount || 8);
+                        const totalEpsCount = Math.max(tmdbEps.length, localEps.length, seasonObj.tmdbCount || 0);
                         const hybridList = [];
 
                         for (let i = 1; i <= totalEpsCount; i++) {
@@ -875,7 +1024,7 @@ class ModalSlideUpSheet {
                                 localData: localEp,
                                 name: localEp?.Name || tmdbEp?.name || `Épisode ${i}`,
                                 overview: localEp?.Overview || tmdbEp?.overview || 'Aucun résumé disponible pour cet épisode.',
-                                stillUrl: localEp ? (api?.getImageUrl?.(localEp.Id, 'Primary', { maxWidth: 500 }) || '') : (tmdbEp?.stillPath ? `https://image.tmdb.org/t/p/w400${tmdbEp.stillPath}` : ''),
+                                stillUrl: localEp ? this._escapeUrl(api?.getImageUrl?.(localEp.Id, 'Primary', { maxWidth: 500 }) || '') : (tmdbEp?.stillPath ? `https://image.tmdb.org/t/p/w400${tmdbEp.stillPath}` : ''),
                                 duration: localEp?.RunTimeTicks ? Math.round(localEp.RunTimeTicks / 10000000 / 60) + ' min' : ''
                             });
                         }
@@ -884,7 +1033,7 @@ class ModalSlideUpSheet {
                             return `
                                 <div class="sh-episode-card ${ep.isLocal ? '' : 'sh-episode-card--missing'}" tabindex="0" role="button" style="${ep.isLocal ? '' : 'opacity:0.88;'}">
                                     <div class="sh-episode-thumb-wrap" data-action="${ep.isLocal ? 'play' : 'request'}" data-ep-num="${ep.episodeNumber}">
-                                        ${ep.stillUrl ? `<img src="${ep.stillUrl}" alt="${this._escape(ep.name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.episodeNumber}</div>`}
+                                        ${ep.stillUrl ? `<img src="${this._escape(ep.stillUrl)}" alt="${this._escape(ep.name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.episodeNumber}</div>`}
                                         <div class="sh-episode-overlay-play">${ep.isLocal ? '▶' : '📥'}</div>
                                         <span class="sh-episode-badge-num">EP ${ep.episodeNumber}</span>
                                         ${ep.duration ? `<span class="sh-episode-dur">${ep.duration}</span>` : ''}
@@ -918,16 +1067,15 @@ class ModalSlideUpSheet {
                                 btn.innerHTML = '<span class="sh-spinner-inline" style="width:11px; height:11px; border-width:2px;"></span>';
                                 
                                 try {
-                                    if (jsApi?.createRequest && tmdbId) {
-                                        await jsApi.createRequest({
-                                            mediaType: 'tv',
-                                            mediaId: Number(tmdbId),
-                                            seasons: [sNum]
-                                        });
+                                    if (!jsApi?.createRequest || !Number.isFinite(Number(tmdbId))) {
+                                        throw new Error('Demande indisponible : identifiant TMDB ou serveur Jellyseerr absent.');
                                     }
-                                    btn.style.background = 'rgba(16, 185, 129, 0.25) !important';
-                                    btn.style.color = '#34d399 !important';
-                                    btn.style.borderColor = 'rgba(16, 185, 129, 0.4) !important';
+                                    await jsApi.createRequest({
+                                        mediaType: 'tv',
+                                        mediaId: Number(tmdbId),
+                                        seasons: [sNum]
+                                    });
+                                                    btn.classList.add('sh-request-complete');
                                     btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Demandé</span>';
                                     window.SpaceHub?.ui?.components?.toaster?.success(`Demande envoyée pour la Saison ${sNum} • Épisode ${epNum} !`);
                                 } catch (err) {
@@ -969,9 +1117,9 @@ class ModalSlideUpSheet {
                         });
                     });
                 }
-            }
+            }                if (!isCurrent()) return;
 
-            // ── 3. TITRES SIMILAIRES (LOCAL JELLYFIN + SUGGESTIONS JELLYSEERR) ──
+                // ── 3. TITRES SIMILAIRES (LOCAL JELLYFIN + SUGGESTIONS JELLYSEERR) ──
             const bentoGrid = this._sheet?.querySelector('#sh-bento-luxury-grid');
             if (bentoGrid) {
                 const mediaType = isSeries ? 'tv' : 'movie';
@@ -1002,7 +1150,7 @@ class ModalSlideUpSheet {
                                         isSeries: mediaType === 'tv',
                                         isMovie: mediaType === 'movie',
                                         ProductionYear: (jsItem.releaseDate || jsItem.firstAirDate || '').slice(0, 4),
-                                        CommunityRating: jsItem.voteAverage || 8.0,
+                                        CommunityRating: Number.isFinite(Number(jsItem.voteAverage)) ? Number(jsItem.voteAverage) : null,
                                         Overview: jsItem.overview || '',
                                         posterUrl: jsItem.posterPath ? `https://image.tmdb.org/t/p/w400${jsItem.posterPath}` : '',
                                         isJellyseerr: true,
@@ -1031,7 +1179,7 @@ class ModalSlideUpSheet {
                                         isSeries: t.mediaType === 'tv',
                                         isMovie: t.mediaType === 'movie',
                                         ProductionYear: (t.releaseDate || t.firstAirDate || '').slice(0, 4),
-                                        CommunityRating: t.voteAverage || 8.2,
+                                        CommunityRating: Number.isFinite(Number(t.voteAverage)) ? Number(t.voteAverage) : null,
                                         Overview: t.overview || '',
                                         posterUrl: t.posterPath ? `https://image.tmdb.org/t/p/w400${t.posterPath}` : '',
                                         isJellyseerr: true,
@@ -1047,11 +1195,11 @@ class ModalSlideUpSheet {
                 if (allSimilarItems.length > 0) {
                     bentoGrid.innerHTML = allSimilarItems.map(sim => {
                         const simImg = sim.posterUrl || (sim.Id && api?.getImageUrl ? api.getImageUrl(sim.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) : '');
-                        const simRating = sim.CommunityRating ? Number(sim.CommunityRating).toFixed(1) : '8.2';
+                        const simRating = Number.isFinite(Number(sim.CommunityRating)) ? Number(sim.CommunityRating).toFixed(1) : null;
                         return `
                             <div class="sh-bento-card" data-item-id="${sim.Id || sim.id}">
                                 <div class="sh-bento-poster-wrap" data-action="details">
-                                    ${simImg ? `<img src="${simImg}" alt="${this._escape(sim.Name || sim.title)}" />` : '<div class="sh-bento-poster-fallback">🎬</div>'}
+                                    ${simImg ? `<img src="${this._escape(simImg)}" alt="${this._escape(sim.Name || sim.title)}" />` : '<div class="sh-bento-poster-fallback">🎬</div>'}
                                     <div class="sh-bento-quick-play">${sim.isLocal ? '▶' : '📥'}</div>
                                     <span style="position:absolute; top:8px; left:8px; font-size:10px; font-weight:750; padding:2px 6px; border-radius:6px; background:${sim.isLocal ? 'rgba(16,185,129,0.85)' : 'rgba(99,102,241,0.85)'}; color:#fff; backdrop-filter:blur(8px);">
                                         ${sim.isLocal ? '✓ Serveur' : '📥 Jellyseerr'}
@@ -1062,9 +1210,9 @@ class ModalSlideUpSheet {
                                         <span class="sh-bento-title">${this._escape(sim.Name || sim.title)}</span>
                                     </div>
                                     <div class="sh-bento-meta-row">
-                                        <span class="sh-bento-score">★ ${simRating}</span>
+                                        ${simRating !== null ? `<span class="sh-bento-score">★ ${this._escape(simRating)}/10</span>` : '<span class="sh-bento-score">Note indisponible</span>'}
                                         <span class="sh-bento-dot">•</span>
-                                        <span>${sim.ProductionYear || ''}</span>
+                                        <span>${this._escape(sim.ProductionYear || '')}</span>
                                     </div>
                                     <p class="sh-bento-desc">${this._escape(sim.Overview || '')}</p>
                                 </div>
@@ -1095,7 +1243,7 @@ class ModalSlideUpSheet {
                         const actorImg = api?.getImageUrl?.(actor.Id, 'Primary', { maxWidth: 200 }) || '';
                         return `
                             <div class="sh-cast-card">
-                                ${actorImg ? `<img src="${actorImg}" alt="${this._escape(actor.Name)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />` : ''}
+                                ${actorImg ? `<img src="${this._escape(actorImg)}" alt="${this._escape(actor.Name)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />` : ''}
                                 <div class="sh-cast-avatar-fallback" style="${actorImg ? 'display:none;' : ''}">${actor.Name.charAt(0)}</div>
                                 <div class="sh-cast-text">
                                     <span class="sh-actor-name">${this._escape(actor.Name)}</span>
@@ -1130,29 +1278,18 @@ class ModalSlideUpSheet {
                 console.warn('[ModalSlideUpSheet] Erreur apiClient.getItems:', e);
             }
         }
-        // Fallback intelligent pour les animes/séries sans épisodes synchronisés
+        // Une réponse vide signifie qu'aucun épisode n'est exposé par Jellyfin.
+        // Ne jamais fabriquer d'épisodes : ils doivent rester pilotables par le serveur.
         if (!episodes || episodes.length === 0) {
-            episodes = [
-                { Id: `${seriesId}-ep1`, Name: 'Épisode 1 • L\'Éveil du Destin', IndexNumber: 1, Overview: 'Début du voyage initiatique à travers des mystères insoupçonnés.', RunTimeTicks: 24 * 60 * 10000000 },
-                { Id: `${seriesId}-ep2`, Name: 'Épisode 2 • Les Ombres du Passé', IndexNumber: 2, Overview: 'Une rencontre inattendue bouscule toutes les certitudes.', RunTimeTicks: 24 * 60 * 10000000 },
-                { Id: `${seriesId}-ep3`, Name: 'Épisode 3 • L\'Affrontement', IndexNumber: 3, Overview: 'Face aux dangers grandissants, les choix deviennent inévitables.', RunTimeTicks: 24 * 60 * 10000000 },
-                { Id: `${seriesId}-ep4`, Name: 'Épisode 4 • La Révélation', IndexNumber: 4, Overview: 'Le voile se lève sur les secrets les plus profondément enfouis.', RunTimeTicks: 24 * 60 * 10000000 },
-                { Id: `${seriesId}-ep5`, Name: 'Épisode 5 • L\'Alliance', IndexNumber: 5, Overview: 'Une union fragile se forme face à la menace imminente.', RunTimeTicks: 24 * 60 * 10000000 },
-                { Id: `${seriesId}-ep6`, Name: 'Épisode 6 • Le Climax', IndexNumber: 6, Overview: 'La bataille décisive approche alors que le destin s\'accomplit.', RunTimeTicks: 24 * 60 * 10000000 }
-            ];
+            const episodesGrid = this._sheet.querySelector('.sh-episodes-cards-grid');
+            if (episodesGrid) episodesGrid.innerHTML = '<div style="color:rgba(255,255,255,0.5); padding:20px;">Aucun épisode disponible sur le serveur.</div>';
+            return;
         }
-
         const episodesGrid = this._sheet.querySelector('.sh-episodes-cards-grid');
         if (!episodesGrid) return;
 
-        if (episodes.length === 0) {
-            episodesGrid.innerHTML = '<div style="color:rgba(255,255,255,0.5); padding:20px;">Aucun épisode disponible pour cette saison.</div>';
-            return;
-        }
-
-        const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
         episodesGrid.innerHTML = episodes.map((ep, idx) => {
-            const epImg = api?.getImageUrl?.(ep.Id, 'Primary', { maxWidth: 500, maxHeight: 280 }) || api?.getImageUrl?.(ep.Id, 'Thumb', { maxWidth: 500, maxHeight: 280 }) || '';
+            const epImg = this._escapeUrl(api?.getImageUrl?.(ep.Id, 'Primary', { maxWidth: 500, maxHeight: 280 }) || api?.getImageUrl?.(ep.Id, 'Thumb', { maxWidth: 500, maxHeight: 280 }) || '');
             const progress = Math.round(ep.UserData?.PlayedPercentage || 0);
             const durationMin = ep.RunTimeTicks ? Math.round(ep.RunTimeTicks / 10000000 / 60) + ' min' : '';
 
@@ -1294,23 +1431,31 @@ class ModalSlideUpSheet {
                 const tmdbId = item.id || item.tmdbId || item.mediaId || (typeof item.Id === 'string' ? item.Id.replace('jellyseerr-', '') : null);
                 const rawType = (item.Type || item.type || item.MediaType || '').toLowerCase();
                 const type = (rawType === 'series' || rawType === 'tvshow' || item.isSeries) ? 'tv' : 'movie';
-                const profileId = parseInt(drawer.querySelector('#sh-drawer-profile-select')?.value || '1', 10);
+                const profileValue = drawer.querySelector('#sh-drawer-profile-select')?.value || '';
+                const profileId = profileValue ? parseInt(profileValue, 10) : null;
                 const rootFolder = drawer.querySelector('#sh-drawer-folder-select')?.value;
                 const monitorFuture = drawer.querySelector('#sh-drawer-monitor-future')?.checked ?? true;
 
+                if (!Number.isFinite(Number(tmdbId))) {
+                    drawerSubmit.disabled = false;
+                    drawerSubmit.innerHTML = '<span>Identifiant média indisponible</span>';
+                    window.SpaceHub?.ui?.components?.toaster?.error?.('Impossible d\'envoyer la demande : identifiant TMDB absent.');
+                    return;
+                }
                 const payload = {
                     mediaType: type,
                     mediaId: Number(tmdbId),
-                    profileId,
+                    ...(Number.isInteger(profileId) && profileId > 0 ? { profileId } : {}),
                     ...(rootFolder ? { rootFolder } : {}),
                     ...(type === 'tv' && monitorFuture ? { seasons: 'all' } : {})
                 };
 
                 try {
                     const api = window.SpaceHub?.integrations?.jellyseerr?.api || (window.SpaceHub?.core?.api?.getClient ? window.SpaceHub.core.api.getClient('jellyseerr') : null);
-                    if (api?.createRequest) {
-                        await api.createRequest(payload);
+                    if (typeof api?.createRequest !== 'function') {
+                        throw new Error('Jellyseerr n’est pas configuré ou ne prend pas en charge les demandes.');
                     }
+                    await api.createRequest(payload);
                     drawerSubmit.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Demande confirmée !</span>';
                     window.SpaceHub?.ui?.components?.toaster?.success(`Demande envoyée pour "${item.title || item.Name}" !`);
                     setTimeout(() => { drawer.style.display = 'none'; }, 1500);
@@ -1391,9 +1536,17 @@ class ModalSlideUpSheet {
             }
         });
 
-        this._sheet.querySelector('#sh-slideup-trailer-btn')?.addEventListener('click', () => {
-            const title = item.Name || item.title || 'Film';
-            window.SpaceHub?.ui?.components?.cardBuilder?._showTrailerLightbox(title);
+        this._sheet.querySelector('#sh-slideup-trailer-btn')?.addEventListener('click', (e) => {
+            // Bandes-annonces via notre TrailerService : serveur Jellyfin d'abord,
+            // puis YouTube dans la fenêtre SpaceHub (plus d'iframe brute).
+            if (window.SpaceHub?.trailers) {
+                window.SpaceHub.trailers.open(
+                    { Id: item.Id || item.id, Name: item.Name || item.title || 'Film', RemoteTrailers: item.RemoteTrailers },
+                    e.currentTarget
+                );
+            } else {
+                window.SpaceHub?.ui?.components?.toaster?.info?.('Bande-annonce indisponible.');
+            }
         });
 
         // ── Clic sur les Badges de Notes de l'En-tête -> Bascule vers l'onglet À Propos ──
@@ -1438,7 +1591,7 @@ class ModalSlideUpSheet {
                 if (spatialNav) {
                     setTimeout(() => {
                         const activeItem = audioMenu?.querySelector('.sh-popover-item.selected') || audioMenu?.querySelector('.sh-popover-item');
-                        if (activeItem) spatialNav._setFocus(activeItem);
+                        if (activeItem) spatialNav.setFocus(activeItem, { reason: 'modal-audio-popover' });
                     }, 50);
                 }
             }
@@ -1460,8 +1613,20 @@ class ModalSlideUpSheet {
     }
 
     _escape(str) {
-        if (!str) return '';
-        return str.replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
+        if (str === null || str === undefined) return '';
+        return String(str).replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
+    }
+
+    _escapeUrl(value) {
+        const url = String(value || '').trim();
+        if (!url) return '';
+        try {
+            const parsed = new URL(url, window.location.origin);
+            if (!['http:', 'https:'].includes(parsed.protocol)) return '';
+            return parsed.href.replace(/[\"'\\]/g, character => `\\${character}`);
+        } catch {
+            return '';
+        }
     }
 
     _injectStyles() {
@@ -1513,6 +1678,12 @@ class ModalSlideUpSheet {
 .sh-btn-request-single-ep:hover {
     transform: translateY(-1px) scale(1.02) !important;
     box-shadow: 0 4px 14px rgba(99, 102, 241, 0.55) !important;
+}
+
+.sh-btn-request-single-ep.sh-request-complete {
+    background: rgba(16, 185, 129, 0.25) !important;
+    color: #34d399 !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
 }
 
 
@@ -1813,7 +1984,7 @@ class ModalSlideUpSheet {
 .sh-modal-header-badge--rt {
     color: #ff5252 !important;
 }
-.sh-modal-header-badge--imdb {
+.sh-modal-header-badge--community {
     color: #f5c518 !important;
 }
 .sh-meta-score-rt { color: #ff5252; font-weight: 800; }
@@ -2173,6 +2344,12 @@ class ModalSlideUpSheet {
 }
 @media (max-width: 820px) {
     .sh-cinema-critics-block { grid-template-columns: 1fr !important; }
+}
+
+/* Masquage conditionnel (carte sans données réelles) — display:none !important bat le display:flex !important de base */
+.sh-critics-bento-card[hidden],
+.sh-critics-bento-card--hidden {
+    display: none !important;
 }
 
 .sh-critics-bento-card {

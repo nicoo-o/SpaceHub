@@ -43,18 +43,8 @@ class SettingsPanel {
 
         this._modal = new Modal({
             id: 'spacehub-settings',
-            title: `
-                <div class="sh-brand-badge" style="display:inline-flex; align-items:center; gap:8px;">
-                    <div class="sh-luminous-dot" title="SpaceHub Active"><div class="sh-dot-core"></div></div>
-                    <svg class="sh-rocket-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path>
-                        <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-3.05 11a22.35 22.35 0 0 1-3.95 2z"></path>
-                    </svg>
-                    <span style="font-size: 16px; font-weight: 750; color: #ffffff; letter-spacing: -0.02em;">SpaceHub</span>
-                    <span style="color: rgba(255, 255, 255, 0.35); font-size: 12px;">•</span>
-                    <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: rgba(255, 255, 255, 0.6); text-transform: uppercase;">Réglages</span>
-                </div>
-            `,
+            // Titre en texte brut : le composant Modal insère le titre via textContent (durcissement XSS)
+            title: 'SpaceHub • Réglages',
             size: 'xl',
             content: this._renderContent(),
             footer: `
@@ -77,10 +67,24 @@ class SettingsPanel {
         this._modal.open();
     }
 
+    /**
+     * Ferme la modale des réglages (utilisée par la navigation TV/Échap).
+     */
+    close() {
+        this._modal?.close?.();
+        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        if (spatialNav && typeof spatialNav.onModalClosed === "function") spatialNav.onModalClosed();
+    }
+
     _renderContent() {
         const themes = window.SpaceHub?.ui?.themes?.getAvailable() || [];
         const currentTheme = window.SpaceHub?.ui?.themes?.getCurrent() || 'spacehub-dark';
         const s = this._settings;
+        // Les fournisseurs de notes sont stockés comme un tableau (jamais une chaîne JSON).
+        const ratingProvidersRaw = s?.get('ratings.display.providers', ['jellyfin', 'rt', 'imdb']) || ['jellyfin', 'rt', 'imdb'];
+        const ratingProviders = Array.isArray(ratingProvidersRaw)
+            ? ratingProvidersRaw
+            : (typeof ratingProvidersRaw === 'string' ? (() => { try { return JSON.parse(ratingProvidersRaw) || []; } catch { return []; } })() : []);
 
         return `
             <div class="sh-settings-container">
@@ -139,6 +143,56 @@ class SettingsPanel {
                                 <input type="checkbox" id="cfg-unified-search" ${s?.get('jellyfin.search.enabled', true) ? 'checked' : ''}/>
                                 Activer la recherche unifiée rapide (Ctrl+K / /)
                             </label>
+                        </div>
+
+                        <div class="sh-form-group">
+                            <label style="font-weight:600; margin-bottom:8px; display:block;">Affichage des notes</label>
+                            <p class="sh-settings-desc" style="margin-bottom:8px;">Choisissez les fournisseurs de notes que vous souhaitez voir affichés sur les cartes et le Hero.</p>
+                            <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                                <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="cfg-ratings-jellyfin" class="sh-settings-toggle" ${(Array.isArray(ratingProviders) ? ratingProviders : []).includes('jellyfin') ? 'checked' : ''}/> Jellyfin ★</label>
+                                <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="cfg-ratings-rt" class="sh-settings-toggle" ${(Array.isArray(ratingProviders) ? ratingProviders : []).includes('rt') ? 'checked' : ''}/> Rotten Tomatoes 🍅</label>
+                                <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="cfg-ratings-imdb" class="sh-settings-toggle" ${(Array.isArray(ratingProviders) ? ratingProviders : []).includes('imdb') ? 'checked' : ''}/> IMDb</label>
+                                <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="cfg-ratings-metacritic" class="sh-settings-toggle" ${(Array.isArray(ratingProviders) ? ratingProviders : []).includes('metacritic') ? 'checked' : ''}/> Metacritic</label>
+                                <label style="display:flex; align-items:center; gap:6px; font-size:13px;"><input type="checkbox" id="cfg-ratings-tmdb" class="sh-settings-toggle" ${(Array.isArray(ratingProviders) ? ratingProviders : []).includes('tmdb') ? 'checked' : ''}/> Textes TMDB</label>
+                            </div>
+                        </div>
+
+                        ${window.SpaceHub?.auth?.getUser?.()?.Policy?.IsAdministrator === true ? `
+                        <div class="sh-form-group">
+                            <label>Clé API OMDb — notes Rotten Tomatoes / IMDb / Metacritic</label>
+                            <p class="sh-settings-desc" style="margin-bottom:8px;">Gratuite sur omdbapi.com/apikey.aspx. Sans clé : seules les notes ★ Jellyfin et 🍅 presse Jellyfin s'affichent.</p>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                                <input type="password" class="sh-input" id="cfg-omdb-key" placeholder="${(window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.get?.('omdbApiKey', '') || '') ? 'Clé enregistrée (••••)' : 'Clé API OMDb'}" style="flex:1; min-width:180px;" autocomplete="off" />
+                                <button type="button" class="sh-btn sh-btn--ghost" id="cfg-omdb-save" data-nav-focusable="true">Enregistrer</button>
+                                <button type="button" class="sh-btn sh-btn--ghost" id="cfg-omdb-test" data-nav-focusable="true">Tester</button>
+                            </div>
+                            <p id="cfg-omdb-result" style="font-size:12px; color:rgba(255,255,255,0.7); margin-top:6px;"></p>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px;">
+                                <input type="password" class="sh-input" id="cfg-tmdb-key" placeholder="${(window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.get?.('tmdbApiKey', '') || '') ? 'Clé TMDB enregistrée (••••)' : 'Clé API TMDB (textes de critiques — optionnel)'}" style="flex:1; min-width:180px;" autocomplete="off" />
+                                <button type="button" class="sh-btn sh-btn--ghost" id="cfg-tmdb-save" data-nav-focusable="true">Enregistrer TMDB</button>
+                                <button type="button" class="sh-btn sh-btn--ghost" id="cfg-tmdb-test" data-nav-focusable="true">Tester TMDB</button>
+                            </div>
+                            <p id="cfg-tmdb-result" style="font-size:12px; color:rgba(255,255,255,0.7); margin-top:6px;"></p>
+                        </div>
+                        ` : ''}
+
+                        <div class="sh-form-group">
+                            <label>Mode TV (télécommande / manette)</label>
+                            <select class="sh-input" id="cfg-tv-mode">
+                                <option value="auto" ${s?.get('ui.tvMode', 'auto') === 'auto' ? 'selected' : ''}>Auto — activé dès qu'une télécommande/manette est connectée</option>
+                                <option value="on" ${s?.get('ui.tvMode', 'auto') === 'on' ? 'selected' : ''}>Toujours actif — curseur souris masqué</option>
+                                <option value="off" ${s?.get('ui.tvMode', 'auto') === 'off' ? 'selected' : ''}>Désactivé — souris normale</option>
+                            </select>
+                        </div>
+
+                        <div class="sh-onboarding-settings-card">
+                            <h4>Découverte de SpaceHub</h4>
+                            <p>Relancez les guides adaptés à votre compte Jellyfin et à votre rôle.</p>
+                            <div class="sh-onboarding-settings-actions">
+                                <button class="sh-btn sh-btn--ghost" id="btn-open-user-onboarding" data-nav-focusable="true">Guide utilisateur</button>
+                                ${window.SpaceHub?.auth?.getUser?.()?.Policy?.IsAdministrator === true ? '<button class="sh-btn sh-btn--ghost" id="btn-open-admin-onboarding" data-nav-focusable="true">Guide administrateur</button>' : ''}
+                                <button class="sh-btn sh-btn--ghost" id="btn-reset-onboarding" data-nav-focusable="true">Réinitialiser</button>
+                            </div>
                         </div>
                     </div>
 
@@ -962,6 +1016,92 @@ class SettingsPanel {
             });
         }
 
+        // Guides de découverte : toujours relançables depuis les réglages.
+        el.querySelector('#btn-open-user-onboarding')?.addEventListener('click', () => {
+            modal.close();
+            window.SpaceHub?.ui?.onboarding?.open?.('user', { force: true });
+        });
+        el.querySelector('#btn-open-admin-onboarding')?.addEventListener('click', () => {
+            modal.close();
+            window.SpaceHub?.ui?.onboarding?.open?.('admin', { force: true });
+        });
+        // Clé API OMDb (administrateur) — enregistrement + test réel
+        el.querySelector('#cfg-omdb-save')?.addEventListener('click', () => {
+            const input = el.querySelector('#cfg-omdb-key');
+            const resultEl = el.querySelector('#cfg-omdb-result');
+            const key = input?.value?.trim();
+            if (!key) {
+                if (resultEl) resultEl.textContent = '❌ Saisissez une clé API OMDb.';
+                return;
+            }
+            try {
+                window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.set?.('omdbApiKey', key);
+                window.SpaceHub?.core?.ratingCache?.clear?.();
+                document.dispatchEvent(new CustomEvent('spacehub:ratings-updated'));
+                if (resultEl) resultEl.textContent = '✅ Clé enregistrée — notes externes rechargées.';
+                if (input) input.value = '';
+            } catch (err) {
+                if (resultEl) resultEl.textContent = `❌ ${err.message}`;
+            }
+        });
+        el.querySelector('#cfg-omdb-test')?.addEventListener('click', async () => {
+            const resultEl = el.querySelector('#cfg-omdb-result');
+            const key = el.querySelector('#cfg-omdb-key')?.value?.trim() || window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.get?.('omdbApiKey', '');
+            if (!key) {
+                if (resultEl) resultEl.textContent = '❌ Saisissez d\'abord une clé API OMDb.';
+                return;
+            }
+            if (resultEl) resultEl.textContent = '⏳ Test en cours…';
+            const result = await window.SpaceHub?.core?.ratingCache?.testConnection?.(key);
+            if (resultEl) {
+                resultEl.textContent = result?.ok
+                    ? `✅ Connexion OK — « ${result.title} » : IMDb ${result.imdb ?? '—'}, RT ${result.rt ?? '—'}%, Metacritic ${result.metacritic ?? '—'}`
+                    : `❌ ${result?.error || 'Test échoué.'}`;
+            }
+        });
+
+        // Clé API TMDB (administrateur) — textes de critiques réels
+        el.querySelector('#cfg-tmdb-save')?.addEventListener('click', () => {
+            const input = el.querySelector('#cfg-tmdb-key');
+            const resultEl = el.querySelector('#cfg-tmdb-result');
+            const key = input?.value?.trim();
+            if (!key) {
+                if (resultEl) resultEl.textContent = '❌ Saisissez une clé API TMDB.';
+                return;
+            }
+            try {
+                window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.set?.('tmdbApiKey', key);
+                window.SpaceHub?.core?.ratingCache?.clear?.();
+                document.dispatchEvent(new CustomEvent('spacehub:ratings-updated'));
+                if (resultEl) resultEl.textContent = '✅ Clé TMDB enregistrée — textes de critiques activés.';
+                if (input) input.value = '';
+            } catch (err) {
+                if (resultEl) resultEl.textContent = `❌ ${err.message}`;
+            }
+        });
+        el.querySelector('#cfg-tmdb-test')?.addEventListener('click', async () => {
+            const resultEl = el.querySelector('#cfg-tmdb-result');
+            const key = el.querySelector('#cfg-tmdb-key')?.value?.trim() || window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.get?.('tmdbApiKey', '');
+            if (!key) {
+                if (resultEl) resultEl.textContent = '❌ Saisissez d\'abord une clé API TMDB.';
+                return;
+            }
+            if (resultEl) resultEl.textContent = '⏳ Test en cours…';
+            const result = await window.SpaceHub?.core?.ratingCache?.testTmdbConnection?.(key);
+            if (resultEl) {
+                resultEl.textContent = result?.ok
+                    ? `✅ Connexion TMDB OK — « ${result.title} »`
+                    : `❌ ${result?.error || 'Test échoué.'}`;
+            }
+        });
+
+        el.querySelector('#btn-reset-onboarding')?.addEventListener('click', () => {
+            const wizard = window.SpaceHub?.ui?.onboarding;
+            wizard?.reset?.('user');
+            if (window.SpaceHub?.auth?.getUser?.()?.Policy?.IsAdministrator === true) wizard?.reset?.('admin');
+            window.SpaceHub?.ui?.components?.toaster?.info?.('Guides réinitialisés pour ce compte.');
+        });
+
         // Enregistrement
         el.querySelector('[data-action="save"]')?.addEventListener('click', () => {
             const s = this._settings;
@@ -969,6 +1109,14 @@ class SettingsPanel {
 
             s.set('core.logLevel', el.querySelector('#cfg-log-level')?.value);
             s.set('jellyfin.search.enabled', el.querySelector('#cfg-unified-search')?.checked);
+            s.set('ui.tvMode', el.querySelector('#cfg-tv-mode')?.value || 'auto');
+
+            // 供应商偏好
+            const ratingProviders = ['jellyfin','rt','imdb','metacritic','tmdb'].filter(p => {
+                const idMap = { jellyfin: 'cfg-ratings-jellyfin', rt: 'cfg-ratings-rt', imdb: 'cfg-ratings-imdb', metacritic: 'cfg-ratings-metacritic', tmdb: 'cfg-ratings-tmdb' };
+                return el.querySelector(`#${idMap[p]}`)?.checked;
+            });
+            s.set('ratings.display.providers', ratingProviders.length > 0 ? ratingProviders : ['jellyfin','rt','imdb']);
 
             s.set('sonarr.url', el.querySelector('#cfg-sonarr-url')?.value?.trim() || '');
             s.set('sonarr.apiKey', el.querySelector('#cfg-sonarr-key')?.value?.trim() || '');
@@ -1080,6 +1228,10 @@ class SettingsPanel {
     padding-right: 8px;
 }
 
+.sh-onboarding-settings-card { margin-top: 22px; padding: 15px; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; background: rgba(255,255,255,.025); }
+.sh-onboarding-settings-card h4 { margin: 0 0 5px; color: #fff; font-size: 14px; }
+.sh-onboarding-settings-card p { margin: 0 0 12px; color: rgba(255,255,255,.45); font-size: 12px; }
+.sh-onboarding-settings-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .sh-settings-tab { display: none; }
 .sh-settings-tab.active {
     display: block;

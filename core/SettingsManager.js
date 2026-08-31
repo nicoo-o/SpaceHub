@@ -61,7 +61,7 @@ class SettingsManager {
      * @param {Record<string, *>} defaults
      */
     registerDefaults(defaults) {
-        this._defaults = { ...defaults, ...this._defaults };
+        this._defaults = { ...this._defaults, ...defaults };
     }
 
     /**

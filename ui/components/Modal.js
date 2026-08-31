@@ -101,6 +101,8 @@ class Modal {
         requestAnimationFrame(() => {
             this._el.classList.add('sh-modal--open');
             this._focusFirstElement();
+            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            spatialNav?.onModalOpened?.(this._el, this._el.querySelector('.sh-modal__close, [data-nav-focusable="true"], button:not([disabled]), input:not([disabled]), select:not([disabled])'));
         });
 
         if (this.closeOnEscape) document.addEventListener('keydown', this._handleKey);
@@ -126,8 +128,10 @@ class Modal {
             if (mainApp) mainApp.removeAttribute('aria-hidden');
         }
 
-        // Restaure le focus
+        // Restaure le focus et informe le moteur TV quel contexte reprendre.
         this._prevFocus?.focus?.();
+        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        spatialNav?.onModalClosed?.();
 
         this._el.addEventListener('transitionend', () => {
             if (!this._isOpen) {
@@ -149,10 +153,10 @@ class Modal {
         }
     }
 
-    /** Met à jour le titre. */
+    /** Met à jour le titre (échappé via textContent — anti-XSS). */
     setTitle(title) {
         const el = this._el?.querySelector('.sh-modal__title');
-        if (el) el.innerHTML = title;
+        if (el) el.textContent = title;
         this.title = title;
     }
 
@@ -210,10 +214,10 @@ class Modal {
             </div>
         `;
 
-        // Injecter le titre en tant que HTML (pas escaped) pour permettre les badges SVG
+        // Insérer le titre échappé (textContent) — les badges SVG passent par des options dédiées
         const titleEl = this._el.querySelector('.sh-modal__title');
         if (titleEl && this.title) {
-            titleEl.innerHTML = this.title;
+            titleEl.textContent = this.title;
         }
 
         // Insérer les éléments HTMLElement (non-string)

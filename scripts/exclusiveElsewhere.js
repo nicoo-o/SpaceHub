@@ -45,7 +45,7 @@
             link.innerHTML = `Only available on ${serverName}`;
             link.classList.add("exclusive");
             link.title = "Exclusive";
-            link.disable = true;
+            link.disabled = true;
         }
     });
 

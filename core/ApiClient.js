@@ -29,7 +29,7 @@ class BaseApiClient {
      * @param {Record<string,string>} [extraHeaders]
      */
     constructor(baseUrl, apiKey = null, extraHeaders = {}) {
-        this.baseUrl = baseUrl.replace(/\/$/, ''); // retire le slash final
+        this.baseUrl = String(baseUrl || '').replace(/\/$/, ''); // retire le slash final
         this.apiKey  = apiKey;
         this._defaultHeaders = { 'Content-Type': 'application/json', ...extraHeaders };
         this._log = new Logger('ApiClient');
@@ -44,8 +44,10 @@ class BaseApiClient {
      * @returns {Promise<*>}
      */
     async request(method, endpoint, body = null, options = {}) {
-        const url     = `${this.baseUrl}${endpoint}`;
         const retries = options.retries ?? 2;
+        if (!this.baseUrl || !endpoint || typeof endpoint !== 'string' || !/^\//.test(endpoint)) {
+            throw new TypeError('ApiClient : baseUrl et endpoint relatif valides requis.');
+        }
 
         const isJellyfin = this instanceof JellyfinClient || !!this._defaultHeaders['X-Emby-Authorization'];
         const headers = {
@@ -54,25 +56,60 @@ class BaseApiClient {
             ...options.headers,
         };
 
-        const config = {
-            method: method.toUpperCase(),
-            headers,
-            signal: options.signal,
-        };
+        const timeoutMs = options.timeoutMs ?? 12000;
 
-        if (['GET', 'HEAD'].includes(config.method) && !body) {
+        if (['GET', 'HEAD'].includes(method.toUpperCase()) && !body) {
             delete headers['Content-Type'];
         }
 
-        const isCrossDomain = typeof window !== 'undefined' && this.baseUrl.startsWith('http') && !this.baseUrl.startsWith(window.location.origin);
+        const requestBody = body && !['GET', 'HEAD'].includes(method.toUpperCase())
+            ? JSON.stringify(body)
+            : undefined;
 
+        const url = `${this.baseUrl}${endpoint}`;
+        const browserOrigin = typeof window !== 'undefined' ? window.location?.origin : '';
+        let isCrossDomain = false;
+        if (browserOrigin && /^https?:/i.test(this.baseUrl)) {
+            try {
+                isCrossDomain = new URL(this.baseUrl).origin !== browserOrigin;
+            } catch {
+                isCrossDomain = true;
+            }
+        }
+
+        let useProxy = false;
         for (let attempt = 0; attempt <= retries; attempt++) {
+            let timeoutController = null;
+            let timeoutId = null;
+            let removeCallerAbort = null;
             try {
                 let requestUrl = url;
-                // Si cross-origin en environnement navigateur, passer directement par le proxy universel
-                if ((isCrossDomain || attempt > 0) && typeof window !== 'undefined') {
+                // Le serveur Jellyfin autorise CORS dans la configuration de recette :
+                // tenter l'URL officielle directement à chaque première tentative. Le proxy
+                // reste le repli pour les erreurs réseau/CORS et n'est pas utilisé pour les retries
+                // d'une réponse HTTP lente, afin de ne pas cumuler deux timeouts côté proxy.
+                if (useProxy && typeof window !== 'undefined' && isCrossDomain) {
                     requestUrl = `/api-proxy?url=${encodeURIComponent(url)}`;
                 }
+
+                timeoutController = new AbortController();
+                const abortRequest = () => timeoutController.abort();
+                if (options.signal) {
+                    if (options.signal.aborted) {
+                        timeoutController.abort();
+                    } else {
+                        options.signal.addEventListener('abort', abortRequest, { once: true });
+                        removeCallerAbort = () => options.signal.removeEventListener('abort', abortRequest);
+                    }
+                }
+                timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
+
+                const config = {
+                    method: method.toUpperCase(),
+                    headers,
+                    signal: timeoutController.signal,
+                };
+                if (requestBody !== undefined) config.body = requestBody;
 
                 const response = await fetch(requestUrl, config);
 
@@ -89,7 +126,7 @@ class BaseApiClient {
                     ? response.json()
                     : response.text();
 
-                        } catch (err) {
+            } catch (err) {
                 const isLast = attempt === retries;
 
                 // Ne pas retenter sur les erreurs clientes 4xx définitives (400, 401, 403, 404, 422) sauf 429
@@ -100,8 +137,19 @@ class BaseApiClient {
 
                 // Si échec réseau direct/CORS, tenter le proxy universel immédiatement sur la tentative suivante
                 if (err.name === 'TypeError' && !isLast) {
+                    useProxy = true;
                     this._log.warn(`[${method}] ${url} échec direct/CORS. Bascule sur proxy universel /api-proxy...`);
                     await sleep(100);
+                    continue;
+                }
+
+                if (err instanceof ApiError && err.status >= 500 && !isLast) {
+                    // Un 5xx provenant du serveur direct ou du proxy est retenté
+                    // directement : ne pas transformer un endpoint Jellyfin lent en boucle
+                    // de timeouts proxy.
+                    useProxy = false;
+                    this._log.warn(`[${method}] ${url} — serveur/proxy ${err.status}, nouvelle tentative directe...`);
+                    await sleep(500 * (attempt + 1));
                     continue;
                 }
 
@@ -111,6 +159,9 @@ class BaseApiClient {
                 }
                 this._log.warn(`[${method}] ${url} — tentative ${attempt + 1}/${retries} échouée, retry avec backoff...`);
                 await sleep(500 * (attempt + 1));
+            } finally {
+                if (timeoutId) clearTimeout(timeoutId);
+                removeCallerAbort?.();
             }
         }
     }
@@ -183,12 +234,12 @@ class JellyfinClient extends BaseApiClient {
             maxHeight: opts.maxHeight ?? 600,
             quality:   opts.quality   ?? 90,
         });
-        const token = this.apiKey || window.SpaceHub?.auth?.getToken() || '';
-        if (token) {
-            params.set('api_key', token);
-        }
+        // Les images Jellyfin de ce serveur sont publiques lorsqu'elles sont référencées
+        // par leur tag ; ne jamais placer le token dans une URL générée par l'UI.
+        // Pour une instance qui protège ses images, l'application doit utiliser un proxy
+        // authentifié ou un chargeur Blob dédié, jamais réintroduire api_key ici.
         const base = this.baseUrl || window.SpaceHub?.auth?.getServerUrl() || '';
-        return `${base}/Items/${itemId}/Images/${type}?${params}`;
+        return `${base}/Items/${encodeURIComponent(itemId)}/Images/${encodeURIComponent(type)}?${params}`;
     }
 
     /** /Items/Latest */

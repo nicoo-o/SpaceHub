@@ -89,6 +89,18 @@ class ThemeManager {
     }
 
     /**
+     * Retire un thème personnalisé sans toucher aux presets.
+     */
+    unregister(themeId) {
+        const index = this._customThemes.findIndex(theme => theme.id === themeId);
+        if (index < 0) return false;
+        if (this._current === themeId) this.apply('spacehub-dark');
+        this._customThemes.splice(index, 1);
+        this._eventBus?.emit('theme:unregistered', { id: themeId });
+        return true;
+    }
+
+    /**
      * Applique un thème par son ID (recherche dans les presets et thèmes personnalisés).
      * @param {string} themeId
      * @returns {boolean}
@@ -129,14 +141,16 @@ class ThemeManager {
      * @returns {Array<{ id: string, name: string, icon: string }>}
      */
     getAvailable() {
-        return PRESETS.map(({ id, name, icon }) => ({ id, name, icon }));
+        const presetThemes = PRESETS.map(({ id, name, icon }) => ({ id, name, icon }));
+        const customThemes = this._customThemes.map(({ id, name, icon }) => ({ id, name, icon }));
+        return [...presetThemes, ...customThemes];
     }
 
     /**
      * Bascule vers le thème suivant dans la liste (utile pour un bouton de cycle).
      */
     next() {
-        const ids   = PRESETS.map(p => p.id);
+        const ids   = this.getAvailable().map(p => p.id);
         const index = ids.indexOf(this._current ?? 'spacehub-dark');
         this.apply(ids[(index + 1) % ids.length]);
     }

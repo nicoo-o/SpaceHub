@@ -145,8 +145,8 @@ export class UnifiedCalendarService {
         // 3. Récupération Jellyseerr (Sorties populaires attendues)
         try {
             const jellyseerrApi = window.SpaceHub?.integrations?.jellyseerr?.api;
-            if (jellyseerrApi?.getUpcoming) {
-                const upData = await jellyseerrApi.getUpcoming();
+            if (jellyseerrApi?.getUpcomingMediaList) {
+                const upData = await jellyseerrApi.getUpcomingMediaList();
                 const upcoming = upData?.results || (Array.isArray(upData) ? upData : []);
                 upcoming.slice(0, 15).forEach(item => {
                     const dateStr = item.releaseDate || item.firstAirDate;

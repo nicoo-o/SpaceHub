@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../core/utils/domUtils.js';
 /**
  * SpaceHub — Sonarr Dashboard Widgets
  * Version: 0.6.0
@@ -109,7 +110,7 @@ class UpcomingEpisodesWidget {
         } catch (err) {
             contentEl.innerHTML = `
                 <div class="sh-widget-error">
-                    <p>Impossible de joindre Sonarr (${err.message}). Vérifiez vos identifiants.</p>
+                    <p>Impossible de joindre Sonarr (${escapeHtml(err.message)}). Vérifiez vos identifiants.</p>
                 </div>
             `;
         }
@@ -352,7 +353,7 @@ class SonarrQueueWidget {
                 </div>
             `;
         } catch (err) {
-            contentEl.innerHTML = `<p style="color:#ff453a; text-align:center; padding:16px;">${err.message}</p>`;
+            contentEl.innerHTML = `<p style="color:#ff453a; text-align:center; padding:16px;">${escapeHtml(err.message)}</p>`;
         }
     }
 

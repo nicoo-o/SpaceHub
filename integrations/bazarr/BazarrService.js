@@ -49,7 +49,8 @@ class BazarrService {
         const url = this._settings?.get('bazarr.url') || this.api?.baseUrl;
         const key = this._settings?.get('bazarr.apiKey') || this.api?.apiKey;
 
-        if (!url) {
+        const explicitlyConfigured = this._settings?.has?.('bazarr.url') || this._settings?.has?.('bazarr.apiKey');
+        if (!url || (this._settings && !explicitlyConfigured)) {
             this.status = 'unconfigured';
             this._eventBus?.emit('service:statusChanged', { id: 'bazarr', status: this.status });
             return this.status;
@@ -58,19 +59,17 @@ class BazarrService {
         this.status = 'connecting';
         const start = Date.now();
         try {
-            if (typeof this.api?.getSystemStatus === 'function') {
-                await this.api.getSystemStatus();
-            }
-            this.lastLatency = Date.now() - start;
-            this.status = 'connected';
-        } catch (err) {
-            this.lastLatency = Date.now() - start;
-            if (err.status === 401 || err.status === 403) {
-                this.status = 'auth_failed';
+            const result = await this.api.testConnection();
+            if (!result.success) {
+                const authFail = result.error?.includes('401') || result.error?.includes('403') || result.error?.includes('Unauthorized');
+                this.status = authFail ? 'auth_failed' : 'offline';
             } else {
-                this.status = 'offline';
+                this.status = 'connected';
             }
+        } catch (err) {
+            this.status = (err.status === 401 || err.status === 403) ? 'auth_failed' : 'offline';
         }
+        this.lastLatency = Date.now() - start;
 
         this._eventBus?.emit('service:statusChanged', { id: 'bazarr', status: this.status, latency: this.lastLatency });
         return this.status;
@@ -151,10 +150,6 @@ class BazarrService {
     }
 
     /**
-     * Déclenche une synchronisation des bibliothèques.
-     * @returns {Promise<Object>}
-     */
-        /**
      * Synchronise les bibliothèques Bazarr (alias officiel de triggerSync).
      * @returns {Promise<Object>}
      */
@@ -162,16 +157,24 @@ class BazarrService {
         return await this.triggerSync();
     }
 
-        async triggerSync() {
+    /**
+     * Déclenche une synchronisation des bibliothèques.
+     * @returns {Promise<Object>}
+     */
+    async triggerSync() {
         this._log.info('Déclenchement de la synchronisation Bazarr...');
         try {
             const result = await this.api.syncLibraries();
+            if (result?.success === false || result?.status === 'unsupported') {
+                window.SpaceHub?.ui?.components?.toaster?.warning?.('Bazarr ne propose pas cette tâche de synchronisation via son API.');
+                return { success: false, status: result?.status || 'unsupported' };
+            }
             window.SpaceHub?.ui?.components?.toaster?.success?.('Synchronisation Bazarr lancée avec succès !');
             return result || { success: true };
         } catch (err) {
-            this._log.warn('Synchronisation Bazarr commandée avec avertissement:', err.message);
-            window.SpaceHub?.ui?.components?.toaster?.info?.('Synchronisation Bazarr envoyée au serveur.');
-            return { success: true };
+            this._log.warn('Synchronisation Bazarr échouée:', err.message);
+            window.SpaceHub?.ui?.components?.toaster?.error?.('Échec de la synchronisation Bazarr.');
+            return { success: false, error: err.message };
         }
     }
 }

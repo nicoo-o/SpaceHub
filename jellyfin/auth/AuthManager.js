@@ -21,8 +21,19 @@ class AuthManager {
 
     _loadAuth() {
         try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            return raw ? JSON.parse(raw) : null;
+            // Session persistante (standard client Jellyfin Web) : la session survit
+            // au rechargement et à la fermeture de l'onglet. L'ancienne copie
+            // sessionStorage (hardening v1) est migrée automatiquement vers localStorage.
+            const persistentRaw = localStorage.getItem(STORAGE_KEY);
+            if (persistentRaw) return JSON.parse(persistentRaw);
+            const sessionRaw = sessionStorage.getItem(STORAGE_KEY);
+            if (sessionRaw) {
+                const data = JSON.parse(sessionRaw);
+                sessionStorage.removeItem(STORAGE_KEY);
+                if (data) localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                return data;
+            }
+            return null;
         } catch {
             return null;
         }
@@ -31,9 +42,13 @@ class AuthManager {
     _saveAuth(data) {
         this._authData = data;
         if (data) {
+            // Session persistante (comportement du client Jellyfin Web officiel) :
+            // le token survit au rechargement et à la fermeture de l'onglet ; il est
+            // effacé uniquement à la déconnexion ou si le serveur renvoie 401/403.
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         } else {
             localStorage.removeItem(STORAGE_KEY);
+            sessionStorage.removeItem(STORAGE_KEY);
         }
     }
 
@@ -105,7 +120,10 @@ class AuthManager {
         const authHeader = `MediaBrowser Client="Jellyfin Web", Device="Chrome", DeviceId="${deviceId}", Version="10.8.13"`;
 
         const doAuth = async (targetBase) => {
-            const url = `${targetBase}/Users/AuthenticateByName`;
+            const directUrl = `${targetBase}/Users/AuthenticateByName`;
+            const url = targetBase
+                ? directUrl
+                : `/api-proxy?url=${encodeURIComponent(`${cleanUrl}/Users/AuthenticateByName`)}`;
             return await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -201,8 +219,7 @@ class AuthManager {
                 const params = new URLSearchParams({
                     maxWidth: opts.maxWidth ?? 400,
                     maxHeight: opts.maxHeight ?? 600,
-                    quality: opts.quality ?? 90,
-                    ...(token ? { api_key: token } : {})
+                    quality: opts.quality ?? 90
                 });
                 return `${cleanUrl}/Items/${itemId}/Images/Primary?${params}`;
             },
@@ -227,13 +244,15 @@ class AuthManager {
     async init() {
         if (this.isAuthenticated()) {
             this._syncGlobalClient(this.getServerUrl(), this.getToken());
-            // Vérification de validité de session
+            // Vérification de validité : seule une réponse 401/403 (token réellement
+            // révoqué) invalide la session persistante. Un timeout proxy, un 502/504
+            // ou un serveur temporairement injoignable préserve la session.
             try {
                 const res = await fetch(`${this.getServerUrl()}/System/Info`, {
                     headers: this.getAuthHeaders()
                 });
-                if (!res.ok) {
-                    this._log.warn('Session expirée.');
+                if (res.status === 401 || res.status === 403) {
+                    this._log.warn('Token Jellyfin révoqué par le serveur — session effacée.');
                     this._saveAuth(null);
                     return false;
                 }

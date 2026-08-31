@@ -1,4 +1,5 @@
 (function() {
+    'use strict';
     try {
         console.log('Jellyfin Updoot: Initializing');
 
@@ -10,15 +11,15 @@
             document.head.appendChild(link);
         }
 
-        const jellyfinCredentials = JSON.parse(localStorage.getItem('jellyfin_credentials') || '{}');
-        const server = jellyfinCredentials.Servers && jellyfinCredentials.Servers[0];
-        const apiKey = server ? server.AccessToken : '';
-        const serverUrl = server ? server.ManualAddress || server.LocalAddress : window.location.origin;
-        const userId = server ? server.UserId : '';
+        const auth = window.SpaceHub?.auth;
+        const apiKey = auth?.getToken?.() || window.ApiClient?.accessToken?.() || '';
+        const serverUrl = auth?.getServerUrl?.() || window.ApiClient?.serverAddress?.() || window.location.origin;
+        const userId = auth?.getUserId?.() || window.ApiClient?.getCurrentUserId?.() || '';
         const backendUrl = `${window.location.origin}/updoot`;
-        const adminUserIds = ['ee8996be37aa4da0912a08b410940d3e'];
+        const adminUserIds = [];
+        const isCurrentUserAdmin = () => auth?.getUser?.()?.Policy?.IsAdministrator === true;
 
-        console.log('Credentials:', { serverUrl, apiKey, userId, backendUrl, isAdmin: adminUserIds.includes(userId) });
+        // Removed: console.log exposing sensitive credentials (apiKey, userId, serverUrl)
 
         let recommendButton = null;
         let recommendationsButton = null;
@@ -29,7 +30,7 @@
         async function fetchItemDetails(itemId) {
             console.log('Fetching item details for itemId:', itemId);
             try {
-                const url = `${serverUrl}/Items/${itemId}?api_key=${apiKey}`; // Fixed typo from original: 'melalui' to 'apiKey'
+                const url = `${serverUrl}/Items/${itemId}`;
                 console.log('Requesting:', url);
                 const response = await fetch(url, {
                     method: 'GET',
@@ -315,7 +316,7 @@
                                 <p>${comment.comment}</p>
                             </div>
                         `;
-                        if (comment.userId === userId || adminUserIds.includes(userId)) {
+                        if (comment.userId === userId || isCurrentUserAdmin() || adminUserIds.includes(userId)) {
                             const buttonGroup = document.createElement('div');
                             buttonGroup.style.cssText = 'margin-left: 10px; display: flex; flex-direction: column; gap: 4px;';
                             const editButton = document.createElement('button');
@@ -599,7 +600,7 @@
             }
 			
             console.log('Attempting to create Admin button for userId:', userId);
-            if (!adminUserIds.includes(userId)) {
+            if (!isCurrentUserAdmin() && !adminUserIds.includes(userId)) {
                 console.log('User is not an admin, skipping admin button');
                 return;
             }
@@ -776,10 +777,10 @@
                     });
 
                     const imageUrl = itemDetails.ImageTags?.Primary
-                        ? `${serverUrl}/Items/${itemId}/Images/Primary?api_key=${apiKey}`
+                        ? `${serverUrl}/Items/${itemId}/Images/Primary`
                         : '';
                     const logoUrl = itemDetails.ImageTags?.Logo
-                        ? `${serverUrl}/Items/${itemId}/Images/Logo?api_key=${apiKey}`
+                        ? `${serverUrl}/Items/${itemId}/Images/Logo`
                         : '';
 
                     card.innerHTML = `
@@ -808,7 +809,7 @@
 
         async function showAdminOverlay() {
             console.log('Attempting to open admin overlay for userId:', userId);
-            if (!adminUserIds.includes(userId)) {
+            if (!isCurrentUserAdmin() && !adminUserIds.includes(userId)) {
                 console.log('Access denied: User is not an admin');
                 alert('Access denied: Admin privileges required');
                 return;

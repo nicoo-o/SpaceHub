@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../core/utils/domUtils.js';
 /**
  * SpaceHub — Bazarr Dashboard Widgets
  * Version: 0.9.0
@@ -123,7 +124,7 @@ class BazarrWantedWidget {
         } catch (err) {
             contentEl.innerHTML = `
                 <div class="sh-widget-error">
-                    <p>Impossible de joindre Bazarr (${err.message}). Vérifiez vos identifiants.</p>
+                    <p>Impossible de joindre Bazarr (${escapeHtml(err.message)}). Vérifiez vos identifiants.</p>
                 </div>
             `;
         }

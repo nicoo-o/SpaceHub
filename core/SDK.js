@@ -1,11 +1,7 @@
 /**
- * SpaceHub — Extension SDK
- * Version: 1.0.0
- *
- * Kit de développement (SDK) officiel pour créer des modules, widgets,
- * plugins de cycle de vie et thèmes tiers pour SpaceHub.
+ * SpaceHub — Extension SDK v2
+ * API publique contrôlée pour les extensions client.
  */
-
 'use strict';
 
 import Logger from './Logger.js';
@@ -16,115 +12,110 @@ class SpaceHubSDK {
     }
 
     _getPluginManager() {
-        return window.SpaceHub?.plugins || window.SpaceHub?.core?.pluginManager || this._pm;
+        return window.SpaceHub?.plugins || window.SpaceHub?.core?.pluginManager || null;
     }
 
-    // ─── Plugins & Cycle de Vie ───────────────────────────────────────────────
+    _getPluginId(pluginId) {
+        if (!pluginId || typeof pluginId !== 'string') throw new TypeError('pluginId requis.');
+        return pluginId;
+    }
 
-    /**
-     * Enregistre un plugin SDK avec cycle de vie (onLoad, onEnable, onDisable, onUnload).
-     * @param {Object} pluginManifest
-     */
-    async registerPlugin(pluginManifest) {
+    async registerPlugin(manifest) {
         const pm = this._getPluginManager();
-        if (!pm) {
-            this._log.error('PluginManager non initialisé.');
-            return false;
-        }
-        return await pm.registerPlugin(pluginManifest);
+        if (!pm) return false;
+        return pm.registerPlugin(manifest);
     }
 
-    /**
-     * Retourne tous les plugins SDK installés.
-     * @returns {Array<Object>}
-     */
-    getPlugins() {
-        const pm = this._getPluginManager();
-        return pm?.getPlugins() || [];
-    }
+    getPlugins() { return this._getPluginManager()?.getPlugins() || []; }
 
-    /**
-     * Active un plugin SDK par son identifiant.
-     * @param {string} id
-     */
     async enablePlugin(id) {
         const pm = this._getPluginManager();
-        return await pm?.enablePlugin(id);
+        return pm ? pm.enablePlugin(id) : false;
     }
 
-    /**
-     * Désactive un plugin SDK par son identifiant.
-     * @param {string} id
-     */
     async disablePlugin(id) {
         const pm = this._getPluginManager();
-        return await pm?.disablePlugin(id);
+        return pm ? pm.disablePlugin(id) : false;
     }
 
-    // ─── Widgets ─────────────────────────────────────────────────────────────
+    async unloadPlugin(id) {
+        const pm = this._getPluginManager();
+        return pm ? pm.unloadPlugin(id) : false;
+    }
 
-    /**
-     * Enregistre un widget personnalisé pour le tableau de bord SpaceHub.
-     * @param {string} id
-     * @param {typeof Object} WidgetClass
-     */
+    async reloadPlugin(id) {
+        const pm = this._getPluginManager();
+        return pm ? pm.reloadPlugin(id) : false;
+    }
+
+    async checkPluginHealth(id) {
+        const pm = this._getPluginManager();
+        return pm ? pm.checkHealth(id) : { status: 'unknown', checkedAt: null, error: 'PluginManager indisponible' };
+    }
+
+    approvePluginPermissions(id, permissions) {
+        const pm = this._getPluginManager();
+        return pm?.approvePermissions(this._getPluginId(id), permissions) || [];
+    }
+
+    getPluginPermissionPolicy(id) {
+        const pm = this._getPluginManager();
+        return pm?.getPermissionPolicy(this._getPluginId(id)) || null;
+    }
+
+    registerContribution(pluginId, type, contribution) {
+        const pm = this._getPluginManager();
+        if (!pm) return () => {};
+        return pm.registerContribution(this._getPluginId(pluginId), type, contribution);
+    }
+
+    getContributions(type = null) { return this._getPluginManager()?.getContributions(type) || []; }
+
     registerWidget(id, WidgetClass) {
-        if (!window.SpaceHub?.ui?.dashboard) {
-            this._log.error('Dashboard non disponible.');
-            return;
+        if (!window.SpaceHub?.ui?.dashboard || typeof WidgetClass !== 'function') {
+            this._log.error('Dashboard ou classe de widget indisponible.');
+            return false;
         }
         window.SpaceHub.ui.dashboard.registerWidget(id, WidgetClass);
-        this._log.info(`Widget tiers enregistré : "${id}"`);
+        return true;
     }
 
-    // ─── Thèmes ───────────────────────────────────────────────────────────────
-
-    /**
-     * Enregistre et applique un thème personnalisé.
-     * @param {{ id: string, name: string, icon?: string, emoji?: string, variables: Record<string,string> }} theme
-     */
     registerTheme(theme) {
-        if (!theme || !theme.id || !theme.variables) {
-            this._log.error('Un thème doit avoir un id et un objet variables.');
-            return;
-        }
-        
-        const tm = window.SpaceHub?.ui?.themes;
-        if (tm && typeof tm.register === 'function') {
-            tm.register(theme);
-        }
-        tm?.apply(theme.id);
-        this._log.info(`Thème tiers enregistré et appliqué : "${theme.name || theme.id}"`);
+        const manager = window.SpaceHub?.ui?.themes;
+        if (!manager || typeof manager.register !== 'function') return false;
+        return manager.register(theme);
     }
 
-    // ─── Modules & Intégrations ───────────────────────────────────────────────
+    applyTheme(themeId) {
+        return window.SpaceHub?.ui?.themes?.apply?.(themeId) || false;
+    }
 
-    /**
-     * Enregistre un module d'intégration externe.
-     * @param {Object} moduleConfig
-     */
     registerModule(moduleConfig) {
-        window.SpaceHub?.core?.moduleManager?.register(moduleConfig);
+        const manager = window.SpaceHub?.core?.moduleManager;
+        if (!manager || typeof manager.register !== 'function') return false;
+        manager.register(moduleConfig);
+        return true;
     }
 
-    // ─── Événements (Pub/Sub) ─────────────────────────────────────────────────
-
-    on(event, callback) {
-        return window.SpaceHub?.core?.eventBus?.on(event, callback);
+    registerMetadataProvider(provider) {
+        return window.SpaceHub?.metadata?.registerProvider?.(provider) || (() => {});
     }
 
-    once(event, callback) {
-        return window.SpaceHub?.core?.eventBus?.once(event, callback);
+    getMetadata(itemId, options = {}) { return window.SpaceHub?.metadata?.get?.(itemId, options); }
+    getMetadataPolicy(libraryId) { return window.SpaceHub?.metadata?.getPolicy?.(libraryId); }
+    setMetadataPolicy(libraryId, policy) { return window.SpaceHub?.metadata?.setPolicy?.(libraryId, policy); }
+
+    getServerCapabilities() {
+        return window.SpaceHub?.jellyfin?.plugins?.detectCapabilities?.() || null;
     }
 
-    emit(event, data) {
-        window.SpaceHub?.core?.eventBus?.emit(event, data);
-    }
-
-    // ─── UI & Composants ──────────────────────────────────────────────────────
+    on(event, callback) { return window.SpaceHub?.core?.eventBus?.on(event, callback); }
+    once(event, callback) { return window.SpaceHub?.core?.eventBus?.once(event, callback); }
+    emit(event, data) { return window.SpaceHub?.core?.eventBus?.emit(event, data); }
 
     showToast(message, type = 'info', options = {}) {
-        return window.SpaceHub?.ui?.components?.toaster?.show(message, type, options);
+        const toaster = window.SpaceHub?.ui?.components?.toaster;
+        return toaster?.show?.(message, type, options) || toaster?.toast?.(message, type);
     }
 
     openModal(options) {
@@ -135,15 +126,48 @@ class SpaceHubSDK {
         return modal;
     }
 
-    // ─── Paramètres & Données ─────────────────────────────────────────────────
+    getSetting(key, fallback = null) { return window.SpaceHub?.core?.settings?.get?.(key, fallback); }
+    setSetting(key, value) { return window.SpaceHub?.core?.settings?.set?.(key, value); }
 
-    getSetting(key, fallback = null) {
-        return window.SpaceHub?.core?.settings?.get(key, fallback);
+    getPluginStorage(pluginId) {
+        return this._getPluginManager()?.getPluginStorage?.(this._getPluginId(pluginId)) || null;
     }
 
-    setSetting(key, value) {
-        window.SpaceHub?.core?.settings?.set(key, value);
+    getCatalog({ approvedOnly = false } = {}) {
+        return window.SpaceHub?.pluginCatalog?.list?.({ approvedOnly }) || [];
     }
+
+    approveCatalogPlugin(id, permissions) { return window.SpaceHub?.pluginCatalog?.approve?.(id, permissions) || false; }
+    revokeCatalogPlugin(id, reason) { return window.SpaceHub?.pluginCatalog?.revoke?.(id, reason) || false; }
+    async loadCatalog(url) {
+        const catalog = window.SpaceHub?.pluginCatalog;
+        if (!catalog?.load) return [];
+        return catalog.load(url);
+    }
+
+    async installCatalogPlugin(id, options = {}) {
+        const catalog = window.SpaceHub?.pluginCatalog;
+        return catalog?.install?.(id, { ...options, pluginManager: this._getPluginManager() }) || false;
+    }
+
+    async updateCatalogPlugin(id, options = {}) {
+        const catalog = window.SpaceHub?.pluginCatalog;
+        return catalog?.update?.(id, { ...options, pluginManager: this._getPluginManager() }) || false;
+    }
+
+    async rollbackCatalogPlugin(id, options = {}) {
+        const catalog = window.SpaceHub?.pluginCatalog;
+        return catalog?.rollback?.(id, { ...options, pluginManager: this._getPluginManager() }) || false;
+    }
+
+    async uninstallCatalogPlugin(id) {
+        const catalog = window.SpaceHub?.pluginCatalog;
+        return catalog?.uninstall?.(id, { pluginManager: this._getPluginManager() }) || false;
+    }
+
+    getCatalogStatus(id) { return window.SpaceHub?.pluginCatalog?.getStatus?.(id) || null; }
+    getCatalogHistory(id) { return window.SpaceHub?.pluginCatalog?.getHistory?.(id) || []; }
+    async downloadCatalogPlugin(id, options = {}) { return window.SpaceHub?.pluginCatalog?.fetchPackage?.(id, options); }
 }
 
 export default SpaceHubSDK;

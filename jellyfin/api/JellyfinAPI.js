@@ -85,7 +85,7 @@ class JellyfinAPI {
         if (this._rawApiClient?.getJSON && this._rawApiClient?.getUrl) {
             try {
                 const url = this._rawApiClient.getUrl(`Users/${userId}/Items/${itemId}`, {
-                    fields: 'People,MediaStreams,MediaSources,Genres,Overview,OfficialRating,Taglines,SpecialFeatureCount,Studios,ProductionYear,CommunityRating,RunTimeTicks,UserData,CriticRating,BackdropImageTags,ParentBackdropItemId'
+                    fields: 'People,MediaStreams,MediaSources,Genres,Overview,OfficialRating,Taglines,SpecialFeatureCount,Studios,ProductionYear,CommunityRating,RunTimeTicks,UserData,CriticRating,ProviderIds,BackdropImageTags,ParentBackdropItemId'
                 });
                 const res = await this._rawApiClient.getJSON(url);
                 if (res) return res;
@@ -95,7 +95,7 @@ class JellyfinAPI {
         }
 
         const params = new URLSearchParams({
-            fields: 'People,MediaStreams,MediaSources,Genres,Overview,OfficialRating,Taglines,SpecialFeatureCount,Studios,ProductionYear,CommunityRating,RunTimeTicks,UserData,CriticRating,BackdropImageTags,ParentBackdropItemId'
+            fields: 'People,MediaStreams,MediaSources,Genres,Overview,OfficialRating,Taglines,SpecialFeatureCount,Studios,ProductionYear,CommunityRating,RunTimeTicks,UserData,CriticRating,ProviderIds,BackdropImageTags,ParentBackdropItemId'
         });
         const endpoint = userId ? `/Users/${userId}/Items/${itemId}?${params.toString()}` : `/Items/${itemId}?${params.toString()}`;
         return await this._client.get(endpoint);
@@ -115,7 +115,7 @@ class JellyfinAPI {
                 const url = this._rawApiClient.getUrl('Items', {
                     parentId: parentId || '',
                     userId: userId || '',
-                    fields: 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,MediaStreams,Overview,Genres,CommunityRating,ProductionYear,RunTimeTicks,UserData',
+                    fields: 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,MediaStreams,Overview,Genres,CommunityRating,ProductionYear,RunTimeTicks,UserData,ProviderIds',
                     enableImageTypes: 'Primary,Backdrop,Thumb',
                     ...queryOptions
                 });
@@ -129,7 +129,7 @@ class JellyfinAPI {
         const params = new URLSearchParams({
             parentId: parentId || '',
             userId: userId || '',
-            fields: 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,MediaStreams,Overview,Genres,CommunityRating,ProductionYear,RunTimeTicks,UserData',
+            fields: 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,MediaStreams,Overview,Genres,CommunityRating,ProductionYear,RunTimeTicks,UserData,ProviderIds',
             enableImageTypes: 'Primary,Backdrop,Thumb',
             ...queryOptions
         });
@@ -150,7 +150,7 @@ class JellyfinAPI {
         const baseQuery = {
             parentId: parentId || '',
             userId: userId || '',
-            fields: 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,MediaStreams,Overview,Genres,CommunityRating,ProductionYear,RunTimeTicks,UserData,OfficialRating,CriticRating',
+            fields: 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,MediaStreams,Overview,Genres,CommunityRating,ProductionYear,RunTimeTicks,UserData,OfficialRating,CriticRating,ProviderIds',
             enableImageTypes: 'Primary,Backdrop,Thumb',
             recursive: 'true',
             ...queryOptions
@@ -402,7 +402,7 @@ class JellyfinAPI {
                 const url = this._rawApiClient.getUrl(`Items/${itemId}/Similar`, {
                     userId: userId || '',
                     limit: String(limit),
-                    fields: 'PrimaryImageAspectRatio,Overview,CommunityRating,ProductionYear,Genres,MediaStreams'
+                    fields: 'PrimaryImageAspectRatio,Overview,CommunityRating,ProductionYear,Genres,MediaStreams,ProviderIds'
                 });
                 const res = await this._rawApiClient.getJSON(url);
                 return res?.Items || (Array.isArray(res) ? res : []);
@@ -414,7 +414,7 @@ class JellyfinAPI {
         const params = new URLSearchParams({
             userId: userId || '',
             limit: String(limit),
-            fields: 'PrimaryImageAspectRatio,Overview,CommunityRating,ProductionYear,Genres,MediaStreams'
+            fields: 'PrimaryImageAspectRatio,Overview,CommunityRating,ProductionYear,Genres,MediaStreams,ProviderIds'
         });
 
         try {
@@ -446,7 +446,7 @@ class JellyfinAPI {
                     includeItemTypes: includeItemTypes,
                     limit: String(limit),
                     recursive: 'true',
-                    fields: 'PrimaryImageAspectRatio,ProductionYear,RunTimeTicks,CommunityRating,Overview,MediaStreams,Genres'
+                    fields: 'PrimaryImageAspectRatio,ProductionYear,RunTimeTicks,CommunityRating,Overview,MediaStreams,Genres,ProviderIds'
                 });
                 const res = await this._rawApiClient.getJSON(url);
                 return res?.Items || (Array.isArray(res) ? res : []);
@@ -461,7 +461,7 @@ class JellyfinAPI {
             includeItemTypes: includeItemTypes,
             limit: String(limit),
             recursive: 'true',
-            fields: 'PrimaryImageAspectRatio,ProductionYear,RunTimeTicks,CommunityRating,Overview,MediaStreams,Genres'
+            fields: 'PrimaryImageAspectRatio,ProductionYear,RunTimeTicks,CommunityRating,Overview,MediaStreams,Genres,ProviderIds'
         });
 
         try {
@@ -487,7 +487,7 @@ class JellyfinAPI {
                 const url = this._rawApiClient.getUrl('Items', {
                     userId: userId || '',
                     parentId: boxsetId || '',
-                    fields: 'PrimaryImageAspectRatio,Overview,CommunityRating,ProductionYear,RunTimeTicks,Genres,MediaStreams,MediaSources',
+                    fields: 'PrimaryImageAspectRatio,Overview,CommunityRating,ProductionYear,RunTimeTicks,Genres,MediaStreams,MediaSources,ProviderIds',
                     sortBy: 'PremiereDate,ProductionYear,SortName',
                     sortOrder: 'Ascending'
                 });
@@ -501,7 +501,7 @@ class JellyfinAPI {
         const params = new URLSearchParams({
             userId: userId || '',
             parentId: boxsetId || '',
-            fields: 'PrimaryImageAspectRatio,Overview,CommunityRating,ProductionYear,RunTimeTicks,Genres,MediaStreams,MediaSources',
+            fields: 'PrimaryImageAspectRatio,Overview,CommunityRating,ProductionYear,RunTimeTicks,Genres,MediaStreams,MediaSources,ProviderIds',
             sortBy: 'PremiereDate,ProductionYear,SortName',
             sortOrder: 'Ascending'
         });
@@ -572,7 +572,7 @@ class JellyfinAPI {
         const userId = this.getUserId();
         if (!userId) return [];
         try {
-            const data = await this._client.get(`/Users/${userId}/Items/Resume?Limit=${limit}&MediaTypes=Video&Fields=PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,RunTimeTicks,SeriesName,SeriesId,SeasonId,IndexNumber,ParentIndexNumber`);
+            const data = await this._client.get(`/Users/${userId}/Items/Resume?Limit=${limit}&MediaTypes=Video&Fields=PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,RunTimeTicks,SeriesName,SeriesId,SeasonId,IndexNumber,ParentIndexNumber,ProviderIds`, { retries: 1 });
             return data?.Items || [];
         } catch (err) {
             this._log.warn('Erreur getResumeItems:', err);
@@ -589,7 +589,7 @@ class JellyfinAPI {
         const userId = this.getUserId();
         if (!userId) return [];
 
-        const fields = 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,RunTimeTicks,SeriesName,SeriesId,SeasonId,IndexNumber,ParentIndexNumber,BackdropImageTags';
+        const fields = 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,RunTimeTicks,SeriesName,SeriesId,SeasonId,IndexNumber,ParentIndexNumber,BackdropImageTags,ProviderIds';
 
         if (this._rawApiClient?.getJSON && this._rawApiClient?.getUrl) {
             try {
@@ -683,7 +683,7 @@ class JellyfinAPI {
         const limit = options.limit || 16;
         const includeItemTypes = options.includeItemTypes || 'Movie,Series';
         try {
-            const data = await this._client.get(`/Users/${userId}/Items/Latest?Limit=${limit}&IncludeItemTypes=${includeItemTypes}&Fields=PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating`);
+            const data = await this._client.get(`/Users/${userId}/Items/Latest?Limit=${limit}&IncludeItemTypes=${includeItemTypes}&Fields=PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,ProviderIds`, { retries: 1 });
             return Array.isArray(data) ? data : (data?.Items || []);
         } catch (err) {
             this._log.warn('Erreur getLatestItems:', err);
@@ -708,7 +708,7 @@ class JellyfinAPI {
             SortBy: sortBy,
             SortOrder: sortOrder,
             Limit: String(limit),
-            Fields: 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,RunTimeTicks,OfficialRating,CriticRating'
+            Fields: 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,RunTimeTicks,OfficialRating,CriticRating,ProviderIds'
         });
         if (userId) params.set('userId', userId);
 
@@ -743,7 +743,7 @@ class JellyfinAPI {
             SortBy: sortBy,
             SortOrder: sortOrder,
             Limit: String(limit),
-            Fields: 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,ChildCount,RecursiveItemCount,ItemCounts,OfficialRating,CriticRating,RunTimeTicks'
+            Fields: 'PrimaryImageAspectRatio,BasicSyncInfo,MediaSources,Overview,Genres,CommunityRating,UserData,ChildCount,RecursiveItemCount,ItemCounts,OfficialRating,CriticRating,RunTimeTicks,ProviderIds'
         });
         if (userId) params.set('userId', userId);
 
@@ -819,7 +819,7 @@ class JellyfinAPI {
     async getFeaturedHeroItems() {
         const userId = this.getUserId();
         try {
-            const data = await this._client.get(`/Items?userId=${userId || ''}&IncludeItemTypes=Movie,Series&Recursive=true&SortBy=CommunityRating,DateCreated&SortOrder=Descending&Limit=6&ImageTypes=Backdrop&Fields=PrimaryImageAspectRatio,Overview,Genres,CommunityRating,OfficialRating,ProductionYear,Taglines`);
+            const data = await this._client.get(`/Items?userId=${userId || ''}&IncludeItemTypes=Movie,Series&Recursive=true&SortBy=CommunityRating,DateCreated&SortOrder=Descending&Limit=6&ImageTypes=Backdrop&Fields=PrimaryImageAspectRatio,Overview,Genres,CommunityRating,OfficialRating,ProductionYear,Taglines,ProviderIds`);
             const items = data?.Items || [];
             return items.filter(item => item.BackdropImageTags && item.BackdropImageTags.length > 0);
         } catch (err) {
@@ -911,12 +911,48 @@ class JellyfinAPI {
      */
     async getItemCounts() {
         const userId = this.getUserId();
+        if (!userId || !this._client?.get) return null;
+
         try {
-            const endpoint = userId ? `/Items/Counts?userId=${userId}` : '/Items/Counts';
-            return await this._client.get(endpoint);
+            // /Items/Counts peut être très lent sur les bibliothèques volumineuses et
+            // provoquer un timeout du proxy de développement. Les compteurs agrégés
+            // par type utilisent la même API utilisateur que l'explorateur et restent
+            // limités à une réponse de comptage (aucun élément n'est chargé).
+            const endpoint = `/Items/Counts?userId=${encodeURIComponent(userId)}`;
+            const counts = await this._client.get(endpoint, { retries: 0 });
+            if (counts && typeof counts === 'object') return counts;
+        } catch (err) {
+            this._log.warn('Endpoint /Items/Counts indisponible, calcul par type :', err);
+        }
+
+        try {
+            const types = [
+                ['Movie', 'MovieCount'],
+                ['Series', 'SeriesCount'],
+                ['Episode', 'EpisodeCount'],
+                ['Audio', 'SongCount']
+            ];
+            const results = await Promise.all(types.map(async ([type, key]) => {
+                try {
+                    const params = new URLSearchParams({
+                        userId,
+                        includeItemTypes: type,
+                        recursive: 'true',
+                        limit: '0',
+                        fields: 'Id'
+                    });
+                    const data = await this._client.get(`/Items?${params.toString()}`, { retries: 0 });
+                    return [key, Number(data?.TotalRecordCount ?? data?.Items?.length ?? 0)];
+                } catch (err) {
+                    this._log.warn(`Compteur ${type} indisponible :`, err);
+                    return [key, null];
+                }
+            }));
+            const counts = Object.fromEntries(results);
+            return Object.values(counts).some(value => value !== null) ? counts : null;
         } catch (err) {
             this._log.warn('Erreur getItemCounts:', err);
-            return { MovieCount: 0, SeriesCount: 0, EpisodeCount: 0, SongCount: 0 };
+            return null;
         }
     }
 
@@ -1178,11 +1214,41 @@ class JellyfinAPI {
     async getPlugins() {
         try {
             const data = await this._client.get('/Plugins');
-            return Array.isArray(data) ? data : [];
+            return Array.isArray(data) ? data : (data?.Items || []);
         } catch (err) {
             this._log.warn('Erreur getPlugins:', err);
             return [];
         }
+    }
+
+    /**
+     * Retourne les capacités de gestion des plugins connues du serveur/client.
+     * Les endpoints de package ne sont pas supposés disponibles sans découverte explicite.
+     * @returns {Promise<Object>}
+     */
+    async getPluginCapabilities() {
+        const plugins = await this.getPlugins();
+        return {
+            list: true,
+            configuration: plugins.some(plugin => Boolean(plugin.ConfigurationFileName || plugin.configurationFileName)),
+            install: false,
+            update: false,
+            uninstall: false,
+            reason: 'Les opérations de package dépendent de la version Jellyfin et ne sont pas déclarées comme disponibles par défaut.'
+        };
+    }
+
+    /**
+     * Met à jour les champs de métadonnées d'un élément Jellyfin.
+     * Jellyfin vérifie les droits réels du compte courant ; SpaceHub ne fabrique
+     * pas de succès local en cas de refus serveur.
+     * @param {string} itemId
+     * @param {Object} patch
+     * @returns {Promise<*>}
+     */
+    async updateItemMetadata(itemId, patch) {
+        if (!itemId || !patch || typeof patch !== 'object' || Array.isArray(patch)) return null;
+        return this._client.post(`/Items/${encodeURIComponent(itemId)}`, patch);
     }
 
     /**

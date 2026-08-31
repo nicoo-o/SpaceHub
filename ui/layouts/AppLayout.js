@@ -20,11 +20,16 @@ class AppLayout {
     constructor() {
         this._log = new Logger('AppLayout');
         this._currentView = 'dashboard';
+        this._navigationId = 0;
+        this._documentHandlers = [];
+        this._eventBusOff = null;
+        this._pillSquashTimer = null;
+        this._navigationQueue = Promise.resolve();
         this._views = {
             library: new LibraryView(),
             downloads: new DownloadsView()
         };
-                this._sidebar = new AppSidebarDrawer();
+        this._sidebar = new AppSidebarDrawer();
         this._clockInterval = null;
         this._spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation || null;
         this._injectStyles();
@@ -32,12 +37,14 @@ class AppLayout {
         this._spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
         if (this._spatialNav?.registerFocusables) {
             this._spatialNav.registerFocusables('dynamic-island', () => {
-                return Array.from(document.querySelectorAll('.sh-dynamic-island .sh-nav-tab-btn, .sh-dynamic-island .sh-nav-action-btn, #sh-user-menu-btn, .sh-user-avatar-btn'));
+
+                return Array.from(document.querySelectorAll('.sh-dynamic-island .sh-nav-tab-btn, .sh-dynamic-island .sh-nav-action-btn, #sh-user-menu-btn, .sh-user-avatar-btn, .sh-user-dropdown__item'));
             });
         }
 
         // Asservissement de la sliding pill au focus
-        window.SpaceHub?.core?.eventBus?.on('navigation:focusChanged', (evt) => {
+
+        this._eventBusOff = window.SpaceHub?.core?.eventBus?.on('navigation:focusChanged', (evt) => {
             if (evt?.current?.classList?.contains('sh-nav-tab-btn')) {
                 const targetView = evt.current.dataset.view;
                 if (targetView && targetView !== this._currentView) {
@@ -59,12 +66,20 @@ class AppLayout {
         return window.SpaceHub?.auth;
     }
 
+    _escape(value) {
+        if (value === null || value === undefined) return '';
+        return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+    }
+
     render(container) {
         const user = this._auth?.getUser();
         const serverUrl = this._auth?.getServerUrl();
-        const userAvatarUrl = user?.PrimaryImageTag && user?.Id && serverUrl 
-            ? `${serverUrl}/Users/${user.Id}/Images/Primary?quality=90`
+        const safeUserName = this._escape(user?.Name || 'Utilisateur');
+        const safeServerUrl = this._escape(serverUrl || 'Jellyfin Server');
+        const userAvatarUrl = user?.PrimaryImageTag && user?.Id && serverUrl
+            ? `${serverUrl}/Users/${encodeURIComponent(user.Id)}/Images/Primary?quality=90`
             : null;
+        const safeUserAvatarUrl = userAvatarUrl ? this._escape(userAvatarUrl) : '';
 
         container.innerHTML = `
             <div class="sh-app-shell">
@@ -125,15 +140,16 @@ class AppLayout {
                                 </button>
 
                                 <div class="sh-user-menu-wrapper">
-                                    <button class="sh-user-avatar-btn" id="sh-user-menu-btn" tabindex="0" data-nav-focusable="true" data-nav-scope="dynamic-island" tabindex="0" data-nav-focusable="true" title="${user?.Name || 'Utilisateur'}">
-                                        <div class="sh-avatar-pill" ${userAvatarUrl ? `style="background-image: url('${userAvatarUrl}'); background-size: cover; background-position: center;"` : ''}>
-                                            ${userAvatarUrl ? '' : (user?.Name || 'U').charAt(0).toUpperCase()}
+
+                                    <button class="sh-user-avatar-btn" id="sh-user-menu-btn" tabindex="0" data-nav-focusable="true" data-nav-scope="dynamic-island" title="${safeUserName}">
+                                        <div class="sh-avatar-pill" ${safeUserAvatarUrl ? `style="background-image: url('${safeUserAvatarUrl}'); background-size: cover; background-position: center;"` : ''}>
+                                            ${safeUserAvatarUrl ? '' : safeUserName.charAt(0).toUpperCase()}
                                         </div>
                                     </button>
                                     <div class="sh-user-dropdown" id="sh-user-dropdown" style="display:none;">
                                         <div class="sh-user-dropdown__header">
-                                            <strong>${user?.Name || 'Utilisateur'}</strong>
-                                            <span class="sh-user-server sh-truncate">${serverUrl || 'Jellyfin Server'}</span>
+                                            <strong>${safeUserName}</strong>
+                                            <span class="sh-user-server sh-truncate">${safeServerUrl}</span>
                                         </div>
                                         <hr style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin:10px 0;"/>
                                         <button tabindex="0" data-nav-focusable="true" class="sh-user-dropdown__item" id="sh-btn-switch-theme" style="--item-idx: 0;">
@@ -169,7 +185,7 @@ class AppLayout {
                                             </svg>
                                             <span>Mes Statistiques</span>
                                         </button>
-                                        <button tabindex="0" data-nav-focusable="true" class="sh-user-dropdown__item" id="sh-btn-open-admin" style="--item-idx: 4;">
+                                        <button tabindex="0" data-nav-focusable="true" class="sh-user-dropdown__item" id="sh-btn-open-admin" style="--item-idx: 4; ${user?.Policy?.IsAdministrator === true ? '' : 'display:none;'}">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                                             </svg>
@@ -244,6 +260,9 @@ class AppLayout {
             }
         };
 
+        // Exposé au moteur TV : le header peut être déployé au focus, sans souris.
+        this._setIslandState = setIslandState;
+
         // Initialisation immédiate en mode Compact permanent
         setIslandState('compact');
 
@@ -255,11 +274,13 @@ class AppLayout {
             }
         });
 
-        document.addEventListener('click', (e) => {
+        const onIslandOutsideClick = (e) => {
             if (island && !island.contains(e.target) && island.classList.contains('sh-island--expanded') && !island.classList.contains('sh-island--search')) {
                 setIslandState('compact');
             }
-        });
+        };
+        document.addEventListener('click', onIslandOutsideClick);
+        this._documentHandlers.push(['click', onIslandOutsideClick]);
 
         // Horloge dynamique en temps réel
         const updateClock = () => {
@@ -463,11 +484,13 @@ class AppLayout {
             e.stopPropagation();
         });
 
-        document.addEventListener('click', () => {
+        const onDropdownOutsideClick = () => {
             if (dropdown && dropdown.style.display !== 'none') {
                 toggleDropdown(false);
             }
-        });
+        };
+        document.addEventListener('click', onDropdownOutsideClick);
+        this._documentHandlers.push(['click', onDropdownOutsideClick]);
 
         // Changer de thème depuis le menu utilisateur
         container.querySelector('#sh-btn-switch-theme')?.addEventListener('click', () => {
@@ -527,12 +550,41 @@ class AppLayout {
      * @param {'dashboard'|'library'|'flux'|'downloads'|'home'|'movies'|'series'|'music'} viewName
      * @param {Object} [params]
      */
-    destroy() {
-        this._unbindEvents?.();
-        this._spatialNav = null; // Déréférencement local pur sans détruire le singleton
+
+    _unbindEvents() {
+        this._documentHandlers.forEach(([event, handler]) => document.removeEventListener(event, handler));
+        this._documentHandlers = [];
+        this._eventBusOff?.();
+        this._eventBusOff = null;
+        if (this._pillSquashTimer) {
+            clearTimeout(this._pillSquashTimer);
+            this._pillSquashTimer = null;
+        }
+        window.SpaceHub && delete window.SpaceHub._toggleUserDropdown;
+        this._setIslandState = null;
     }
 
-    async navigate(viewName, params = {}) {
+    destroy() {
+        this._navigationId += 1;
+        this._unbindEvents();
+        if (this._clockInterval) {
+            clearInterval(this._clockInterval);
+            this._clockInterval = null;
+        }
+        Object.values(this._views).forEach(view => view?.destroy?.());
+        this._sidebar?.destroy?.();
+        this._spatialNav = null; // Déréférencement local pur sans détruire le singleton
+        window.SpaceHub && delete window.SpaceHub.appLayout;
+    }
+
+    navigate(viewName, params = {}) {
+        const run = () => this._navigateInternal(viewName, params);
+        this._navigationQueue = this._navigationQueue.catch(() => {}).then(run);
+        return this._navigationQueue;
+    }
+
+    async _navigateInternal(viewName, params = {}) {
+        const navigationId = ++this._navigationId;
         let normalizedView = viewName;
         if (viewName === 'home' || viewName === 'dashboard') {
             normalizedView = 'dashboard';
@@ -543,6 +595,13 @@ class AppLayout {
         } else if (viewName === 'movies' || viewName === 'series' || viewName === 'music') {
             normalizedView = 'library';
             params = { ...params, targetType: viewName };
+        }
+
+        const previousView = this._currentView;
+        if (previousView === 'dashboard' && normalizedView !== 'dashboard') {
+            // Annuler proprement les requêtes/rendus du dashboard avant de
+            // remplacer son conteneur par une autre vue.
+            window.SpaceHub?.ui?.dashboard?.destroy?.();
         }
 
         this._currentView = normalizedView;
@@ -575,6 +634,14 @@ class AppLayout {
         } else if (normalizedView === 'flux' || normalizedView === 'downloads') {
             await this._views.downloads.render(container, params);
         }
+
+        // Une réponse lente d'une ancienne navigation ne doit jamais prendre la main.
+        if (navigationId !== this._navigationId) {
+            return;
+        }
+
+        const spatialNav = this._spatialNav || window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        spatialNav?.focusFirst?.(normalizedView === 'flux' ? 'downloads' : normalizedView);
     }
 
     _injectStyles() {

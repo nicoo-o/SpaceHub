@@ -49,7 +49,8 @@ class ProwlarrService {
         const url = this._settings?.get('prowlarr.url') || this.api?.baseUrl;
         const key = this._settings?.get('prowlarr.apiKey') || this.api?.apiKey;
 
-        if (!url) {
+        const explicitlyConfigured = this._settings?.has?.('prowlarr.url') || this._settings?.has?.('prowlarr.apiKey');
+        if (!url || (this._settings && !explicitlyConfigured)) {
             this.status = 'unconfigured';
             this._eventBus?.emit('service:statusChanged', { id: 'prowlarr', status: this.status });
             return this.status;
@@ -58,19 +59,17 @@ class ProwlarrService {
         this.status = 'connecting';
         const start = Date.now();
         try {
-            if (typeof this.api?.getSystemStatus === 'function') {
-                await this.api.getSystemStatus();
-            }
-            this.lastLatency = Date.now() - start;
-            this.status = 'connected';
-        } catch (err) {
-            this.lastLatency = Date.now() - start;
-            if (err.status === 401 || err.status === 403) {
-                this.status = 'auth_failed';
+            const result = await this.api.testConnection();
+            if (!result.success) {
+                const authFail = result.error?.includes('401') || result.error?.includes('403') || result.error?.includes('Unauthorized');
+                this.status = authFail ? 'auth_failed' : 'offline';
             } else {
-                this.status = 'offline';
+                this.status = 'connected';
             }
+        } catch (err) {
+            this.status = (err.status === 401 || err.status === 403) ? 'auth_failed' : 'offline';
         }
+        this.lastLatency = Date.now() - start;
 
         this._eventBus?.emit('service:statusChanged', { id: 'prowlarr', status: this.status, latency: this.lastLatency });
         return this.status;

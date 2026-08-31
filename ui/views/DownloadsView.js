@@ -18,6 +18,7 @@ class DownloadsView {
     constructor() {
         this._log = new Logger('DownloadsView');
         this._activeTab = 'qbit';
+        this._renderId = 0;
         this._container = null;
         this._statsInterval = null;
         this._injectStyles();
@@ -29,6 +30,9 @@ class DownloadsView {
      * @param {Object} [params]
      */
     async render(container, params = {}) {
+        const renderId = ++this._renderId;
+        this.destroy();
+        this._renderId = renderId;
         this._container = container;
         if (params.tab) this._activeTab = params.tab;
 
@@ -92,38 +96,38 @@ class DownloadsView {
                 <!-- Barre de Navigation des Services (Liquid Spring Tab Bar) -->
                 <nav class="sh-downloads-nav">
                     <div class="sh-downloads-nav__track">
-                        <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'qbit' ? 'active' : ''}" data-tab="qbit">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'qbit' ? 'active' : ''}" data-tab="qbit">
                             <span class="sh-dl-tab-icon">⚡</span>
                             <span>qBittorrent</span>
                         </button>
-                        <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'jellyseerr' ? 'active' : ''}" data-tab="jellyseerr">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'jellyseerr' ? 'active' : ''}" data-tab="jellyseerr">
                             <span class="sh-dl-tab-icon">🍿</span>
                             <span>Jellyseerr</span>
                         </button>
-                        <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'sonarr' ? 'active' : ''}" data-tab="sonarr">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'sonarr' ? 'active' : ''}" data-tab="sonarr">
                             <span class="sh-dl-tab-icon">📺</span>
                             <span>Séries (Sonarr)</span>
                         </button>
-                        <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'radarr' ? 'active' : ''}" data-tab="radarr">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'radarr' ? 'active' : ''}" data-tab="radarr">
                             <span class="sh-dl-tab-icon">🎬</span>
                             <span>Films (Radarr)</span>
                         </button>
-                        <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'bazarr' ? 'active' : ''}" data-tab="bazarr">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'bazarr' ? 'active' : ''}" data-tab="bazarr">
                             <span class="sh-dl-tab-icon">📝</span>
                             <span>Sous-titres (Bazarr)</span>
                         </button>
-                        <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'calendar' ? 'active' : ''}" data-tab="calendar">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'calendar' ? 'active' : ''}" data-tab="calendar">
                             <span class="sh-dl-tab-icon">📅</span>
                             <span>Calendrier Sorties</span>
                         </button>
-                        <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'health' ? 'active' : ''}" data-tab="health">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-tab-btn ${this._activeTab === 'health' ? 'active' : ''}" data-tab="health">
                             <span class="sh-dl-tab-icon">🩺</span>
                             <span>Santé Médiathèque</span>
                         </button>
                     </div>
 
                     <div class="sh-downloads-nav__actions">
-                        <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-dl-action-btn" id="sh-dl-btn-refresh" title="Actualiser tous les flux">
+                        <button tabindex="0" data-nav-focusable="true" class="sh-dl-action-btn" id="sh-dl-btn-refresh" title="Actualiser tous les flux">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
                             <span>Actualiser</span>
                         </button>
@@ -146,7 +150,7 @@ class DownloadsView {
             spatialNav.registerFocusables('downloads', (container) => {
                 const root = container || document.querySelector('.sh-downloads-view') || document;
                 return Array.from(root.querySelectorAll(
-                    '.sh-dl-tab-btn, .sh-dl-action-btn, .sh-card, [data-nav-focusable="true"]'
+                    '.sh-dl-tab-btn, .sh-dl-action-btn, .sh-card, [data-nav-focusable="true"], .sh-jellyseerr-query-input, .sh-jellyseerr-clear-btn, .sh-jellyseerr-req-btn'
                 ));
             });
         }
@@ -242,7 +246,7 @@ class DownloadsView {
             this._log.error(`Erreur rendu onglet ${this._activeTab}:`, err);
             slotMain.innerHTML = `
                 <div class="sh-widget-error" style="padding: 30px; text-align: center;">
-                    <p style="color: var(--sh-color-error, #ff453a);">Impossible de charger les données : ${err.message}</p>
+                    <p style="color: var(--sh-color-error, #ff453a);">Impossible de charger les données : ${this._escape(err?.message || 'Erreur inconnue')}</p>
                 </div>
             `;
         }
@@ -807,7 +811,7 @@ class DownloadsView {
             });
 
         } catch (err) {
-            slotMain.innerHTML = `<p style="color:rgba(255,255,255,0.4); padding:24px;">Erreur chargement calendrier : ${err.message}</p>`;
+            slotMain.innerHTML = `<p style="color:rgba(255,255,255,0.4); padding:24px;">Erreur chargement calendrier : ${this._escape(err.message)}</p>`;
         }
     }
 
@@ -849,7 +853,7 @@ class DownloadsView {
                                 <span style="font-size: 22px;">💎</span>
                                 <h3 style="font-size: 16px; font-weight: 600; color: #ffffff; margin: 0;">Résolution 4K UHD & 1080p</h3>
                             </div>
-                            <p style="font-size: 13px; color: rgba(255, 255, 255, 0.6); margin: 0;">95% de la médiathèque est en qualité Premium (1080p / 4K HDR).</p>
+                            <p id="sh-health-quality-desc" style="font-size: 13px; color: rgba(255, 255, 255, 0.6); margin: 0;">Analyse de résolution non disponible sans interrogation de la médiathèque.</p>
                         </div>
                         <button id="sh-health-btn-upgrade" style="background: rgba(255, 255, 255, 0.10); border: 1px solid rgba(255, 255, 255, 0.16); color: #ffffff; padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer;">
                             Vérifier dans Radarr / Sonarr
@@ -861,13 +865,16 @@ class DownloadsView {
 
         slotSub.innerHTML = '';
 
-        // Charger état Bazarr
+        // Charger l'état Bazarr. Les métriques de résolution restent inconnues tant qu'un
+        // inventaire réel des médias n'a pas été demandé au serveur Jellyfin.
+        const qualityDesc = slotMain.querySelector('#sh-health-quality-desc');
+        if (qualityDesc) qualityDesc.textContent = 'Qualité : non analysée (aucune valeur déduite ou simulée).';
         try {
-            const bazarrApi = window.SpaceHub?.integrations?.bazarr?.api;
-            const summary = await bazarrApi?.getWantedSummary?.();
+            const bazarr = window.SpaceHub?.integrations?.bazarr;
+            const summary = await bazarr?.getWantedSummary?.();
             const descEl = slotMain.querySelector('#sh-health-subtitles-desc');
             if (descEl) {
-                const total = summary?.total || 0;
+                const total = summary?.totalWanted ?? summary?.total ?? 0;
                 descEl.textContent = total > 0
                     ? `⚠️ ${total} sous-titres français manquants détectés.`
                     : `🟢 Tous les sous-titres français sont à jour !`;
@@ -899,8 +906,8 @@ class DownloadsView {
 
         try {
             const qbit = window.SpaceHub?.integrations?.qbittorrent;
-            if (qbit?.getTransferInfo) {
-                const info = await qbit.getTransferInfo();
+            if (qbit?.getTransferStats) {
+                const info = await qbit.getTransferStats();
                 const dlEl = this._container.querySelector('#sh-metric-dl-val');
                 const upEl = this._container.querySelector('#sh-metric-up-val');
                 if (dlEl) dlEl.textContent = this._formatSpeed(info.dl_info_speed || 0);
@@ -930,6 +937,15 @@ class DownloadsView {
         const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
         const i = Math.floor(Math.log(bytesPerSec) / Math.log(k));
         return parseFloat((bytesPerSec / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    destroy() {
+        this._renderId += 1;
+        if (this._statsInterval) {
+            clearInterval(this._statsInterval);
+            this._statsInterval = null;
+        }
+        this._container = null;
     }
 
     _injectStyles() {

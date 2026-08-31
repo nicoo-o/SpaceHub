@@ -21,6 +21,8 @@ export class JellyfinConsoleModal {
         this._log = new Logger('JellyfinConsoleModal');
         this._activeTab = 'system';
         this._taskPollTimer = null;
+        this._closeTimer = null;
+        this._modal = null;
         this._cachedLogs = [];
         this._activeLogContent = '';
         this._encodingConfig = null;
@@ -33,10 +35,20 @@ export class JellyfinConsoleModal {
      * @param {'system'|'encoding'|'network'|'users'|'tasks'|'logs'|'plugins'} [tab='system']
      */
     async open(tab = 'system') {
+        const user = window.SpaceHub?.auth?.getUser?.();
+        if (user?.Policy?.IsAdministrator !== true) {
+            window.SpaceHub?.ui?.components?.toaster?.error?.('Accès réservé aux administrateurs Jellyfin.');
+            return false;
+        }
         this._activeTab = tab;
+        if (this._closeTimer) {
+            clearTimeout(this._closeTimer);
+            this._closeTimer = null;
+        }
         document.getElementById('sh-jf-console-modal')?.remove();
 
         const modal = document.createElement('div');
+        this._modal = modal;
         modal.id = 'sh-jf-console-modal';
         modal.className = 'sh-console-modal-overlay';
         modal.innerHTML = `
@@ -97,7 +109,7 @@ export class JellyfinConsoleModal {
                 <!-- Pied de page -->
                 <div class="sh-console-footer">
                     <div class="sh-console-footer-status" id="sh-console-footer-status">
-                        <span>🟢 Serveur Jellyfin Connecté & Prêt</span>
+                        <span>État du serveur Jellyfin : vérification en cours</span>
                     </div>
                     <button tabindex="0" data-nav-focusable="true" class="sh-console-done-btn" id="sh-console-btn-done">Fermer</button>
                 </div>
@@ -116,7 +128,11 @@ export class JellyfinConsoleModal {
             modal.classList.remove('open');
             const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
             if (spatialNav) spatialNav.onModalClosed();
-            setTimeout(() => modal.remove(), 260);
+            this._closeTimer = setTimeout(() => {
+                modal.remove();
+                if (this._modal === modal) this._modal = null;
+                this._closeTimer = null;
+            }, 260);
         };
 
         modal.querySelector('#sh-console-btn-close')?.addEventListener('click', closeModal);
@@ -192,7 +208,7 @@ export class JellyfinConsoleModal {
         } catch (err) {
             bodyEl.innerHTML = `
                 <div class="sh-console-error-box">
-                    <p>⚠️ Erreur lors du chargement : ${err.message}</p>
+                    <p>⚠️ Erreur lors du chargement : ${this._escape(err?.message || 'Erreur inconnue')}</p>
                 </div>
             `;
         }
@@ -207,15 +223,15 @@ export class JellyfinConsoleModal {
         const genConfig = await api?.getGeneralConfiguration?.() || {};
         this._generalConfig = genConfig;
 
-        const serverName = genConfig.ServerName || info?.ServerName || 'Jellyfin Server';
-        const version = info?.Version || '10.9+';
-        const os = info?.OperatingSystem || 'Linux / Windows';
-        const arch = info?.SystemArchitecture || 'x64';
-        const httpPort = info?.HttpServerPortNumber || 8096;
-        const httpsPort = info?.HttpsPortNumber || 8920;
-        const cachePath = info?.CachePath || 'Standard Cache';
-        const dataPath = info?.DataFolderPath || 'Standard Data';
-        const logPath = info?.LogPath || 'Standard Logs';
+        const serverName = genConfig.ServerName || info?.ServerName || 'Nom indisponible';
+        const version = info?.Version || 'Version indisponible';
+        const os = info?.OperatingSystem || 'Système indisponible';
+        const arch = info?.SystemArchitecture || 'Architecture indisponible';
+        const httpPort = info?.HttpServerPortNumber ?? '—';
+        const httpsPort = info?.HttpsPortNumber ?? '—';
+        const cachePath = info?.CachePath || 'Chemin indisponible';
+        const dataPath = info?.DataFolderPath || 'Chemin indisponible';
+        const logPath = info?.LogPath || 'Chemin indisponible';
         const prefLang = genConfig.PreferredMetadataLanguage || 'fr';
 
         container.innerHTML = `
@@ -235,15 +251,15 @@ export class JellyfinConsoleModal {
                 <div class="sh-console-bento-grid">
                     <div class="sh-console-stat-box">
                         <span class="sh-console-stat-label">Nom du Serveur</span>
-                        <input type="text" class="sh-console-input" id="sh-cfg-server-name" value="${serverName}" />
+                        <input type="text" class="sh-console-input" id="sh-cfg-server-name" value="${this._escape(serverName)}" />
                     </div>
                     <div class="sh-console-stat-box highlight">
                         <span class="sh-console-stat-label">Version Jellyfin</span>
-                        <strong class="sh-console-stat-val">v${version}</strong>
+                        <strong class="sh-console-stat-val">${this._escape(version)}</strong>
                     </div>
                     <div class="sh-console-stat-box">
                         <span class="sh-console-stat-label">Système d'Exploitation</span>
-                        <strong class="sh-console-stat-val">${os} (${arch})</strong>
+                        <strong class="sh-console-stat-val">${this._escape(os)} (${this._escape(arch)})</strong>
                     </div>
                     <div class="sh-console-stat-box">
                         <span class="sh-console-stat-label">Langue des Métadonnées</span>
@@ -261,15 +277,15 @@ export class JellyfinConsoleModal {
                 <div class="sh-console-paths-list">
                     <div class="sh-console-path-item">
                         <span class="sh-console-path-tag">Base de données</span>
-                        <code>${dataPath}</code>
+                        <code>${this._escape(dataPath)}</code>
                     </div>
                     <div class="sh-console-path-item">
                         <span class="sh-console-path-tag">Cache Média</span>
-                        <code>${cachePath}</code>
+                        <code>${this._escape(cachePath)}</code>
                     </div>
                     <div class="sh-console-path-item">
                         <span class="sh-console-path-tag">Fichiers Journaux</span>
-                        <code>${logPath}</code>
+                        <code>${this._escape(logPath)}</code>
                     </div>
                 </div>
 
@@ -277,19 +293,19 @@ export class JellyfinConsoleModal {
                 <div class="sh-console-bento-grid">
                     <div class="sh-console-stat-box">
                         <span class="sh-console-stat-label">Films Indexés</span>
-                        <strong class="sh-console-stat-val">${counts?.MovieCount || 0}</strong>
+                        <strong class="sh-console-stat-val">${this._escape(counts?.MovieCount ?? '—')}</strong>
                     </div>
                     <div class="sh-console-stat-box">
                         <span class="sh-console-stat-label">Séries TV</span>
-                        <strong class="sh-console-stat-val">${counts?.SeriesCount || 0}</strong>
+                        <strong class="sh-console-stat-val">${this._escape(counts?.SeriesCount ?? '—')}</strong>
                     </div>
                     <div class="sh-console-stat-box">
                         <span class="sh-console-stat-label">Épisodes</span>
-                        <strong class="sh-console-stat-val">${counts?.EpisodeCount || 0}</strong>
+                        <strong class="sh-console-stat-val">${this._escape(counts?.EpisodeCount ?? '—')}</strong>
                     </div>
                     <div class="sh-console-stat-box">
                         <span class="sh-console-stat-label">Pistes Audio</span>
-                        <strong class="sh-console-stat-val">${counts?.SongCount || 0}</strong>
+                        <strong class="sh-console-stat-val">${this._escape(counts?.SongCount ?? '—')}</strong>
                     </div>
                 </div>
             </div>
@@ -604,7 +620,7 @@ export class JellyfinConsoleModal {
                                 </div>
                                 <div class="sh-console-user-details">
                                     <div class="sh-console-user-name-row">
-                                        <strong>${u.Name}</strong>
+                                        <strong>${this._escape(u.Name || 'Utilisateur')}</strong>
                                         ${isAdmin ? '<span class="sh-user-badge admin">👑 Admin</span>' : '<span class="sh-user-badge standard">Membre</span>'}
                                     </div>
                                     <div class="sh-console-user-meta">
@@ -657,14 +673,14 @@ export class JellyfinConsoleModal {
                 const category = task.Category || 'Système';
 
                 return `
-                    <div class="sh-console-task-row" data-task-id="${task.Id}">
+                    <div class="sh-console-task-row" data-task-id="${this._escape(task.Id)}">
                         <div class="sh-console-task-info">
                             <div class="sh-console-task-title-row">
-                                <strong>${task.Name}</strong>
-                                <span class="sh-console-task-cat">${category}</span>
-                                ${isRunning ? `<span class="sh-console-task-badge running"><span class="sh-pulse-dot"></span> En cours (${progress}%)</span>` : `<span class="sh-console-task-badge idle">${lastStatus}</span>`}
+                                <strong>${this._escape(task.Name || 'Tâche sans nom')}</strong>
+                                <span class="sh-console-task-cat">${this._escape(category)}</span>
+                                ${isRunning ? `<span class="sh-console-task-badge running"><span class="sh-pulse-dot"></span> En cours (${progress}%)</span>` : `<span class="sh-console-task-badge idle">${this._escape(lastStatus)}</span>`}
                             </div>
-                            <small class="sh-console-task-desc">${task.Description || 'Aucune description disponible.'}</small>
+                            <small class="sh-console-task-desc">${this._escape(task.Description || 'Aucune description disponible.')}</small>
                             ${isRunning ? `
                                 <div class="sh-console-progress-track">
                                     <div class="sh-console-progress-fill" style="width: ${progress}%"></div>
@@ -673,8 +689,8 @@ export class JellyfinConsoleModal {
                         </div>
                         <div class="sh-console-task-action">
                             ${isRunning
-                                ? `<button class="sh-console-task-btn stop" data-action="stop" data-id="${task.Id}">⏹ Arrêter</button>`
-                                : `<button class="sh-console-task-btn start" data-action="start" data-id="${task.Id}">▶ Exécuter</button>`
+                                ? `<button class="sh-console-task-btn stop" data-action="stop" data-id="${this._escape(task.Id)}">⏹ Arrêter</button>`
+                                : `<button class="sh-console-task-btn start" data-action="start" data-id="${this._escape(task.Id)}">▶ Exécuter</button>`
                             }
                         </div>
                     </div>
@@ -731,7 +747,7 @@ export class JellyfinConsoleModal {
                     <div class="sh-console-logs-select-group">
                         <label for="sh-console-log-file-select" style="font-size: 12px; color: rgba(255,255,255,0.6); margin-right: 8px;">Fichier :</label>
                         <select class="sh-console-select" id="sh-console-log-file-select">
-                            ${logs.map(l => `<option value="${l.Name}">${l.Name} (${(l.Size / 1024).toFixed(0)} KB)</option>`).join('')}
+                            ${logs.map(l => `<option value="${this._escape(l.Name)}">${this._escape(l.Name)} (${this._escape((l.Size / 1024).toFixed(0))} KB)</option>`).join('')}
                         </select>
                     </div>
 
@@ -817,9 +833,10 @@ export class JellyfinConsoleModal {
 
     async _renderPluginsTab(container, modal) {
         const api = window.SpaceHub?.jellyfin?.api;
-        const serverPlugins = await api?.getPlugins?.() || [];
+        const pluginService = window.SpaceHub?.jellyfin?.plugins;
+        const serverPlugins = await pluginService?.list?.({ force: true }) || await api?.getPlugins?.() || [];
 
-        // 1. Vraies Intégrations Servarr & Média
+        // 1. Intégrations natives SpaceHub (distinctes des plugins Jellyfin)
         const servarrIntegrations = [
             { id: 'sonarr', name: 'Sonarr Series Integration', desc: 'Gestion des séries TV, saisons et calendrier des épisodes', icon: '📺' },
             { id: 'radarr', name: 'Radarr Movies Integration', desc: 'Gestion des films, formats numériques et sorties cinéma', icon: '🎬' },
@@ -846,9 +863,11 @@ export class JellyfinConsoleModal {
 
                 <div class="sh-console-plugins-grid">
                     ${servarrIntegrations.map(mod => {
-                        const isEnabled = settings?.get(`${mod.id}.enabled`, true) !== false;
-                        const serviceInstance = window.SpaceHub?.integrations?.[mod.id];
-                        const isConfigured = Boolean(settings?.get(`${mod.id}.url`) || settings?.get(`${mod.id}.apiKey`));
+                        const isEnabled = settings?.get(`${mod.id}.enabled`, true) !== false;                                        const serviceInstance = window.SpaceHub?.integrations?.[mod.id];
+                        const isConfigured = Boolean(
+                            settings?.has?.(`${mod.id}.url`) && settings.get(`${mod.id}.url`)?.trim()
+                        );
+
 
                         return `
                             <div class="sh-console-plugin-card">
@@ -884,15 +903,17 @@ export class JellyfinConsoleModal {
                             <div class="sh-console-plugin-header">
                                 <div class="sh-console-plugin-icon">${plugin.icon}</div>
                                 <div class="sh-console-plugin-info">
-                                    <strong>${plugin.name}</strong>
-                                    <code>v${plugin.version} • ${plugin.author}</code>
+                                    <strong>${this._escape(plugin.name)}</strong>
+                                    <code>v${this._escape(plugin.version)} • ${this._escape(plugin.author)}</code>
                                 </div>
                                 <label class="sh-apple-switch">
                                     <input type="checkbox" class="sh-sdk-plugin-toggle" data-plugin-id="${plugin.id}" ${plugin.isEnabled ? 'checked' : ''} />
                                     <span class="sh-apple-switch-slider"></span>
                                 </label>
                             </div>
-                            <p class="sh-console-plugin-desc">${plugin.description || 'Extension SDK active.'}</p>
+                            <p class="sh-console-plugin-desc">${this._escape(plugin.description || 'Aucune description.')}</p>
+                            <small>Permissions : ${this._escape((plugin.permissions || []).join(', ') || 'aucune')}<br>Approuvées : ${this._escape((plugin.permissionPolicy?.approved || []).join(', ') || 'aucune')}</small>
+                            <button class="sh-console-action-btn sh-sdk-approve" data-plugin-id="${this._escape(plugin.id)}">Approuver les permissions</button>
                         </div>
                     `).join('') : `
                         <div class="sh-console-empty-plugin-state" style="grid-column: 1 / -1; padding: 24px; text-align: center; background: rgba(255,255,255,0.02); border-radius: 16px; border: 1px dashed rgba(255,255,255,0.1);">
@@ -901,7 +922,90 @@ export class JellyfinConsoleModal {
                     `}
                 </div>
 
-                <!-- Section 3 : Plugins Serveur Jellyfin (Backend) -->
+                <!-- Section 2.5 : Ratings Plugin Configuration (spacehub.ratings) -->
+                <div class="sh-console-section-header" style="margin-top: 32px;" id="sh-ratings-config-header">
+                    <div>
+                        <div class="sh-console-brand-badge small">🍅 RATINGS PLUGIN</div>
+                        <h3 class="sh-console-section-title">Notes Externes (OMDb)</h3>
+                        <p class="sh-console-section-sub">Configurez la clé API OMDb et choisissez les fournisseurs de notes par défaut.</p>
+                    </div>
+                </div>
+                <div class="sh-console-plugins-grid" id="sh-ratings-config-grid">
+                    <div class="sh-console-plugin-card" style="grid-column: 1 / -1;">
+                        <div class="sh-console-plugin-header">
+                            <div class="sh-console-plugin-icon">🍅</div>
+                            <div class="sh-console-plugin-info">
+                                <strong>Ratings Plugin (spacehub.ratings)</strong>
+                                <code id="sh-ratings-plugin-status">Chargement…</code>
+                            </div>
+                        </div>
+                        <div class="sh-console-btn-group" style="margin-top: 12px;">
+                            <input class="sh-console-input" id="sh-omdb-api-key" type="password" placeholder="Clé API OMDb" value="" style="flex:1;" />
+                            <button class="sh-console-action-btn" id="sh-omdb-save-key">Enregistrer la clé</button>
+                            <button class="sh-console-action-btn" id="sh-omdb-test">Tester la connexion</button>
+                        </div>
+                        <div id="sh-omdb-test-result" style="margin-top: 8px; font-size: 13px; color: rgba(255,255,255,0.7);"></div>
+                        <div class="sh-console-btn-group" style="margin-top: 12px;">
+                            <input class="sh-console-input" id="sh-tmdb-api-key" type="password" placeholder="Clé API TMDB (textes de critiques — optionnel, gratuite sur themoviedb.org)" value="" style="flex:1;" />
+                            <button class="sh-console-action-btn" id="sh-tmdb-save-key">Enregistrer TMDB</button>
+                            <button class="sh-console-action-btn" id="sh-tmdb-test">Tester TMDB</button>
+                        </div>
+                        <div id="sh-tmdb-test-result" style="margin-top: 8px; font-size: 13px; color: rgba(255,255,255,0.7);"></div>
+                        <div style="margin-top: 16px;">
+                            <label style="font-size: 13px; color: rgba(255,255,255,0.8); font-weight: 600;">Fournisseurs par défaut :</label>
+                            <div style="display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap;">
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.8);"><input type="checkbox" class="sh-ratings-provider" value="jellyfin" /> Jellyfin ★</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.8);"><input type="checkbox" class="sh-ratings-provider" value="rt" /> Rotten Tomatoes 🍅</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.8);"><input type="checkbox" class="sh-ratings-provider" value="imdb" /> IMDb</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.8);"><input type="checkbox" class="sh-ratings-provider" value="metacritic" /> Metacritic</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.8);"><input type="checkbox" class="sh-ratings-provider" value="tmdb" /> Textes TMDB</label>
+                            </div>
+                        </div>
+                        <div class="sh-console-btn-group" style="margin-top: 12px;">
+                            <button class="sh-console-action-btn" id="sh-ratings-save-providers">Enregistrer les fournisseurs</button>
+                        </div>
+                        <div id="sh-ratings-save-result" style="margin-top: 8px; font-size: 13px; color: rgba(255,255,255,0.7);"></div>
+                    </div>
+                </div>
+
+                <!-- Section 3 : Catalogue SDK approuvé -->
+                <div class="sh-console-section-header" style="margin-top: 32px;">
+                    <div>
+                        <div class="sh-console-brand-badge small">CATALOGUE SIGNÉ SPACEHUB</div>
+                        <h3 class="sh-console-section-title">Extensions disponibles (${window.SpaceHub?.pluginCatalog?.list?.({ includeRevoked: true })?.length || 0})</h3>
+                        <p class="sh-console-section-sub">Seuls les catalogues HTTPS signés et les packages intègres peuvent être chargés.</p>
+                    </div>
+                    <div class="sh-console-btn-group">
+                        <input class="sh-console-input" id="sh-catalog-url" type="url" placeholder="https://.../catalog.json" value="${this._escape(settings?.get('plugins.catalogUrl', '') || '')}" />
+                        <button class="sh-console-action-btn" id="sh-catalog-load">Charger</button>
+                    </div>
+                </div>
+                <div class="sh-console-plugins-grid" id="sh-catalog-grid">
+                    ${(window.SpaceHub?.pluginCatalog?.list?.({ includeRevoked: true }) || []).map(entry => {
+                        const status = window.SpaceHub?.pluginCatalog?.getStatus?.(entry.id) || { state: 'available' };
+                        const installed = window.SpaceHub?.pluginCatalog?.isInstalled?.(entry.id);
+                        return `
+                            <div class="sh-console-plugin-card">
+                                <div class="sh-console-plugin-header">
+                                    <div class="sh-console-plugin-icon">${this._escape(entry.icon || '🧩')}</div>
+                                    <div class="sh-console-plugin-info">
+                                        <strong>${this._escape(entry.name || entry.id)}</strong>
+                                        <code>${this._escape(entry.id)} • v${this._escape(entry.version)} • ${this._escape(status.state)}</code>
+                                    </div>
+                                </div>
+                                <p class="sh-console-plugin-desc">${this._escape(entry.description || entry.manifest?.description || 'Aucune description.')}</p>
+                                <div class="sh-console-btn-group">
+                                    <button class="sh-console-action-btn sh-catalog-approve" data-plugin-id="${this._escape(entry.id)}">Approuver</button>
+                                    <button class="sh-console-action-btn sh-catalog-install" data-plugin-id="${this._escape(entry.id)}">${installed ? 'Mettre à jour' : 'Installer'}</button>
+                                    ${installed ? `<button class="sh-console-action-btn sh-catalog-rollback" data-plugin-id="${this._escape(entry.id)}">Rollback</button>` : ''}
+                                    <button class="sh-console-action-btn sh-catalog-revoke" data-plugin-id="${this._escape(entry.id)}">Révoquer</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('') || '<div class="sh-console-empty-plugin-state" style="grid-column:1/-1"><p>Aucun catalogue chargé.</p></div>'}
+                </div>
+
+                <!-- Section 4 : Plugins Serveur Jellyfin (Backend) -->
                 <div class="sh-console-section-header" style="margin-top: 32px;">
                     <div>
                         <div class="sh-console-brand-badge small">JELLYFIN BACKEND SERVEUR</div>
@@ -920,12 +1024,13 @@ export class JellyfinConsoleModal {
                                 <div class="sh-console-plugin-header">
                                     <div class="sh-console-plugin-icon">📦</div>
                                     <div class="sh-console-plugin-info">
-                                        <strong>${p.Name}</strong>
-                                        <code>v${p.Version} • Statut: ${p.Status || 'Actif'}</code>
+                                        <strong>${this._escape(p.Name || 'Plugin serveur')}</strong>
+                                        <code>v${this._escape(p.Version || '—')} • Statut: ${this._escape(p.statusVerified ? p.Status : 'Inconnu')}</code>
                                     </div>
-                                    <span class="sh-plugin-status-badge loaded">🟢 Serveur</span>
+                                    <span class="sh-plugin-status-badge ${p.statusVerified ? 'loaded' : 'warn'}">${p.statusVerified ? '🟢 Vérifié' : '🟡 Inconnu'}</span>
                                 </div>
-                                <p class="sh-console-plugin-desc">${p.Description || 'Extension serveur Jellyfin.'}</p>
+                                <p class="sh-console-plugin-desc">${this._escape(p.Description || 'Aucune description fournie par Jellyfin.')}</p>
+                                ${p.canConfigure ? `<button class="sh-console-action-btn sh-server-plugin-config" data-plugin-id="${this._escape(p.id)}">Lire la configuration</button>` : '<small>Configuration non exposée par cette réponse Jellyfin.</small>'}
                             </div>
                         `;
                     }).join('') : `
@@ -946,24 +1051,211 @@ export class JellyfinConsoleModal {
             });
         });
 
+        // Actions du catalogue signé (les erreurs restent visibles et aucun succès n'est simulé).
+        const catalog = window.SpaceHub?.pluginCatalog;
+        const catalogAction = async (button, action, successMessage) => {
+            button.disabled = true;
+            try {
+                await action();
+                window.SpaceHub?.ui?.components?.toaster?.success?.(successMessage);
+                await this._renderPluginsTab(container, modal);
+            } catch (error) {
+                button.disabled = false;
+                window.SpaceHub?.ui?.components?.toaster?.error?.(error?.message || 'Opération catalogue refusée.');
+            }
+        };
+        container.querySelector('#sh-catalog-load')?.addEventListener('click', async (event) => {
+            const button = event.currentTarget;
+            const url = container.querySelector('#sh-catalog-url')?.value?.trim();
+            await catalogAction(button, () => catalog.load(url), 'Catalogue signé chargé.');
+        });
+        container.querySelectorAll('.sh-catalog-approve').forEach(button => button.addEventListener('click', async () => {
+            const entry = catalog?.get?.(button.dataset.pluginId);
+            await catalogAction(button, () => catalog.approve(button.dataset.pluginId, entry?.permissions || []), 'Plugin approuvé.');
+        }));
+        container.querySelectorAll('.sh-catalog-install').forEach(button => button.addEventListener('click', async () => {
+            const id = button.dataset.pluginId;
+            const installed = catalog?.isInstalled?.(id);
+            await catalogAction(button, () => installed
+                ? window.SpaceHub?.sdk?.updateCatalogPlugin?.(id)
+                : window.SpaceHub?.sdk?.installCatalogPlugin?.(id), installed ? 'Plugin mis à jour.' : 'Plugin installé.');
+        }));
+        container.querySelectorAll('.sh-catalog-rollback').forEach(button => button.addEventListener('click', async () => {
+            await catalogAction(button, () => window.SpaceHub?.sdk?.rollbackCatalogPlugin?.(button.dataset.pluginId), 'Plugin restauré.');
+        }));
+        container.querySelectorAll('.sh-catalog-revoke').forEach(button => button.addEventListener('click', async () => {
+            await catalogAction(button, () => catalog.revoke(button.dataset.pluginId), 'Plugin révoqué.');
+        }));
+
         // Écouteurs pour les vrais plugins SDK
+        container.querySelectorAll('.sh-sdk-approve').forEach(btn => btn.addEventListener('click', () => {
+            const plugin = sdkPlugins.find(item => item.id === btn.dataset.pluginId);
+            try {
+                window.SpaceHub?.sdk?.approvePluginPermissions(plugin.id, plugin.permissions || []);
+                window.SpaceHub?.ui?.components?.toaster?.success?.(`Permissions approuvées pour ${plugin.id}.`);
+            } catch (error) {
+                window.SpaceHub?.ui?.components?.toaster?.error?.(error.message);
+            }
+        }));
         container.querySelectorAll('.sh-sdk-plugin-toggle').forEach(chk => {
             chk.addEventListener('change', async (e) => {
                 const pluginId = e.currentTarget.dataset.pluginId;
                 const isChecked = e.currentTarget.checked;
-                
-                if (isChecked) {
-                    await window.SpaceHub?.sdk?.enablePlugin(pluginId);
-                    window.SpaceHub?.ui?.components?.toaster?.success?.(`Plugin "${pluginId}" activé !`);
-                } else {
-                    await window.SpaceHub?.sdk?.disablePlugin(pluginId);
-                    window.SpaceHub?.ui?.components?.toaster?.info?.(`Plugin "${pluginId}" désactivé.`);
+                const success = isChecked
+                    ? await window.SpaceHub?.sdk?.enablePlugin(pluginId)
+                    : await window.SpaceHub?.sdk?.disablePlugin(pluginId);
+                if (!success && isChecked) {
+                    e.currentTarget.checked = false;
+                    window.SpaceHub?.ui?.components?.toaster?.error?.('Activation refusée : approuvez d’abord les permissions demandées.');
                 }
             });
         });
+
+        // Écouteurs pour le plugin de notes (spacehub.ratings)
+        const ratingCache = window.SpaceHub?.core?.ratingCache;
+        const ratingsPlugin = sdkPlugins.find(plugin => plugin.id === 'spacehub.ratings');
+        const ratingsStatusEl = container.querySelector('#sh-ratings-plugin-status');
+        if (ratingsStatusEl) {
+            if (ratingsPlugin) {
+                ratingsStatusEl.textContent = ratingsPlugin.isEnabled
+                    ? (ratingCache?.hasProvider?.() ? '🟢 Actif — provider OMDb enregistré' : '🟡 Activé — clé OMDb manquante')
+                    : '⚪ Désactivé';
+            } else {
+                ratingsStatusEl.textContent = '⚪ Plugin non enregistré';
+            }
+        }
+        const omdbKeyInput = container.querySelector('#sh-omdb-api-key');
+        if (omdbKeyInput && ratingsPlugin) {
+            const storage = window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings');
+            const savedKey = storage?.get?.('omdbApiKey', '') || '';
+            omdbKeyInput.placeholder = savedKey ? 'Clé enregistrée (••••)' : 'Clé API OMDb';
+        }
+        container.querySelector('#sh-omdb-save-key')?.addEventListener('click', () => {
+            const key = omdbKeyInput?.value?.trim();
+            const resultEl = container.querySelector('#sh-omdb-test-result');
+            if (!key) {
+                if (resultEl) resultEl.textContent = '❌ Veuillez saisir une clé API.';
+                return;
+            }
+            try {
+                const storage = window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings');
+                storage?.set?.('omdbApiKey', key);
+                // Purger le cache des notes et rafraîchir les badges déjà montés
+                ratingCache?.clear?.();
+                document.dispatchEvent(new CustomEvent('spacehub:ratings-updated'));
+                if (resultEl) resultEl.textContent = '✅ Clé enregistrée — notes externes rechargées.';
+            } catch (error) {
+                if (resultEl) resultEl.textContent = `❌ ${error.message}`;
+            }
+        });
+        container.querySelector('#sh-omdb-test')?.addEventListener('click', async () => {
+            const resultEl = container.querySelector('#sh-omdb-test-result');
+            const key = omdbKeyInput?.value?.trim() || window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.get?.('omdbApiKey', '');
+            if (!key) {
+                if (resultEl) resultEl.textContent = '❌ Saisissez d’abord une clé API.';
+                return;
+            }
+            if (resultEl) resultEl.textContent = '⏳ Test en cours…';
+            const result = await ratingCache?.testConnection?.(key);
+            if (resultEl) {
+                resultEl.textContent = result?.ok
+                    ? `✅ Connexion OK — « ${result.title} » : IMDb ${result.imdb ?? '—'}, RT ${result.rt ?? '—'}%, Metacritic ${result.metacritic ?? '—'}`
+                    : `❌ ${result?.error || 'Test échoué.'}`;
+            }
+        });
+        // Clé TMDB (textes de critiques réels) — enregistrement + test réel
+        const tmdbKeyInput = container.querySelector('#sh-tmdb-api-key');
+        if (tmdbKeyInput) {
+            const tmdbStorage = window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings');
+            const savedTmdb = tmdbStorage?.get?.('tmdbApiKey', '') || '';
+            tmdbKeyInput.placeholder = savedTmdb ? 'Clé TMDB enregistrée (••••)' : tmdbKeyInput.placeholder;
+        }
+        container.querySelector('#sh-tmdb-save-key')?.addEventListener('click', () => {
+            const resultEl = container.querySelector('#sh-tmdb-test-result');
+            const key = tmdbKeyInput?.value?.trim();
+            if (!key) {
+                if (resultEl) resultEl.textContent = '❌ Veuillez saisir une clé TMDB.';
+                return;
+            }
+            try {
+                window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.set?.('tmdbApiKey', key);
+                ratingCache?.clear?.();
+                document.dispatchEvent(new CustomEvent('spacehub:ratings-updated'));
+                if (resultEl) resultEl.textContent = '✅ Clé TMDB enregistrée — textes de critiques activés.';
+                if (tmdbKeyInput) tmdbKeyInput.value = '';
+            } catch (error) {
+                if (resultEl) resultEl.textContent = `❌ ${error.message}`;
+            }
+        });
+        container.querySelector('#sh-tmdb-test')?.addEventListener('click', async () => {
+            const resultEl = container.querySelector('#sh-tmdb-test-result');
+            const key = tmdbKeyInput?.value?.trim() || window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.get?.('tmdbApiKey', '');
+            if (!key) {
+                if (resultEl) resultEl.textContent = '❌ Saisissez d’abord une clé TMDB.';
+                return;
+            }
+            if (resultEl) resultEl.textContent = '⏳ Test en cours…';
+            const result = await ratingCache?.testTmdbConnection?.(key);
+            if (resultEl) {
+                resultEl.textContent = result?.ok
+                    ? `✅ Connexion TMDB OK — « ${result.title} »`
+                    : `❌ ${result?.error || 'Test échoué.'}`;
+            }
+        });
+
+        const providerCheckboxes = container.querySelectorAll('.sh-ratings-provider');
+        const currentProviders = ratingCache?.getProviderFilter?.() || [];
+        providerCheckboxes.forEach(chk => { chk.checked = currentProviders.includes(chk.value); });
+        container.querySelector('#sh-ratings-save-providers')?.addEventListener('click', () => {
+            const selected = [...container.querySelectorAll('.sh-ratings-provider:checked')].map(chk => chk.value);
+            const resultEl = container.querySelector('#sh-ratings-save-result');
+            if (selected.length === 0) {
+                if (resultEl) resultEl.textContent = '❌ Sélectionnez au moins un fournisseur.';
+                return;
+            }
+            try {
+                settings?.set('ratings.display.providers', selected);
+                if (resultEl) resultEl.textContent = `✅ Fournisseurs enregistrés : ${selected.join(', ')}`;
+            } catch (error) {
+                if (resultEl) resultEl.textContent = `❌ ${error.message}`;
+            }
+        });
+
+        container.querySelectorAll('.sh-server-plugin-config').forEach(btn => btn.addEventListener('click', async () => {
+            try {
+                const pluginId = btn.dataset.pluginId;
+                const config = await pluginService.getConfiguration(pluginId);
+                const safeConfig = pluginService.redactConfiguration(config);
+                const edited = prompt('Configuration JSON du plugin (les secrets sont masqués et conservés si inchangés) :', JSON.stringify(safeConfig, null, 2));
+                if (edited === null) return;
+                const parsed = JSON.parse(edited);
+                await pluginService.saveConfiguration(pluginId, pluginService.mergeRedactedConfiguration(config, parsed));
+                window.SpaceHub?.ui?.components?.toaster?.success?.('Configuration envoyée à Jellyfin.');
+            } catch (error) {
+                window.SpaceHub?.ui?.components?.toaster?.error?.(`Configuration refusée : ${error.message}`);
+            }
+        }));
     }
 
     // ─── Styles VisionOS Immersifs Sans Bug d'Affichage ────────────────────────
+
+    destroy() {
+        if (this._taskPollTimer) {
+            clearInterval(this._taskPollTimer);
+            this._taskPollTimer = null;
+        }
+        if (this._closeTimer) {
+            clearTimeout(this._closeTimer);
+            this._closeTimer = null;
+        }
+        this._modal?.remove();
+        this._modal = null;
+    }
+
+    _escape(value) {
+        if (value === null || value === undefined) return '';
+        return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+    }
 
     _injectStyles() {
         if (document.getElementById('sh-jf-console-styles')) return;

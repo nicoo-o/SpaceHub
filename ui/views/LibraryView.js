@@ -24,7 +24,7 @@ class LibraryView {
         if (spatialNav?.registerFocusables) {
             spatialNav.registerFocusables('library', (container) => {
                 const root = container || document.querySelector('.sh-library-view') || document;
-                return Array.from(root.querySelectorAll('.sh-lib-tab-btn, .sh-lib-genre-chip, .sh-lib-alpha-btn, .sh-lib-control-btn, .sh-card, [data-nav-focusable="true"]'));
+                return Array.from(root.querySelectorAll('.sh-lib-tab-btn, .sh-lib-genre-chip, .sh-lib-alpha-btn, .sh-lib-control-btn, .sh-card, [data-nav-focusable="true"], .sh-lib-manage-btn, .sh-lib-search-input, .sh-lib-search-clear'));
             });
         }
         this._log = new Logger('LibraryView');
@@ -417,7 +417,11 @@ class LibraryView {
         `;
 
         document.body.appendChild(modal);
-        requestAnimationFrame(() => modal.classList.add('open'));
+        requestAnimationFrame(() => {
+            modal.classList.add('open');
+            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            spatialNav?.onModalOpened?.(modal, modal.querySelector('#sh-lib-modal-close'));
+        });
 
         const listContainer = modal.querySelector('#sh-lib-modal-list');
 
@@ -570,6 +574,8 @@ class LibraryView {
 
         const closeModal = () => {
             modal.classList.remove('open');
+            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            spatialNav?.onModalClosed?.();
             setTimeout(() => modal.remove(), 240);
         };
 
@@ -888,7 +894,9 @@ class LibraryView {
             const bgUrl = this._api.getImageUrl(item.Id, 'Backdrop', { maxWidth: 600, maxHeight: 340 }) || this._api.getImageUrl(item.Id, 'Primary', { maxWidth: 600, maxHeight: 340 });
             const progress = Math.round(item.UserData?.PlayedPercentage || 0);
             const isFav = Boolean(item.UserData?.IsFavorite);
-            const rating = item.CommunityRating ? Number(item.CommunityRating).toFixed(1) : '8.5';
+            const rating = item.CommunityRating !== undefined && item.CommunityRating !== null
+                ? Number(item.CommunityRating).toFixed(1)
+                : null;
             const year = item.ProductionYear || '';
 
             card.innerHTML = `
@@ -911,9 +919,9 @@ class LibraryView {
                         <span class="sh-lib-backdrop-title">${this._escape(item.Name)}</span>
                     </div>
                     <div class="sh-lib-backdrop-meta-row">
-                        <span class="sh-lib-meta-score">★ ${rating}</span>
+                        ${rating !== null ? `<span class="sh-lib-meta-score">★ ${this._escape(rating)}/10</span>` : ''}
                         ${year ? `<span class="sh-lib-meta-dot">•</span><span>${year}</span>` : ''}
-                        ${item.OfficialRating ? `<span class="sh-lib-meta-dot">•</span><span class="sh-lib-meta-badge">${item.OfficialRating}</span>` : ''}
+                        ${item.OfficialRating ? `<span class="sh-lib-meta-dot">•</span><span class="sh-lib-meta-badge">${this._escape(item.OfficialRating)}</span>` : ''}
                     </div>
                 </div>
             `;

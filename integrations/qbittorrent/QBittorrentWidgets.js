@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../core/utils/domUtils.js';
 /**
  * SpaceHub — qBittorrent Dashboard Widgets
  * Version: 0.11.0
@@ -81,7 +82,7 @@ class QBittorrentSpeedWidget {
         } catch (err) {
             contentEl.innerHTML = `
                 <div class="sh-widget-error">
-                    <p>Impossible de joindre qBittorrent (${err.message}).</p>
+                    <p>Impossible de joindre qBittorrent (${escapeHtml(err.message)}).</p>
                 </div>
             `;
         }
@@ -335,7 +336,7 @@ class QBittorrentActiveWidget {
             });
 
         } catch (err) {
-            contentEl.innerHTML = `<p style="color:#ff453a; text-align:center; padding:16px;">${err.message}</p>`;
+            contentEl.innerHTML = `<p style="color:#ff453a; text-align:center; padding:16px;">${escapeHtml(err.message)}</p>`;
         }
     }
 

@@ -190,7 +190,7 @@
                 
                 // Show success message if toaster is available
                 if (window.SpaceHubToaster) {
-                    window.SpaceHubToaster.show('Device removed successfully', 'success');
+                    window.SpaceHubToaster.toast('Device removed successfully', 'success');
                 }
             } else {
                 button.disabled = false;
@@ -198,7 +198,7 @@
                 
                 // Show error message if toaster is available
                 if (window.SpaceHubToaster) {
-                    window.SpaceHubToaster.show('Failed to remove device', 'error');
+                    window.SpaceHubToaster.toast('Failed to remove device', 'error');
                 }
             }
         });

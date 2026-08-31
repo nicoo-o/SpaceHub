@@ -48,7 +48,8 @@ class JellyseerrService {
         const url = this._settings?.get('jellyseerr.url') || this.api?.baseUrl;
         const key = this._settings?.get('jellyseerr.apiKey') || this.api?.apiKey;
 
-        if (!url) {
+        const explicitlyConfigured = this._settings?.has?.('jellyseerr.url') || this._settings?.has?.('jellyseerr.apiKey');
+        if (!url || (this._settings && !explicitlyConfigured)) {
             this.status = 'unconfigured';
             this._eventBus?.emit('service:statusChanged', { id: 'jellyseerr', status: this.status });
             return this.status;
@@ -57,19 +58,17 @@ class JellyseerrService {
         this.status = 'connecting';
         const start = Date.now();
         try {
-            if (typeof this.api?.getStatus === 'function') {
-                await this.api.getStatus();
-            }
-            this.lastLatency = Date.now() - start;
-            this.status = 'connected';
-        } catch (err) {
-            this.lastLatency = Date.now() - start;
-            if (err.status === 401 || err.status === 403) {
-                this.status = 'auth_failed';
+            const result = await this.api.testConnection();
+            if (!result.success) {
+                const authFail = result.error?.includes('401') || result.error?.includes('403') || result.error?.includes('Unauthorized');
+                this.status = authFail ? 'auth_failed' : 'offline';
             } else {
-                this.status = 'offline';
+                this.status = 'connected';
             }
+        } catch (err) {
+            this.status = (err.status === 401 || err.status === 403) ? 'auth_failed' : 'offline';
         }
+        this.lastLatency = Date.now() - start;
 
         this._eventBus?.emit('service:statusChanged', { id: 'jellyseerr', status: this.status, latency: this.lastLatency });
         return this.status;

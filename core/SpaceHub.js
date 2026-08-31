@@ -21,9 +21,14 @@ import SettingsManager from './SettingsManager.js';
 import CacheManager    from './CacheManager.js';
 import { ApiClient, JellyfinClient } from './ApiClient.js';
 import SpaceHubSDK     from './SDK.js';
+import PluginCatalog   from './PluginCatalog.js';
+import PolicyService   from './PolicyService.js';
 import TouchEngine     from './TouchEngine.js';
 import AudioFeedback    from './AudioFeedback.js';
 import SpatialNavigation from './SpatialNavigation.js';
+import RatingCacheService from './RatingCacheService.js';
+import TvModeManager    from './TvModeManager.js';
+import TrailerService   from './TrailerService.js';
 
 import ThemeManager    from '../ui/themes/ThemeManager.js';
 import Toaster         from '../ui/components/Toaster.js';
@@ -36,6 +41,7 @@ import Dashboard       from '../ui/layouts/Dashboard.js';
 import AdminDashboardView from '../ui/views/AdminDashboardView.js';
 import JellyfinConsoleModal from '../ui/views/JellyfinConsoleModal.js';
 import NotificationService from './NotificationService.js';
+import OnboardingWizard from '../ui/components/OnboardingWizard.js';
 
 import QuickActionsWidget     from '../ui/widgets/QuickActionsWidget.js';
 import LibrariesWidget        from '../ui/widgets/LibrariesWidget.js';
@@ -51,6 +57,8 @@ import UnifiedCalendarWidget  from '../ui/widgets/UnifiedCalendarWidget.js';
 import MediaAnalyticsWidget   from '../ui/widgets/MediaAnalyticsWidget.js';
 
 import JellyfinAPI      from '../jellyfin/api/JellyfinAPI.js';
+import JellyfinPluginService from '../jellyfin/api/JellyfinPluginService.js';
+import MetadataService from '../jellyfin/metadata/MetadataService.js';
 import UnifiedSearch    from '../jellyfin/search/UnifiedSearch.js';
 import SmartCollections from '../jellyfin/collections/SmartCollections.js';
 import VideoPlayer      from '../jellyfin/player/VideoPlayer.js';
@@ -93,7 +101,12 @@ const SpaceHub = {
      * }}
      */
     plugins: null,
+    pluginCatalog: null,
+    policy: null,
+    metadata: null,
+    onboarding: null,
     core: {
+
         log: null,
         eventBus: null,
         moduleManager: null,
@@ -102,6 +115,8 @@ const SpaceHub = {
         settings: null,
         cache: null,
         api: null,
+        pluginCatalog: null,
+        policy: null,
     },
 
     /**
@@ -133,7 +148,9 @@ const SpaceHub = {
             Modal: Modal,
             cardBuilder: null,
             SettingsPanel: SettingsPanel,
+            OnboardingWizard: OnboardingWizard,
         },
+        onboarding: null,
     },
 
     /**
@@ -146,6 +163,7 @@ const SpaceHub = {
      */
     jellyfin: {
         api: null,
+        plugins: null,
         search: null,
         collections: null,
     },
@@ -205,25 +223,30 @@ async function init() {
         'ui.theme':      'spacehub-dark',
         'dashboard.enabled': true,
         'jellyfin.search.enabled': true,
-        'sonarr.enabled': true,
+        // Les intégrations optionnelles restent silencieuses tant que l'administrateur
+        // n'a pas fourni une URL/clé réelle dans les réglages.
+        'sonarr.enabled': false,
         'sonarr.url': 'http://localhost:8989',
         'sonarr.apiKey': '',
-        'radarr.enabled': true,
+        'radarr.enabled': false,
         'radarr.url': 'http://localhost:7878',
         'radarr.apiKey': '',
-        'prowlarr.enabled': true,
+        'prowlarr.enabled': false,
         'prowlarr.url': 'http://localhost:9696',
         'prowlarr.apiKey': '',
-        'bazarr.enabled': true,
+        'bazarr.enabled': false,
         'bazarr.url': 'http://localhost:6767',
         'bazarr.apiKey': '',
-        'jellyseerr.enabled': true,
+        'jellyseerr.enabled': false,
         'jellyseerr.url': 'http://localhost:5055',
         'jellyseerr.apiKey': '',
-        'qbittorrent.enabled': true,
+        'qbittorrent.enabled': false,
         'qbittorrent.url': 'http://localhost:8080',
         'qbittorrent.username': 'admin',
         'qbittorrent.password': '',
+        'metadata.policies.default': { defaultOrder: ['jellyfin'], fields: {} },
+        'plugins.catalogUrl': '',
+        'ui.tvMode': 'auto',
     });
     log.info('SettingsManager prêt.');
 
@@ -233,10 +256,31 @@ async function init() {
     log.info('ModuleManager prêt.');
 
     // 5. PluginManager
-    const pluginManager = new PluginManager({ eventBus, settings });
+    const pluginManager = new PluginManager({
+        eventBus,
+        settings,
+        userProvider: () => SpaceHub.auth?.getUser?.()
+    });
     SpaceHub.plugins = pluginManager;
     SpaceHub.core.pluginManager = pluginManager;
     log.info('PluginManager prêt.');
+
+    // 5.1. RatingCacheService (notes externes)
+    const ratingCache = new RatingCacheService({ settings });
+    SpaceHub.core.ratingCache = ratingCache;
+    log.info('RatingCacheService prêt.');
+
+    // 5.2. TvModeManager (mode TV télécommande/manette + masquage du curseur)
+    const tvMode = new TvModeManager({ settings, eventBus });
+    SpaceHub.core.tvMode = tvMode;
+    tvMode.init();
+    log.info('TvModeManager prêt.');
+
+    // 5.3. TrailerService (bandes-annonces : serveur Jellyfin + YouTube dans fenêtre SpaceHub)
+    const trailers = new TrailerService();
+    SpaceHub.trailers = trailers;
+    SpaceHub.ui.trailers = trailers;
+    log.info('TrailerService prêt.');
 
     // 5.5. Router Centralisé
     const router = new Router({ eventBus });
@@ -285,6 +329,7 @@ async function init() {
         SpaceHub.ui.components.Modal = Modal;
         SpaceHub.ui.components.cardBuilder = new CardBuilder();
         SpaceHub.ui.settingsPanel = new SettingsPanel();
+        SpaceHub.ui.onboarding = new OnboardingWizard({ settings, auth, eventBus });
         
         const modalSlideUp = new ModalSlideUpSheet();
         SpaceHub.ui.modalSlideUpSheet = modalSlideUp;
@@ -339,17 +384,73 @@ async function init() {
     // 10. Jellyfin Core Amélioré & Lecteur Vidéo
     try {
         SpaceHub.jellyfin.api = new JellyfinAPI();
+        SpaceHub.jellyfin.plugins = new JellyfinPluginService({ api: SpaceHub.jellyfin.api, eventBus, cache });
+        SpaceHub.metadata = new MetadataService({ jellyfinApi: SpaceHub.jellyfin.api, settings, eventBus, cache });
         SpaceHub.jellyfin.search = new UnifiedSearch();
         SpaceHub.jellyfin.collections = new SmartCollections();
         SpaceHub.player = new VideoPlayer();
-        log.info('Jellyfin Core Amélioré (API, UnifiedSearch, SmartCollections, VideoPlayer) prêt.');
+        log.info('Jellyfin Core Amélioré (API, plugins, métadonnées, UnifiedSearch, SmartCollections, VideoPlayer) prêt.');
     } catch (err) {
         log.error('Erreur initialisation Jellyfin Core:', err);
     }
 
-    // 11. Extension SDK
+    // 11. Extension SDK et catalogue approuvé
+    SpaceHub.pluginCatalog = new PluginCatalog({
+        settings,
+        eventBus,
+        userProvider: () => SpaceHub.auth?.getUser?.(),
+        cache
+    });
+    SpaceHub.core.pluginCatalog = SpaceHub.pluginCatalog;
+    const catalogUrl = settings.get('plugins.catalogUrl', '');
+    if (catalogUrl) {
+        try {
+            await SpaceHub.pluginCatalog.load(catalogUrl);
+            log.info('Catalogue SDK signé chargé.');
+        } catch (error) {
+            log.warn('Catalogue SDK non chargé :', error);
+        }
+    }
+    SpaceHub.policy = new PolicyService({ settings, eventBus, client: api.getClient('jellyfin') });
+    SpaceHub.core.policy = SpaceHub.policy;
+    pluginManager.setPolicyProvider(() => SpaceHub.policy);
+    // Le bridge est optionnel : les extensions restent en mode local si Jellyfin
+    // ne fournit pas la configuration du plugin compagnon SpaceHub.
+    await SpaceHub.policy.load();
     SpaceHub.sdk = new SpaceHubSDK();
-    log.info('Extension SDK disponible via SpaceHub.sdk.');
+    log.info('Extension SDK disponible via SpaceHub.sdk avec catalogue et permissions.');
+
+    // 11.5. Plugin SDK intégré : notes externes (spacehub.ratings)
+    // L'approbation des permissions est réservée aux administrateurs : le plugin
+    // n'est donc activé qu'après authentification (ensureRatingsPlugin).
+    let ratingsPluginManifest = null;
+    try {
+        const ratingsModule = await import('../plugins/ratings/spacehub-ratings-plugin.js');
+        ratingsPluginManifest = ratingsModule.default || ratingsModule;
+        await pluginManager.registerPlugin(ratingsPluginManifest, { autoEnable: false });
+        log.info(`Plugin SDK intégré "${ratingsPluginManifest.id}" enregistré (activation après authentification).`);
+    } catch (err) {
+        log.warn('Plugin de notes non enregistré :', err);
+    }
+
+    const ensureRatingsPlugin = async () => {
+        const manifest = ratingsPluginManifest;
+        if (!manifest) return;
+        try {
+            if (settings.get(`plugins.${manifest.id}.enabled`, null) === false) return; // désactivé volontairement
+            const isAdmin = SpaceHub.auth?.getUser?.()?.Policy?.IsAdministrator === true;
+            if (isAdmin) pluginManager.approvePermissions(manifest.id, manifest.permissions || []);
+            const policy = pluginManager.getPermissionPolicy?.(manifest.id);
+            if ((policy?.denied || []).length > 0) {
+                log.info('Plugin de notes inactif : permissions non approuvées sur ce compte.');
+                return;
+            }
+            const state = pluginManager.getPlugins?.().find(p => p.id === manifest.id)?.state;
+            if (state !== 'enabled') await pluginManager.enablePlugin(manifest.id);
+        } catch (err) {
+            log.warn(`Activation du plugin de notes impossible : ${err?.message || err}`);
+        }
+    };
 
     // 12. Enregistrement des intégrations
     const registerIntegration = async (id, name, ServiceClass) => {
@@ -391,6 +492,8 @@ async function init() {
                 window.SpaceHub.gamepad = appLayout?._spatialNav?._gamepad;
                 if (!window.SpaceHub.core) window.SpaceHub.core = {};
                 window.SpaceHub.core.gamepad = appLayout?._spatialNav?._gamepad;
+                ensureRatingsPlugin();
+                setTimeout(() => OnboardingWizard.startForCurrentUser(SpaceHub.ui.onboarding), 350);
             } else {
                 const loginView = new LoginView(() => {
                     log.info('Connexion réussie ! Montage du AppLayout...');

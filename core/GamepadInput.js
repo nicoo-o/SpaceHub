@@ -36,6 +36,7 @@ export class GamepadInput {
         this._virtualCursorY = window.innerHeight / 2;
         this._cursorEl = null;
 
+        this._pollTimeoutId = null;
         this._buttonStates = new Map();
         this._boundLoop = this._pollLoop.bind(this);
 
@@ -83,6 +84,10 @@ export class GamepadInput {
             cancelAnimationFrame(this._rafId);
             this._rafId = null;
         }
+        if (this._pollTimeoutId) {
+            clearTimeout(this._pollTimeoutId);
+            this._pollTimeoutId = null;
+        }
         if (this._cursorEl) {
             this._cursorEl.classList.remove('visible');
         }
@@ -113,9 +118,16 @@ export class GamepadInput {
 
         if (gp) {
             this._processGamepad(gp);
+            this._rafId = requestAnimationFrame(this._boundLoop);
+        } else {
+            // Aucune manette connectée : poll lent (1 fps) pour détecter la connexion
+            this._rafId = null;
+            this._pollTimeoutId = setTimeout(() => {
+                if (this._isEnabled) {
+                    this._rafId = requestAnimationFrame(this._boundLoop);
+                }
+            }, 1000);
         }
-
-        this._rafId = requestAnimationFrame(this._boundLoop);
     }
 
     _processGamepad(gp) {
@@ -223,7 +235,7 @@ export class GamepadInput {
 
         this._handleButtonPress('btnStart', btnStart, () => {
             this.vibrate(20);
-            this._onAction(NavAction.PLAY_PAUSE || 'play_pause');
+            this._onAction(NavAction.PLAY_PAUSE);
         });
 
         this._handleButtonPress('btnSelect', btnSelect, () => {
@@ -233,7 +245,7 @@ export class GamepadInput {
 
         this._handleButtonPress('btnX', btnX, () => {
             this.vibrate(15);
-            this._onAction(NavAction.PLAY_PAUSE || 'play_pause');
+            this._onAction(NavAction.PLAY_PAUSE);
         });
 
         this._handleButtonPress('btnL2', btnL2, () => {

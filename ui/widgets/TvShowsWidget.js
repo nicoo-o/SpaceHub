@@ -71,7 +71,7 @@ class TvShowsWidget {
                         Limit: 48, 
                         SortBy: 'DateCreated', 
                         SortOrder: 'Descending',
-                        Fields: 'PrimaryImageAspectRatio,Overview,Genres,CommunityRating,CriticRating,UserData,ChildCount,RecursiveItemCount,ItemCounts,ProductionYear'
+                        Fields: 'PrimaryImageAspectRatio,Overview,Genres,CommunityRating,CriticRating,UserData,ChildCount,RecursiveItemCount,ItemCounts,ProductionYear,ProviderIds'
                     });
                     items = response?.Items || (Array.isArray(response) ? response : []);
                 } catch (e) {
@@ -88,7 +88,7 @@ class TvShowsWidget {
                         Limit: 48,
                         SortBy: 'DateCreated',
                         SortOrder: 'Descending',
-                        Fields: 'PrimaryImageAspectRatio,Overview,Genres,CommunityRating,CriticRating,UserData,ChildCount,RecursiveItemCount,ItemCounts,ProductionYear'
+                        Fields: 'PrimaryImageAspectRatio,Overview,Genres,CommunityRating,CriticRating,UserData,ChildCount,RecursiveItemCount,ItemCounts,ProductionYear,ProviderIds'
                     });
                     items = rawRes?.Items || (Array.isArray(rawRes) ? rawRes : []);
                 } catch (e) {

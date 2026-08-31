@@ -12,6 +12,8 @@
 class GooeyCarouselScroller {
     constructor() {
         this._attachedContainers = new WeakSet();
+        this._cleanups = new Set();
+        this._inertiaFrames = new Set();
         this._injectStyles();
     }
 
@@ -97,6 +99,15 @@ class GooeyCarouselScroller {
         container.addEventListener('mouseleave', onMouseLeave);
         container.addEventListener('mouseup', onMouseUp);
         container.addEventListener('mousemove', onMouseMove);
+
+        this._cleanups.add(() => {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            container.classList.remove('sh-gooey-scroll-enabled', 'sh-gooey-grabbing');
+            container.removeEventListener('mousedown', onMouseDown);
+            container.removeEventListener('mouseleave', onMouseLeave);
+            container.removeEventListener('mouseup', onMouseUp);
+            container.removeEventListener('mousemove', onMouseMove);
+        });
 
         // ── Chevrons de Navigation Latéraux (Shelf Edge Chevrons) ──
         this._attachEdgeChevrons(container);
@@ -223,26 +234,46 @@ class GooeyCarouselScroller {
         parent.addEventListener('mousemove', onParentMouseMove);
         parent.addEventListener('mouseleave', onParentMouseLeave);
 
+        const refreshTimers = [setTimeout(updateButtons, 200), setTimeout(updateButtons, 700)];
+        this._cleanups.add(() => {
+            refreshTimers.forEach(timer => clearTimeout(timer));
+            container.removeEventListener('scroll', updateButtons);
+            window.removeEventListener('resize', updateButtons);
+            parent.removeEventListener('mousemove', onParentMouseMove);
+            parent.removeEventListener('mouseleave', onParentMouseLeave);
+            prevBtn.remove();
+            nextBtn.remove();
+        });
+
         // Vérification immédiate et après rendu asynchrone des images
         updateButtons();
-        setTimeout(updateButtons, 200);
-        setTimeout(updateButtons, 700);
     }
 
     _applyInertia(container, initialVelocity) {
         let currentVelocity = initialVelocity * 14; // Multiplicateur d'inertie
         const friction = 0.93; // Taux d'amorti naturel
+        let frameId = null;
 
         const step = () => {
-            if (Math.abs(currentVelocity) < 0.25) return;
+            if (frameId !== null) this._inertiaFrames.delete(frameId);
+            if (Math.abs(currentVelocity) < 0.25 || !container.isConnected) return;
 
             container.scrollLeft -= currentVelocity;
             currentVelocity *= friction;
-
-            requestAnimationFrame(step);
+            frameId = requestAnimationFrame(step);
+            this._inertiaFrames.add(frameId);
         };
 
-        requestAnimationFrame(step);
+        frameId = requestAnimationFrame(step);
+        this._inertiaFrames.add(frameId);
+    }
+
+    destroy() {
+        this._cleanups.forEach(cleanup => cleanup());
+        this._cleanups.clear();
+        this._inertiaFrames.forEach(frameId => cancelAnimationFrame(frameId));
+        this._inertiaFrames.clear();
+        this._attachedContainers = new WeakSet();
     }
 
     _injectStyles() {

@@ -20,7 +20,7 @@
                 console.log("[SpaceHub DashboardButtonFix]: No history to go back. Redirecting to home page.");
 
                 // Changes this to the page you'd like to return to by default
-                const homeUrl = ApiClient.serverVersion().split('.')[1] > 10 ? 'home' : 'home.html';
+                const homeUrl = parseInt(ApiClient.serverVersion().split('.')[1], 10) > 10 ? 'home' : 'home.html';
                 Dashboard.navigate(`/${homeUrl}`);
             }
         }, true);
