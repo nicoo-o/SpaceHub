@@ -1189,6 +1189,16 @@ class JellyseerrTrendingWidget {
     }
 
     async render(container) {
+
+        // Enregistrement officiel du scope jellyseerr dans le Focus Registry
+        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        if (spatialNav?.registerFocusables) {
+            spatialNav.registerFocusables('jellyseerr', (container) => {
+                const root = container || document.querySelector('.sh-jellyseerr-view') || document;
+                return Array.from(root.querySelectorAll('.sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, [data-nav-scope="jellyseerr"]'));
+            });
+        }
+    
         container.innerHTML = `
             <div class="sh-widget sh-widget--jellyseerr-trending">
                 <div class="sh-widget__header">

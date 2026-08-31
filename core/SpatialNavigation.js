@@ -1,14 +1,13 @@
 /**
- * SpaceHub — Spatial Navigation Engine (Navigation v10)
- * Version: 10.0.0
- * Moteur de Navigation Spatiale 2D Déterministe & Centralisé :
- * - NavigationState (mode, scope, container, row, column, index, history)
- * - Focus Registry centralisé par scope
- * - Contrôleur setFocus unifié avec émission d'événement 'navigation:focusChanged'
- * - Scoring géométrique pondéré avec mémoire de colonne X
- * - Input Repeat & Fast Scroll Engine multi-paliers (0-500ms, 500-1000ms, 1-2s, >2s)
- * - Gestion propre du mode souris sans destruction brutale du focus
- * - Focus Trap et pile de modales (Stack) avec restauration fidèle
+ * SpaceHub — Spatial Navigation Engine (Navigation v10.1)
+ * Version: 10.1.0
+ * Moteur de Navigation Spatiale 2D Centralisé & Déterministe :
+ * - Singleton Unique absolu
+ * - Focus Registry strict (Aucun fallback global écrasant la page)
+ * - Enter / Select instantané au keydown
+ * - Carousel Fast Scroll Controller (Saut direct sans superposition d'animations smooth)
+ * - Scoring spatial par conteneur hiérarchique prioritaire
+ * - Mémoire de colonne X et gestion propre du mode souris
  */
 
 'use strict';
@@ -19,13 +18,13 @@ import GamepadInput from './GamepadInput.js';
 
 export class SpatialNavigation {
     constructor({ root = document } = {}) {
-        this._log = new Logger('SpatialNav-v10');
+        this._log = new Logger('SpatialNav-v10.1');
         this._root = root;
         this._isEnabled = true;
 
-        // 1. Navigation State Central
+        // 1. Navigation State Centralisé
         this._state = {
-            mode: 'tv', // 'tv' | 'mouse' | 'touch'
+            mode: 'tv',
             scope: 'dashboard',
             container: null,
             focusedElement: null,
@@ -36,72 +35,53 @@ export class SpatialNavigation {
             history: []
         };
 
-        // 2. Focus Registry (Scope -> Provider Function)
+        // 2. Focus Registry Central (Scope -> Provider Function)
         this._focusRegistry = new Map();
 
-        // 3. Carrousels Enregistrés (Element -> Carousel Controller)
-        this._carouselRegistry = new Map();
-
-        // 4. Input Repeat & Fast Scroll Engine
+        // 3. Repeat & Fast Scroll Engine
         this._repeatState = {
             activeAction: null,
             pressStartTime: 0,
             lastTickTime: 0,
             cadence: 180,
-            timerId: null
+            timerId: null,
+            isFastScrolling: false
         };
 
-        // 5. Mémorisation de Colonne X
+        // 4. Mémorisation de Colonne X
         this._lastColumnX = null;
 
-        // 6. Gamepad
+        // 5. Gamepad Unique
         this._gamepad = new GamepadInput({
             onAction: (action) => this.handleAction(action)
         });
 
-        // 7. Bindings d'événements
+        // 6. Bindings d'événements
         this._boundKeyDown = this._handleKeyDown.bind(this);
         this._boundKeyUp = this._handleKeyUp.bind(this);
         this._boundMouseMove = this._handleMouseMove.bind(this);
         this._boundResize = this._handleResize.bind(this);
 
-        this._selectHoldTimer = null;
-        this._isLongPressActive = false;
-
         this._bindEvents();
-        this._log.info('Moteur Navigation v10 initialisé avec succès.');
+        this._log.info('Moteur Navigation v10.1 initialisé (Singleton Unique).');
     }
 
-    // ─── API DU FOCUS REGISTRY ───────────────────────────────────────────────
+    // ─── FOCUS REGISTRY STRICT ────────────────────────────────────────────────
 
-    /**
-     * Enregistre un résolveur d'éléments focusables pour un scope donné
-     * @param {string} scopeName
-     * @param {Function|Array|string} provider
-     */
     registerFocusables(scopeName, provider) {
         if (!scopeName) return;
         this._focusRegistry.set(scopeName, provider);
         this._log.debug(`Focus Registry: scope "${scopeName}" enregistré.`);
     }
 
-    /**
-     * Désenregistre un scope du registre
-     * @param {string} scopeName
-     */
     unregisterFocusables(scopeName) {
         this._focusRegistry.delete(scopeName);
     }
 
-    /**
-     * Récupère tous les focusables valides et visibles pour un scope ou conteneur
-     * @param {string|HTMLElement} scopeOrContainer
-     * @returns {HTMLElement[]}
-     */
     getFocusables(scopeOrContainer) {
         let rawElements = [];
 
-        if (typeof scopeOrContainer === 'string' && this._focusRegistry.has(scopeOrContainer)) {
+        if (typeof scopeOrContainer === 'string') {
             const provider = this._focusRegistry.get(scopeOrContainer);
             if (typeof provider === 'function') {
                 rawElements = provider(this._root);
@@ -111,16 +91,10 @@ export class SpatialNavigation {
                 rawElements = Array.from(this._root.querySelectorAll(provider));
             }
         } else if (scopeOrContainer instanceof HTMLElement) {
-            const scope = this._detectCurrentScope();
-            if (this._focusRegistry.has(scope)) {
-                const provider = this._focusRegistry.get(scope);
-                if (typeof provider === 'function') rawElements = provider(scopeOrContainer);
-            }
-            if (!rawElements || rawElements.length === 0) {
-                rawElements = Array.from(scopeOrContainer.querySelectorAll(
-                    '[data-nav-focusable="true"], .sh-card, .sh-hero-btn, .sh-hero-edge-btn, .sh-nav-tab-btn, .sh-tab-btn, .sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, #sh-player-timeline-focus, .sh-dock-pill-btn, .sh-pearl-play-btn, .sh-micro-btn, button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-                ));
-            }
+            // Fallback strictement confiné au conteneur spécifique
+            rawElements = Array.from(scopeOrContainer.querySelectorAll(
+                '[data-nav-focusable="true"], .sh-card, .sh-hero-btn, .sh-hero-edge-btn, .sh-nav-tab-btn, .sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, #sh-player-timeline-focus, .sh-dock-pill-btn, .sh-pearl-play-btn, .sh-micro-btn, .sh-settings-nav-item, .sh-settings-input, .sh-settings-toggle, .sh-sidebar-item'
+            ));
         } else {
             const scope = this._detectCurrentScope();
             return this.getFocusables(scope);
@@ -133,9 +107,7 @@ export class SpatialNavigation {
         if (!Array.isArray(elements)) return [];
         return elements.filter(el => {
             if (!el || !(el instanceof HTMLElement) || el.disabled) return false;
-            if (el.getAttribute('aria-hidden') === 'true' || el.getAttribute('tabindex') === '-1') {
-                if (!el.hasAttribute('data-nav-focusable')) return false;
-            }
+            if (el.getAttribute('aria-hidden') === 'true') return false;
             const rect = el.getBoundingClientRect();
             if (rect.width === 0 || rect.height === 0) return false;
             const style = window.getComputedStyle(el);
@@ -143,14 +115,9 @@ export class SpatialNavigation {
         });
     }
 
-    // ─── FOCUS CONTROLLER UNIFIÉ ─────────────────────────────────────────────
+    // ─── FOCUS CONTROLLER ATOMIQUE ───────────────────────────────────────────
 
-    /**
-     * Définit le focus sur un élément de façon atomique et émet l'événement global
-     * @param {HTMLElement} element
-     * @param {Object} options
-     */
-    setFocus(element, { scroll = true, reason = 'nav', silent = false } = {}) {
+    setFocus(element, { scroll = true, reason = 'nav', silent = false, instantScroll = false } = {}) {
         if (!element || element === this._state.focusedElement) return;
 
         const prev = this._state.focusedElement;
@@ -169,37 +136,42 @@ export class SpatialNavigation {
         element.focus({ preventScroll: true });
         element.classList.add('sh-focus-active', 'sh-tv-focused');
 
-        // Mémorisation de l'alignement X
+        // Alignement colonne X
         const rect = element.getBoundingClientRect();
         this._lastColumnX = rect.left + rect.width / 2;
 
-        // Synchronisation du conteneur et du carrousel
+        // Synchronisation du carrousel sans superposition d'animations
         const carousel = element.closest('.sh-carousel-scroller, .sh-card-carousel, [data-carousel]');
         if (carousel && scroll) {
-            this._syncCarouselScroll(carousel, element);
+            this._syncCarouselScroll(carousel, element, instantScroll);
         } else if (scroll) {
             this._scrollIntoViewIfNeeded(element);
         }
 
-        // Notification globale EventBus
+        // Événement global unifié
         if (!silent) {
             window.SpaceHub?.core?.eventBus?.emit('navigation:focusChanged', {
                 previous: prev,
                 current: element,
                 scope: this._state.scope,
-                reason
+                reason,
+                instantScroll
             });
         }
     }
 
-    _syncCarouselScroll(carousel, targetElement) {
+    _syncCarouselScroll(carousel, targetElement, instant = false) {
         const scroller = carousel.querySelector('.sh-carousel-viewport, .sh-carousel-track, .sh-carousel-scroll') || carousel;
         const targetRect = targetElement.getBoundingClientRect();
         const scrollerRect = scroller.getBoundingClientRect();
 
         const offsetLeft = targetRect.left - scrollerRect.left;
         const centerTarget = offsetLeft - (scrollerRect.width / 2) + (targetRect.width / 2);
-        scroller.scrollBy({ left: centerTarget, behavior: 'smooth' });
+
+        scroller.scrollBy({
+            left: centerTarget,
+            behavior: instant ? 'auto' : 'smooth'
+        });
     }
 
     _scrollIntoViewIfNeeded(element) {
@@ -216,7 +188,7 @@ export class SpatialNavigation {
         }
     }
 
-    // ─── GESTION DES SCOPES ──────────────────────────────────────────────────
+    // ─── DÉTECTION STRICTE DU SCOPE ──────────────────────────────────────────
 
     _detectCurrentScope() {
         if (document.querySelector('.sh-grand-cinema-player, #sh-grand-cinema-player')) return 'player';
@@ -226,19 +198,14 @@ export class SpatialNavigation {
         if (document.querySelector('.sh-unified-search--open')) return 'search';
 
         const focused = this._state.focusedElement || document.activeElement;
-        if (focused?.closest('.sh-dynamic-island, #sh-dynamic-island')) return 'dynamic-island';
-        if (focused?.closest('.sh-jellyseerr-view, [data-nav-scope="jellyseerr"]')) return 'jellyseerr';
+        if (focused?.closest?.('.sh-dynamic-island, #sh-dynamic-island')) return 'dynamic-island';
+        if (focused?.closest?.('.sh-jellyseerr-view, [data-nav-scope="jellyseerr"]')) return 'jellyseerr';
 
         const appLayout = window.SpaceHub?.appLayout || window.SpaceHub?.ui?.appLayout;
         return appLayout?._currentView || 'dashboard';
     }
 
-    setScope(scopeName) {
-        this._state.scope = scopeName;
-        this._log.debug(`Scope de navigation défini sur: "${scopeName}"`);
-    }
-
-    // ─── MOTEUR SPATIAL 2D & SCORING PONDÉRÉ ─────────────────────────────────
+    // ─── SCORING SPATIAL PAR CONTENEUR HIÉRARCHIQUE ──────────────────────────
 
     _findSpatialTarget(direction) {
         const current = this._state.focusedElement || document.activeElement;
@@ -252,10 +219,11 @@ export class SpatialNavigation {
         const curCenterX = this._lastColumnX !== null ? this._lastColumnX : (curRect.left + curRect.width / 2);
         const curCenterY = curRect.top + curRect.height / 2;
 
+        const currentCarousel = current.closest('.sh-carousel-scroller, .sh-card-carousel, [data-carousel]');
+        const currentWidget = current.closest('.sh-widget-section, .sh-dashboard-section, .sh-jellyseerr-view, .sh-dynamic-island');
+
         let bestCandidate = null;
         let bestScore = -Infinity;
-
-        const currentCarousel = current.closest('.sh-carousel-scroller, .sh-card-carousel, [data-carousel]');
 
         for (const cand of candidates) {
             if (cand === current) continue;
@@ -266,30 +234,34 @@ export class SpatialNavigation {
             const deltaX = candCenterX - curCenterX;
             const deltaY = candCenterY - curCenterY;
 
-            // Filtrage directionnel strict
+            // 1. Filtrage directionnel strict
             if (direction === NavAction.RIGHT && deltaX <= 4) continue;
             if (direction === NavAction.LEFT && deltaX >= -4) continue;
             if (direction === NavAction.DOWN && deltaY <= 4) continue;
             if (direction === NavAction.UP && deltaY >= -4) continue;
 
-            // Calcul de distance euclidienne et alignement
             const dist = Math.hypot(deltaX, deltaY);
-            let score = 1000 - dist;
+            let score = 2000 - dist;
 
-            // A. Bonus pour le même conteneur / carrousel en navigation horizontale
             const candCarousel = cand.closest('.sh-carousel-scroller, .sh-card-carousel, [data-carousel]');
-            if ((direction === NavAction.LEFT || direction === NavAction.RIGHT)) {
+            const candWidget = cand.closest('.sh-widget-section, .sh-dashboard-section, .sh-jellyseerr-view, .sh-dynamic-island');
+
+            // 2. Priorité absolue : même carrousel en navigation horizontale
+            if (direction === NavAction.LEFT || direction === NavAction.RIGHT) {
                 if (currentCarousel && candCarousel === currentCarousel) {
-                    score += 500; // Priorité absolue au même carrousel
+                    score += 1500;
                 }
                 const alignY = Math.abs(deltaY);
-                score -= alignY * 4;
+                score -= alignY * 5;
             }
 
-            // B. Bonus pour l'alignement de colonne en navigation verticale
+            // 3. Priorité : même widget ou widget adjacent en navigation verticale
             if (direction === NavAction.UP || direction === NavAction.DOWN) {
+                if (currentWidget && candWidget === currentWidget) {
+                    score += 500;
+                }
                 const alignX = Math.abs(candCenterX - curCenterX);
-                score -= alignX * 2.5; // Favorise la colonne mémorisée
+                score -= alignX * 3.5;
             }
 
             if (score > bestScore) {
@@ -301,7 +273,7 @@ export class SpatialNavigation {
         return bestCandidate;
     }
 
-    // ─── INPUT REPEAT & FAST SCROLL ENGINE ───────────────────────────────────
+    // ─── CAROUSEL FAST SCROLL CONTROLLER SANS BLOCAGE ────────────────────────
 
     _startInputRepeat(action) {
         if (this._repeatState.activeAction === action) return;
@@ -311,20 +283,23 @@ export class SpatialNavigation {
         this._repeatState.pressStartTime = Date.now();
         this._repeatState.lastTickTime = Date.now();
         this._repeatState.cadence = 180;
+        this._repeatState.isFastScrolling = false;
 
-        this._executeNavStep(action);
+        this._executeNavStep(action, false);
 
         const repeatLoop = () => {
             if (!this._repeatState.activeAction) return;
             const elapsed = Date.now() - this._repeatState.pressStartTime;
 
-            // Paliers d'accélération
+            // Détection du mode Fast Scroll (> 400ms)
+            this._repeatState.isFastScrolling = elapsed > 400;
+
             if (elapsed > 2000) this._repeatState.cadence = 45;
             else if (elapsed > 1000) this._repeatState.cadence = 70;
-            else if (elapsed > 500) this._repeatState.cadence = 110;
+            else if (elapsed > 400) this._repeatState.cadence = 100;
             else this._repeatState.cadence = 180;
 
-            this._executeNavStep(this._repeatState.activeAction);
+            this._executeNavStep(this._repeatState.activeAction, this._repeatState.isFastScrolling);
             this._repeatState.timerId = setTimeout(repeatLoop, this._repeatState.cadence);
         };
 
@@ -337,17 +312,20 @@ export class SpatialNavigation {
             this._repeatState.timerId = null;
         }
         this._repeatState.activeAction = null;
+        this._repeatState.isFastScrolling = false;
     }
 
-    _executeNavStep(action) {
+    _executeNavStep(action, isFastScroll = false) {
         const target = this._findSpatialTarget(action);
         if (target) {
-            this.setFocus(target, { reason: 'repeat' });
-            window.SpaceHub?.core?.audioFeedback?.playTick?.();
+            this.setFocus(target, { reason: 'repeat', instantScroll: isFastScroll });
+            if (!isFastScroll) {
+                window.SpaceHub?.core?.audioFeedback?.playTick?.();
+            }
         }
     }
 
-    // ─── GESTION DES ACTIONS ET ÉVÉNEMENTS CLAVIER ───────────────────────────
+    // ─── GESTION DES TOUCHES & SELECT INSTANTANÉ ──────────────────────────────
 
     handleAction(action) {
         if (!this._isEnabled || !action) return;
@@ -367,7 +345,7 @@ export class SpatialNavigation {
             return;
         }
 
-        // 2. Traitement Directionnel
+        // 2. Navigation Directionnelle
         if (isDirectionAction(action)) {
             const target = this._findSpatialTarget(action);
             if (target) {
@@ -450,17 +428,9 @@ export class SpatialNavigation {
                 this._startInputRepeat(action);
             }
         } else if (action === NavAction.SELECT) {
-            this._isLongPressActive = false;
-            if (this._selectHoldTimer) clearTimeout(this._selectHoldTimer);
-
-            if (!e.repeat && this._state.focusedElement?.classList.contains('sh-card')) {
-                this._selectHoldTimer = setTimeout(() => {
-                    this._isLongPressActive = true;
-                    this._openCardContextMenu(this._state.focusedElement);
-                }, 600);
-            }
-
-            if (!e.repeat) e.preventDefault();
+            e.preventDefault();
+            // Activation instantanée sur keydown
+            this.activateFocused();
         } else if (action === NavAction.BACK) {
             e.preventDefault();
             this._handleBack(e);
@@ -480,27 +450,16 @@ export class SpatialNavigation {
         const action = mapKeyboardEvent(e);
         if (isDirectionAction(action)) {
             this._stopInputRepeat();
-        } else if (action === NavAction.SELECT) {
-            if (this._selectHoldTimer) {
-                clearTimeout(this._selectHoldTimer);
-                this._selectHoldTimer = null;
-                if (!this._isLongPressActive) {
-                    this.activateFocused();
-                }
-            }
-            setTimeout(() => { this._isLongPressActive = false; }, 150);
         }
     }
 
-    _handleMouseMove(e) {
-        // Transition douce Mode Souris sans clearFocus brutal
+    _handleMouseMove() {
         if (this._state.mode !== 'mouse') {
             this._state.mode = 'mouse';
         }
     }
 
     _handleResize() {
-        // Recalcul des colonnes lors du redimensionnement
         this._lastColumnX = null;
     }
 
@@ -584,14 +543,6 @@ export class SpatialNavigation {
             : Math.max(0, curIdx - pageSize);
 
         this.setFocus(focusables[targetIdx]);
-    }
-
-    _openCardContextMenu(card) {
-        const bookmarkBtn = card.querySelector('.sh-card__bookmark-btn');
-        if (bookmarkBtn) {
-            bookmarkBtn.click();
-            window.SpaceHub?.ui?.components?.toaster?.info('★ Favori basculé');
-        }
     }
 
     onModalOpened(container, defaultFocusEl = null) {

@@ -1646,9 +1646,39 @@ class VideoPlayer {
      * Reçoit et exécute les actions de navigation émises par SpatialNavigation ou GamepadInput
      * @param {string} action - Action (play_pause, left, right, up, down, select, back, menu)
      */
+    /**
+     * Reçoit et exécute les actions de navigation contextuelles de SpatialNavigation
+     * @param {string} action - Action NavAction
+     */
     handleNavAction(action) {
         if (!this._el) return;
 
+        const timeline = this._el.querySelector('#sh-player-timeline-focus');
+        const active = document.activeElement;
+
+        // 1. Navigation sur la Timeline
+        if (active === timeline) {
+            if (action === 'left') { this._seekRelative(-10); return; }
+            if (action === 'right') { this._seekRelative(+10); return; }
+            if (action === 'down') { this._el.querySelector('#sh-btn-play-pause')?.focus(); return; }
+            if (action === 'up') { this._el.querySelector('#sh-btn-back')?.focus(); return; }
+            if (action === 'select') { this._togglePlayPause(); return; }
+        }
+
+        // 2. Navigation sur les boutons du Dock
+        const dockButtons = Array.from(this._el.querySelectorAll(
+            '#sh-btn-prev-ep, #sh-btn-skip-back, #sh-btn-play-pause, #sh-btn-skip-fwd, #sh-btn-next-ep, #sh-btn-volume, #sh-btn-open-audio-subs, #sh-btn-open-settings, #sh-btn-open-episodes, #sh-btn-fullscreen'
+        )).filter(el => el.offsetParent !== null && window.getComputedStyle(el).display !== 'none');
+
+        const curIdx = dockButtons.indexOf(active);
+        if (curIdx !== -1) {
+            if (action === 'left' && curIdx > 0) { dockButtons[curIdx - 1].focus(); return; }
+            if (action === 'right' && curIdx + 1 < dockButtons.length) { dockButtons[curIdx + 1].focus(); return; }
+            if (action === 'up') { if (timeline) timeline.focus(); return; }
+            if (action === 'select') { active.click(); return; }
+        }
+
+        // 3. Actions Globales Player
         switch (action) {
             case 'play_pause':
                 this._togglePlayPause();
@@ -1666,11 +1696,7 @@ class VideoPlayer {
                 this._setVolumeDelta(-0.05);
                 break;
             case 'select':
-                if (document.activeElement && this._el.contains(document.activeElement) && document.activeElement !== this._el) {
-                    document.activeElement.click();
-                } else {
-                    this._togglePlayPause();
-                }
+                this._togglePlayPause();
                 break;
             case 'back':
             case 'menu':

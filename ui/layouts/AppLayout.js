@@ -105,19 +105,19 @@ class AppLayout {
 
                             <div class="sh-nav-tabs" id="sh-nav-tabs">
                                 <div class="sh-nav-tabs-sliding-pill" id="sh-nav-tabs-pill"></div>
-                                <button class="sh-nav-tab-btn ${this._currentView === 'dashboard' ? 'active' : ''}" data-view="dashboard">
+                                <button tabindex="0" data-nav-focusable="true" data-nav-scope="dynamic-island" class="sh-nav-tab-btn ${this._currentView === 'dashboard' ? 'active' : ''}" data-view="dashboard">
                                     Accueil
                                 </button>
-                                <button class="sh-nav-tab-btn ${this._currentView === 'library' ? 'active' : ''}" data-view="library">
+                                <button tabindex="0" data-nav-focusable="true" data-nav-scope="dynamic-island" class="sh-nav-tab-btn ${this._currentView === 'library' ? 'active' : ''}" data-view="library">
                                     Bibliothèques
                                 </button>
-                                <button class="sh-nav-tab-btn ${this._currentView === 'flux' || this._currentView === 'downloads' ? 'active' : ''}" data-view="flux">
+                                <button tabindex="0" data-nav-focusable="true" data-nav-scope="dynamic-island" class="sh-nav-tab-btn ${this._currentView === 'flux' || this._currentView === 'downloads' ? 'active' : ''}" data-view="flux">
                                     Flux
                                 </button>
                             </div>
 
                             <div class="sh-nav-actions">
-                                <button class="sh-nav-action-btn" id="sh-btn-quick-search" title="Recherche rapide (⌘K)">
+                                <button tabindex="0" data-nav-focusable="true" data-nav-scope="dynamic-island" class="sh-nav-action-btn" id="sh-btn-quick-search" title="Recherche rapide (⌘K)">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                                         <circle cx="11" cy="11" r="8"></circle>
                                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -125,7 +125,7 @@ class AppLayout {
                                 </button>
 
                                 <div class="sh-user-menu-wrapper">
-                                    <button class="sh-user-avatar-btn" id="sh-user-menu-btn" tabindex="0" data-nav-focusable="true" title="${user?.Name || 'Utilisateur'}">
+                                    <button class="sh-user-avatar-btn" id="sh-user-menu-btn" tabindex="0" data-nav-focusable="true" data-nav-scope="dynamic-island" tabindex="0" data-nav-focusable="true" title="${user?.Name || 'Utilisateur'}">
                                         <div class="sh-avatar-pill" ${userAvatarUrl ? `style="background-image: url('${userAvatarUrl}'); background-size: cover; background-position: center;"` : ''}>
                                             ${userAvatarUrl ? '' : (user?.Name || 'U').charAt(0).toUpperCase()}
                                         </div>
@@ -201,7 +201,7 @@ class AppLayout {
         this._bindHeaderEvents(container);
         this._sidebar.render(document.body);
         this.navigate(this._currentView);
-        this._spatialNav = new SpatialNavigation({ root: container });
+        this._spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
         if (window.SpaceHub) {
             window.SpaceHub.spatialNav = this._spatialNav;
             if (!window.SpaceHub.core) window.SpaceHub.core = {};
