@@ -60,6 +60,18 @@ class Modal {
         this._handleKey        = this._onKeyDown.bind(this);
 
         this._injectStyles();
+
+        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        if (spatialNav?.registerFocusables) {
+            spatialNav.registerFocusables('modal', () => {
+                const openModal = document.querySelector('.sh-modal--open, .sh-slideup-sheet--open, .sh-modal-overlay.open, #sh-modal-spacehub-settings.sh-modal--open');
+                if (!openModal) return [];
+                return Array.from(openModal.querySelectorAll(
+                    '.sh-modal__close, .sh-slideup-close-btn, .sh-settings-nav-item, .sh-settings-input, .sh-settings-toggle, .sh-btn-primary, [data-nav-focusable="true"], button:not([disabled]), input:not([disabled]), select:not([disabled])'
+                ));
+            });
+        }
+
         this._build();
     }
 

@@ -29,6 +29,24 @@ class AppLayout {
         this._spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation || null;
         this._injectStyles();
 
+        this._spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        if (this._spatialNav?.registerFocusables) {
+            this._spatialNav.registerFocusables('dynamic-island', () => {
+                return Array.from(document.querySelectorAll('.sh-dynamic-island .sh-nav-tab-btn, .sh-dynamic-island .sh-nav-action-btn, #sh-user-menu-btn, .sh-user-avatar-btn'));
+            });
+        }
+
+        // Asservissement de la sliding pill au focus
+        window.SpaceHub?.core?.eventBus?.on('navigation:focusChanged', (evt) => {
+            if (evt?.current?.classList?.contains('sh-nav-tab-btn')) {
+                const targetView = evt.current.dataset.view;
+                if (targetView && targetView !== this._currentView) {
+                    this._updateSlidingPill(evt.current);
+                }
+            }
+        });
+
+
         if (typeof window !== 'undefined' && window.SpaceHub) {
             window.SpaceHub.appLayout = this;
             if (!window.SpaceHub.ui) window.SpaceHub.ui = {};

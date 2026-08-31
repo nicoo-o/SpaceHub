@@ -101,7 +101,7 @@ function renderJellyseerrMediaCard(item) {
     const rating = item.voteAverage ? Number(item.voteAverage).toFixed(1) : null;
 
     return `
-        <div class="sh-jellyseerr-bento-card" data-media-id="${item.id}" data-media-type="${type}" data-overview="${encodeURIComponent(item.overview || '')}">
+        <div tabindex="0" data-nav-focusable="true" data-nav-role="card" data-nav-scope="jellyseerr" class="sh-jellyseerr-bento-card" data-media-id="${item.id}" data-media-type="${type}" data-overview="${encodeURIComponent(item.overview || '')}">
             <div class="sh-jellyseerr-bento-card__poster-wrap">
                 ${poster 
                     ? `<img class="sh-jellyseerr-bento-card__img" src="${poster}" alt="${title}" loading="lazy" />` 
@@ -120,7 +120,7 @@ function renderJellyseerrMediaCard(item) {
                     <h4 class="sh-jellyseerr-bento-card__title sh-truncate" title="${title}">${title}</h4>
                     <span class="sh-jellyseerr-bento-card__year">${year ? year : typeLabel}</span>
                 </div>
-                <button class="sh-jellyseerr-req-action-btn" data-type="${type}" data-id="${item.id}">
+                <button tabindex="0" data-nav-focusable="true" class="sh-jellyseerr-req-action-btn" data-type="${type}" data-id="${item.id}">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     <span>Demander</span>
                 </button>

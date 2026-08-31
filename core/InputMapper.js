@@ -1,16 +1,12 @@
 /**
- * SpaceHub — InputMapper (Grand Cinema Edition v8.0)
- * Normalisation et abstraction universelle des entrées matérielles :
- * Clavier, Télécommandes Smart TV / Android TV, et Gamepad.
+ * SpaceHub — Unified Input Mapper (Navigation v10)
+ * Version: 2.0.0
+ * Standardisation des événements d'entrée pour Clavier, Télécommandes, Manettes et Gestes.
  */
 
 'use strict';
 
-/**
- * Actions sémantiques normalisées
- * @enum {string}
- */
-export const NavAction = Object.freeze({
+export const NavAction = {
     UP: 'up',
     DOWN: 'down',
     LEFT: 'left',
@@ -21,19 +17,17 @@ export const NavAction = Object.freeze({
     PLAY_PAUSE: 'play_pause',
     PAGE_UP: 'page_up',
     PAGE_DOWN: 'page_down'
-});
+};
 
 /**
- * Mappe un KeyboardEvent standard ou Smart TV vers une action sémantique NavAction
- * @param {KeyboardEvent} event
- * @returns {string|null}
+ * Mappe un événement clavier KeyboardEvent en action de navigation universelle
+ * @param {KeyboardEvent} e
+ * @returns {string|null} Action NavAction ou null si non reconnue
  */
-export function mapKeyboardEvent(event) {
-    if (!event || !event.key) return null;
+export function mapKeyboardEvent(e) {
+    if (!e || !e.key) return null;
 
-    // Prise en charge des touches spéciales Smart TV (Tizen, WebOS, Android TV, Fire TV)
-    switch (event.key) {
-        // Navigation Directionnelle
+    switch (e.key) {
         case 'ArrowUp':
         case 'Up':
             return NavAction.UP;
@@ -50,62 +44,42 @@ export function mapKeyboardEvent(event) {
         case 'Right':
             return NavAction.RIGHT;
 
-        // Validation / Clic
         case 'Enter':
-        case ' ': // Espace sur les télécommandes / claviers
-        case 'Select':
-        case 'Ok':
+        case 'Accept':
             return NavAction.SELECT;
 
-        // Menu / Sidebar / ContextMenu
-        case 'ContextMenu':
-        case 'Menu':
-        case 'Guide':
-        case 'F10':
-        case 'Apps':
-            return NavAction.MENU;
-
-        // Retour Arrière / Annulation
         case 'Escape':
-        case 'Esc':
-        case 'Backspace':
         case 'BrowserBack':
-        case 'GoBack':
-        case 'Back':
-        case 'XF86Back':
+        case 'Backspace':
             return NavAction.BACK;
 
-        // Contrôles Médias
+        case 'ContextMenu':
+        case 'Menu':
+        case 'F10':
+        case 'Apps':
+        case 'Guide':
+            return NavAction.MENU;
+
         case 'MediaPlayPause':
-        case 'MediaPlay':
-        case 'MediaPause':
-        case 'PlayPause':
+        case 'Play':
+        case 'Pause':
             return NavAction.PLAY_PAUSE;
 
-        // Pagination rapide
         case 'PageUp':
         case 'ChannelUp':
-        case 'MediaTrackPrevious':
             return NavAction.PAGE_UP;
+
         case 'PageDown':
         case 'ChannelDown':
-        case 'MediaTrackNext':
             return NavAction.PAGE_DOWN;
 
         default:
-            // Fallback sur keyCode pour anciennes télécommandes Android TV / WebOS
-            if (event.keyCode === 38) return NavAction.UP;
-            if (event.keyCode === 40) return NavAction.DOWN;
-            if (event.keyCode === 37) return NavAction.LEFT;
-            if (event.keyCode === 39) return NavAction.RIGHT;
-            if (event.keyCode === 13) return NavAction.SELECT;
-            if (event.keyCode === 27 || event.keyCode === 8 || event.keyCode === 10009 || event.keyCode === 461) return NavAction.BACK;
             return null;
     }
 }
 
 /**
- * Vérifie si une action est un mouvement directionnel
+ * Vérifie si l'action est une direction spatiale
  * @param {string} action
  * @returns {boolean}
  */

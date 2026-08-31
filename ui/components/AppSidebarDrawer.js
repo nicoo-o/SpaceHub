@@ -23,6 +23,16 @@ class AppSidebarDrawer {
         this._currentActiveParams = {};
         this._ambilightPrefs = this._loadAmbilightPrefs();
         this._injectStyles();
+
+        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        if (spatialNav?.registerFocusables) {
+            spatialNav.registerFocusables('sidebar', () => {
+                const drawer = document.querySelector('.sh-sidebar-drawer, .sh-sidebar--open');
+                if (!drawer) return [];
+                return Array.from(drawer.querySelectorAll('.sh-sidebar-item, .sh-sidebar-btn, [data-nav-focusable="true"]'));
+            });
+        }
+
     }
 
     get _auth() {
