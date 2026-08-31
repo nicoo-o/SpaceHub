@@ -1,6 +1,6 @@
 /**
- * SpaceHub — Dedicated Carousel Controller
- * Version: 1.0.0
+ * SpaceHub — Dedicated Carousel Controller (Pure Function Navigation)
+ * Version: 2.0.0
  * Moteur autonome de gestion et défilement synchronisé des carrousels
  */
 
@@ -8,16 +8,16 @@
 
 export class CarouselController {
     /**
-     * Navigue à l'intérieur d'un carrousel donné par index arithmétique pur
+     * Calcule la carte cible à l'intérieur d'un carrousel donné (Fonction Pure)
      * @param {HTMLElement} carousel
      * @param {HTMLElement} currentCard
      * @param {string} direction - 'left' | 'right'
      * @param {boolean} isFastScroll
-     * @returns {HTMLElement|null} La carte cible ou null si frontière atteinte
+     * @returns {HTMLElement|null} La carte cible calculée ou null si frontière atteinte
      */
     navigate(carousel, currentCard, direction, isFastScroll = false) {
         if (!carousel || !currentCard) return null;
-        const cards = Array.from(carousel.querySelectorAll('.sh-card[data-nav-focusable="true"], [data-nav-focusable="true"]'));
+        const cards = Array.from(carousel.querySelectorAll('.sh-card, [data-nav-focusable="true"]'));
         const curIdx = cards.indexOf(currentCard);
         if (curIdx === -1) return null;
 

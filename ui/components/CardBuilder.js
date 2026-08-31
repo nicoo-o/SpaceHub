@@ -68,6 +68,8 @@ class CardBuilder {
         card.dataset.id  = id;
         card.tabIndex    = 0;
         card.setAttribute('role', 'button');
+        card.setAttribute('data-nav-focusable', 'true');
+        card.setAttribute('data-nav-role', 'card');
         card.setAttribute('aria-label', title);
 
         const fallbackSvg = this._generateSvgPoster(title, type);
