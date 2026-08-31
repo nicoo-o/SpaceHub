@@ -139,6 +139,18 @@ class DownloadsView {
         `;
 
         this._bindEvents();
+
+        // Enregistrement formel du scope downloads
+        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        if (spatialNav?.registerFocusables) {
+            spatialNav.registerFocusables('downloads', (container) => {
+                const root = container || document.querySelector('.sh-downloads-view') || document;
+                return Array.from(root.querySelectorAll(
+                    '.sh-dl-tab-btn, .sh-dl-action-btn, .sh-card, [data-nav-focusable="true"]'
+                ));
+            });
+        }
+
         await this._renderActiveTab();
         this._startLiveMetrics();
     }
