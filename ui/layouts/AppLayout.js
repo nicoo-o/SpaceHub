@@ -527,15 +527,9 @@ class AppLayout {
      * @param {'dashboard'|'library'|'flux'|'downloads'|'home'|'movies'|'series'|'music'} viewName
      * @param {Object} [params]
      */
-    async     destroy() {
-        if (this._clockInterval) {
-            clearInterval(this._clockInterval);
-            this._clockInterval = null;
-        }
-        if (this._spatialNav) {
-            this._spatialNav.destroy();
-            this._spatialNav = null;
-        }
+    destroy() {
+        this._unbindEvents?.();
+        this._spatialNav = null; // Déréférencement local pur sans détruire le singleton
     }
 
     async navigate(viewName, params = {}) {
