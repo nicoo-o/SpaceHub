@@ -13,6 +13,14 @@ import Logger from '../../core/Logger.js';
 
 class SettingsPanel {
     constructor() {
+        // Confirmation du scope settings dans le Focus Registry
+        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        if (spatialNav?.registerFocusables) {
+            spatialNav.registerFocusables('settings', (container) => {
+                const root = container || document.querySelector('#sh-modal-spacehub-settings') || document;
+                return Array.from(root.querySelectorAll('.sh-settings-nav-item, .sh-settings-input, .sh-settings-toggle, .sh-btn-primary, [data-nav-focusable="true"]'));
+            });
+        }
         this._log = new Logger('SettingsPanel');
         this._modal = null;
         this._activeTab = 'general';

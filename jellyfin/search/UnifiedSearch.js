@@ -16,6 +16,14 @@ import Logger from '../../core/Logger.js';
 
 class UnifiedSearch {
     constructor() {
+        // Confirmation du scope search dans le Focus Registry
+        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        if (spatialNav?.registerFocusables) {
+            spatialNav.registerFocusables('search', (container) => {
+                const root = container || document.querySelector('.sh-unified-search--open') || document;
+                return Array.from(root.querySelectorAll('#sh-spotlight-input, .sh-spotlight-filter-chip, .sh-spotlight-card, [data-nav-focusable="true"]'));
+            });
+        }
         this._log = new Logger('UnifiedSearch');
         this._overlay = null;
         this._spotlight = null;

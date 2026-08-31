@@ -59,6 +59,14 @@ class Dashboard {
      * }} [options]
      */
     constructor(options = {}) {
+        // Confirmation du scope dashboard dans le Focus Registry
+        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        if (spatialNav?.registerFocusables) {
+            spatialNav.registerFocusables('dashboard', (container) => {
+                const root = container || document;
+                return Array.from(root.querySelectorAll('#sh-hero-play-btn, #sh-hero-info-btn, .sh-hero-edge-btn, .sh-dynamic-island .sh-nav-tab-btn, .sh-dynamic-island .sh-nav-action-btn, .sh-card, .sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, [data-nav-focusable="true"]'));
+            });
+        }
         this.containerId = options.containerId || 'sh-dashboard';
         this._settings   = options.settings || window.SpaceHub?.core?.settings || null;
         this._eventBus   = options.eventBus || window.SpaceHub?.core?.eventBus || null;

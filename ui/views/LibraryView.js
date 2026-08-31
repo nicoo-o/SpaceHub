@@ -19,6 +19,14 @@ import Logger from '../../core/Logger.js';
 
 class LibraryView {
     constructor() {
+        // Confirmation du scope library dans le Focus Registry
+        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        if (spatialNav?.registerFocusables) {
+            spatialNav.registerFocusables('library', (container) => {
+                const root = container || document.querySelector('.sh-library-view') || document;
+                return Array.from(root.querySelectorAll('.sh-lib-tab-btn, .sh-lib-genre-chip, .sh-lib-alpha-btn, .sh-lib-control-btn, .sh-card, [data-nav-focusable="true"]'));
+            });
+        }
         this._log = new Logger('LibraryView');
         this._libraries = [];
         this._activeLibrary = null;
