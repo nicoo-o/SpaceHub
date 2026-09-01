@@ -217,10 +217,36 @@ export default defineConfig({
     target: 'esnext',
     outDir: 'dist',
     sourcemap: true,
+    // hls.js et le chunk app font 584 kB / 590 kB — libs externes non fragmentables.
+    // On monte la limite à 700 kB pour éviter le warning non-actionnable sur vendor-hls.
+    chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
-        manualChunks: {
-          hls: ['hls.js'],
+        // P2 — Code Splitting : découpage du bundle 1.17 Mo en chunks thématiques
+        // pour accélérer le premier rendu sur TV (connexion Wi-Fi faible).
+        //
+        // Priorité de matching (première règle qui match gagne) :
+        //   1. vendor-hls  → hls.js isolé (590 kB, lazy, uniquement si lecture HLS)
+        //   2. integrations → /integrations/ (Servarr, qBit, Jellyseerr…)
+        //   3. app         → /jellyfin/ + /ui/views/ groupés ensemble pour éviter le
+        //                    circular warning VideoPlayer↔LibraryView (dépendances croisées)
+        //   4. (index)     → core + composants + plugins (chunk bootstrap chargé en premier)
+        //
+        // Gains attendus : le navigateur TV met en cache vendor-hls et ne le re-télécharge
+        // pas si seul le code applicatif change.
+        manualChunks(id) {
+          // hls.js isolé — ne chargé que lors d'une lecture HLS
+          if (id.includes('node_modules/hls.js')) return 'vendor-hls';
+
+          // Intégrations tierces — pas de dépendances vers ui/ ou plugins/
+          if (id.includes('/integrations/')) return 'integrations';
+
+          // jellyfin + ui/views groupés : VideoPlayer (jellyfin/) et LibraryView (ui/views/)
+          // s'importent mutuellement → les réunir dans "app" supprime le circular warning.
+          if (id.includes('/jellyfin/') || id.includes('/ui/views/')) return 'app';
+
+          // Core runtime + composants + plugins → chunk bootstrap (index.js)
+          // Chargé en premier, mis en cache longue durée.
         },
       },
     },
