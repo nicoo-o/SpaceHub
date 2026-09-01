@@ -313,6 +313,9 @@ class DownloadsView {
         const clearBtn = slotMain.querySelector('#sh-jellyseerr-clear-btn');
         const resultsGrid = slotMain.querySelector('#sh-jellyseerr-results-grid');
         let debounceTimer = null;
+        // P1 — AbortController : annule la requête en vol si l'utilisateur retape avant la réponse,
+        // ce qui évite la race condition "réponse tardive de A écrase les résultats de AB".
+        let _searchAbortController = null;
 
         const performSearch = async () => {
             const query = input?.value?.trim();
@@ -323,18 +326,28 @@ class DownloadsView {
                 return;
             }
 
+            // Annuler la requête précédente encore en vol
+            if (_searchAbortController) {
+                _searchAbortController.abort();
+            }
+            _searchAbortController = new AbortController();
+            const { signal } = _searchAbortController;
+
             if (clearBtn) clearBtn.style.display = 'block';
             resultsGrid.style.display = 'grid';
             resultsGrid.innerHTML = '<div class="sh-dl-loading" style="grid-column: 1/-1;"><div class="sh-dl-spinner"></div><p>Recherche en cours sur Jellyseerr...</p></div>';
 
             try {
-                const res = await api?.search?.(query);
+                const res = await api?.search?.(query, { signal });
+                // Si la requête a été annulée entre-temps, on ignore silencieusement le résultat
+                if (signal.aborted) return;
                 const items = res?.results || [];
 
                 if (items.length === 0) {
+                    // P0 — XSS : query (saisie utilisateur) échappée avant injection innerHTML
                     resultsGrid.innerHTML = `
                         <div class="sh-jellyseerr-empty" style="grid-column: 1/-1; text-align: center; padding: 30px; color: rgba(255,255,255,0.6);">
-                            <p>Aucun média trouvé pour "<strong>${query}</strong>" sur Jellyseerr.</p>
+                            <p>Aucun média trouvé pour "<strong>${this._escape(query)}</strong>" sur Jellyseerr.</p>
                         </div>
                     `;
                     return;
@@ -368,8 +381,9 @@ class DownloadsView {
                                 </div>
                             </div>
                             <div class="sh-jellyseerr-card__info">
-                                <h4 class="sh-jellyseerr-card__title" title="${title}">${title}</h4>
-                                <p class="sh-jellyseerr-card__overview">${overview}</p>
+                                <!-- P0 — XSS : title et overview (données API TMDB/Jellyseerr) échappés -->
+                                <h4 class="sh-jellyseerr-card__title" title="${this._escape(title)}">${this._escape(title)}</h4>
+                                <p class="sh-jellyseerr-card__overview">${this._escape(overview)}</p>
                                 <div class="sh-jellyseerr-card__action">
                                     ${buttonHtml}
                                 </div>
@@ -407,9 +421,12 @@ class DownloadsView {
                 });
 
             } catch (err) {
+                // Ne pas afficher d'erreur si la requête a été volontairement annulée (AbortError)
+                if (err?.name === 'AbortError') return;
+                // P0 — XSS : err.message échappé (était direct précédemment)
                 resultsGrid.innerHTML = `
                     <div class="sh-widget-error" style="grid-column: 1/-1; padding: 20px; text-align: center;">
-                        <p style="color: var(--sh-color-error, #ff453a);">Erreur de recherche Jellyseerr : ${err.message}</p>
+                        <p style="color: var(--sh-color-error, #ff453a);">Erreur de recherche Jellyseerr : ${this._escape(err.message)}</p>
                     </div>
                 `;
             }
