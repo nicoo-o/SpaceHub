@@ -118,6 +118,10 @@ class Modal {
         if (!this._isOpen) return;
         this._isOpen = false;
 
+        // Fermée par la croix, un clic dehors ou du code : la couche sort de la
+        // pile, pour que le prochain « Retour » vise bien celle du dessus.
+        svc.nav()?.onLayerClosed?.(this._el);
+
         this._el.classList.remove('sh-modal--open');
         this._el.classList.add('sh-modal--closing');
 

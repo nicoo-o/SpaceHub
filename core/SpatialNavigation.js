@@ -30,6 +30,13 @@ export class SpatialNavigation {
         this._isEnabled = true;
 
         // 1. Navigation State Centralisé
+        /**
+         * Couches ouvertes, dans leur ordre d'ouverture réel — la dernière est
+         * celle du dessus. Alimentée par onModalOpened(), consommée par
+         * _handleBack(). Voir _handleBack pour le bug que cela corrige.
+         */
+        this._layerStack = [];
+
         this._state = {
             mode: 'tv',
             scope: 'dashboard',
@@ -708,7 +715,33 @@ export class SpatialNavigation {
      * laissait un élément détecté comme « modale ouverte » à vie — navigation
      * morte jusqu'au rechargement.
      */
+    /**
+     * Ferme la couche la plus HAUTE, c'est-à-dire la dernière ouverte.
+     *
+     * BACK_ORDER seul ne suffisait pas : c'est une liste figée, donc « Retour »
+     * fermait par priorité déclarée et non dans l'ordre réel d'ouverture.
+     * Concrètement — reproduit puis corrigé — ouvrir les réglages, puis la
+     * recherche par-dessus, et appuyer une fois sur Échap laissait la recherche
+     * à l'écran et fermait les RÉGLAGES en dessous. L'utilisateur voyait la
+     * couche du dessus rester, sans savoir ce qui venait de disparaître.
+     *
+     * La pile enregistre l'ordre d'ouverture observé. BACK_ORDER ne sert plus
+     * que de repli, pour les couches ouvertes sans passer par onModalOpened
+     * (ancien code, ou couche déjà présente au chargement).
+     */
     _handleBack(e) {
+        // 1. Couche la plus récemment ouverte, si elle est toujours à l'écran.
+        for (let i = this._layerStack.length - 1; i >= 0; i--) {
+            const layer = this._layerStack[i];
+            const el = LAYERS[layer] ? document.querySelector(LAYERS[layer]) : null;
+            if (!el) { this._layerStack.splice(i, 1); continue; }   // fermée autrement
+            e?.preventDefault?.();
+            this._layerStack.splice(i, 1);
+            this._closeLayer(layer, el);
+            return;
+        }
+
+        // 2. Repli : ordre déclaré, pour ce que la pile n'a pas vu s'ouvrir.
         for (const layer of BACK_ORDER) {
             const el = document.querySelector(LAYERS[layer]);
             if (!el) continue;
@@ -716,6 +749,20 @@ export class SpatialNavigation {
             this._closeLayer(layer, el);
             return;
         }
+    }
+
+    /**
+     * Quelle couche l'élément conteneur représente-t-il ?
+     * Sert à empiler la bonne clé quand une couche s'ouvre.
+     */
+    _layerOf(container) {
+        if (!container) return null;
+        for (const [nom, selecteur] of Object.entries(LAYERS)) {
+            try {
+                if (container.matches?.(selecteur) || container.closest?.(selecteur)) return nom;
+            } catch { /* sélecteur non applicable à cet élément */ }
+        }
+        return null;
     }
 
     /** Ferme une couche donnée en privilégiant toujours son API publique. */
@@ -823,8 +870,39 @@ export class SpatialNavigation {
         // On empile AVANT d'entrer dans la couche : c'est ce point-là qu'il
         // faudra retrouver à la fermeture, pas le dernier élément visité dedans.
         this.pushFocus();
+
+        // Ordre d'ouverture RÉEL, pour que « Retour » ferme bien le dessus.
+        const layer = this._layerOf(container);
+        if (layer) {
+            const dejaLa = this._layerStack.indexOf(layer);
+            if (dejaLa !== -1) this._layerStack.splice(dejaLa, 1);
+            this._layerStack.push(layer);
+        }
         const target = defaultFocusEl || (container ? this.getFocusables(container)[0] : null);
         if (target) this.setFocus(target);
+    }
+
+    /**
+     * Empile explicitement une couche par son nom.
+     *
+     * `onModalOpened` déduit la couche du conteneur, ce qui suppose que celui-ci
+     * porte déjà sa classe d'ouverture. Ce n'est pas toujours le cas : la
+     * recherche pose `.open` APRÈS avoir signalé son ouverture, donc la
+     * déduction échouait silencieusement et la couche n'entrait jamais dans la
+     * pile. Passer le nom lève l'ambiguïté.
+     */
+    pushLayer(layer) {
+        if (!layer || !LAYERS[layer]) return;
+        const i = this._layerStack.indexOf(layer);
+        if (i !== -1) this._layerStack.splice(i, 1);
+        this._layerStack.push(layer);
+    }
+
+    /** Retire une couche de la pile quand elle se ferme par un autre chemin. */
+    onLayerClosed(container) {
+        const layer = typeof container === 'string' ? container : this._layerOf(container);
+        const i = layer ? this._layerStack.indexOf(layer) : -1;
+        if (i !== -1) this._layerStack.splice(i, 1);
     }
 
     onModalClosed() {

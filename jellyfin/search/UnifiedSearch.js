@@ -283,6 +283,12 @@ class UnifiedSearch {
         }
         if (this._isOpen) return;
 
+        // Signale l'ouverture au moteur de navigation, qui tient la pile des
+        // couches. Sans cela la recherche n'y figurait pas : ouverte par-dessus
+        // les réglages, un appui sur Échap fermait les RÉGLAGES en dessous et
+        // laissait la recherche à l'écran.
+        svc.nav()?.pushLayer?.('search');
+
         const island = document.getElementById('sh-dynamic-island');
         const underglow = document.getElementById('sh-island-underglow');
         this._prevIslandState = island?.classList.contains('sh-island--expanded') ? 'expanded' : 'compact';
@@ -607,6 +613,10 @@ class UnifiedSearch {
 
     close() {
         if (!this._isOpen) return;
+
+        // Retire la couche de la pile : fermée par un clic ou par la croix, elle
+        // ne doit plus être la cible du prochain « Retour ».
+        svc.nav()?.onLayerClosed?.('search');
 
         const island = document.getElementById('sh-dynamic-island');
         const underglow = document.getElementById('sh-island-underglow');
