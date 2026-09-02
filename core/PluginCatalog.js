@@ -9,16 +9,17 @@
 
 import Logger from './Logger.js';
 
+import * as svc from './services.js';
 const ID_PATTERN = /^[a-z0-9][a-z0-9._-]{1,63}$/;
 const VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
 class PluginCatalog {
     constructor({ settings = null, eventBus = null, fetchImpl = null, userProvider = null, cache = null, hostVersion = '1.0.0', requireSigned = true } = {}) {
-        this._settings = settings || (typeof window !== 'undefined' ? window.SpaceHub?.core?.settings : null);
-        this._eventBus = eventBus || (typeof window !== 'undefined' ? window.SpaceHub?.core?.eventBus : null);
+        this._settings = settings || (typeof window !== 'undefined' ? svc.settings() : null);
+        this._eventBus = eventBus || (typeof window !== 'undefined' ? svc.eventBus() : null);
         this._fetch = fetchImpl || (typeof fetch === 'function' ? fetch.bind(globalThis) : null);
-        this._userProvider = userProvider || (() => typeof window !== 'undefined' ? window.SpaceHub?.auth?.getUser?.() : null);
-        this._cache = cache || (typeof window !== 'undefined' ? window.SpaceHub?.core?.cache : null);
+        this._userProvider = userProvider || (() => typeof window !== 'undefined' ? svc.auth()?.getUser?.() : null);
+        this._cache = cache || (typeof window !== 'undefined' ? svc.cache() : null);
         this._hostVersion = hostVersion;
         this._requireSigned = requireSigned;
         this._log = new Logger('PluginCatalog');
@@ -216,7 +217,7 @@ class PluginCatalog {
         this._assertAdmin();
         const normalizedId = String(id || '').toLowerCase();
         this._get(normalizedId);
-        const manager = pluginManager || (typeof window !== 'undefined' ? window.SpaceHub?.plugins : null);
+        const manager = pluginManager || (typeof window !== 'undefined' ? svc.plugins() : null);
         if (manager?.getPlugins?.().some(plugin => plugin.id === normalizedId)) await manager.unloadPlugin(normalizedId);
         this._installedPackages.delete(normalizedId);
         this._setStatus(normalizedId, 'uninstalled');
@@ -228,7 +229,7 @@ class PluginCatalog {
         const { source, entry } = packageData;
         const load = loader || this._createTrustedModuleLoader();
         if (typeof load !== 'function') throw new TypeError('Loader de plugin indisponible.');
-        const manager = pluginManager || (typeof window !== 'undefined' ? window.SpaceHub?.plugins : null);
+        const manager = pluginManager || (typeof window !== 'undefined' ? svc.plugins() : null);
         if (!manager || typeof manager.registerPlugin !== 'function') {
             throw new Error('PluginManager indisponible : installation annulée.');
         }

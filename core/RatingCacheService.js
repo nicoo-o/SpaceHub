@@ -15,12 +15,13 @@
 
 import Logger from './Logger.js';
 
+import * as svc from './services.js';
 const PROVIDER_IDS = ['jellyfin', 'rt', 'imdb', 'metacritic', 'tmdb'];
 const DEFAULT_PROVIDERS = ['jellyfin', 'rt', 'imdb', 'tmdb'];
 
 class RatingCacheService {
     constructor({ settings = null } = {}) {
-        this._settings = settings || (typeof window !== 'undefined' ? window.SpaceHub?.core?.settings : null);
+        this._settings = settings || (typeof window !== 'undefined' ? svc.settings() : null);
         this._log = new Logger('RatingCache');
         this._memory = new Map();
         this._inFlight = new Map();
@@ -79,7 +80,7 @@ class RatingCacheService {
     }
 
     _getJellyfinClient() {
-        return window.SpaceHub?.core?.api?.getClient?.('jellyfin') || null;
+        return svc.api()?.getClient?.('jellyfin') || null;
     }    /**
      * Résout l'IMDb ID d'un item, avec repli épisode → série.
      * @returns {Promise<{imdbId: string|null, opts: {isSeriesFallback: boolean}}>} 
@@ -123,10 +124,10 @@ class RatingCacheService {
         let imdbId = null;
         try {
             const client = this._getJellyfinClient();
-            const headers = window.SpaceHub?.auth?.getAuthHeaders?.() || {};
-            const base = client?.baseUrl || window.SpaceHub?.auth?.getServerUrl?.() || '';
+            const headers = svc.auth()?.getAuthHeaders?.() || {};
+            const base = client?.baseUrl || svc.auth()?.getServerUrl?.() || '';
             if (base && seriesId) {
-                const res = await fetch(`${base.replace(/\/$/, '')}/Users/${window.SpaceHub?.auth?.getUserId?.()}/Items/${seriesId}`, { headers });
+                const res = await fetch(`${base.replace(/\/$/, '')}/Users/${svc.auth()?.getUserId?.()}/Items/${seriesId}`, { headers });
                 if (res.ok) {
                     const series = await res.json();
                     imdbId = series?.ProviderIds?.Imdb || null;

@@ -20,6 +20,7 @@
 
 import Logger from './Logger.js';
 
+import * as svc from './services.js';
 // ─── BaseApiClient ───────────────────────────────────────────────────────────
 
 class BaseApiClient {
@@ -113,6 +114,24 @@ class BaseApiClient {
 
                 const response = await fetch(requestUrl, config);
 
+                // Le proxy est-il vraiment là ? Sur une application construite,
+                // `/api-proxy` n'existe pas : le serveur de fichiers renvoie soit
+                // un 404, soit — pire — la page HTML de l'application avec un
+                // code 200. Sans cette détection, l'appel « réussit » et
+                // l'intégration reçoit du HTML là où elle attend du JSON.
+                if (requestUrl !== url && useProxy) {
+                    const typeRecu = response.headers.get('Content-Type') || '';
+                    if (response.status === 404 || typeRecu.includes('text/html')) {
+                        signalerProxyAbsent(this._log);
+                        throw new ApiError(
+                            502,
+                            'Proxy absent',
+                            `Aucun proxy à « ${proxyBase()} » — voir docs/DEPLOIEMENT.md.`,
+                            requestUrl
+                        );
+                    }
+                }
+
                 if (!response.ok) {
                     const text = await response.text().catch(() => '');
                     throw new ApiError(response.status, response.statusText, text, requestUrl);
@@ -179,7 +198,7 @@ class BaseApiClient {
     /** Met à jour dynamiquement la configuration depuis SettingsManager */
     updateConfig(settingsKey = null) {
         const key = settingsKey || this._settingsKey;
-        const settings = window.SpaceHub?.core?.settings;
+        const settings = svc.settings();
         if (key && settings) {
             const newUrl = settings.get(`${key}.url`, this.baseUrl);
             const newKey = settings.get(`${key}.apiKey`, this.apiKey);
@@ -193,8 +212,8 @@ class BaseApiClient {
 
 class JellyfinClient extends BaseApiClient {
     constructor() {
-        const serverAddress = window.SpaceHub?.auth?.getServerUrl() || window.ApiClient?.serverAddress?.() || '';
-        const token         = window.SpaceHub?.auth?.getToken() || window.ApiClient?.accessToken?.()   || '';
+        const serverAddress = svc.auth()?.getServerUrl() || window.ApiClient?.serverAddress?.() || '';
+        const token         = svc.auth()?.getToken() || window.ApiClient?.accessToken?.()   || '';
 
         super(serverAddress, token);
         this.updateAuthHeaders(token);
@@ -203,7 +222,7 @@ class JellyfinClient extends BaseApiClient {
 
     updateAuthHeaders(token) {
         this.apiKey = token;
-        const deviceId = window.SpaceHub?.auth?.getDeviceId?.() || 'sh_web';
+        const deviceId = svc.auth()?.getDeviceId?.() || 'sh_web';
         const authHeader = `MediaBrowser Client="Jellyfin Web", Device="Chrome", DeviceId="${deviceId}", Version="10.8.13"${token ? `, Token="${token}"` : ''}`;
         this._defaultHeaders['Accept'] = 'application/json';
         this._defaultHeaders['Content-Type'] = 'application/json';
@@ -217,7 +236,7 @@ class JellyfinClient extends BaseApiClient {
 
     /** Rafraîchit le token Jellyfin (à appeler après reconnexion) */
     refreshAuth() {
-        const token = window.SpaceHub?.auth?.getToken() || this._jfClient?.accessToken?.() || '';
+        const token = svc.auth()?.getToken() || this._jfClient?.accessToken?.() || '';
         this.updateAuthHeaders(token);
     }
 
@@ -238,7 +257,7 @@ class JellyfinClient extends BaseApiClient {
         // par leur tag ; ne jamais placer le token dans une URL générée par l'UI.
         // Pour une instance qui protège ses images, l'application doit utiliser un proxy
         // authentifié ou un chargeur Blob dédié, jamais réintroduire api_key ici.
-        const base = this.baseUrl || window.SpaceHub?.auth?.getServerUrl() || '';
+        const base = this.baseUrl || svc.auth()?.getServerUrl() || '';
         return `${base}/Items/${encodeURIComponent(itemId)}/Images/${encodeURIComponent(type)}?${params}`;
     }
 
@@ -261,7 +280,7 @@ class JellyfinClient extends BaseApiClient {
             opts = maybeOptions || {};
         } else {
             opts = userIdOrOptions || {};
-            userId = opts.userId || window.SpaceHub?.auth?.getUserId() || '';
+            userId = opts.userId || svc.auth()?.getUserId() || '';
         }
         const params = new URLSearchParams();
         for (const [k, v] of Object.entries(opts)) {

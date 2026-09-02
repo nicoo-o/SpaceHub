@@ -14,7 +14,10 @@
 'use strict';
 
 import AdminDashboardView from '../views/AdminDashboardView.js';
+import { LAYERS, FOCUSABLES } from '../../core/DomContracts.js';
 
+import './AppSidebarDrawer.css';
+import * as svc from '../../core/services.js';
 class AppSidebarDrawer {
     constructor() {
         this._isOpen = false;
@@ -24,23 +27,26 @@ class AppSidebarDrawer {
         this._ambilightPrefs = this._loadAmbilightPrefs();
         this._injectStyles();
 
-        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        const spatialNav = svc.nav() || svc.nav();
         if (spatialNav?.registerFocusables) {
             spatialNav.registerFocusables('sidebar', () => {
-                const drawer = document.querySelector('.sh-sidebar-drawer, .sh-sidebar--open');
-                if (!drawer) return [];
-                return Array.from(drawer.querySelectorAll('.sh-sidebar-item, .sh-sidebar-btn, [data-nav-focusable="true"]'));
-            });
+                // Le panneau ouvert est #sh-sidebar-panel.open (cf. DomContracts.LAYERS.sidebar).
+                // L'ancien selecteur .sh-sidebar-drawer / .sh-sidebar--open ne matchait rien :
+                // ce provider renvoyait toujours une liste vide.
+                const panel = document.querySelector(LAYERS.sidebar) || document.getElementById('sh-sidebar-panel');
+                if (!panel) return [];
+                return Array.from(panel.querySelectorAll(FOCUSABLES.sidebar));
+            }, { force: true }); // re-registration volontaire — cf. plan A04
         }
 
     }
 
     get _auth() {
-        return window.SpaceHub?.auth;
+        return svc.auth();
     }
 
     get _api() {
-        return window.SpaceHub?.jellyfin?.api;
+        return svc.jellyfinApi();
     }
 
     _loadAmbilightPrefs() {
@@ -118,6 +124,7 @@ class AppSidebarDrawer {
 
                     <!-- EXPÉRIENCE & SERVICES -->
                     <div class="sh-sidebar-section">
+                        ${svc.features()?.isEnabled?.('features.ambilight') === false ? '' : `
                         <button tabindex="0" data-nav-focusable="true" class="sh-sidebar-item sh-sidebar-btn" id="sh-sidebar-btn-lights">
                             <svg class="sh-sidebar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path>
@@ -125,7 +132,7 @@ class AppSidebarDrawer {
                                 <path d="M10 22h4"></path>
                             </svg>
                             <span>Ambilight & Lumières</span>
-                        </button>
+                        </button>`}
                         <button tabindex="0" data-nav-focusable="true" class="sh-sidebar-item sh-sidebar-btn" id="sh-sidebar-btn-downloads">
                             <svg class="sh-sidebar-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -179,7 +186,7 @@ class AppSidebarDrawer {
 
         if (this._isOpen) {
             this._closePanel?.();
-            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            const spatialNav = svc.nav() || svc.nav();
             spatialNav?.restorePreviousFocus?.();
             return;
         }
@@ -187,7 +194,7 @@ class AppSidebarDrawer {
         panel.classList.add('open');
         this._isOpen = true;
         const firstItem = panel.querySelector('.sh-sidebar-item.active, .sh-sidebar-item:not(.sh-sidebar-item-loading), .sh-sidebar-footer-btn');
-        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        const spatialNav = svc.nav() || svc.nav();
         if (firstItem) {
             spatialNav?.setFocus?.(firstItem, { reason: 'sidebar-open', instantScroll: true });
         }
@@ -279,7 +286,7 @@ class AppSidebarDrawer {
         try {
             let views = await this._api?.getUserViews?.();
             if (!views || views.length === 0) {
-                const apiClient = window.SpaceHub?.core?.api?.getClient('jellyfin');
+                const apiClient = svc.api()?.getClient('jellyfin');
                 const rawViews = await window.ApiClient?.getUserViews?.(apiClient?.getUserId?.() || this._api?.getUserId?.());
                 views = rawViews?.Items || (Array.isArray(rawViews) ? rawViews : []);
             }
@@ -318,8 +325,8 @@ class AppSidebarDrawer {
                     const libId = btn.dataset.libId;
                     this._justNavigated = true;
                     this.setActive('library', { libraryId: libId });
-                    if (window.SpaceHub?.ui?.appLayout?.navigate) {
-                        window.SpaceHub.ui.appLayout.navigate('library', { libraryId: libId });
+                    if (svc.appLayout()?.navigate) {
+                        svc.appLayout().navigate('library', { libraryId: libId });
                     }
                     // En mode TV, le choix doit rendre immédiatement le focus au contenu.
                     this._closePanel?.();
@@ -413,6 +420,15 @@ class AppSidebarDrawer {
     }
 
     _bindEvents(el) {
+        // Audit 3.9 — un AbortController par cycle de rendu.
+        // Le drawer est reconstruit à chaque montage de l'AppLayout (connexion,
+        // changement de vue) : sans cela, chaque reconstruction ajoutait un
+        // écouteur « clic » de plus sur `document`, jamais retiré, et la
+        // fermeture au clic extérieur se déclenchait N fois.
+        this._ac?.abort();
+        this._ac = new AbortController();
+        const signal = this._ac.signal;
+
         const trigger = el.querySelector('#sh-sidebar-trigger');
         const panel = el.querySelector('#sh-sidebar-panel');
 
@@ -451,7 +467,7 @@ class AppSidebarDrawer {
             if (this._isOpen && !panel.contains(e.target) && !trigger.contains(e.target)) {
                 closeImmediately();
             }
-        });
+        }, { signal });
 
         // Navigation Principale (Accueil)
         el.querySelectorAll('.sh-sidebar-item[data-nav]').forEach(btn => {
@@ -460,8 +476,8 @@ class AppSidebarDrawer {
                 const nav = btn.dataset.nav;
                 if (nav) {
                     this.setActive(nav);
-                    if (window.SpaceHub?.ui?.appLayout?.navigate) {
-                        window.SpaceHub.ui.appLayout.navigate(nav);
+                    if (svc.appLayout()?.navigate) {
+                        svc.appLayout().navigate(nav);
                     }
                     this._closePanel?.();
                 }
@@ -477,8 +493,8 @@ class AppSidebarDrawer {
         // Bouton Téléchargements (*arr / Torrents / Flux)
         el.querySelector('#sh-sidebar-btn-downloads')?.addEventListener('click', () => {
             this.setActive('downloads');
-            if (window.SpaceHub?.ui?.appLayout?.navigate) {
-                window.SpaceHub.ui.appLayout.navigate('downloads');
+            if (svc.appLayout()?.navigate) {
+                svc.appLayout().navigate('downloads');
             }
             closeImmediately();
         });
@@ -491,12 +507,12 @@ class AppSidebarDrawer {
 
         // Actions footer (Recherche Spotlight & Réglages)
         el.querySelector('#sh-sidebar-btn-search')?.addEventListener('click', () => {
-            window.SpaceHub?.jellyfin?.search?.open();
+            svc.search()?.open();
             closeImmediately();
         });
 
         el.querySelector('#sh-sidebar-btn-settings')?.addEventListener('click', () => {
-            window.SpaceHub?.ui?.settingsPanel?.open();
+            svc.settingsPanel()?.open();
             closeImmediately();
         });
     }
@@ -575,13 +591,13 @@ class AppSidebarDrawer {
         document.body.appendChild(modal);
         requestAnimationFrame(() => {
             modal.classList.add('open');
-            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            const spatialNav = svc.nav() || svc.nav();
             spatialNav?.onModalOpened?.(modal, modal.querySelector('#sh-ambilight-toggle'));
         });
 
         const closeModal = () => {
             modal.classList.remove('open');
-            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            const spatialNav = svc.nav() || svc.nav();
             spatialNav?.onModalClosed?.();
             setTimeout(() => modal.remove(), 240);
         };
@@ -600,7 +616,7 @@ class AppSidebarDrawer {
         toggle?.addEventListener('change', () => {
             this._ambilightPrefs.enabled = toggle.checked;
             this._saveAmbilightPrefs();
-            window.SpaceHub?.ui?.components?.toaster?.success?.(`Ambilight : ${this._ambilightPrefs.enabled ? 'Activé' : 'Désactivé'}`);
+            svc.toaster()?.success?.(`Ambilight : ${this._ambilightPrefs.enabled ? 'Activé' : 'Désactivé'}`);
         });
 
         slider?.addEventListener('input', (e) => {
@@ -616,7 +632,7 @@ class AppSidebarDrawer {
                 presetEl.classList.add('active');
                 this._ambilightPrefs.preset = presetEl.dataset.preset;
                 this._saveAmbilightPrefs();
-                window.SpaceHub?.ui?.components?.toaster?.info?.(`Ambiance appliquée : ${presetEl.querySelector('.sh-preset-name')?.textContent}`);
+                svc.toaster()?.info?.(`Ambiance appliquée : ${presetEl.querySelector('.sh-preset-name')?.textContent}`);
             });
         });
     }
@@ -656,7 +672,7 @@ class AppSidebarDrawer {
                 </div>
 
                 <div class="sh-sidebar-modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
-                    <a href="${this._escape(window.SpaceHub?.core?.settings?.get('qbittorrent.url') || 'http://localhost:8080')}" target="_blank" class="sh-hub-ext-link" style="color: var(--sh-color-primary, #64d2ff); font-size: 12px; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                    <a href="${this._escape(svc.settings()?.get('qbittorrent.url') || 'http://localhost:8080')}" target="_blank" class="sh-hub-ext-link" style="color: var(--sh-color-primary, #64d2ff); font-size: 12px; text-decoration: none; display: flex; align-items: center; gap: 4px;">
                         <span>Ouvrir qBittorrent WebUI brute ↗</span>
                     </a>
                     <button class="sh-sidebar-modal-btn-pri" id="sh-downloads-done">Fermer</button>
@@ -667,13 +683,13 @@ class AppSidebarDrawer {
         document.body.appendChild(modal);
         requestAnimationFrame(() => {
             modal.classList.add('open');
-            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            const spatialNav = svc.nav() || svc.nav();
             spatialNav?.onModalOpened?.(modal, modal.querySelector('.sh-hub-tab-btn.active'));
         });
 
         const closeModal = () => {
             modal.classList.remove('open');
-            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            const spatialNav = svc.nav() || svc.nav();
             spatialNav?.onModalClosed?.();
             setTimeout(() => modal.remove(), 240);
         };
@@ -687,7 +703,7 @@ class AppSidebarDrawer {
         // Gestionnaire de changement d'onglet
         const slot1 = modal.querySelector('#sh-hub-slot-1');
         const slot2 = modal.querySelector('#sh-hub-slot-2');
-        const dashboard = window.SpaceHub?.ui?.dashboard;
+        const dashboard = svc.dashboard();
 
         const renderTab = async (tabKey) => {
             if (!slot1 || !slot2) return;
@@ -773,7 +789,14 @@ class AppSidebarDrawer {
      * 🛡️ Accès au Centre d'Administration & Supervision Serveur SpaceHub
      */
     _openAdminDashboard() {
-        const adminView = window.SpaceHub?.ui?.adminDashboard || new AdminDashboardView();
+        // Gelée : l'objet n'est pas instancié au démarrage. Sans ce garde-fou,
+        // le repli `|| new AdminDashboardView()` la ressusciterait ici.
+        if (svc.features()?.isEnabled?.('features.adminConsole') === false) {
+            svc.toaster()?.info?.(
+                "La console d'administration est gelée. Réglages → Fonctionnalités pour la rallumer.");
+            return;
+        }
+        const adminView = svc.adminDashboard() || new AdminDashboardView();
         adminView.open();
     }
 
@@ -783,569 +806,20 @@ class AppSidebarDrawer {
         return div.innerHTML;
     }
 
+    /**
+     * Démonte le drawer : coupe les écouteurs de `document` posés par
+     * `_bindEvents`. Appelé par AppLayout.destroy().
+     */
+    destroy() {
+        this._ac?.abort();
+        this._ac = null;
+        this._isOpen = false;
+    }
+
     _injectStyles() {
-        if (document.getElementById('sh-sidebar-drawer-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-sidebar-drawer-styles';
-        style.textContent = `
-/* ── Zone Fantôme de Détection Gauche ── */
-.sh-sidebar-trigger-zone {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 20px;
-    height: 100vh;
-    z-index: 290;
-    background: transparent;
-    pointer-events: auto;
-}
-
-.sh-sidebar-trigger-glow {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 2px;
-    background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    opacity: 0;
-    transition: opacity 280ms ease;
-}
-
-.sh-sidebar-trigger-zone:hover .sh-sidebar-trigger-glow {
-    opacity: 1;
-}
-
-/* ── Panneau Latéral Glissant Noir Translucide Glass (Apple VisionOS / TV) ── */
-.sh-sidebar-panel {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 270px;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.72);
-    backdrop-filter: blur(48px) saturate(190%);
-    -webkit-backdrop-filter: blur(48px) saturate(190%);
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
-    z-index: 300;
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-    padding: 24px 16px;
-    transform: translateX(-100%);
-    transition: transform 340ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 340ms ease;
-    box-shadow: 20px 0 60px rgba(0, 0, 0, 0.85);
-    overflow-x: hidden !important;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-}
-
-.sh-sidebar-panel::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-}
-
-.sh-sidebar-panel.open {
-    transform: translateX(0);
-}
-
-/* ── En-tête : Logo Monochrome ── */
-.sh-sidebar-header {
-    margin-bottom: 20px;
-    padding-left: 8px;
-}
-
-.sh-sidebar-brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #ffffff;
-    cursor: default;
-    user-select: none;
-}
-
-.sh-sidebar-brand:hover .sh-sidebar-rocket-icon {
-    transform: translateY(-2px) rotate(-8deg) scale(1.15);
-    stroke: #ffffff;
-}
-
-.sh-sidebar-rocket-icon {
-    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), stroke 200ms ease;
-}
-
-.sh-sidebar-luminous-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.25);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.sh-sidebar-dot-core {
-    width: 3.5px;
-    height: 3.5px;
-    border-radius: 50%;
-    background: #ffffff;
-    animation: sh-pulse-dot 2s infinite ease-in-out;
-}
-
-@keyframes sh-pulse-dot {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.4); opacity: 0.5; }
-}
-
-.sh-sidebar-brand-title {
-    font-size: 18px;
-    font-weight: 750;
-    letter-spacing: -0.03em;
-    color: #ffffff;
-}
-
-/* ── Navigation List avec Capsule Coulissante ── */
-.sh-sidebar-nav {
-    position: relative;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-    padding-right: 2px;
-}
-
-.sh-sidebar-nav::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-}
-
-/* 🌟 Indicateur Coulissant Apple TV (Liquid Spring Slider) 🌟 */
-.sh-sidebar-active-indicator {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 40px;
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 4px 22px rgba(255, 255, 255, 0.38), 0 1px 3px rgba(0, 0, 0, 0.2);
-    pointer-events: none;
-    z-index: 1;
-    transform: translateY(0);
-    transition: transform 320ms cubic-bezier(0.19, 1, 0.22, 1), height 220ms ease, opacity 180ms ease;
-    opacity: 0;
-}
-
-.sh-sidebar-section {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.sh-sidebar-dynamic-libs {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.sh-sidebar-divider {
-    height: 1px;
-    background: rgba(255, 255, 255, 0.07);
-    margin: 10px 8px;
-    position: relative;
-    z-index: 2;
-}
-
-.sh-sidebar-item {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
-    border-radius: 12px;
-    color: rgba(255, 255, 255, 0.65);
-    text-decoration: none;
-    font-size: 13.5px;
-    font-weight: 550;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    text-align: left;
-    width: 100%;
-    box-sizing: border-box;
-    transition: color 200ms ease, background-color 200ms ease;
-}
-
-.sh-sidebar-item:active {
-    transform: scale(0.97);
-}
-
-.sh-sidebar-icon {
-    stroke: rgba(255, 255, 255, 0.65);
-    flex-shrink: 0;
-    transition: stroke 200ms ease, transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sh-sidebar-item-loading {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.35);
-    padding: 8px 14px;
-}
-
-.sh-sidebar-item:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.08);
-    color: #ffffff;
-}
-
-.sh-sidebar-item:hover:not(.active) .sh-sidebar-icon {
-    stroke: #ffffff;
-    transform: scale(1.12);
-}
-
-/* 🌟 Élément Sélectionné traversé par la Capsule Blanche 🌟 */
-.sh-sidebar-item.active {
-    color: #000000 !important;
-    font-weight: 750;
-    background: transparent !important;
-    transform: none !important;
-}
-
-.sh-sidebar-item.active .sh-sidebar-icon {
-    stroke: #000000 !important;
-}
-
-/* ── Pied de Sidebar : Capsules Verre Fixes ── */
-.sh-sidebar-footer {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: auto;
-    padding-top: 14px;
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-.sh-sidebar-footer-btn {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 9px 12px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 11px;
-    color: rgba(255, 255, 255, 0.75);
-    font-size: 12.5px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sh-sidebar-footer-btn svg {
-    stroke: rgba(255, 255, 255, 0.75);
-    transition: stroke 140ms ease;
-}
-
-.sh-sidebar-footer-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.22);
-    color: #ffffff;
-    transform: translateY(-1.5px);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-}
-
-.sh-sidebar-footer-btn:active {
-    transform: scale(0.97);
-}
-
-.sh-sidebar-footer-btn:hover svg {
-    stroke: #ffffff;
-}
-
-.sh-sidebar-footer-btn kbd {
-    margin-left: auto;
-    font-size: 10px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    padding: 2px 5px;
-    border-radius: 5px;
-    color: rgba(255, 255, 255, 0.65);
-    font-family: inherit;
-}
-
-/* ── Modales Spéciales (Ambilight / Lights) ── */
-.sh-sidebar-modal-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    background: rgba(0, 0, 0, 0.82);
-    backdrop-filter: blur(30px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    box-sizing: border-box;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 200ms ease;
-}
-
-.sh-sidebar-modal-overlay.open {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.sh-sidebar-modal-card {
-    width: 100%;
-    max-width: 460px;
-    max-height: 85vh;
-    background: rgba(12, 12, 14, 0.96);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 22px;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.95);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transform: scale(0.94) translateY(10px);
-    transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sh-sidebar-modal-overlay.open .sh-sidebar-modal-card {
-    transform: scale(1) translateY(0);
-}
-
-.sh-sidebar-modal-header {
-    padding: 20px 22px 14px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-}
-
-.sh-sidebar-modal-badge {
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.10em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 3px;
-}
-
-.sh-sidebar-modal-title {
-    font-size: 19px;
-    font-weight: 750;
-    color: #ffffff;
-    margin: 0 0 3px;
-}
-
-.sh-sidebar-modal-subtitle {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.50);
-    margin: 0;
-    line-height: 1.35;
-}
-
-.sh-sidebar-modal-close {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.07);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    color: #ffffff;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 140ms ease;
-}
-
-.sh-sidebar-modal-close:hover {
-    background: rgba(255, 255, 255, 0.16);
-}
-
-.sh-sidebar-modal-body {
-    padding: 16px 22px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-
-.sh-ambilight-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 14px;
-}
-
-.sh-ambilight-card-title {
-    font-size: 13.5px;
-    font-weight: 650;
-    color: #ffffff;
-}
-
-.sh-ambilight-card-sub {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.45);
-    margin-top: 2px;
-}
-
-.sh-ambilight-section-label {
-    font-size: 9.5px;
-    font-weight: 800;
-    letter-spacing: 0.10em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.40);
-    margin-top: 4px;
-}
-
-.sh-ambilight-presets-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 8px;
-}
-
-.sh-ambilight-preset {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.025);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 140ms ease;
-}
-
-.sh-ambilight-preset:hover {
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(255, 255, 255, 0.14);
-}
-
-.sh-ambilight-preset.active {
-    background: rgba(255, 255, 255, 0.10);
-    border-color: #ffffff;
-}
-
-.sh-preset-glow {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-}
-
-.sh-preset-name {
-    font-size: 10.5px;
-    font-weight: 600;
-    color: #ffffff;
-    text-align: center;
-}
-
-.sh-ambilight-slider {
-    width: 100%;
-    accent-color: #ffffff;
-    cursor: pointer;
-}
-
-.sh-sidebar-modal-footer {
-    padding: 14px 22px;
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-}
-
-.sh-sidebar-modal-btn-pri {
-    background: #ffffff;
-    border: none;
-    border-radius: 9999px;
-    color: #000000;
-    font-size: 12.5px;
-    font-weight: 700;
-    padding: 7px 20px;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25);
-    transition: all 140ms ease;
-}
-
-.sh-sidebar-modal-btn-pri:hover {
-    transform: scale(1.02);
-}
-
-/* ── Centre de Téléchargements & Médias (Hub) ── */
-.sh-downloads-hub-card {
-    max-width: 960px !important;
-    width: 90vw !important;
-    max-height: 86vh !important;
-    display: flex;
-    flex-direction: column;
-}
-
-.sh-downloads-hub-tabs {
-    display: flex;
-    gap: 8px;
-    margin: 14px 0 16px 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-bottom: 2px;
-}
-.sh-downloads-hub-tabs::-webkit-scrollbar {
-    display: none;
-}
-
-.sh-hub-tab-btn {
-    padding: 8px 18px;
-    border-radius: 9999px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.72);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    white-space: nowrap;
-    backdrop-filter: blur(16px);
-}
-
-.sh-hub-tab-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-    transform: translateY(-1px);
-}
-
-.sh-hub-tab-btn.active {
-    background: rgba(255, 255, 255, 0.22);
-    border-color: rgba(255, 255, 255, 0.38);
-    color: #ffffff;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-}
-
-.sh-downloads-hub-body {
-    flex: 1;
-    overflow-y: auto;
-    padding-right: 6px;
-    max-height: 56vh;
-}
-.sh-downloads-hub-body::-webkit-scrollbar {
-    width: 6px;
-}
-.sh-downloads-hub-body::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 9999px;
-}
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans AppSidebarDrawer.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

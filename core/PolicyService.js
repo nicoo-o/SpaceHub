@@ -8,11 +8,12 @@
 
 import Logger from './Logger.js';
 
+import * as svc from './services.js';
 class PolicyService {
     constructor({ settings = null, eventBus = null, client = null } = {}) {
-        this._settings = settings || window.SpaceHub?.core?.settings;
-        this._eventBus = eventBus || window.SpaceHub?.core?.eventBus;
-        this._client = client || window.SpaceHub?.core?.api?.getClient?.('jellyfin');
+        this._settings = settings || svc.settings();
+        this._eventBus = eventBus || svc.eventBus();
+        this._client = client || svc.api()?.getClient?.('jellyfin');
         this._log = new Logger('PolicyService');
         this._mode = 'local';
         this._policy = null;

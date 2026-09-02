@@ -10,6 +10,7 @@
 
 import Logger from './Logger.js';
 
+import * as svc from './services.js';
 export class Router {
     /**
      * @param {Object} [options]
@@ -95,24 +96,22 @@ export class Router {
             // Ctrl + Alt + A : Panneau d'administration
             if (e.ctrlKey && e.altKey && (e.key === 'a' || e.key === 'A')) {
                 e.preventDefault();
-                window.SpaceHub?.ui?.adminDashboard?.open?.();
+                svc.adminDashboard()?.open?.();
                 return;
             }
 
             // Ctrl + K : Command Center / Recherche
             if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
-                const searchEnabled = window.SpaceHub?.core?.settings?.get('jellyfin.search.enabled', true);
+                const searchEnabled = svc.settings()?.get('jellyfin.search.enabled', true);
                 if (searchEnabled) {
                     e.preventDefault();
-                    window.SpaceHub?.jellyfin?.search?.open?.();
+                    svc.search()?.open?.();
                 }
                 return;
             }
 
-            // Escape : Fermeture ou retour arrière
-            if (e.key === 'Escape') {
-                this._eventBus?.emit('navigation:back');
-            }
+            // Escape est désormais géré exclusivement par SpatialNavigation._handleBack()
+            // (retrait de la ligne "navigation:back" — aucun abonné actif, doublon supprimé cf. plan A05).
         };
         window.addEventListener('keydown', this._keydownHandler);
     }
