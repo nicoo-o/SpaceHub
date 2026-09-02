@@ -11,6 +11,7 @@
 
 import Logger from '../../core/Logger.js';
 
+import * as svc from '../../core/services.js';
 const STORAGE_KEY = 'SpaceHub_jellyfin_auth';
 
 class AuthManager {
@@ -182,6 +183,42 @@ class AuthManager {
     }
 
     /**
+     * Liste les comptes affichables sur l'écran de connexion.
+     *
+     * Jellyfin expose `/Users/Public` sans authentification : ce sont les
+     * comptes que l'administrateur a choisi de rendre visibles. C'est ce qui
+     * permet de proposer un choix de profil au lieu d'un champ texte vide —
+     * l'audit relevait que l'application était mono-utilisateur en pratique.
+     *
+     * Un serveur qui masque ses utilisateurs renvoie une liste vide : l'écran
+     * de connexion retombe alors sur la saisie du nom, sans erreur.
+     *
+     * @param {string} serverUrl
+     * @returns {Promise<Array<{Id: string, Name: string, PrimaryImageTag?: string, HasPassword?: boolean}>>}
+     */
+    async getPublicUsers(serverUrl) {
+        const base = (serverUrl || '').trim().replace(/\/$/, '');
+        if (!base) return [];
+        const tenter = async (url) => {
+            const res = await fetch(url, { headers: { Accept: 'application/json' } });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        };
+        try {
+            return await tenter(`${base}/Users/Public`);
+        } catch (direct) {
+            try {
+                // Même repli que la connexion : le proxy relatif du serveur de
+                // développement, quand l'appel direct est bloqué par CORS.
+                return await tenter(`/api-proxy?url=${encodeURIComponent(`${base}/Users/Public`)}`);
+            } catch (viaProxy) {
+                this._log.warn('Liste des comptes publics indisponible :', viaProxy?.message || direct?.message);
+                return [];
+            }
+        }
+    }
+
+    /**
      * Déconnecte l'utilisateur et nettoie la session.
      */
     logout() {
@@ -193,7 +230,7 @@ class AuthManager {
     _syncGlobalClient(serverUrl, token) {
         const cleanUrl = (serverUrl || '').replace(/\/$/, '');
         try {
-            const jellyfinClient = window.SpaceHub?.core?.api?.getClient('jellyfin');
+            const jellyfinClient = svc.api()?.getClient('jellyfin');
             if (jellyfinClient) {
                 jellyfinClient.setBaseUrl(cleanUrl);
                 jellyfinClient.setApiKey(token);
