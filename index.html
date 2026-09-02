@@ -13,8 +13,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
 
-    <!-- Design Tokens -->
-    <link rel="stylesheet" href="/ui/design-system/tokens.css" />
+    <!-- Design Tokens — servis tels quels depuis public/ (jamais empaquetés).
+         C'est volontaire : ce lien doit précéder la feuille générée par Vite,
+         sans quoi les tokens écraseraient les règles des composants. -->
+    <link rel="stylesheet" href="/design-system/tokens.css" />
 
     <style>
         * {

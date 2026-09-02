@@ -1,0 +1,457 @@
+/**
+ * SpaceHub — Design Tokens
+ * Version: 2.0.0 (Apple TV Premium)
+ *
+ * Variables CSS globales définissant l'identité visuelle de SpaceHub.
+ * Référence visuelle : Apple TV+ (tvOS / macOS)
+ * Noir OLED absolu (#000000), typographie contrastée, zéro accent violet.
+ */
+
+:root {
+
+    /* ─── Encre de l'interface (pivot clair/sombre) ───────────
+       Presque toute la couleur de SpaceHub est de l'encre blanche à
+       opacité variable posée sur un fond sombre. Cette variable est le
+       point de bascule unique : le thème clair la passe à 0,0,0 et
+       l'ensemble de l'interface s'inverse. La valeur de repli garantit
+       l'apparence sombre actuelle même si tokens.css n'est pas chargé. */
+    --sh-ink:                    255, 255, 255;
+
+    /* Encre OPAQUE (textes pleins, boutons pleins, fonds inversés).
+       Complète --sh-ink pour les couleurs sans transparence. */
+    --sh-ink-solid:              #ffffff;
+    --sh-ink-solid-inv:          #000000;
+
+    /* Encre INVERSE translucide : fonds de panneaux, docks, modales, menus
+       construits en noir semi-transparent. Bascule en clair ; les OMBRES
+       (box-shadow) gardent volontairement du noir en dur dans les deux thèmes. */
+    --sh-ink-inv:                0, 0, 0;
+
+    /* Encre POSEE SUR UN MEDIA (hero, lecteur vidéo, incrustations d'affiche).
+       Ces surfaces gardent un voile sombre dans les deux thèmes — le texte
+       dessus doit donc rester clair, sinon il devient illisible en mode clair.
+       Volontairement absentes des presets : elles ne basculent jamais. */
+    --sh-on-media:               255, 255, 255;
+    --sh-on-media-solid:         #ffffff;
+    --sh-on-media-solid-inv:     #000000;
+    --sh-on-media-inv:           0, 0, 0;
+
+    /* ─── Flou d'arrière-plan ─────────────────────────────────
+       `backdrop-filter` est l'une des propriétés CSS les plus coûteuses :
+       elle force une passe de compositing séparée à chaque frame où la zone
+       change. L'audit en comptait 173 occurrences, dont beaucoup répétées
+       PAR CARTE (badge codec, bouton favori, note) et par-dessus la vidéo du
+       lecteur — soit des centaines de couches floutées sur un GPU de TV.
+       Il n'en reste que sur le chrome statique à instance unique, et toutes
+       passent par cette variable : la passer à `none` désactive le flou
+       partout d'un coup. */
+    /* Couleur des ombres portées.
+       En thème sombre, une ombre noire sur fond noir est invisible et donc
+       inoffensive. En thème clair, la même ombre noire produit un halo sale
+       autour de chaque carte : le token permet de l'adoucir sans toucher aux
+       120 déclarations box-shadow réparties dans l'application. */
+    --sh-shadow-rgb: 0, 0, 0;
+
+    /* ── Mouvement ───────────────────────────────────────────────────────────
+       Avant : 14 courbes et une trentaine de durées réécrites à la main partout,
+       donc deux transitions équivalentes n'avaient pas le même rythme selon le
+       composant — ce qui se ressent comme un manque de finition même quand rien
+       n'est cassé (audit §5). Cinq durées, cinq courbes, une seule source.
+
+       Choisir la durée par l'ampleur du déplacement, pas par le composant :
+         1 = réaction immédiate (survol, focus, bascule)
+         2 = petit élément (bouton, puce, badge)
+         3 = élément de contenu (carte, rangée, onglet)
+         4 = panneau (tiroir, modale, feuille)
+         5 = entrée d'écran (hero, première apparition)                        */
+    /* ── Gabarit de page ─────────────────────────────────────────────────────
+       Avant : chaque écran refaisait ses marges à la main — le Dashboard en
+       `0 48px` plafonné à 1560 px, la Bibliothèque en `100px 3.5vw` sans
+       plafond, les Téléchargements en `96px 48px`. D'un écran à l'autre le
+       contenu ne commençait donc pas au même endroit et ne s'arrêtait pas à la
+       même largeur : c'est la cause des décalages visibles en navigant (audit §5).
+
+       Une seule gouttière, un seul plafond, une seule réserve haute sous le dock
+       flottant. Un écran qui a besoin d'autre chose le déclare explicitement,
+       ce qui rend l'exception lisible au lieu d'être un oubli. */
+    --sh-page-max: 1560px;
+    --sh-page-gutter: 48px;
+    --sh-page-top: 96px;
+
+    --sh-dur-1: 120ms;
+    --sh-dur-2: 180ms;
+    --sh-dur-3: 260ms;
+    --sh-dur-4: 360ms;
+    --sh-dur-5: 550ms;
+
+    /* `out` couvre l'écrasante majorité des cas : départ vif, arrivée posée.
+       `spring` dépasse légèrement la cible — réservé aux apparitions et aux
+       retours tactiles, jamais à un déplacement de focus (le dépassement rend
+       la position finale ambiguë à la télécommande). */
+    --sh-ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
+    --sh-ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+    --sh-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --sh-ease-in-out:   cubic-bezier(0.5, 0, 0.5, 1);
+    --sh-ease-shake:    cubic-bezier(0.36, 0.07, 0.19, 0.97);
+
+    --sh-blur-chrome:            blur(20px) saturate(160%);
+
+    /* Anneau de focus TV/clavier — volontairement très contrasté */
+    --sh-focus-ring:             rgba(var(--sh-ink, 255, 255, 255), 0.95);
+
+    /* ─── Couleurs de base — Monochrome Apple TV ─────────────── */
+    --sh-color-primary:          #ffffff;   /* Blanc pur (actions principales) */
+    --sh-color-primary-hover:    #f0f0f0;
+    --sh-color-primary-active:   #e0e0e0;
+    --sh-color-primary-rgb:      255, 255, 255;
+
+    --sh-color-secondary:        rgba(var(--sh-ink, 255, 255, 255),  0.50); /* Gris argenté */
+    --sh-color-secondary-hover:  rgba(var(--sh-ink, 255, 255, 255),  0.75);
+    --sh-color-secondary-rgb:    255, 255, 255;
+
+    --sh-color-danger:           #ff453a;   /* Rouge Apple système */
+    --sh-color-warning:          #ff9f0a;   /* Orange Apple système */
+    --sh-color-success:          #32d74b;   /* Vert Apple système */
+    --sh-color-info:             #64d2ff;   /* Bleu ciel Apple système */
+
+    /* ─── Surfaces & fonds — OLED & Frosted Glass ───────────── */
+    --sh-bg-base:                #000000;   /* Noir OLED absolu */
+    --sh-bg-surface:             #111111;   /* Surface relevée */
+    --sh-bg-surface-2:           #1a1a1a;   /* Nested surfaces */
+    --sh-bg-surface-3:           #242424;   /* Hover states */
+    --sh-bg-overlay:             rgba(0, 0, 0, 0.88); /* Backdrop modal */
+    --sh-bg-glass:               rgba(var(--sh-ink, 255, 255, 255),  0.07);
+    --sh-bg-glass-heavy:         rgba(0, 0, 0, 0.92);
+    --sh-bg-glass-blur:          blur(32px) saturate(180%);
+
+    /* ─── Texte — Contraste Apple ────────────────────────────── */
+    --sh-text-primary:           #ffffff;   /* Blanc pur */
+    --sh-text-secondary:         rgba(var(--sh-ink, 255, 255, 255),  0.65); /* Gris moyen */
+    --sh-text-muted:             rgba(var(--sh-ink, 255, 255, 255),  0.38); /* Gris discret */
+    --sh-text-on-primary:        #000000;   /* Noir sur bouton blanc */
+    --sh-text-on-dark:           rgba(var(--sh-ink, 255, 255, 255),  0.90);
+
+    /* ─── Bordures — Invisibles ou ultrafines ───────────────── */
+    --sh-border-color:           rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    --sh-border-color-hover:     rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    --sh-border-color-focus:     rgba(var(--sh-ink, 255, 255, 255),  0.40);
+    --sh-border-width:           1px;
+    --sh-border-width-thick:     2px;
+
+    /* ─── Rayons de bordure ──────────────────────────────────── */
+    --sh-radius-xs:              4px;
+    --sh-radius-sm:              8px;
+    --sh-radius-md:              12px;
+    --sh-radius-lg:              16px;
+    --sh-radius-xl:              24px;
+    --sh-radius-full:            9999px;
+
+    /* ─── Espacement (base 4px) ──────────────────────────────── */
+    --sh-space-1:                4px;
+    --sh-space-2:                8px;
+    --sh-space-3:                12px;
+    --sh-space-4:                16px;
+    --sh-space-5:                20px;
+    --sh-space-6:                24px;
+    --sh-space-8:                32px;
+    --sh-space-10:               40px;
+    --sh-space-12:               48px;
+    --sh-space-16:               64px;
+
+    /* ─── Typographie — SF Pro Style ─────────────────────────── */
+    --sh-font-family:            'SF Pro Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --sh-font-family-mono:       'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+
+    --sh-text-xs:                11px;
+    --sh-text-sm:                13px;
+    --sh-text-base:              15px;
+    --sh-text-md:                17px;
+    --sh-text-lg:                22px;
+    --sh-text-xl:                28px;
+    --sh-text-2xl:               36px;
+    --sh-text-3xl:               48px;
+    --sh-text-4xl:               64px;
+
+    --sh-font-light:             300;
+    --sh-font-normal:            400;
+    --sh-font-medium:            500;
+    --sh-font-semibold:          600;
+    --sh-font-bold:              700;
+    --sh-font-black:             900;
+
+    --sh-leading-tight:          1.15;
+    --sh-leading-normal:         1.45;
+    --sh-leading-relaxed:        1.65;
+
+    /* ─── Ombres — Profondes Cinématiques ───────────────────── */
+    --sh-shadow-sm:              0 2px 8px rgba(0, 0, 0, 0.5);
+    --sh-shadow-md:              0 8px 24px rgba(0, 0, 0, 0.7);
+    --sh-shadow-lg:              0 16px 48px rgba(0, 0, 0, 0.85);
+    --sh-shadow-xl:              0 32px 80px rgba(0, 0, 0, 0.95);
+    --sh-shadow-primary:         0 4px 20px rgba(var(--sh-ink, 255, 255, 255),  0.15);
+    --sh-shadow-glow:            0 0 24px rgba(var(--sh-ink, 255, 255, 255),  0.20);
+
+    /* ─── Transitions — Courbes Apple ───────────────────────── */
+    --sh-transition-fast:        120ms cubic-bezier(0.4, 0, 0.2, 1);
+    --sh-transition-base:        220ms cubic-bezier(0.4, 0, 0.2, 1);
+    --sh-transition-slow:        380ms cubic-bezier(0.4, 0, 0.2, 1);
+    --sh-transition-spring:      350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    --sh-transition-smooth:      600ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+    /* ─── Z-index ────────────────────────────────────────────── */
+    --sh-z-base:                 1;
+    --sh-z-dropdown:             100;
+    --sh-z-sticky:               200;
+    --sh-z-overlay:              300;
+    --sh-z-modal:                400;
+    --sh-z-toast:                500;
+    --sh-z-tooltip:              600;
+
+    /* ─── Cartes médias ──────────────────────────────────────── */
+    --sh-card-bg:                var(--sh-bg-surface);
+    --sh-card-border:            none;
+    --sh-card-radius:            10px;
+    --sh-card-shadow:            var(--sh-shadow-md);
+    --sh-card-shadow-hover:      0 20px 48px rgba(0,0,0,0.90), 0 0 0 1px rgba(var(--sh-ink, 255, 255, 255), 0.14);
+    --sh-card-aspect-poster:     2 / 3;
+    --sh-card-aspect-backdrop:   16 / 9;
+    --sh-card-aspect-thumb:      4 / 3;
+
+    /* ─── Scrollbar ──────────────────────────────────────────── */
+    --sh-scrollbar-width:        4px;
+    --sh-scrollbar-thumb:        rgba(var(--sh-ink, 255, 255, 255),  0.18);
+    --sh-scrollbar-track:        transparent;
+
+    /* ─── Glass Input ─────────────────────────────────────── */
+    --sh-input-bg:               rgba(var(--sh-ink, 255, 255, 255),  0.06);
+    --sh-input-bg-focus:         rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    --sh-input-border:           rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    --sh-input-border-focus:     rgba(var(--sh-ink, 255, 255, 255),  0.40);
+    --sh-input-text:             #ffffff;
+    --sh-input-placeholder:      rgba(var(--sh-ink, 255, 255, 255),  0.35);
+    --sh-input-radius:           12px;
+    --sh-input-padding:          12px 16px;
+    --sh-input-shadow-focus:     0 0 0 3px rgba(var(--sh-ink, 255, 255, 255),  0.12);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UTILITAIRES GLOBAUX
+   ═══════════════════════════════════════════════════════════════ */
+
+body, #app {
+    background-color: var(--sh-bg-base) !important;
+    color: var(--sh-text-primary) !important;
+    margin: 0;
+    padding: 0;
+    font-family: var(--sh-font-family);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+body::-webkit-scrollbar, #app::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+/* Scrollbar SpaceHub — Discrete Apple Style */
+.sh-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--sh-scrollbar-thumb) var(--sh-scrollbar-track);
+}
+.sh-scrollbar::-webkit-scrollbar        { width: var(--sh-scrollbar-width); height: var(--sh-scrollbar-width); }
+.sh-scrollbar::-webkit-scrollbar-thumb  { background: var(--sh-scrollbar-thumb); border-radius: var(--sh-radius-full); }
+.sh-scrollbar::-webkit-scrollbar-track  { background: var(--sh-scrollbar-track); }
+
+/* ── No-Scrollbar Utility ─────────────────────────────────────── */
+.sh-no-scrollbar {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+.sh-no-scrollbar::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+
+/* ── Glass Input Global ───────────────────────────────────────── */
+.sh-input {
+    background: var(--sh-input-bg);
+    border: 1px solid var(--sh-input-border);
+    border-radius: var(--sh-input-radius);
+    padding: var(--sh-input-padding);
+    color: var(--sh-input-text);
+    font-size: 14px;
+    font-family: var(--sh-font-family);
+    font-weight: 450;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.sh-input::placeholder { color: var(--sh-input-placeholder); }
+.sh-input:focus {
+    background: var(--sh-input-bg-focus);
+    border-color: var(--sh-input-border-focus);
+    box-shadow: var(--sh-input-shadow-focus);
+}
+.sh-input:focus-visible { outline: none; }
+
+/* ── Apple Toggle Switch ──────────────────────────────────────── */
+.sh-toggle {
+    position: relative;
+    display: inline-flex;
+    width: 44px;
+    height: 26px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+.sh-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.sh-toggle-track {
+    width: 100%;
+    height: 100%;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.15);
+    border-radius: 999px;
+    transition: background 220ms ease;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.10);
+}
+.sh-toggle input:checked + .sh-toggle-track { background: #ffffff; }
+.sh-toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: rgba(180, 180, 180, 0.9);
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), background 220ms ease;
+}
+.sh-toggle input:checked ~ .sh-toggle-thumb {
+    transform: translateX(18px);
+    background: #000000;
+}
+
+/* ── Badge / Pill Statuts ─────────────────────────────────────── */
+.sh-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+.sh-badge--success { background: rgba(50, 215, 75, 0.15);  color: #32d74b; border: 1px solid rgba(50, 215, 75, 0.25); }
+.sh-badge--warning { background: rgba(255, 159, 10, 0.15); color: #ff9f0a; border: 1px solid rgba(255, 159, 10, 0.25); }
+.sh-badge--danger  { background: rgba(255, 69, 58, 0.15);  color: #ff453a; border: 1px solid rgba(255, 69, 58, 0.25); }
+.sh-badge--info    { background: rgba(100, 210, 255, 0.12); color: #64d2ff; border: 1px solid rgba(100, 210, 255, 0.20); }
+.sh-badge--neutral { background: rgba(var(--sh-ink, 255, 255, 255),  0.08); color: rgba(var(--sh-ink, 255, 255, 255), 0.65); border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.12); }
+
+/* Truncate text */
+.sh-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Visually hidden (accessibilité) */
+.sh-sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Animations réutilisables */
+@keyframes sh-fadeIn        { from { opacity: 0; }                               to { opacity: 1; } }
+@keyframes sh-fadeInUp      { from { opacity: 0; transform: translateY(12px); }  to { opacity: 1; transform: translateY(0); } }
+@keyframes sh-fadeInDown    { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes sh-scaleIn       { from { opacity: 0; transform: scale(0.94); }       to { opacity: 1; transform: scale(1); } }
+@keyframes sh-springIn      { from { opacity: 0; transform: scale(0.92) translateY(14px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes sh-slideInRight  { from { transform: translateX(110%); }              to { transform: translateX(0); } }
+@keyframes sh-slideOutRight { from { transform: translateX(0); opacity: 1; }     to { transform: translateX(110%); opacity: 0; } }
+@keyframes sh-pulse         { 0%, 100% { opacity: 1; }                           50% { opacity: 0.5; } }
+@keyframes sh-spin          { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ── Anneau de focus générique (navigation TV/clavier) ──────────────────────
+   SpatialNavigation.setFocus() ajoute .sh-focus-active/.sh-tv-focused à TOUT
+   élément qui reçoit le focus logique (sidebar, boutons, filtres, onglets,
+   champs...), mais seuls .sh-card (CardBuilder) et .sh-hero-edge-btn
+   (HeroSpotlightComponent) ont leur propre style de focus dédié. Partout
+   ailleurs, le focus se déplaçait bien mais restait invisible à l'écran.
+   Ce filet générique garantit un indicateur visible par défaut ; les
+   composants qui définissent déjà leur propre traitement (.sh-card,
+   .sh-hero-edge-btn) restent inchangés et ne reçoivent pas ce contour en plus. */
+.sh-focus-active:not(.sh-card):not(.sh-hero-edge-btn) {
+    /* outline-offset NEGATIF : l'anneau est trace A L'INTERIEUR de l'element,
+       donc jamais rogne par un parent en overflow:hidden (sidebar, carrousels,
+       cartes de widgets — tous en overflow cache dans cette app).
+       !important : plusieurs composants posent "outline: none !important"
+       (boutons de widgets du Dashboard, console Jellyfin...) et neutralisaient
+       sinon completement l'indicateur de focus. */
+    outline: 3px solid var(--sh-focus-ring, rgba(255, 255, 255, 0.95)) !important;
+    outline-offset: -3px !important;
+    box-shadow: 0 0 0 4px rgba(var(--sh-ink, 255, 255, 255), 0.22) !important;
+}
+
+/* Les affiches ont deja un effet de zoom/elevation au focus, mais un ecart de
+   2,5% est indetectable sur une grille dense vue de loin (usage TV). On ajoute
+   un anneau franc sur la vignette elle-meme, en gardant l'effet existant.
+   Anneau interieur : jamais rogne par le overflow:hidden de .sh-card__image-wrap. */
+.sh-card.sh-focus-active .sh-card__image-wrap,
+.sh-hero-edge-btn.sh-focus-active {
+    outline: 3px solid var(--sh-on-media-solid, #ffffff) !important;
+    outline-offset: -3px !important;
+    box-shadow: 0 0 0 3px rgba(var(--sh-ink, 255, 255, 255), 0.35),
+                0 28px 65px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* Sur les appareils qui demandent une reduction des animations — signal le plus
+   fiable dont on dispose pour "machine modeste ou utilisateur sensible" — on
+   coupe aussi le flou, qui est le poste de cout GPU le plus lourd. */
+@media (prefers-reduced-motion: reduce) {
+    :root { --sh-blur-chrome: none; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Gabarit de page partagé
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sh-page {
+    width: 100%;
+    max-width: var(--sh-page-max);
+    margin-inline: auto;
+    padding-top: var(--sh-page-top);
+    padding-inline: var(--sh-page-gutter);
+    padding-bottom: 60px;
+    box-sizing: border-box;
+}
+
+/* Centrage : trois cas, trois classes, au lieu d'un mélange de flex, de marges
+   automatiques et de `translate(-50%, -50%)` réinventé par composant. */
+.sh-center      { display: flex; align-items: center; justify-content: center; }
+.sh-center-x    { display: flex; justify-content: center; }
+.sh-center-y    { display: flex; align-items: center; }
+.sh-center-abs  { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+@media (max-width: 1100px) {
+    :root { --sh-page-gutter: 32px; }
+}
+@media (max-width: 768px) {
+    :root { --sh-page-gutter: 16px; --sh-page-top: 80px; }
+}
+@media (max-width: 480px) {
+    :root { --sh-page-gutter: 10px; }
+}

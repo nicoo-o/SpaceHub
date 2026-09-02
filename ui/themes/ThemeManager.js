@@ -17,6 +17,7 @@
 import Logger        from '../../core/Logger.js';
 import PRESETS, { getPreset } from './presets/index.js';
 
+import * as svc from '../../core/services.js';
 const SETTINGS_KEY    = 'ui.theme';
 const STYLE_ELEMENT_ID = 'sh-theme-vars';
 
@@ -33,10 +34,14 @@ class ThemeManager {
         this._styleEl  = null;
         this._customThemes = [];
 
-        // Écouter les changements de thème via settings
+        // Écouter les changements de thème via settings.
+        // Garde essentielle : apply() lui-même appelle settings.set(), qui réémet
+        // "settings:changed" — sans ce filtre sur la valeur déjà active, on boucle
+        // indéfiniment (apply → settings:changed → apply → ...) jusqu'à RangeError
+        // "Maximum call stack size exceeded" dès qu'on choisit un thème dans Réglages.
         if (this._eventBus) {
             this._eventBus.on('settings:changed', ({ key, value }) => {
-                if (key === SETTINGS_KEY) this.apply(value);
+                if (key === SETTINGS_KEY && value !== this._current) this.apply(value);
             });
         }
     }
@@ -208,7 +213,7 @@ class ThemeManager {
         if (document.getElementById('sh-tokens-css')) return;
 
         // Tentative via le CDN / chemin relatif
-        const root = window.SpaceHubConfig?.root || window.SpaceHub?.config?.root || '';
+        const root = svc.config()?.root || '';
 
         return new Promise((resolve) => {
             if (!root) {
@@ -224,7 +229,7 @@ class ThemeManager {
             const link = document.createElement('link');
             link.id   = 'sh-tokens-css';
             link.rel  = 'stylesheet';
-            link.href = `${root}ui/design-system/tokens.css`;
+            link.href = `${root}design-system/tokens.css`;
             link.onload  = resolve;
             link.onerror = () => {
                 this._log.error(`Impossible de charger tokens.css depuis : ${link.href}`);
