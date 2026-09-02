@@ -7,15 +7,33 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:smoke": "node scripts/smoke-tests.mjs",
+    "test:smoke": "node --import ./scripts/css-stub-loader.mjs scripts/smoke-tests.mjs",
+    "test:nav": "node scripts/nav-contract-check.mjs && node scripts/nav-behavior-check.mjs",
+    "test:css": "node scripts/css-hygiene-check.mjs",
+    "test:xss": "node scripts/xss-hygiene-check.mjs",
+    "test:globals": "node scripts/globals-check.mjs",
+    "test": "npm run lint && npm run test:smoke && npm run test:nav && npm run test:css && npm run test:xss && npm run test:globals",
     "lint": "node scripts/syntax-check.mjs"
   },
-  "keywords": ["jellyfin", "sonarr", "radarr", "media", "homelab", "servarr"],
-  "repository": { "type": "git", "url": "https://github.com/nicoo-o/SpaceHub.git" },
-  "bugs": { "url": "https://github.com/nicoo-o/SpaceHub/issues" },
+  "keywords": [
+    "jellyfin",
+    "sonarr",
+    "radarr",
+    "media",
+    "homelab",
+    "servarr"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nicoo-o/SpaceHub.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nicoo-o/SpaceHub/issues"
+  },
   "author": "SpaceHub Team",
   "license": "GPL-3.0",
   "devDependencies": {
+    "playwright-core": "^1.62.1",
     "vite": "^5.4.14"
   },
   "dependencies": {

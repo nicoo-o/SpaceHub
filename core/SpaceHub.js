@@ -29,6 +29,12 @@ import SpatialNavigation from './SpatialNavigation.js';
 import RatingCacheService from './RatingCacheService.js';
 import TvModeManager    from './TvModeManager.js';
 import TrailerService   from './TrailerService.js';
+import ServiceRegistry  from './ServiceRegistry.js';
+import ErrorBoundary    from './ErrorBoundary.js';
+import ParentalControl  from './ParentalControl.js';
+import FeatureFlags     from './FeatureFlags.js';
+import OfflineStore     from './OfflineStore.js';
+import { GELEES }       from './FeatureFlags.js';
 
 import ThemeManager    from '../ui/themes/ThemeManager.js';
 import Toaster         from '../ui/components/Toaster.js';
@@ -62,6 +68,9 @@ import MetadataService from '../jellyfin/metadata/MetadataService.js';
 import UnifiedSearch    from '../jellyfin/search/UnifiedSearch.js';
 import SmartCollections from '../jellyfin/collections/SmartCollections.js';
 import VideoPlayer      from '../jellyfin/player/VideoPlayer.js';
+import PlayQueue        from '../jellyfin/player/PlayQueue.js';
+import RemoteControlService from '../jellyfin/remote/RemoteControlService.js';
+import DownloadManager  from '../jellyfin/offline/DownloadManager.js';
 
 import AuthManager      from '../jellyfin/auth/AuthManager.js';
 import LoginView        from '../ui/views/LoginView.js';
@@ -100,6 +109,14 @@ const SpaceHub = {
      *   api: ApiClient,
      * }}
      */
+    /**
+     * Registre de services (injection de dépendances).
+     * `window.SpaceHub` reste la façade historique : rien ne casse, mais toute
+     * dépendance peut désormais être résolue explicitement via
+     * `SpaceHub.services.resolve('jellyfin.api')` au lieu d'un `?.` silencieux.
+     * `SpaceHub.services.list()` dit, en console, ce qui est prêt au démarrage.
+     */
+    services: null,
     plugins: null,
     pluginCatalog: null,
     policy: null,
@@ -194,6 +211,14 @@ const SpaceHub = {
 async function init() {
         // 1. Logger & Moteurs Fondamentaux
     const log = new Logger('SpaceHub');
+
+    // 1.0 Registre de services — créé en tout premier pour que chaque service
+    // construit ensuite puisse s'y enregistrer au fil de l'initialisation.
+    const services = new ServiceRegistry({ logger: new Logger('ServiceRegistry') });
+    SpaceHub.services = services;
+    services.register('logger', log);
+    if (typeof window !== 'undefined') services.bindGlobalFacade(window);
+
     const touchEngine = new TouchEngine();
     const audioFeedback = new AudioFeedback();
     const spatialNav = new SpatialNavigation();
@@ -201,20 +226,34 @@ async function init() {
     SpaceHub.spatialNav = spatialNav;
     SpaceHub.gamepad = spatialNav.getGamepad ? spatialNav.getGamepad() : spatialNav._gamepad;
     SpaceHub.core.spatialNavigation = spatialNav;
+    services.register('nav.spatial', spatialNav);
     SpaceHub.core.gamepad = SpaceHub.gamepad;
     SpaceHub.core.audioFeedback = audioFeedback;
+    services.register('input.audioFeedback', audioFeedback);
     SpaceHub.core.touchEngine = touchEngine;
+    services.register('input.touch', touchEngine);
     SpaceHub.core.log = log;
     log.info(`🚀 Initialisation de SpaceHub v${SpaceHub.version}...`);
 
     // 2. EventBus
     const eventBus = new EventBus();
     SpaceHub.core.eventBus = eventBus;
+    services.register('eventBus', eventBus);
+
+    // 2.5 Frontière d'erreur — installée juste après l'EventBus, avant tout le
+    // reste : c'est précisément pendant l'initialisation qu'une exception non
+    // rattrapée laissait l'écran à moitié rendu, sans message.
+    const errors = new ErrorBoundary({ eventBus });
+    errors.install();
+    SpaceHub.core.errors = errors;
+    services.register('errors', errors);
     log.info('EventBus prêt.');
 
     // 3. SettingsManager
     const settings = new SettingsManager(eventBus);
     SpaceHub.core.settings = settings;
+
+    services.register('settings', settings);
 
     // Valeurs par défaut complètes v1.0
     settings.registerDefaults({
@@ -246,13 +285,37 @@ async function init() {
         'qbittorrent.password': '',
         'metadata.policies.default': { defaultOrder: ['jellyfin'], fields: {} },
         'plugins.catalogUrl': '',
+        // Lecteur — plafond de débit envoyé au serveur dans le DeviceProfile.
+        // 0 = aucun plafond (le serveur choisit, DirectPlay si possible).
+        // Ce réglage vit dans localStorage, donc il est déjà PAR APPAREIL :
+        // une TV en Wi-Fi faible et un PC en Ethernet peuvent différer sans
+        // se marcher dessus.
+        'player.maxBitrate': 0,
+        'player.maxBitrateAuto': true,
+        // Contrôle parental d'interface. La vraie séparation reste un compte
+        // Jellyfin dédié à l'enfant : voir core/ParentalControl.js.
+        // Fonctionnalités gelées (audit §7.15) — masquées, pas supprimées.
+        // Voir core/FeatureFlags.js pour le raisonnement.
+        ...Object.fromEntries(Object.entries(GELEES).map(([k, v]) => [k, v.defaut])),
+        // Hors-ligne
+        'offline.enabled': true,
+        'offline.validityDays': 30,
+        'parental.enabled': false,
+        'parental.maxRank': 1,
+        'parental.allowUnrated': false,
         'ui.tvMode': 'auto',
+        // Mode TV : l'échelle et la marge de sûreté dépendent du salon et du
+        // téléviseur (distance de vision, rognage des bords). Sans effet hors
+        // mode TV. Voir core/TvModeManager.js.
+        'ui.tvScale': 1.15,
+        'ui.tvSafeArea': 3.5,
     });
     log.info('SettingsManager prêt.');
 
     // 4. ModuleManager
     const moduleManager = new ModuleManager(eventBus, settings);
     SpaceHub.core.moduleManager = moduleManager;
+    services.register('moduleManager', moduleManager);
     log.info('ModuleManager prêt.');
 
     // 5. PluginManager
@@ -263,16 +326,28 @@ async function init() {
     });
     SpaceHub.plugins = pluginManager;
     SpaceHub.core.pluginManager = pluginManager;
+    services.register('pluginManager', pluginManager);
     log.info('PluginManager prêt.');
 
     // 5.1. RatingCacheService (notes externes)
     const ratingCache = new RatingCacheService({ settings });
     SpaceHub.core.ratingCache = ratingCache;
+    services.register('cache.ratings', ratingCache);
     log.info('RatingCacheService prêt.');
 
     // 5.2. TvModeManager (mode TV télécommande/manette + masquage du curseur)
     const tvMode = new TvModeManager({ settings, eventBus });
     SpaceHub.core.tvMode = tvMode;
+    services.register('tvMode', tvMode);
+    // Drapeaux de fonctionnalité — créés tôt : plusieurs services consultent
+    // leur état au moment de s'initialiser.
+    const features = new FeatureFlags({ settings });
+    SpaceHub.core.features = features;
+    services.register('features', features);
+
+    const parental = new ParentalControl({ settings, eventBus });
+    SpaceHub.core.parental = parental;
+    services.register('parental', parental);
     tvMode.init();
     log.info('TvModeManager prêt.');
 
@@ -280,12 +355,14 @@ async function init() {
     const trailers = new TrailerService();
     SpaceHub.trailers = trailers;
     SpaceHub.ui.trailers = trailers;
+    services.register('ui.trailers', trailers);
     log.info('TrailerService prêt.');
 
     // 5.5. Router Centralisé
     const router = new Router({ eventBus });
     SpaceHub.router = router;
     SpaceHub.core.router = router;
+    services.register('router', router);
     log.info('Router centralisé prêt.');
 
     // 6. Appliquer le niveau de log
@@ -295,6 +372,7 @@ async function init() {
     // 6. CacheManager
     const cache = new CacheManager();
     SpaceHub.core.cache = cache;
+    services.register('cache', cache);
     log.info('CacheManager prêt.');
 
     // 6.5. AuthManager (Jellyfin Authentification)
@@ -306,6 +384,7 @@ async function init() {
     // 7. ApiClient + JellyfinClient
     const api = new ApiClient();
     SpaceHub.core.api = api;
+    services.register('api', api);
 
     try {
         const jfClient = new JellyfinClient();
@@ -333,6 +412,11 @@ async function init() {
         
         const modalSlideUp = new ModalSlideUpSheet();
         SpaceHub.ui.modalSlideUpSheet = modalSlideUp;
+        services.register('ui.themes', themeManager);
+        services.register('ui.toaster', SpaceHub.ui.components.toaster);
+        services.register('ui.cardBuilder', SpaceHub.ui.components.cardBuilder);
+        services.register('ui.settingsPanel', SpaceHub.ui.settingsPanel);
+        services.register('ui.slideUpSheet', modalSlideUp);
         SpaceHub.ui.components.modalSlideUpSheet = modalSlideUp;
 
         log.info('UI & Design System (ThemeManager, Toaster, Modal, CardBuilder, SettingsPanel, ModalSlideUpSheet) prêts.');
@@ -366,19 +450,31 @@ async function init() {
         dashboard.registerWidget('media-analytics', MediaAnalyticsWidget);
 
         SpaceHub.ui.dashboard = dashboard;
-        SpaceHub.ui.adminDashboard = new AdminDashboardView();
-        SpaceHub.ui.jellyfinConsole = new JellyfinConsoleModal();
+        // Console d'administration : instanciée seulement si le drapeau est levé.
+        // Les appelants testent déjà l'existence de l'objet (`?.open?.()`), donc
+        // laisser ces champs à null suffit à neutraliser tous les points d'entrée.
+        if (features.isEnabled('features.adminConsole')) {
+            SpaceHub.ui.adminDashboard = new AdminDashboardView();
+            SpaceHub.ui.jellyfinConsole = new JellyfinConsoleModal();
+        }
         log.info('Dashboard & Tous les Widgets enregistrés.');
     } catch (err) {
         log.error('Erreur initialisation Dashboard:', err);
     }
 
     // 9.5. Notifications & Webhooks (Discord, Telegram, Web Push)
-    try {
-        SpaceHub.core.notifications = new NotificationService(eventBus, settings);
-        log.info('NotificationService (Discord, Telegram, Web Push) prêt.');
-    } catch (err) {
-        log.warn('NotificationService non initialisé:', err);
+    // Gelées par défaut : un service non initialisé n'est pas une erreur, on ne
+    // le signale donc pas comme telle. `SpaceHub.core.notifications` reste null,
+    // ce que tous les appelants testent déjà.
+    if (!features.isEnabled('features.notifications')) {
+        log.info('Notifications gelées (Réglages → Fonctionnalités pour les rallumer).');
+    } else {
+        try {
+            SpaceHub.core.notifications = new NotificationService(eventBus, settings);
+            log.info('NotificationService (Discord, Telegram, Web Push) prêt.');
+        } catch (err) {
+            log.warn('NotificationService non initialisé:', err);
+        }
     }
 
     // 10. Jellyfin Core Amélioré & Lecteur Vidéo
@@ -389,6 +485,40 @@ async function init() {
         SpaceHub.jellyfin.search = new UnifiedSearch();
         SpaceHub.jellyfin.collections = new SmartCollections();
         SpaceHub.player = new VideoPlayer();
+        // File d'attente : vide au démarrage, donc sans effet tant que personne
+        // n'y met rien. Le lecteur retombe alors sur l'enchaînement d'épisodes.
+        SpaceHub.player.queue = new PlayQueue({ eventBus });
+        SpaceHub.player._queue = SpaceHub.player.queue;
+        services.register('player.queue', SpaceHub.player.queue);
+        // Lecture à distance : envoie un ordre à un autre client Jellyfin.
+        // Aucun flux ne passe par ce navigateur, c'est le serveur qui relaie.
+        SpaceHub.jellyfin.remote = new RemoteControlService({ api, auth, eventBus });
+        services.register('jellyfin.remote', SpaceHub.jellyfin.remote);
+
+        // Hors-ligne : le stockage et le gestionnaire de téléchargement.
+        // Le navigateur peut ne pas savoir faire (navigation privée, IndexedDB
+        // désactivé) : dans ce cas les deux restent null et l'interface masque
+        // simplement les entrées correspondantes, sans erreur.
+        if (OfflineStore.estDisponible()) {
+            const offlineStore = new OfflineStore({ eventBus });
+            SpaceHub.offline = {
+                store: offlineStore,
+                downloads: new DownloadManager({ store: offlineStore, auth, eventBus, settings }),
+            };
+            services.register('offline.store', SpaceHub.offline.store);
+            services.register('offline.downloads', SpaceHub.offline.downloads);
+            // Purge des téléchargements expirés au démarrage, sans bloquer le
+            // rendu : c'est de l'entretien, pas une étape d'initialisation.
+            offlineStore.purger().catch(err => log.warn('Purge hors-ligne :', err));
+        } else {
+            log.info('Stockage hors-ligne indisponible sur ce navigateur.');
+        }
+        services.register('jellyfin.api', SpaceHub.jellyfin.api);
+        services.register('jellyfin.plugins', SpaceHub.jellyfin.plugins);
+        services.register('jellyfin.metadata', SpaceHub.metadata);
+        services.register('jellyfin.search', SpaceHub.jellyfin.search);
+        services.register('jellyfin.collections', SpaceHub.jellyfin.collections);
+        services.register('player', SpaceHub.player);
         log.info('Jellyfin Core Amélioré (API, plugins, métadonnées, UnifiedSearch, SmartCollections, VideoPlayer) prêt.');
     } catch (err) {
         log.error('Erreur initialisation Jellyfin Core:', err);
@@ -418,6 +548,9 @@ async function init() {
     // ne fournit pas la configuration du plugin compagnon SpaceHub.
     await SpaceHub.policy.load();
     SpaceHub.sdk = new SpaceHubSDK();
+    services.register('pluginCatalog', SpaceHub.pluginCatalog);
+    services.register('policy', SpaceHub.policy);
+    services.register('sdk', SpaceHub.sdk);
     log.info('Extension SDK disponible via SpaceHub.sdk avec catalogue et permissions.');
 
     // 11.5. Plugin SDK intégré : notes externes (spacehub.ratings)
@@ -461,6 +594,7 @@ async function init() {
             init: async () => {
                 const service = new ServiceClass({ cache, eventBus, settings });
                 SpaceHub.integrations[id] = service;
+                services.register(`integrations.${id}`, service);
                 return service;
             }
         });
@@ -472,12 +606,23 @@ async function init() {
         }
     };
 
-    await registerIntegration('sonarr', 'Sonarr Integration', SonarrService);
-    await registerIntegration('radarr', 'Radarr Integration', RadarrService);
-    await registerIntegration('prowlarr', 'Prowlarr Integration', ProwlarrService);
-    await registerIntegration('bazarr', 'Bazarr Integration', BazarrService);
-    await registerIntegration('jellyseerr', 'Jellyseerr Integration', JellyseerrService);
-    await registerIntegration('qbittorrent', 'qBittorrent Integration', QBittorrentService);
+    // A09 (option sûre) : ne plus bloquer le premier rendu sur l'initialisation des intégrations
+    // Servarr. Les widgets qui les consomment (Dashboard) affichent déjà un état "non configuré"
+    // tant que l'intégration n'est pas prête (cf. audit A09), donc on peut les initialiser après
+    // le montage de l'app plutôt que d'attendre les 6 appels réseau/disque avant le premier rendu.
+    const registerDeferredIntegrations = async () => {
+        await registerIntegration('sonarr', 'Sonarr Integration', SonarrService);
+        await registerIntegration('radarr', 'Radarr Integration', RadarrService);
+        await registerIntegration('prowlarr', 'Prowlarr Integration', ProwlarrService);
+        await registerIntegration('bazarr', 'Bazarr Integration', BazarrService);
+        await registerIntegration('jellyseerr', 'Jellyseerr Integration', JellyseerrService);
+        await registerIntegration('qbittorrent', 'qBittorrent Integration', QBittorrentService);
+    };
+    if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(() => { registerDeferredIntegrations(); }, { timeout: 2000 });
+    } else {
+        setTimeout(() => { registerDeferredIntegrations(); }, 0);
+    }
 
     // 13. Monter l'application cliente dans #app (si présent)
     const appTarget = document.getElementById('app');
@@ -487,6 +632,7 @@ async function init() {
             if (auth.isAuthenticated()) {
                 const appLayout = new AppLayout();
                 SpaceHub.ui.appLayout = appLayout;
+                services.register('ui.appLayout', appLayout, { override: true });
                 appLayout.render(appTarget);
                 log.info('AppLayout monté dans #app (Session active).');
                 window.SpaceHub.gamepad = appLayout?._spatialNav?._gamepad;
@@ -510,6 +656,33 @@ async function init() {
             }
         };
         renderApp();
+    }
+
+    // 13.5 Outils de développement — chargés uniquement en dev.
+    // `import.meta.env.DEV` est remplacé statiquement par Vite au build, donc
+    // ce bloc (et le harnais qu'il importe) disparaît complètement du bundle
+    // de production : aucun coût pour l'utilisateur final.
+    if (import.meta.env?.DEV) {
+        try {
+            const { default: NavTestHarness } = await import('./dev/NavTestHarness.js');
+            SpaceHub.dev = SpaceHub.dev || {};
+            SpaceHub.dev.navTest = new NavTestHarness(spatialNav);
+            services.register('dev.navTest', SpaceHub.dev.navTest);
+            log.info('Outils de développement prêts — lancez : await SpaceHub.dev.navTest.runAll()');
+        } catch (err) {
+            log.warn('Harnais de navigation non chargé :', err);
+        }
+    }
+
+    // 13.8 Coque applicative hors-ligne.
+    // Uniquement sur l'application construite : en développement, un service
+    // worker qui met en cache des modules servirait des versions périmées à
+    // chaque rechargement et donnerait l'impression que les modifications ne
+    // prennent pas effet — le pire mode de panne pour du travail en cours.
+    if (!import.meta.env?.DEV && 'serviceWorker' in navigator && settings.get('offline.enabled', true)) {
+        navigator.serviceWorker.register('/sh-offline-sw.js')
+            .then(() => log.info('Coque hors-ligne active — l\'application s\'ouvre sans réseau.'))
+            .catch(err => log.warn('Coque hors-ligne non enregistrée :', err));
     }
 
     // 14. Masquer le Splash Loader

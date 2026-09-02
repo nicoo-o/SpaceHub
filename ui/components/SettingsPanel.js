@@ -11,15 +11,17 @@
 
 import Logger from '../../core/Logger.js';
 
+import './SettingsPanel.css';
+import * as svc from '../../core/services.js';
 class SettingsPanel {
     constructor() {
         // Confirmation du scope settings dans le Focus Registry
-        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        const spatialNav = svc.nav() || svc.nav();
         if (spatialNav?.registerFocusables) {
             spatialNav.registerFocusables('settings', (container) => {
                 const root = container || document.querySelector('#sh-modal-spacehub-settings') || document;
-                return Array.from(root.querySelectorAll('.sh-settings-nav-item, .sh-settings-input, .sh-settings-toggle, .sh-btn-primary, [data-nav-focusable="true"]'));
-            });
+                return Array.from(root.querySelectorAll('.sh-settings-nav__item, .sh-input, .sh-settings-toggle, .sh-btn--primary, [data-nav-focusable="true"]'));
+            }, { force: true }); // re-registration volontaire — cf. plan A04
         }
         this._log = new Logger('SettingsPanel');
         this._modal = null;
@@ -27,7 +29,7 @@ class SettingsPanel {
     }
 
     get _settings() {
-        return window.SpaceHub?.core?.settings;
+        return svc.settings();
     }
 
     /**
@@ -35,7 +37,7 @@ class SettingsPanel {
      * @param {'general'|'theme'|'dashboard'|'integrations'|'backup'} [tab='general']
      */
     open(tab = 'general') {
-        const Modal = window.SpaceHub?.ui?.components?.Modal;
+        const Modal = svc.modalClass();
         if (!Modal) return;
 
         this._activeTab = tab;
@@ -53,13 +55,13 @@ class SettingsPanel {
             `,
             onOpen: (m) => {
                 this._bindEvents(m);
-                const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+                const spatialNav = svc.nav() || svc.nav();
                 if (spatialNav && m?._el) {
                     spatialNav.onModalOpened(m._el, m._el.querySelector('.sh-settings-nav__item.active') || m._el.querySelector('.sh-settings-nav__item'));
                 }
             },
             onClose: () => {
-                const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+                const spatialNav = svc.nav() || svc.nav();
                 if (spatialNav) spatialNav.onModalClosed();
             }
         });
@@ -72,13 +74,13 @@ class SettingsPanel {
      */
     close() {
         this._modal?.close?.();
-        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        const spatialNav = svc.nav() || svc.nav();
         if (spatialNav && typeof spatialNav.onModalClosed === "function") spatialNav.onModalClosed();
     }
 
     _renderContent() {
-        const themes = window.SpaceHub?.ui?.themes?.getAvailable() || [];
-        const currentTheme = window.SpaceHub?.ui?.themes?.getCurrent() || 'spacehub-dark';
+        const themes = svc.themes()?.getAvailable() || [];
+        const currentTheme = svc.themes()?.getCurrent() || 'spacehub-dark';
         const s = this._settings;
         // Les fournisseurs de notes sont stockés comme un tableau (jamais une chaîne JSON).
         const ratingProvidersRaw = s?.get('ratings.display.providers', ['jellyfin', 'rt', 'imdb']) || ['jellyfin', 'rt', 'imdb'];
@@ -110,10 +112,11 @@ class SettingsPanel {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
                         <span>Intégrations</span>
                     </button>
+                    ${svc.features()?.isEnabled?.('features.notifications') === false ? '' : `
                     <button tabindex="0" data-nav-focusable="true" class="sh-settings-nav__item ${this._activeTab === 'notifications' ? 'active' : ''}" data-tab="notifications">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                         <span>Notifications</span>
-                    </button>
+                    </button>`}
                     <button tabindex="0" data-nav-focusable="true" class="sh-settings-nav__item ${this._activeTab === 'backup' ? 'active' : ''}" data-tab="backup">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         <span>Sauvegarde</span>
@@ -157,24 +160,109 @@ class SettingsPanel {
                             </div>
                         </div>
 
-                        ${window.SpaceHub?.auth?.getUser?.()?.Policy?.IsAdministrator === true ? `
+                        ${svc.auth()?.getUser?.()?.Policy?.IsAdministrator === true ? `
                         <div class="sh-form-group">
                             <label>Clé API OMDb — notes Rotten Tomatoes / IMDb / Metacritic</label>
                             <p class="sh-settings-desc" style="margin-bottom:8px;">Gratuite sur omdbapi.com/apikey.aspx. Sans clé : seules les notes ★ Jellyfin et 🍅 presse Jellyfin s'affichent.</p>
                             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                                <input type="password" class="sh-input" id="cfg-omdb-key" placeholder="${(window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.get?.('omdbApiKey', '') || '') ? 'Clé enregistrée (••••)' : 'Clé API OMDb'}" style="flex:1; min-width:180px;" autocomplete="off" />
+                                <input type="password" class="sh-input" id="cfg-omdb-key" placeholder="${(svc.sdk()?.getPluginStorage?.('spacehub.ratings')?.get?.('omdbApiKey', '') || '') ? 'Clé enregistrée (••••)' : 'Clé API OMDb'}" style="flex:1; min-width:180px;" autocomplete="off" />
                                 <button type="button" class="sh-btn sh-btn--ghost" id="cfg-omdb-save" data-nav-focusable="true">Enregistrer</button>
                                 <button type="button" class="sh-btn sh-btn--ghost" id="cfg-omdb-test" data-nav-focusable="true">Tester</button>
                             </div>
-                            <p id="cfg-omdb-result" style="font-size:12px; color:rgba(255,255,255,0.7); margin-top:6px;"></p>
+                            <p id="cfg-omdb-result" style="font-size:12px; color:rgba(var(--sh-ink, 255, 255, 255), 0.7); margin-top:6px;"></p>
                             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px;">
-                                <input type="password" class="sh-input" id="cfg-tmdb-key" placeholder="${(window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.get?.('tmdbApiKey', '') || '') ? 'Clé TMDB enregistrée (••••)' : 'Clé API TMDB (textes de critiques — optionnel)'}" style="flex:1; min-width:180px;" autocomplete="off" />
+                                <input type="password" class="sh-input" id="cfg-tmdb-key" placeholder="${(svc.sdk()?.getPluginStorage?.('spacehub.ratings')?.get?.('tmdbApiKey', '') || '') ? 'Clé TMDB enregistrée (••••)' : 'Clé API TMDB (textes de critiques — optionnel)'}" style="flex:1; min-width:180px;" autocomplete="off" />
                                 <button type="button" class="sh-btn sh-btn--ghost" id="cfg-tmdb-save" data-nav-focusable="true">Enregistrer TMDB</button>
                                 <button type="button" class="sh-btn sh-btn--ghost" id="cfg-tmdb-test" data-nav-focusable="true">Tester TMDB</button>
                             </div>
-                            <p id="cfg-tmdb-result" style="font-size:12px; color:rgba(255,255,255,0.7); margin-top:6px;"></p>
+                            <p id="cfg-tmdb-result" style="font-size:12px; color:rgba(var(--sh-ink, 255, 255, 255), 0.7); margin-top:6px;"></p>
                         </div>
                         ` : ''}
+
+                        <div class="sh-onboarding-settings-card" id="cfg-offline-card">
+                            <h4>Hors-ligne</h4>
+                            <p>Les titres téléchargés se lisent sans réseau, et l'application elle-même s'ouvre hors connexion.</p>
+                            <div class="sh-form-group">
+                                <label>Durée de validité d'un téléchargement</label>
+                                <select class="sh-input" id="cfg-offline-validity">
+                                    <option value="7" ${Number(s?.get('offline.validityDays', 30)) === 7 ? 'selected' : ''}>7 jours</option>
+                                    <option value="30" ${Number(s?.get('offline.validityDays', 30)) === 30 ? 'selected' : ''}>30 jours (recommandé)</option>
+                                    <option value="90" ${Number(s?.get('offline.validityDays', 30)) === 90 ? 'selected' : ''}>90 jours</option>
+                                    <option value="3650" ${Number(s?.get('offline.validityDays', 30)) === 3650 ? 'selected' : ''}>Sans limite</option>
+                                </select>
+                                <p class="sh-form-hint">Passé ce délai, le fichier est supprimé automatiquement et ne se lit plus, même hors connexion.</p>
+                            </div>
+                            <div id="cfg-offline-list"><p class="sh-form-hint">Chargement…</p></div>
+                            <div class="sh-onboarding-settings-actions">
+                                <button class="sh-btn sh-btn--ghost" id="btn-offline-purge" data-nav-focusable="true" tabindex="0">Supprimer les téléchargements expirés</button>
+                                <button class="sh-btn sh-btn--ghost" id="btn-offline-clear" data-nav-focusable="true" tabindex="0">Tout supprimer</button>
+                            </div>
+                        </div>
+
+                        <div class="sh-onboarding-settings-card">
+                            <h4>Fonctionnalités</h4>
+                            <p>Trois fonctionnalités périphériques sont gelées par défaut, pour garder l'interface concentrée sur la lecture. Rien n'a été supprimé : leur code est intact et une case suffit à les ramener.</p>
+                            ${(svc.features()?.list?.() || []).map(f => `
+                                <div class="sh-form-group">
+                                    <label class="sh-checkbox-row">
+                                        <input type="checkbox" class="cfg-feature" data-feature="${f.cle}" ${f.actif ? 'checked' : ''} />
+                                        <span>${f.titre}</span>
+                                    </label>
+                                    <p class="sh-form-hint">${f.motif}</p>
+                                </div>
+                            `).join('')}
+                            <p class="sh-form-hint">Un changement prend effet au prochain chargement de l'application.</p>
+                        </div>
+
+                        <div class="sh-onboarding-settings-card">
+                            <h4>Mode enfant</h4>
+                            <p>Masque et verrouille les titres au-delà d'une classification. Un code est demandé pour en ressortir.</p>
+                            <p class="sh-form-hint"><strong>À savoir :</strong> il s'agit d'un garde-fou d'interface, pas d'une sécurité. Pour une vraie séparation, créez un compte Jellyfin dédié à l'enfant et réglez sa classification maximale côté serveur — Jellyfin ne lui enverra alors tout simplement pas les autres titres.</p>
+
+                            <div class="sh-form-group">
+                                <label>Limite d'âge</label>
+                                <select class="sh-input" id="cfg-parental-rank">
+                                    <option value="0" ${Number(s?.get('parental.maxRank', 1)) === 0 ? 'selected' : ''}>Tout public</option>
+                                    <option value="1" ${Number(s?.get('parental.maxRank', 1)) === 1 ? 'selected' : ''}>À partir de 7 ans</option>
+                                    <option value="2" ${Number(s?.get('parental.maxRank', 1)) === 2 ? 'selected' : ''}>À partir de 12 ans</option>
+                                    <option value="3" ${Number(s?.get('parental.maxRank', 1)) === 3 ? 'selected' : ''}>À partir de 16 ans</option>
+                                </select>
+                            </div>
+
+                            <div class="sh-form-group">
+                                <label class="sh-checkbox-row">
+                                    <input type="checkbox" id="cfg-parental-unrated" ${s?.get('parental.allowUnrated', false) === true ? 'checked' : ''} />
+                                    <span>Autoriser les titres sans classification</span>
+                                </label>
+                                <p class="sh-form-hint">Décoché, un titre dont la fiche ne porte aucune classification est verrouillé. C'est le choix prudent : beaucoup de médiathèques personnelles ont des fiches incomplètes.</p>
+                            </div>
+
+                            <div class="sh-form-group">
+                                <label for="cfg-parental-pin">Code de sortie (4 chiffres minimum)</label>
+                                <input type="password" inputmode="numeric" class="sh-input" id="cfg-parental-pin" placeholder="${s?.get('parental.pinHash', '') ? 'Code déjà défini — saisir pour le remplacer' : 'Définir un code'}" autocomplete="off" />
+                                <p class="sh-form-hint">Seule une empreinte du code est conservée, jamais le code lui-même.</p>
+                            </div>
+
+                            <div class="sh-onboarding-settings-actions">
+                                <button class="sh-btn sh-btn--primary" id="btn-parental-on" data-nav-focusable="true" tabindex="0">Activer le mode enfant</button>
+                                <button class="sh-btn sh-btn--ghost" id="btn-parental-off" data-nav-focusable="true" tabindex="0">Désactiver…</button>
+                            </div>
+                            <p id="cfg-parental-state" class="sh-form-hint"></p>
+                        </div>
+
+                        <div class="sh-form-group">
+                            <label>Qualité maximale de lecture</label>
+                            <select class="sh-input" id="cfg-max-bitrate">
+                                <option value="auto" ${s?.get('player.maxBitrateAuto', true) === true && !Number(s?.get('player.maxBitrate', 0)) ? 'selected' : ''}>Automatique — d'après le débit mesuré par le navigateur</option>
+                                <option value="0" ${s?.get('player.maxBitrateAuto', true) !== true && !Number(s?.get('player.maxBitrate', 0)) ? 'selected' : ''}>Aucune limite — qualité d'origine (recommandé en local)</option>
+                                <option value="40000000" ${Number(s?.get('player.maxBitrate', 0)) === 40000000 ? 'selected' : ''}>40 Mb/s — 4K</option>
+                                <option value="20000000" ${Number(s?.get('player.maxBitrate', 0)) === 20000000 ? 'selected' : ''}>20 Mb/s — 1080p haute qualité</option>
+                                <option value="8000000" ${Number(s?.get('player.maxBitrate', 0)) === 8000000 ? 'selected' : ''}>8 Mb/s — 1080p</option>
+                                <option value="4000000" ${Number(s?.get('player.maxBitrate', 0)) === 4000000 ? 'selected' : ''}>4 Mb/s — 720p</option>
+                                <option value="2000000" ${Number(s?.get('player.maxBitrate', 0)) === 2000000 ? 'selected' : ''}>2 Mb/s — réseau faible</option>
+                            </select>
+                            <p class="sh-form-hint">Ce plafond est envoyé au serveur Jellyfin avec le profil de l'appareil. « Aucune limite » laisse le serveur lire le fichier tel quel quand il le peut, sans transcodage. Le réglage est propre à cet appareil.</p>
+                        </div>
 
                         <div class="sh-form-group">
                             <label>Mode TV (télécommande / manette)</label>
@@ -185,12 +273,34 @@ class SettingsPanel {
                             </select>
                         </div>
 
+                        <div class="sh-form-group">
+                            <label>Taille de l'interface en mode TV</label>
+                            <select class="sh-input" id="cfg-tv-scale">
+                                <option value="1" ${String(s?.get('ui.tvScale', 1.15)) === '1' ? 'selected' : ''}>Normale — comme sur un ordinateur</option>
+                                <option value="1.15" ${String(s?.get('ui.tvScale', 1.15)) === '1.15' ? 'selected' : ''}>Confort (recommandé) — vision à ~3 m</option>
+                                <option value="1.3" ${String(s?.get('ui.tvScale', 1.15)) === '1.3' ? 'selected' : ''}>Grande — grand salon ou petite TV</option>
+                                <option value="1.45" ${String(s?.get('ui.tvScale', 1.15)) === '1.45' ? 'selected' : ''}>Très grande — lecture difficile</option>
+                            </select>
+                            <p class="sh-form-hint">Agrandit toute l'interface. Sans effet hors mode TV.</p>
+                        </div>
+
+                        <div class="sh-form-group">
+                            <label>Marge de sûreté des bords (overscan TV)</label>
+                            <select class="sh-input" id="cfg-tv-safe">
+                                <option value="0" ${String(s?.get('ui.tvSafeArea', 3.5)) === '0' ? 'selected' : ''}>Aucune — mon téléviseur n'ampute pas l'image</option>
+                                <option value="3.5" ${String(s?.get('ui.tvSafeArea', 3.5)) === '3.5' ? 'selected' : ''}>3,5 % (recommandé)</option>
+                                <option value="5" ${String(s?.get('ui.tvSafeArea', 3.5)) === '5' ? 'selected' : ''}>5 % — norme de diffusion</option>
+                                <option value="7" ${String(s?.get('ui.tvSafeArea', 3.5)) === '7' ? 'selected' : ''}>7 % — téléviseur qui rogne beaucoup</option>
+                            </select>
+                            <p class="sh-form-hint">Beaucoup de téléviseurs rognent les bords de l'image. Augmentez si le menu du haut ou les coins vous paraissent coupés.</p>
+                        </div>
+
                         <div class="sh-onboarding-settings-card">
                             <h4>Découverte de SpaceHub</h4>
                             <p>Relancez les guides adaptés à votre compte Jellyfin et à votre rôle.</p>
                             <div class="sh-onboarding-settings-actions">
                                 <button class="sh-btn sh-btn--ghost" id="btn-open-user-onboarding" data-nav-focusable="true">Guide utilisateur</button>
-                                ${window.SpaceHub?.auth?.getUser?.()?.Policy?.IsAdministrator === true ? '<button class="sh-btn sh-btn--ghost" id="btn-open-admin-onboarding" data-nav-focusable="true">Guide administrateur</button>' : ''}
+                                ${svc.auth()?.getUser?.()?.Policy?.IsAdministrator === true ? '<button class="sh-btn sh-btn--ghost" id="btn-open-admin-onboarding" data-nav-focusable="true">Guide administrateur</button>' : ''}
                                 <button class="sh-btn sh-btn--ghost" id="btn-reset-onboarding" data-nav-focusable="true">Réinitialiser</button>
                             </div>
                         </div>
@@ -354,9 +464,9 @@ class SettingsPanel {
                             <button class="sh-btn sh-btn--ghost" id="btn-request-browser-perm" style="margin-top:6px; font-size:12px;">Demander l'autorisation</button>
                         </div>
 
-                        <hr style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin:20px 0;"/>
+                        <hr style="border:none; border-top:1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08); margin:20px 0;"/>
 
-                        <h4 style="color:#ffffff; margin-bottom:10px;">Webhook Discord</h4>
+                        <h4 style="color: var(--sh-ink-solid, #ffffff); margin-bottom:10px;">Webhook Discord</h4>
                         <div class="sh-form-group">
                             <label>
                                 <input type="checkbox" id="cfg-notif-discord-enabled" ${s?.get('notifications.discord.enabled', false) ? 'checked' : ''}/>
@@ -369,9 +479,9 @@ class SettingsPanel {
                             <button class="sh-btn sh-btn--ghost" id="btn-test-discord-webhook" style="margin-top:6px; font-size:12px;">Tester le Webhook Discord</button>
                         </div>
 
-                        <hr style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin:20px 0;"/>
+                        <hr style="border:none; border-top:1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08); margin:20px 0;"/>
 
-                        <h4 style="color:#ffffff; margin-bottom:10px;">Telegram Bot</h4>
+                        <h4 style="color: var(--sh-ink-solid, #ffffff); margin-bottom:10px;">Telegram Bot</h4>
                         <div class="sh-form-group">
                             <label>
                                 <input type="checkbox" id="cfg-notif-telegram-enabled" ${s?.get('notifications.telegram.enabled', false) ? 'checked' : ''}/>
@@ -413,22 +523,22 @@ class SettingsPanel {
             choice.addEventListener('click', () => {
                 el.querySelectorAll('.sh-theme-choice').forEach(c => c.classList.remove('selected'));
                 choice.classList.add('selected');
-                window.SpaceHub?.ui?.themes?.apply(choice.dataset.themeId);
+                svc.themes()?.apply(choice.dataset.themeId);
             });
         });
 
         // Boutons de test de connexion
-        const toaster = window.SpaceHub?.ui?.components?.toaster;
+        const toaster = svc.toaster();
 
         el.querySelector('[data-test="sonarr"]')?.addEventListener('click', async (e) => {
             const url = el.querySelector('#cfg-sonarr-url')?.value?.trim();
             const apiKey = el.querySelector('#cfg-sonarr-key')?.value?.trim();
             if (url) this._settings?.set('sonarr.url', url);
             if (apiKey) this._settings?.set('sonarr.apiKey', apiKey);
-            window.SpaceHub?.integrations?.sonarr?.api?.updateConfig?.();
+            svc.integration('sonarr')?.api?.updateConfig?.();
 
             e.target.textContent = 'Test...';
-            const res = await window.SpaceHub?.integrations?.sonarr?.api?.testConnection();
+            const res = await svc.integration('sonarr')?.api?.testConnection();
             e.target.textContent = res?.success ? 'Connecté' : 'Erreur';
             if (res?.success) toaster?.success(`Sonarr connecté (v${res.version || '3.0'}) !`);
             else toaster?.error(`Sonarr injoignable : ${res?.error || 'Vérifiez l\'URL et la clé API'}`);
@@ -439,10 +549,10 @@ class SettingsPanel {
             const apiKey = el.querySelector('#cfg-radarr-key')?.value?.trim();
             if (url) this._settings?.set('radarr.url', url);
             if (apiKey) this._settings?.set('radarr.apiKey', apiKey);
-            window.SpaceHub?.integrations?.radarr?.api?.updateConfig?.();
+            svc.integration('radarr')?.api?.updateConfig?.();
 
             e.target.textContent = 'Test...';
-            const res = await window.SpaceHub?.integrations?.radarr?.api?.testConnection();
+            const res = await svc.integration('radarr')?.api?.testConnection();
             e.target.textContent = res?.success ? 'Connecté' : 'Erreur';
             if (res?.success) toaster?.success(`Radarr connecté (v${res.version || '3.0'}) !`);
             else toaster?.error(`Radarr injoignable : ${res?.error || 'Vérifiez l\'URL et la clé API'}`);
@@ -453,10 +563,10 @@ class SettingsPanel {
             const apiKey = el.querySelector('#cfg-prowlarr-key')?.value?.trim();
             if (url) this._settings?.set('prowlarr.url', url);
             if (apiKey) this._settings?.set('prowlarr.apiKey', apiKey);
-            window.SpaceHub?.integrations?.prowlarr?.api?.updateConfig?.();
+            svc.integration('prowlarr')?.api?.updateConfig?.();
 
             e.target.textContent = 'Test...';
-            const res = await window.SpaceHub?.integrations?.prowlarr?.api?.testConnection();
+            const res = await svc.integration('prowlarr')?.api?.testConnection();
             e.target.textContent = res?.success ? 'Connecté' : 'Erreur';
             if (res?.success) toaster?.success(`Prowlarr connecté (v${res.version || '1.0'}) !`);
             else toaster?.error(`Prowlarr injoignable : ${res?.error || 'Vérifiez l\'URL et la clé API'}`);
@@ -467,10 +577,10 @@ class SettingsPanel {
             const apiKey = el.querySelector('#cfg-bazarr-key')?.value?.trim();
             if (url) this._settings?.set('bazarr.url', url);
             if (apiKey) this._settings?.set('bazarr.apiKey', apiKey);
-            window.SpaceHub?.integrations?.bazarr?.api?.updateConfig?.();
+            svc.integration('bazarr')?.api?.updateConfig?.();
 
             e.target.textContent = 'Test...';
-            const res = await window.SpaceHub?.integrations?.bazarr?.api?.testConnection();
+            const res = await svc.integration('bazarr')?.api?.testConnection();
             e.target.textContent = res?.success ? 'Connecté' : 'Erreur';
             if (res?.success) toaster?.success(`Bazarr connecté (v${res.version || '1.0'}) !`);
             else toaster?.error(`Bazarr injoignable : ${res?.error || 'Vérifiez l\'URL et la clé API'}`);
@@ -481,10 +591,10 @@ class SettingsPanel {
             const apiKey = el.querySelector('#cfg-jellyseerr-key')?.value?.trim();
             if (url) this._settings?.set('jellyseerr.url', url);
             if (apiKey) this._settings?.set('jellyseerr.apiKey', apiKey);
-            window.SpaceHub?.integrations?.jellyseerr?.api?.updateConfig?.();
+            svc.integration('jellyseerr')?.api?.updateConfig?.();
 
             e.target.textContent = 'Test...';
-            const res = await window.SpaceHub?.integrations?.jellyseerr?.api?.testConnection();
+            const res = await svc.integration('jellyseerr')?.api?.testConnection();
             e.target.textContent = res?.success ? 'Connecté' : 'Erreur';
             if (res?.success) toaster?.success(`Jellyseerr connecté (v${res.version || '1.0'}) !`);
             else toaster?.error(`Jellyseerr injoignable : ${res?.error || 'Vérifiez l\'URL et la clé API'}`);
@@ -497,10 +607,10 @@ class SettingsPanel {
             if (url) this._settings?.set('qbittorrent.url', url);
             if (username) this._settings?.set('qbittorrent.username', username);
             if (password !== undefined) this._settings?.set('qbittorrent.password', password);
-            window.SpaceHub?.integrations?.qbittorrent?.api?.updateConfig?.();
+            svc.integration('qbittorrent')?.api?.updateConfig?.();
 
             e.target.textContent = 'Test...';
-            const res = await window.SpaceHub?.integrations?.qbittorrent?.api?.testConnection();
+            const res = await svc.integration('qbittorrent')?.api?.testConnection();
             e.target.textContent = res?.success ? 'Connecté' : 'Erreur';
             if (res?.success) toaster?.success(`qBittorrent connecté (v${res.version || '4.0+'}) !`);
             else toaster?.error(`qBittorrent injoignable : ${res?.error || 'Vérifiez l\'URL et vos identifiants WebUI'}`);
@@ -508,7 +618,7 @@ class SettingsPanel {
 
         // Test Webhooks & Notifications
         el.querySelector('#btn-request-browser-perm')?.addEventListener('click', async () => {
-            const notif = window.SpaceHub?.core?.notifications;
+            const notif = svc.notifications();
             const granted = await notif?.requestBrowserPermission?.();
             if (granted) toaster?.success('Notifications navigateur autorisées !');
             else toaster?.warn('Permission notifications non accordée.');
@@ -522,7 +632,7 @@ class SettingsPanel {
             }
             e.target.textContent = 'Envoi...';
             try {
-                const notif = window.SpaceHub?.core?.notifications;
+                const notif = svc.notifications();
                 if (notif) {
                     await notif._sendDiscordWebhook(url, 'Test SpaceHub 🚀', 'Connexion Webhook Discord réussie !', { type: 'success' });
                     toaster?.success('Message de test envoyé sur Discord !');
@@ -543,7 +653,7 @@ class SettingsPanel {
             }
             e.target.textContent = 'Envoi...';
             try {
-                const notif = window.SpaceHub?.core?.notifications;
+                const notif = svc.notifications();
                 if (notif) {
                     await notif._sendTelegramMessage(token, chatId, 'Test SpaceHub 🚀', 'Connexion Telegram Bot réussie !');
                     toaster?.success('Message de test envoyé sur Telegram !');
@@ -559,7 +669,7 @@ class SettingsPanel {
         el.querySelector('#btn-export-settings')?.addEventListener('click', () => {
             const json = this._settings?.export() || '{}';
             navigator.clipboard.writeText(json);
-            window.SpaceHub?.ui?.components?.toaster?.success('Configuration copiée dans le presse-papier !');
+            svc.toaster()?.success('Configuration copiée dans le presse-papier !');
         });
 
         // Import JSON
@@ -567,7 +677,7 @@ class SettingsPanel {
             const text = el.querySelector('#txt-import-json')?.value?.trim();
             if (text) {
                 this._settings?.import(text);
-                window.SpaceHub?.ui?.components?.toaster?.success('Configuration restaurée !');
+                svc.toaster()?.success('Configuration restaurée !');
                 modal.close();
             }
         });
@@ -577,7 +687,7 @@ class SettingsPanel {
             if (confirm('Voulez-vous vraiment réinitialiser tous les paramètres SpaceHub ?')) {
                 this._settings?.reset();
                 localStorage.removeItem('sh_library_hidden_ids');
-                window.SpaceHub?.ui?.components?.toaster?.info('Paramètres réinitialisés.');
+                svc.toaster()?.info('Paramètres réinitialisés.');
                 modal.close();
             }
         });
@@ -615,7 +725,7 @@ class SettingsPanel {
             let sectionsList = [...DEFAULT_HOME_SECTIONS];
 
             // Découvrir les bibliothèques personnalisées du serveur et les ajouter à la liste
-            const api = window.SpaceHub?.jellyfin?.api;
+            const api = svc.jellyfinApi();
             const loadCustomLibs = async () => {
                 try {
                     let userViews = [];
@@ -743,7 +853,7 @@ class SettingsPanel {
                             hiddenSections.add(secId);
                         }
                         this._settings?.set('dashboard.hiddenSections', Array.from(hiddenSections));
-                        window.SpaceHub?.ui?.dashboard?.render?.();
+                        svc.dashboard()?.render?.();
                     });
                 });
 
@@ -759,7 +869,7 @@ class SettingsPanel {
                             localStorage.setItem('sh_dashboard_sections_order', JSON.stringify(sectionOrderArr));
                             this._settings?.set('dashboard.sectionsOrder', sectionOrderArr);
                             renderHomeSectionRows();
-                            window.SpaceHub?.ui?.dashboard?.render?.();
+                            svc.dashboard()?.render?.();
                         }
                     });
                 });
@@ -776,7 +886,7 @@ class SettingsPanel {
                             localStorage.setItem('sh_dashboard_sections_order', JSON.stringify(sectionOrderArr));
                             this._settings?.set('dashboard.sectionsOrder', sectionOrderArr);
                             renderHomeSectionRows();
-                            window.SpaceHub?.ui?.dashboard?.render?.();
+                            svc.dashboard()?.render?.();
                         }
                     });
                 });
@@ -832,7 +942,7 @@ class SettingsPanel {
                         localStorage.setItem('sh_dashboard_sections_order', JSON.stringify(sectionOrderArr));
                         this._settings?.set('dashboard.sectionsOrder', sectionOrderArr);
                         renderHomeSectionRows();
-                        window.SpaceHub?.ui?.dashboard?.render?.();
+                        svc.dashboard()?.render?.();
                     });
                 });
             };
@@ -846,8 +956,8 @@ class SettingsPanel {
                     this._settings?.set('dashboard.sectionsOrder', null);
                     sectionsList = [...DEFAULT_HOME_SECTIONS];
                     loadCustomLibs();
-                    window.SpaceHub?.ui?.dashboard?.render?.();
-                    window.SpaceHub?.ui?.components?.toaster?.success?.('Ordre par défaut restauré !');
+                    svc.dashboard()?.render?.();
+                    svc.toaster()?.success?.('Ordre par défaut restauré !');
                 });
             }
 
@@ -858,7 +968,7 @@ class SettingsPanel {
         // Chargement et gestion de l'onglet Médiathèques
         const libListEl = el.querySelector('#sh-cfg-libraries-list');
         if (libListEl) {
-            const api = window.SpaceHub?.jellyfin?.api;
+            const api = svc.jellyfinApi();
             const hiddenSet = new Set(JSON.parse(localStorage.getItem('sh_library_hidden_ids') || '[]'));
             let orderArr = JSON.parse(localStorage.getItem('sh_library_order') || '[]');
 
@@ -918,7 +1028,7 @@ class SettingsPanel {
                                 const visibleCount = list.filter(l => !hiddenSet.has(l.Id)).length;
                                 if (visibleCount <= 1) {
                                     chk.checked = true;
-                                    window.SpaceHub?.ui?.components?.toaster?.warning('Au moins une médiathèque doit rester visible.');
+                                    svc.toaster()?.warning('Au moins une médiathèque doit rester visible.');
                                     return;
                                 }
                                 hiddenSet.add(libId);
@@ -1016,14 +1126,158 @@ class SettingsPanel {
             });
         }
 
+        // ── Hors-ligne ──────────────────────────────────────────────────────
+        const carteHorsLigne = el.querySelector('#cfg-offline-card');
+        const listeHorsLigne = el.querySelector('#cfg-offline-list');
+        const magasin = svc.offlineStore();
+        const telechargements = svc.downloads();
+
+        if (!magasin) {
+            // Navigation privée, IndexedDB désactivé : on le dit plutôt que
+            // d'afficher une section vide qui ressemble à une panne.
+            if (carteHorsLigne) {
+                carteHorsLigne.innerHTML = '';
+                const t = document.createElement('h4'); t.textContent = 'Hors-ligne';
+                const p = document.createElement('p');
+                p.className = 'sh-form-hint';
+                p.textContent = "Ce navigateur ne permet pas le stockage hors ligne (navigation privée ou stockage désactivé).";
+                carteHorsLigne.append(t, p);
+            }
+        } else {
+            const octets = (n) => n >= 1073741824
+                ? `${(n / 1073741824).toFixed(1)} Go`
+                : `${Math.max(1, Math.round(n / 1048576))} Mo`;
+
+            const rafraichirListe = async () => {
+                if (!listeHorsLigne) return;
+                const fiches = await telechargements.lister();
+                const place = await magasin.quota();
+                listeHorsLigne.replaceChildren();
+
+                const resume = document.createElement('p');
+                resume.className = 'sh-form-hint';
+                const utilise = fiches.reduce((n, f) => n + (f.octets || 0), 0);
+                resume.textContent = fiches.length
+                    ? `${fiches.length} titre(s), ${octets(utilise)} occupé(s)`
+                        + (place.connu ? ` — ${octets(place.disponible)} encore disponibles.` : '.')
+                    : 'Aucun téléchargement pour le moment.';
+                listeHorsLigne.appendChild(resume);
+
+                for (const f of fiches) {
+                    const ligne = document.createElement('div');
+                    ligne.className = 'sh-offline-row';
+
+                    const info = document.createElement('div');
+                    const titre = document.createElement('span');
+                    titre.className = 'sh-offline-row__title';
+                    // textContent : le titre vient du serveur.
+                    titre.textContent = f.titre || f.id;
+                    const detail = document.createElement('span');
+                    detail.className = 'sh-offline-row__meta';
+                    detail.textContent = f.expire
+                        ? `${octets(f.octets || 0)} — expiré`
+                        : `${octets(f.octets || 0)}${f.joursRestants != null ? ` — expire dans ${f.joursRestants} j` : ''}`;
+                    info.append(titre, detail);
+
+                    const suppr = document.createElement('button');
+                    suppr.className = 'sh-btn sh-btn--ghost sh-offline-row__del';
+                    suppr.textContent = 'Supprimer';
+                    suppr.setAttribute('tabindex', '0');
+                    suppr.setAttribute('data-nav-focusable', 'true');
+                    suppr.addEventListener('click', async () => {
+                        await magasin.supprimer(f.id);
+                        rafraichirListe();
+                    });
+
+                    ligne.append(info, suppr);
+                    listeHorsLigne.appendChild(ligne);
+                }
+            };
+            rafraichirListe();
+
+            el.querySelector('#btn-offline-purge')?.addEventListener('click', async () => {
+                const purges = await magasin.purger();
+                svc.toaster()?.info?.(
+                    purges.length ? `${purges.length} téléchargement(s) expiré(s) supprimé(s).` : 'Aucun téléchargement expiré.');
+                rafraichirListe();
+            });
+            el.querySelector('#btn-offline-clear')?.addEventListener('click', async () => {
+                await magasin.vider();
+                svc.toaster()?.info?.('Tous les téléchargements ont été supprimés.');
+                rafraichirListe();
+            });
+            el.querySelector('#cfg-offline-validity')?.addEventListener('change', (ev) => {
+                s.set('offline.validityDays', Number(ev.target.value) || 30);
+            });
+        }
+
+        // ── Fonctionnalités gelées ──────────────────────────────────────────
+        el.querySelectorAll('.cfg-feature').forEach(cb => {
+            cb.addEventListener('change', () => {
+                svc.features()?.setEnabled?.(cb.dataset.feature, cb.checked);
+                svc.toaster()?.info?.(
+                    'Effectif au prochain chargement de l\'application.');
+            });
+        });
+
+        // ── Mode enfant ─────────────────────────────────────────────────────
+        const parental = svc.parental();
+        const etatParental = el.querySelector('#cfg-parental-state');
+        const rafraichirEtat = () => {
+            if (!etatParental || !parental) return;
+            etatParental.textContent = parental.isEnabled()
+                ? `Mode enfant ACTIF — limite : ${(svc.parental().constructor.niveaux.find(n => n.valeur === parental.maxRank()) || {}).libelle || ''}.`
+                : 'Mode enfant inactif.';
+        };
+        rafraichirEtat();
+
+        el.querySelector('#btn-parental-on')?.addEventListener('click', async () => {
+            if (!parental) return;
+            const code = el.querySelector('#cfg-parental-pin')?.value?.trim();
+            try {
+                // Un code saisi ici remplace le précédent. Sans code défini, le
+                // mode s'active quand même mais se désactive sans rien demander :
+                // on le dit plutôt que de laisser croire à une protection.
+                if (code) await parental.setPin(code);
+                const rang = Number(el.querySelector('#cfg-parental-rank')?.value ?? 1);
+                s.set('parental.allowUnrated', el.querySelector('#cfg-parental-unrated')?.checked === true);
+                parental.enable(rang);
+                const champ = el.querySelector('#cfg-parental-pin');
+                if (champ) champ.value = '';
+                rafraichirEtat();
+                svc.toaster()?.success?.(
+                    parental.hasPin() ? 'Mode enfant activé.' : 'Mode enfant activé — aucun code défini, la désactivation ne sera pas protégée.');
+                svc.dashboard()?.refreshAll?.();
+            } catch (err) {
+                svc.toaster()?.error?.(err.message);
+            }
+        });
+
+        el.querySelector('#btn-parental-off')?.addEventListener('click', async () => {
+            if (!parental) return;
+            const code = parental.hasPin()
+                ? (el.querySelector('#cfg-parental-pin')?.value?.trim() || '')
+                : '';
+            const leve = await parental.disable(code);
+            const champ = el.querySelector('#cfg-parental-pin');
+            if (champ) champ.value = '';
+            rafraichirEtat();
+            if (leve) {
+                svc.toaster()?.success?.('Mode enfant désactivé.');
+                svc.dashboard()?.refreshAll?.();
+            } else {
+                svc.toaster()?.error?.('Code incorrect — saisissez-le dans le champ ci-dessus.');
+            }
+        });
+
         // Guides de découverte : toujours relançables depuis les réglages.
         el.querySelector('#btn-open-user-onboarding')?.addEventListener('click', () => {
             modal.close();
-            window.SpaceHub?.ui?.onboarding?.open?.('user', { force: true });
+            svc.onboarding()?.open?.('user', { force: true });
         });
         el.querySelector('#btn-open-admin-onboarding')?.addEventListener('click', () => {
             modal.close();
-            window.SpaceHub?.ui?.onboarding?.open?.('admin', { force: true });
+            svc.onboarding()?.open?.('admin', { force: true });
         });
         // Clé API OMDb (administrateur) — enregistrement + test réel
         el.querySelector('#cfg-omdb-save')?.addEventListener('click', () => {
@@ -1035,8 +1289,8 @@ class SettingsPanel {
                 return;
             }
             try {
-                window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.set?.('omdbApiKey', key);
-                window.SpaceHub?.core?.ratingCache?.clear?.();
+                svc.sdk()?.getPluginStorage?.('spacehub.ratings')?.set?.('omdbApiKey', key);
+                svc.ratingCache()?.clear?.();
                 document.dispatchEvent(new CustomEvent('spacehub:ratings-updated'));
                 if (resultEl) resultEl.textContent = '✅ Clé enregistrée — notes externes rechargées.';
                 if (input) input.value = '';
@@ -1046,13 +1300,13 @@ class SettingsPanel {
         });
         el.querySelector('#cfg-omdb-test')?.addEventListener('click', async () => {
             const resultEl = el.querySelector('#cfg-omdb-result');
-            const key = el.querySelector('#cfg-omdb-key')?.value?.trim() || window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.get?.('omdbApiKey', '');
+            const key = el.querySelector('#cfg-omdb-key')?.value?.trim() || svc.sdk()?.getPluginStorage?.('spacehub.ratings')?.get?.('omdbApiKey', '');
             if (!key) {
                 if (resultEl) resultEl.textContent = '❌ Saisissez d\'abord une clé API OMDb.';
                 return;
             }
             if (resultEl) resultEl.textContent = '⏳ Test en cours…';
-            const result = await window.SpaceHub?.core?.ratingCache?.testConnection?.(key);
+            const result = await svc.ratingCache()?.testConnection?.(key);
             if (resultEl) {
                 resultEl.textContent = result?.ok
                     ? `✅ Connexion OK — « ${result.title} » : IMDb ${result.imdb ?? '—'}, RT ${result.rt ?? '—'}%, Metacritic ${result.metacritic ?? '—'}`
@@ -1070,8 +1324,8 @@ class SettingsPanel {
                 return;
             }
             try {
-                window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.set?.('tmdbApiKey', key);
-                window.SpaceHub?.core?.ratingCache?.clear?.();
+                svc.sdk()?.getPluginStorage?.('spacehub.ratings')?.set?.('tmdbApiKey', key);
+                svc.ratingCache()?.clear?.();
                 document.dispatchEvent(new CustomEvent('spacehub:ratings-updated'));
                 if (resultEl) resultEl.textContent = '✅ Clé TMDB enregistrée — textes de critiques activés.';
                 if (input) input.value = '';
@@ -1081,13 +1335,13 @@ class SettingsPanel {
         });
         el.querySelector('#cfg-tmdb-test')?.addEventListener('click', async () => {
             const resultEl = el.querySelector('#cfg-tmdb-result');
-            const key = el.querySelector('#cfg-tmdb-key')?.value?.trim() || window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.get?.('tmdbApiKey', '');
+            const key = el.querySelector('#cfg-tmdb-key')?.value?.trim() || svc.sdk()?.getPluginStorage?.('spacehub.ratings')?.get?.('tmdbApiKey', '');
             if (!key) {
                 if (resultEl) resultEl.textContent = '❌ Saisissez d\'abord une clé API TMDB.';
                 return;
             }
             if (resultEl) resultEl.textContent = '⏳ Test en cours…';
-            const result = await window.SpaceHub?.core?.ratingCache?.testTmdbConnection?.(key);
+            const result = await svc.ratingCache()?.testTmdbConnection?.(key);
             if (resultEl) {
                 resultEl.textContent = result?.ok
                     ? `✅ Connexion TMDB OK — « ${result.title} »`
@@ -1096,10 +1350,10 @@ class SettingsPanel {
         });
 
         el.querySelector('#btn-reset-onboarding')?.addEventListener('click', () => {
-            const wizard = window.SpaceHub?.ui?.onboarding;
+            const wizard = svc.onboarding();
             wizard?.reset?.('user');
-            if (window.SpaceHub?.auth?.getUser?.()?.Policy?.IsAdministrator === true) wizard?.reset?.('admin');
-            window.SpaceHub?.ui?.components?.toaster?.info?.('Guides réinitialisés pour ce compte.');
+            if (svc.auth()?.getUser?.()?.Policy?.IsAdministrator === true) wizard?.reset?.('admin');
+            svc.toaster()?.info?.('Guides réinitialisés pour ce compte.');
         });
 
         // Enregistrement
@@ -1109,7 +1363,12 @@ class SettingsPanel {
 
             s.set('core.logLevel', el.querySelector('#cfg-log-level')?.value);
             s.set('jellyfin.search.enabled', el.querySelector('#cfg-unified-search')?.checked);
+            const debit = el.querySelector('#cfg-max-bitrate')?.value ?? 'auto';
+            s.set('player.maxBitrateAuto', debit === 'auto');
+            s.set('player.maxBitrate', debit === 'auto' ? 0 : Number(debit) || 0);
             s.set('ui.tvMode', el.querySelector('#cfg-tv-mode')?.value || 'auto');
+            s.set('ui.tvScale', Number(el.querySelector('#cfg-tv-scale')?.value) || 1.15);
+            s.set('ui.tvSafeArea', Number(el.querySelector('#cfg-tv-safe')?.value ?? 3.5));
 
             // 供应商偏好
             const ratingProviders = ['jellyfin','rt','imdb','metacritic','tmdb'].filter(p => {
@@ -1146,14 +1405,14 @@ class SettingsPanel {
             s.set('notifications.telegram.chatId', el.querySelector('#cfg-notif-telegram-chatid')?.value?.trim());
 
             // Mettre à jour tous les services actifs en direct
-            window.SpaceHub?.integrations?.sonarr?.api?.updateConfig?.();
-            window.SpaceHub?.integrations?.radarr?.api?.updateConfig?.();
-            window.SpaceHub?.integrations?.prowlarr?.api?.updateConfig?.();
-            window.SpaceHub?.integrations?.bazarr?.api?.updateConfig?.();
-            window.SpaceHub?.integrations?.jellyseerr?.api?.updateConfig?.();
-            window.SpaceHub?.integrations?.qbittorrent?.api?.updateConfig?.();
+            svc.integration('sonarr')?.api?.updateConfig?.();
+            svc.integration('radarr')?.api?.updateConfig?.();
+            svc.integration('prowlarr')?.api?.updateConfig?.();
+            svc.integration('bazarr')?.api?.updateConfig?.();
+            svc.integration('jellyseerr')?.api?.updateConfig?.();
+            svc.integration('qbittorrent')?.api?.updateConfig?.();
 
-            window.SpaceHub?.ui?.components?.toaster?.success('Paramètres enregistrés avec succès !');
+            svc.toaster()?.success('Paramètres enregistrés avec succès !');
             modal.close();
         });
 
@@ -1161,366 +1420,9 @@ class SettingsPanel {
     }
 
     _injectStyles() {
-        if (document.getElementById('sh-settings-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-settings-styles';
-        style.textContent = `
-.sh-settings-container {
-    display: flex;
-    gap: var(--sh-space-6, 24px);
-    height: 540px;
-    max-height: 75vh;
-}
-
-.sh-settings-nav {
-    width: 180px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--sh-space-1, 4px);
-    border-right: 1px solid var(--sh-border-color, rgba(255,255,255,0.08));
-    padding-right: var(--sh-space-4, 16px);
-    overflow-y: auto;
-}
-
-.sh-settings-nav__item {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    text-align: left;
-    background: transparent;
-    border: none;
-    padding: 9px 12px;
-    border-radius: 9px;
-    color: rgba(255, 255, 255, 0.50);
-    font-size: 13px;
-    font-weight: 550;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 140ms ease;
-    width: 100%;
-}
-
-.sh-settings-nav__item svg {
-    flex-shrink: 0;
-    opacity: 0.7;
-    transition: opacity 140ms ease;
-}
-
-.sh-settings-nav__item:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.06);
-}
-.sh-settings-nav__item:hover svg { opacity: 1; }
-
-.sh-settings-nav__item.active {
-    color: #000000;
-    background: #ffffff;
-    font-weight: 700;
-}
-.sh-settings-nav__item.active svg { stroke: #000000; opacity: 1; }
-
-.sh-settings-content {
-    flex: 1;
-    overflow-y: auto;
-    height: 100%;
-    max-height: 100%;
-    padding-right: 8px;
-}
-
-.sh-onboarding-settings-card { margin-top: 22px; padding: 15px; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; background: rgba(255,255,255,.025); }
-.sh-onboarding-settings-card h4 { margin: 0 0 5px; color: #fff; font-size: 14px; }
-.sh-onboarding-settings-card p { margin: 0 0 12px; color: rgba(255,255,255,.45); font-size: 12px; }
-.sh-onboarding-settings-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.sh-settings-tab { display: none; }
-.sh-settings-tab.active {
-    display: block;
-    animation: sh-settings-tab-in 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes sh-settings-tab-in {
-    0%   { opacity: 0; transform: translateY(4px); }
-    100% { opacity: 1; transform: translateY(0); }
-}
-
-.sh-settings-tab h3 {
-    margin: 0 0 4px 0;
-    font-size: 18px;
-    font-weight: 700;
-    color: #ffffff;
-}
-
-.sh-settings-desc {
-    margin: 0 0 16px 0;
-    font-size: 12.5px;
-    color: rgba(255, 255, 255, 0.40);
-}
-
-.sh-form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.sh-form-group label {
-    font-size: 13px;
-    font-weight: 550;
-    color: rgba(255, 255, 255, 0.85);
-}
-
-.sh-form-row {
-    display: flex;
-    gap: 8px;
-}
-
-.sh-input {
-    width: 100%;
-    box-sizing: border-box;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    padding: 8px 12px;
-    color: #ffffff;
-    font-family: inherit;
-    font-size: 13px;
-    outline: none;
-    color-scheme: dark;
-    transition: all 140ms ease;
-}
-
-.sh-input:focus {
-    border-color: rgba(255, 255, 255, 0.35);
-    background: rgba(255, 255, 255, 0.07);
-}
-
-select.sh-input {
-    color-scheme: dark !important;
-    background-color: rgba(20, 20, 26, 0.90) !important;
-    color: #ffffff !important;
-    cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.10) !important;
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 13px;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
-    background-size: 16px;
-    padding-right: 40px;
-}
-
-select.sh-input:focus {
-    border-color: rgba(255, 255, 255, 0.40) !important;
-}
-
-select.sh-input option {
-    background-color: #0f0f14 !important;
-    color: #ffffff !important;
-    padding: 12px 16px;
-}
-
-.sh-theme-picker-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 12px;
-}
-
-.sh-theme-choice {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 12px;
-    padding: 16px;
-    cursor: pointer;
-    transition: all 140ms ease;
-}
-
-.sh-theme-choice:hover {
-    transform: translateY(-2px);
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.16);
-}
-
-.sh-theme-choice.selected {
-    border-color: rgba(255, 255, 255, 0.40);
-    background: rgba(255, 255, 255, 0.10);
-}
-
-.sh-theme-choice__icon { 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    width: 32px; 
-    height: 32px; 
-    color: #ffffff; 
-    opacity: 0.9;
-}
-.sh-theme-choice__name { font-size: 11px; font-weight: 600; text-align: center; color: #ffffff; }
-
-.sh-integration-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 12px;
-}
-
-.sh-integration-card__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.sh-integration-card__header h4 {
-    margin: 0;
-    font-size: 13px;
-    font-weight: 650;
-    color: #ffffff;
-}
-
-/* ── Gestion des Médiathèques dans les Réglages ── */
-.sh-settings-libraries-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 12px;
-}
-
-.sh-settings-lib-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 12px;
-    transition: background 140ms ease, border-color 140ms ease, transform 140ms ease, opacity 140ms ease;
-    cursor: default;
-}
-
-.sh-settings-lib-row:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.12);
-}
-
-.sh-drag-handle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    color: rgba(255, 255, 255, 0.35);
-    cursor: grab;
-    user-select: none;
-    margin-right: 8px;
-    padding: 4px;
-    border-radius: 4px;
-    transition: all 140ms ease;
-}
-
-.sh-drag-handle:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.sh-settings-lib-row:active .sh-drag-handle {
-    cursor: grabbing;
-}
-
-.sh-settings-lib-row.dragging {
-    opacity: 0.35;
-    transform: scale(0.98);
-    border: 1px dashed rgba(255, 255, 255, 0.45);
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.sh-settings-lib-row.drag-over-top {
-    border-top: 2px solid #ffffff !important;
-    box-shadow: 0 -4px 12px rgba(255, 255, 255, 0.35);
-}
-
-.sh-settings-lib-row.drag-over-bottom {
-    border-bottom: 2px solid #ffffff !important;
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.35);
-}
-
-.sh-settings-lib-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.sh-settings-lib-icon {
-    font-size: 20px;
-}
-
-.sh-settings-lib-name {
-    font-size: 13.5px;
-    font-weight: 650;
-    color: #ffffff;
-}
-
-.sh-settings-lib-type {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.40);
-}
-
-/* ── Apple Switch Toggle ── */
-.sh-apple-switch {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 26px;
-    flex-shrink: 0;
-}
-
-.sh-apple-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.sh-apple-switch-slider {
-    position: absolute;
-    cursor: pointer;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.16);
-    border: 1px solid rgba(255, 255, 255, 0.20);
-    transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
-    border-radius: 9999px;
-}
-
-.sh-apple-switch-slider:before {
-    position: absolute;
-    content: "";
-    height: 20px;
-    width: 20px;
-    left: 2px;
-    bottom: 2px;
-    background: #ffffff;
-    border-radius: 50%;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-    transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sh-apple-switch input:checked + .sh-apple-switch-slider {
-    background: #34c759;
-    border-color: #34c759;
-    box-shadow: 0 0 12px rgba(52, 199, 89, 0.45);
-}
-
-.sh-apple-switch input:checked + .sh-apple-switch-slider:before {
-    transform: translateX(18px);
-}
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans SettingsPanel.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

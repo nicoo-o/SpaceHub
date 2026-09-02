@@ -22,3 +22,6 @@ build/
 # Environment
 .env
 .env.local
+
+# Dossier tampon de suppression (fichiers en attente de retrait manuel)
+_to_delete/
