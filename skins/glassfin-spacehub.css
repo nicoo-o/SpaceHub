@@ -1,7 +1,0 @@
-.series-episodes-section {
-    grid-column: 1 / 5;
-}
-
-.detailSection:has(.series-episodes-section)>#listChildrenCollapsible {
-    grid-column: 1 / 5;
-}
