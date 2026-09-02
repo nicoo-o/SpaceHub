@@ -14,8 +14,11 @@
 'use strict';
 
 import Hls from 'hls.js';
+import { negotiatePlayback } from './DeviceProfile.js';
 import Logger from '../../core/Logger.js';
 
+import './VideoPlayer.css';
+import * as svc from '../../core/services.js';
 class VideoPlayer {
     constructor() {
         this._log = new Logger('VideoPlayer');
@@ -27,11 +30,18 @@ class VideoPlayer {
         this._mediaObjectUrl = null;
         this._closeTimer = null;
         this._playGeneration = 0;
+        // Renseignes par la negociation PlaybackInfo (jellyfin/player/DeviceProfile.js).
+        this._playSessionId = '';
+        this._mediaSourceId = null;
+        this._playMethod = 'DirectStream';
+        this._navHoldLastTick = 0;
         this._playbackOptions = {};
         this._progressInterval = null;
         this._idleTimer = null;
         this._isControlsVisible = true;
         this._isScrubbing = false;
+        this._navHoldAction = null;
+        this._navHoldStart = 0;
 
         // Préférences utilisateur
         this._volume = parseFloat(localStorage.getItem('SpaceHub_player_volume') ?? '1.0');
@@ -66,14 +76,72 @@ class VideoPlayer {
     }
 
     get _auth() {
-        return window.SpaceHub?.auth;
+        return svc.auth();
     }
 
     get _api() {
-        return window.SpaceHub?.jellyfin?.api;
+        return svc.jellyfinApi();
     }
 
-    play(item, startPositionTicks = 0, options = {}) {
+    /**
+     * Plafond de débit à annoncer au serveur, en bits par seconde.
+     *
+     * Trois cas :
+     *   - un plafond explicite est réglé → on le respecte ;
+     *   - le mode automatique est actif et le navigateur expose une estimation
+     *     de débit descendant → on plafonne un peu en dessous, pour laisser de
+     *     la marge au reste du réseau ;
+     *   - sinon 0 : aucun plafond, le serveur reste libre de faire du DirectPlay.
+     *
+     * `navigator.connection` n'existe pas partout (absent sur Safari et sur
+     * plusieurs navigateurs de téléviseurs) : l'absence renvoie simplement 0,
+     * c'est-à-dire le comportement d'avant ce réglage.
+     */
+    /**
+     * Ajoute le jeton d'authentification à une URL de flux — et seulement quand
+     * il n'y a aucun autre moyen.
+     *
+     * Un élément <video> natif ne peut pas porter d'en-tête : pour une lecture
+     * directe (DirectPlay) ou pour le HLS natif de Safari, le paramètre `api_key`
+     * est le mécanisme officiel de Jellyfin, et c'est aussi ce que fait le client
+     * web officiel. Le chemin HLS.js, lui, envoie un en-tête `Authorization` et
+     * n'expose donc rien dans les URLs — c'est le cas le plus fréquent.
+     *
+     * À noter honnêtement : l'API Jellyfin **n'offre pas** de jeton de lecture à
+     * durée de vie courte distinct du jeton de session (les clés de `/Auth/Keys`
+     * sont permanentes et réservées aux administrateurs). Le remède théorique
+     * — faire passer le flux par un service worker qui ajoute l'en-tête — a été
+     * écarté : router une vidéo de plusieurs gigaoctets avec requêtes Range à
+     * travers un service worker met en jeu la lecture elle-même pour un gain
+     * marginal sur un serveur personnel. Le jeton reste donc visible dans les
+     * journaux d'accès du serveur pour ces deux cas précis.
+     */
+    _authoriseUrl(url, token) {
+        if (!token) return url;
+        // Le serveur peut déjà avoir renvoyé une URL authentifiée : ne pas doubler.
+        if (/[?&]api_key=/.test(url)) return url;
+        return `${url}${url.includes('?') ? '&' : '?'}api_key=${encodeURIComponent(token)}`;
+    }
+
+    _resolveMaxBitrate() {
+        const explicite = Number(this._settings?.get?.('player.maxBitrate', 0)) || 0;
+        if (explicite > 0) return explicite;
+        if (this._settings?.get?.('player.maxBitrateAuto', true) !== true) return 0;
+        try {
+            const lien = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            const mbps = Number(lien?.downlink);
+            if (!Number.isFinite(mbps) || mbps <= 0) return 0;
+            // 75 % du débit annoncé : au-delà, la moindre variation vide le tampon.
+            const plafond = Math.round(mbps * 0.75 * 1000000);
+            // En dessous de 2 Mb/s on ne plafonne pas : mieux vaut laisser le
+            // serveur choisir que d'imposer une qualité inregardable.
+            return plafond >= 2000000 ? plafond : 0;
+        } catch {
+            return 0;
+        }
+    }
+
+    async play(item, startPositionTicks = 0, options = {}) {
         if (startPositionTicks && typeof startPositionTicks === 'object') {
             options = startPositionTicks;
             startPositionTicks = options.startPositionTicks ?? 0;
@@ -91,6 +159,19 @@ class VideoPlayer {
         }, 150);
         if (!item) return;
 
+        // Garde-fou du mode enfant. Placé ici, au seul point d'entrée de la
+        // lecture, plutôt que dispersé dans chaque bouton : un titre bloqué
+        // reste bloqué qu'il vienne d'une affiche, de la file d'attente ou de
+        // l'enchaînement automatique d'épisodes.
+        const parental = svc.parental();
+        if (parental?.isEnabled?.() && !parental.isAllowed(item)) {
+            this._log.info(`Lecture refusée par le mode enfant : ${item.Name}`);
+            svc.toaster()?.show?.(
+                `« ${item.Name} » est verrouillé. ${parental.reason(item) || ''}`, 'error');
+            this.close?.();
+            return;
+        }
+
         // Si une Série entière est envoyée directement au player, résolution automatique de l'épisode
         if (item.Type === 'Series') {
             this._resolveAndPlaySeries(item);
@@ -100,6 +181,12 @@ class VideoPlayer {
         this._currentItem = item;
         this._nextEpCancelled = false;
         this._sourceMediaItem = item;
+
+        // Recale la file sur ce qui est réellement lancé. Si l'élément vient
+        // d'ailleurs (clic sur une affiche), la file devient hors sujet et
+        // s'efface d'elle-même — sinon la lecture repartirait, en fin de média,
+        // sur un titre sans rapport avec ce que la personne vient de choisir.
+        (this._queue || svc.queue())?.syncTo?.(item);
         clearInterval(this._nextEpCountdownInterval);
         this._nextEpCountdownInterval = null;
         this._nextEpRemaining = 8;
@@ -126,23 +213,88 @@ class VideoPlayer {
             : 0;
         this._playbackStartTicks = Math.round(startPositionSeconds * 10000000);
 
-        const streamParams = new URLSearchParams({
-            DeviceId: this._auth?.getDeviceId?.() || 'sh_web',
-            MediaSourceId: itemId,
-            VideoCodec: 'h264,hevc,vp9,av1',
-            AudioCodec: 'aac,mp3,opus,flac',
-            TranscodingMaxAudioChannels: '6',
-            RequireAvc: 'false',
-            Tag: item.Etag || '',
-            StartTimeTicks: String(Math.round(startPositionSeconds * 10000000))
-        });
         const audioIndex = options.audioStreamIndex ?? options.AudioStreamIndex;
         const subtitleIndex = options.subtitleStreamIndex ?? options.SubtitleStreamIndex;
-        if (Number.isInteger(Number(audioIndex)) && Number(audioIndex) >= 0) streamParams.set('AudioStreamIndex', String(audioIndex));
-        if (Number.isInteger(Number(subtitleIndex)) && Number(subtitleIndex) >= -1) streamParams.set('SubtitleStreamIndex', String(subtitleIndex));
-        const streamUrl = `${serverUrl}/Videos/${encodeURIComponent(itemId)}/master.m3u8?${streamParams}`;
+        const deviceId = this._auth?.getDeviceId?.() || 'sh_web';
+        const maxBitrate = this._resolveMaxBitrate();
 
-        this._setupVideoSource(streamUrl, startPositionSeconds, token, this._playGeneration);
+        // COPIE HORS-LIGNE D'ABORD.
+        // Placé avant la négociation : si le média est sur l'appareil, il n'y a
+        // aucune raison de demander quoi que ce soit au serveur — et cela doit
+        // marcher précisément quand le serveur est injoignable. `estUtilisable`
+        // écarte les copies expirées, la vérification ne se limite donc pas à
+        // « le fichier est là ».
+        const magasinHorsLigne = svc.offlineStore();
+        if (magasinHorsLigne) {
+            try {
+                const urlLocale = await magasinHorsLigne.urlObjet(itemId);
+                if (urlLocale) {
+                    this._log.info(`Lecture depuis la copie hors-ligne de « ${item.Name} ».`);
+                    this._urlHorsLigne = urlLocale;   // révoquée à la fermeture
+                    this._playMethod = 'DirectPlay';
+                    this._playSessionId = '';
+                    this._mediaSourceId = itemId;
+                    this._setupVideoSource(urlLocale, startPositionSeconds, '', this._playGeneration, false);
+                    this._resetIdleTimer();
+                    // Aucun rapport de session : le serveur n'est peut-être pas
+                    // joignable, et annoncer une lecture qu'il ne peut pas suivre
+                    // laisserait une session fantôme dans son tableau de bord.
+                    return;
+                }
+            } catch (err) {
+                this._log.warn('Copie hors-ligne illisible, retour au serveur :', err);
+            }
+        }
+
+        // NÉGOCIATION AVEC LE SERVEUR (remplace l'attaque directe de master.m3u8).
+        // Sans elle, on demandait explicitement le point d'entrée HLS : le serveur
+        // partait en remux ou transcodage même quand le fichier était lisible tel
+        // quel. Ici, le serveur choisit le meilleur mode qu'il peut d'après les
+        // capacités réellement mesurées sur cet appareil.
+        const generation = this._playGeneration;
+        const nego = await negotiatePlayback({
+            serverUrl, token,
+            userId: this._auth?.getUserId?.() || this._auth?.getUser?.()?.Id,
+            deviceId, itemId,
+            startPositionTicks: this._playbackStartTicks,
+            maxBitrate,
+            audioStreamIndex: Number.isInteger(Number(audioIndex)) ? Number(audioIndex) : null,
+            subtitleStreamIndex: Number.isInteger(Number(subtitleIndex)) ? Number(subtitleIndex) : null,
+            videoEl: this._video,
+        }).catch(() => null);
+
+        if (generation !== this._playGeneration) return; // lecture annulée entre-temps
+
+        let streamUrl;
+        if (nego?.url) {
+            streamUrl = nego.url;
+            this._playSessionId = nego.playSessionId || '';
+            this._mediaSourceId = nego.mediaSourceId || itemId;
+            this._playMethod = nego.playMethod;
+            if (nego.transcodeReasons?.length) {
+                this._log.info(`Transcodage demandé par le serveur : ${nego.transcodeReasons.join(', ')}`);
+            }
+        } else {
+            // Repli : ancien comportement, si le serveur ne répond pas à PlaybackInfo.
+            const fallbackParams = new URLSearchParams({
+                DeviceId: deviceId,
+                MediaSourceId: itemId,
+                VideoCodec: 'h264,hevc,vp9,av1',
+                AudioCodec: 'aac,mp3,opus,flac',
+                RequireAvc: 'false',
+                Tag: item.Etag || '',
+                StartTimeTicks: String(Math.round(startPositionSeconds * 10000000)),
+            });
+            if (Number.isInteger(Number(audioIndex)) && Number(audioIndex) >= 0) fallbackParams.set('AudioStreamIndex', String(audioIndex));
+            if (Number.isInteger(Number(subtitleIndex)) && Number(subtitleIndex) >= -1) fallbackParams.set('SubtitleStreamIndex', String(subtitleIndex));
+            streamUrl = `${serverUrl}/Videos/${encodeURIComponent(itemId)}/master.m3u8?${fallbackParams}`;
+            this._playSessionId = '';
+            this._mediaSourceId = itemId;
+            this._playMethod = 'Transcode';
+            this._log.warn('PlaybackInfo indisponible — repli sur le flux HLS générique.');
+        }
+
+        this._setupVideoSource(streamUrl, startPositionSeconds, token, this._playGeneration, nego?.isHls);
         this._reportPlaybackStart();
         this._startProgressReporting();
         this._resetIdleTimer();
@@ -194,9 +346,26 @@ class VideoPlayer {
         this._prepareSeasonEpisodes(this._currentItem || item);
     }
 
-    _setupVideoSource(streamUrl, startPositionSeconds, token, generation = this._playGeneration) {
+    _setupVideoSource(streamUrl, startPositionSeconds, token, generation = this._playGeneration, isHls = true) {
         const spinner = this._el?.querySelector('#sh-player-buffering-spinner');
         if (spinner) spinner.classList.add('visible');
+
+        // En lecture directe, le serveur renvoie un fichier progressif : passer par
+        // HLS.js dans ce cas casserait la lecture. On ne l'utilise que si la source
+        // negociee est bien un flux HLS.
+        if (!isHls) {
+            // Audit 2.6 — le token n'est ajouté à l'URL QUE si le serveur ne l'a
+            // pas déjà mis dans l'URL négociée, et seulement ici : un élément
+            // <video> natif ne peut pas porter d'en-tête d'authentification, il
+            // n'existe pas d'alternative côté navigateur pour une lecture directe.
+            // Le chemin HLS, lui, passe par un en-tête (voir xhrSetup plus bas).
+            this._video.src = this._authoriseUrl(streamUrl, token);
+            this._video.currentTime = startPositionSeconds;
+            this._video.playbackRate = this._playbackRate;
+            this._video.volume = this._volume;
+            this._video.play().catch(e => this._log.warn('Auto-play direct empeche:', e));
+            return;
+        }
 
         if (Hls.isSupported()) {
             if (this._hls) this._hls.destroy();
@@ -229,7 +398,7 @@ class VideoPlayer {
             // Les éléments <video> natifs ne permettent pas d'ajouter un header d'authentification.
             // Safari nécessite donc le mécanisme officiel api_key de Jellyfin pour les segments.
             // Le token reste en sessionStorage et n'est jamais persisté dans les réglages.
-            const nativeUrl = token ? `${streamUrl}&api_key=${encodeURIComponent(token)}` : streamUrl;
+            const nativeUrl = this._authoriseUrl(streamUrl, token);
             this._video.src = nativeUrl;
             this._video.addEventListener('loadedmetadata', () => {
                 if (generation !== this._playGeneration || !this._video) return;
@@ -250,8 +419,8 @@ class VideoPlayer {
         if (!serverUrl || !itemId) return;
         // Le flux natif ne peut pas recevoir de header : api_key est le seul fallback
         // compatible avec Safari lorsque Jellyfin n'a pas de cookie de session exploitable.
-        const tokenQuery = token ? `&api_key=${encodeURIComponent(token)}` : '';
-        this._video.src = `${serverUrl}/Videos/${encodeURIComponent(itemId)}/stream?static=true${tokenQuery}`;
+        this._video.src = this._authoriseUrl(
+            `${serverUrl}/Videos/${encodeURIComponent(itemId)}/stream?static=true`, token);
         this._video.currentTime = startPositionSeconds;
         this._video.playbackRate = this._playbackRate;
         this._video.volume = this._volume;
@@ -315,10 +484,27 @@ class VideoPlayer {
                 nextBtn.style.opacity = this._nextEpisode ? '1' : '0.35';
             }
         } else {
+            // Pas d'épisodes autour, mais une file d'attente peut quand même
+            // fournir un précédent et un suivant : un film empilé après un autre
+            // doit être atteignable par les mêmes boutons.
+            const file = this._queue || svc.queue();
+            const avant = file?.peekPrevious?.() || null;
+            const apres = file?.peekNext?.() || null;
+
             if (drawerEpBtn) drawerEpBtn.style.display = 'none';
             if (tabEpBtn) tabEpBtn.style.display = 'none';
-            if (prevBtn) prevBtn.style.display = 'none';
-            if (nextBtn) nextBtn.style.display = 'none';
+            if (prevBtn) {
+                prevBtn.style.display = avant ? 'inline-flex' : 'none';
+                prevBtn.disabled = !avant;
+                prevBtn.style.opacity = avant ? '1' : '0.35';
+                prevBtn.title = avant ? `Précédent : ${avant.Name || ''}` : 'Précédent';
+            }
+            if (nextBtn) {
+                nextBtn.style.display = apres ? 'inline-flex' : 'none';
+                nextBtn.disabled = !apres;
+                nextBtn.style.opacity = apres ? '1' : '0.35';
+                nextBtn.title = apres ? `Suivant : ${apres.Name || ''}` : 'Suivant';
+            }
         }
     }
 
@@ -429,7 +615,7 @@ class VideoPlayer {
             <div class="sh-next-ep-card" id="sh-next-ep-card">
                 <div class="sh-next-ep-inner">
                     <div class="sh-next-ep-thumb">
-                        <img id="sh-next-ep-img" src="" alt="Prochain épisode"/>
+                        <img decoding="async" id="sh-next-ep-img" src="" alt="Prochain épisode"/>
                         <div class="sh-next-ep-countdown"><span id="sh-next-ep-sec">5</span></div>
                     </div>
                     <div class="sh-next-ep-meta">
@@ -592,21 +778,21 @@ class VideoPlayer {
                                     <div class="sh-popover-section">
                                         <div class="sh-popover-section-title">Vitesse de Lecture</div>
                                         <div class="sh-settings-chips" id="sh-player-speed-chips">
-                                            <button class="sh-chip-btn ${this._playbackRate === 0.5 ? 'active' : ''}" data-speed="0.5">0.5x</button>
-                                            <button class="sh-chip-btn ${this._playbackRate === 0.75 ? 'active' : ''}" data-speed="0.75">0.75x</button>
-                                            <button class="sh-chip-btn ${this._playbackRate === 1.0 ? 'active' : ''}" data-speed="1.0">1.0x (Normal)</button>
-                                            <button class="sh-chip-btn ${this._playbackRate === 1.25 ? 'active' : ''}" data-speed="1.25">1.25x</button>
-                                            <button class="sh-chip-btn ${this._playbackRate === 1.5 ? 'active' : ''}" data-speed="1.5">1.5x</button>
-                                            <button class="sh-chip-btn ${this._playbackRate === 2.0 ? 'active' : ''}" data-speed="2.0">2.0x</button>
+                                            <button class="sh-chip-btn ${this._playbackRate === 0.5 ? 'active' : ''}" tabindex="0" data-nav-focusable="true" data-speed="0.5">0.5x</button>
+                                            <button class="sh-chip-btn ${this._playbackRate === 0.75 ? 'active' : ''}" tabindex="0" data-nav-focusable="true" data-speed="0.75">0.75x</button>
+                                            <button class="sh-chip-btn ${this._playbackRate === 1.0 ? 'active' : ''}" tabindex="0" data-nav-focusable="true" data-speed="1.0">1.0x (Normal)</button>
+                                            <button class="sh-chip-btn ${this._playbackRate === 1.25 ? 'active' : ''}" tabindex="0" data-nav-focusable="true" data-speed="1.25">1.25x</button>
+                                            <button class="sh-chip-btn ${this._playbackRate === 1.5 ? 'active' : ''}" tabindex="0" data-nav-focusable="true" data-speed="1.5">1.5x</button>
+                                            <button class="sh-chip-btn ${this._playbackRate === 2.0 ? 'active' : ''}" tabindex="0" data-nav-focusable="true" data-speed="2.0">2.0x</button>
                                         </div>
                                     </div>
 
                                     <div class="sh-popover-section" style="margin-top: 12px;">
                                         <div class="sh-popover-section-title">Format d'Image</div>
                                         <div class="sh-settings-chips" id="sh-player-aspect-chips">
-                                            <button class="sh-chip-btn ${this._aspectRatioIndex === 0 ? 'active' : ''}" data-aspect-idx="0">16:9 Adapté</button>
-                                            <button class="sh-chip-btn ${this._aspectRatioIndex === 1 ? 'active' : ''}" data-aspect-idx="1">21:9 Cinéma Scope</button>
-                                            <button class="sh-chip-btn ${this._aspectRatioIndex === 2 ? 'active' : ''}" data-aspect-idx="2">Plein écran Étiré</button>
+                                            <button class="sh-chip-btn ${this._aspectRatioIndex === 0 ? 'active' : ''}" tabindex="0" data-nav-focusable="true" data-aspect-idx="0">16:9 Adapté</button>
+                                            <button class="sh-chip-btn ${this._aspectRatioIndex === 1 ? 'active' : ''}" tabindex="0" data-nav-focusable="true" data-aspect-idx="1">21:9 Cinéma Scope</button>
+                                            <button class="sh-chip-btn ${this._aspectRatioIndex === 2 ? 'active' : ''}" tabindex="0" data-nav-focusable="true" data-aspect-idx="2">Plein écran Étiré</button>
                                         </div>
                                     </div>
                                 </div>
@@ -629,14 +815,14 @@ class VideoPlayer {
         this._bindEvents();
 
         // Enregistrement officiel dans le Focus Registry
-        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        const spatialNav = svc.nav() || svc.nav();
         if (spatialNav?.registerFocusables) {
             spatialNav.registerFocusables('player', (container) => {
                 const root = this._el || container;
                 return Array.from(root.querySelectorAll(
                     '#sh-btn-back, #sh-player-timeline-focus, #sh-btn-prev-ep, #sh-btn-skip-back, #sh-btn-play-pause, #sh-btn-skip-fwd, #sh-btn-next-ep, #sh-btn-volume, #sh-btn-open-audio-subs, #sh-btn-open-settings, #sh-btn-open-episodes, #sh-btn-fullscreen, .sh-popover-item'
                 ));
-            });
+            }, { force: true }); // re-registration volontaire (scope plus précis que le défaut de boot) — cf. plan A04
         }
 
         this._renderDrawerContent();
@@ -703,9 +889,21 @@ class VideoPlayer {
         };
                 // Écouteur de fin de média natif
         video.addEventListener('ended', () => {
-            this._log.info('Lecture terminée (event ended). Passage automatique à l\'épisode suivant.');
             this._reportPlaybackStopped();
-            if (this._nextEpisode && !this._nextEpCancelled) {
+            if (this._nextEpCancelled) return;
+
+            // La file d'attente prime : si quelqu'un a empilé quelque chose,
+            // c'est un choix explicite, alors que l'épisode suivant est une
+            // déduction. Une file vide retombe exactement sur l'ancien chemin.
+            const file = this._queue || svc.queue();
+            const suivantDeLaFile = file?.isActive?.() ? file.next() : null;
+            if (suivantDeLaFile) {
+                this._log.info('Lecture terminée — élément suivant de la file d\'attente.');
+                this.play(suivantDeLaFile);
+                return;
+            }
+            if (this._nextEpisode) {
+                this._log.info('Lecture terminée — passage automatique à l\'épisode suivant.');
                 this.play(this._nextEpisode);
             }
         });
@@ -747,9 +945,17 @@ class VideoPlayer {
         });
 
         el.querySelector('#sh-btn-prev-ep')?.addEventListener('click', () => {
-            if (this._prevEpisode) this.play(this._prevEpisode);
+            if (this._prevEpisode) { this.play(this._prevEpisode); return; }
+            const file = this._queue || svc.queue();
+            const avant = file?.previous?.();
+            if (avant) this.play(avant);
         });
         el.querySelector('#sh-btn-next-ep')?.addEventListener('click', () => {
+            const file = this._queue || svc.queue();
+            // Même arbitrage qu'à la fin du média : un élément explicitement
+            // empilé passe avant l'épisode suivant déduit de la série.
+            const apres = file?.isActive?.() ? file.next() : null;
+            if (apres) { this.play(apres); return; }
             if (this._nextEpisode) this.play(this._nextEpisode);
         });
 
@@ -798,7 +1004,7 @@ class VideoPlayer {
         const updateVolumeTrack = (v) => {
             if (!volumeRange) return;
             const percent = Math.round(Math.max(0, Math.min(1, v)) * 100);
-            volumeRange.style.background = `linear-gradient(to right, #ff9f0a 0%, #ff9f0a ${percent}%, rgba(255, 255, 255, 0.22) ${percent}%, rgba(255, 255, 255, 0.22) 100%)`;
+            volumeRange.style.background = `linear-gradient(to right, #ff9f0a 0%, #ff9f0a ${percent}%, rgba(var(--sh-on-media, 255, 255, 255),  0.22) ${percent}%, rgba(var(--sh-on-media, 255, 255, 255),  0.22) 100%)`;
         };
 
         if (volumeRange) {
@@ -883,7 +1089,7 @@ class VideoPlayer {
             this._cancelNextEpCountdown();
         });
 
-        document.addEventListener('keydown', this._keyHandler = (e) => this._onKeyDown(e));
+        document.addEventListener('keydown', this._keyHandler = (e) => this._onDirectShortcutKeyDown(e));
     }
 
     _togglePopover(popoverId, triggerBtn) {
@@ -930,7 +1136,7 @@ class VideoPlayer {
                     const title = s.DisplayTitle || s.Title || `${lang} · ${codec} ${channels}`;
 
                     return `
-                        <div class="sh-popover-item ${isSel ? 'selected' : ''}" data-audio-idx="${s.Index}">
+                        <div class="sh-popover-item ${isSel ? 'selected' : ''}" tabindex="0" data-nav-focusable="true" data-audio-idx="${s.Index}">
                             <div class="sh-popover-item-name">${this._escape(title)}</div>
                             <div class="sh-popover-item-badge">${codec} ${channels}</div>
                         </div>
@@ -954,7 +1160,7 @@ class VideoPlayer {
         // 2. Sous-titres
         if (subsList) {
             let subsHtml = `
-                <div class="sh-popover-item ${this._selectedSubIndex === -1 ? 'selected' : ''}" data-sub-idx="-1">
+                <div class="sh-popover-item ${this._selectedSubIndex === -1 ? 'selected' : ''}" tabindex="0" data-nav-focusable="true" data-sub-idx="-1">
                     <div class="sh-popover-item-name">Désactivé</div>
                 </div>
             `;
@@ -966,9 +1172,9 @@ class VideoPlayer {
                     const title = s.DisplayTitle || s.Title || `${lang} ${s.IsForced ? '(Forcé)' : ''}`;
 
                     return `
-                        <div class="sh-popover-item ${isSel ? 'selected' : ''}" data-sub-idx="${s.Index}">
+                        <div class="sh-popover-item ${isSel ? 'selected' : ''}" tabindex="0" data-nav-focusable="true" data-sub-idx="${s.Index}">
                             <div class="sh-popover-item-name">${this._escape(title)}</div>
-                            ${s.IsForced ? '<span class="sh-popover-item-badge">FORCÉ</span>' : ''}
+                            ${s.IsForced ? '<span class="sh-popover-item-badge" tabindex="0" data-nav-focusable="true">FORCÉ</span>' : ''}
                         </div>
                     `;
                 }).join('');
@@ -1061,7 +1267,7 @@ class VideoPlayer {
             return `
                 <div class="sh-popover-episode-row ${isCur ? 'selected' : ''}" data-ep-id="${ep.Id}">
                     <div class="sh-popover-ep-thumb">
-                        <img src="${imgUrl}" alt="${this._escape(ep.Name)}" onerror="this.style.display='none';"/>
+                        <img decoding="async" src="${imgUrl}" alt="${this._escape(ep.Name)}" onerror="this.style.display='none';"/>
                         <span class="sh-popover-ep-tag">S${sNum}E${eNum}</span>
                     </div>
                     <div class="sh-popover-ep-meta">
@@ -1121,11 +1327,11 @@ class VideoPlayer {
     }
 
     _openRemoteSubtitleModal() {
-        const Modal = window.SpaceHub?.ui?.components?.Modal;
+        const Modal = svc.modalClass();
         const itemId = this._currentItem.Id || this._currentItem.id;
 
         if (!Modal || !this._api || !itemId) {
-            window.SpaceHub?.ui?.components?.toaster?.info('Recherche de sous-titres non disponible.');
+            svc.toaster()?.info('Recherche de sous-titres non disponible.');
             return;
         }
 
@@ -1163,7 +1369,7 @@ class VideoPlayer {
                     return;
                 }
                 resultsEl.innerHTML = subs.map(s => `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; margin-bottom:6px; background:rgba(255,255,255,0.05); border-radius:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; margin-bottom:6px; background:rgba(var(--sh-on-media, 255, 255, 255), 0.05); border-radius:8px;">
                         <div style="font-size:13px; font-weight:500;">
                             <div>${this._escape(s.Name)}</div>
                             <small style="color:var(--sh-text-muted); font-size:11px;">Format: ${s.Format || 'SRT'} • Source: ${s.ProviderName || 'Web'}</small>
@@ -1181,7 +1387,7 @@ class VideoPlayer {
                                 method: 'POST',
                                 headers: this._auth?.getAuthHeaders()
                             });
-                            window.SpaceHub?.ui?.components?.toaster?.success('Sous-titre ajouté avec succès !');
+                            svc.toaster()?.success('Sous-titre ajouté avec succès !');
                             modal.close();
                         } catch {
                             btn.textContent = 'Erreur';
@@ -1390,225 +1596,22 @@ class VideoPlayer {
         }
     }
 
-    _onKeyDown(e) {
+    _onDirectShortcutKeyDown(e) {
         if (!this._el || e.target.tagName === 'INPUT') return;
+        if (!this._isControlsVisible) return; // le réveil du HUD reste géré par handleNavAction
 
-        // Si les contrôles sont masqués, la première pression réveille le HUD
-        if (!this._isControlsVisible) {
-            e.preventDefault();
-            this._showControls();
-            this._resetIdleTimer();
-            // Focus initial sur Play/Pause au réveil
-            const playBtn = this._el.querySelector('#sh-btn-play-pause');
-            if (playBtn) playBtn.focus();
-            return;
-        }
-
-        this._resetIdleTimer();
-
-        // A. GESTION DES POPOVERS OUVERTS (Audio, Subs, Réglages, Épisodes)
-        const openPopover = this._el.querySelector('.sh-player-popover.open');
-        if (openPopover) {
-            const items = Array.from(openPopover.querySelectorAll('.sh-popover-item, .sh-chip-btn, .sh-sync-btn, .sh-popover-ep-card, button:not([disabled])'));
-            const focused = document.activeElement;
-            const curIdx = items.indexOf(focused);
-
-            if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'BrowserBack' || e.key === 'GoBack') {
-                e.preventDefault();
-                this._closeAllPopovers();
-                const triggerBtn = openPopover.closest('.sh-dock-popover-anchor')?.querySelector('.sh-dock-pill-btn');
-                if (triggerBtn) triggerBtn.focus();
-                return;
-            }
-
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                let next = null;
-                if (curIdx === -1 || curIdx + 1 >= items.length) {
-                    next = items[0];
-                } else {
-                    next = items[curIdx + 1];
-                }
-                if (next) {
-                    next.focus();
-                    next.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
-                return;
-            }
-
-            if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                let prev = null;
-                if (curIdx <= 0) {
-                    prev = items[items.length - 1];
-                } else {
-                    prev = items[curIdx - 1];
-                }
-                if (prev) {
-                    prev.focus();
-                    prev.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
-                return;
-            }
-
-            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-                const audioCol = openPopover.querySelector('#sh-player-audio-list')?.closest('.sh-popover-col');
-                const subsCol = openPopover.querySelector('#sh-player-subs-list')?.closest('.sh-popover-col');
-                if (audioCol && subsCol) {
-                    e.preventDefault();
-                    if (e.key === 'ArrowRight' && audioCol.contains(focused)) {
-                        const target = subsCol.querySelector('.sh-popover-item.selected, .sh-popover-item, .sh-sync-btn');
-                        if (target) {
-                            target.focus();
-                            target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                        }
-                    } else if (e.key === 'ArrowLeft' && subsCol.contains(focused)) {
-                        const target = audioCol.querySelector('.sh-popover-item.selected, .sh-popover-item');
-                        if (target) {
-                            target.focus();
-                            target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                        }
-                    }
-                    return;
-                }
-            }
-
-            if (e.key === 'Enter' || e.key === ' ') {
-                if (focused && openPopover.contains(focused)) {
-                    e.preventDefault();
-                    focused.click();
-                    return;
-                }
-            }
-            return;
-        }
-
-        // B. GESTION DE LA TIMELINE FOCUSÉE
-        const timeline = this._el.querySelector('#sh-player-timeline-focus');
-        if (document.activeElement === timeline) {
-            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-                e.preventDefault();
-                if (!e.repeat) {
-                    this._seekHoldStart = Date.now();
-                    this._seekHoldCount = 0;
-                }
-                this._seekHoldCount++;
-                const holdTime = Date.now() - this._seekHoldStart;
-                let step = 5;
-                if (holdTime > 5000) step = 300;
-                else if (holdTime > 3000) step = 60;
-                else if (holdTime > 1000) step = 30;
-
-                const delta = e.key === 'ArrowRight' ? step : -step;
-                this._seekRelative(delta);
-                return;
-            }
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                const playBtn = this._el.querySelector('#sh-btn-play-pause');
-                if (playBtn) playBtn.focus();
-                return;
-            }
-            if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                const backBtn = this._el.querySelector('#sh-btn-back, #sh-player-btn-back');
-                if (backBtn) backBtn.focus();
-                return;
-            }
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                this._togglePlayPause();
-                return;
-            }
-        }
-
-        // C. GESTION DE LA TOPBAR (Bouton Retour)
-        const topBackBtn = this._el.querySelector('#sh-btn-back, #sh-player-btn-back');
-        if (document.activeElement === topBackBtn) {
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                if (timeline) timeline.focus();
-                else this._el.querySelector('#sh-btn-play-pause')?.focus();
-                return;
-            }
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                this.close();
-                return;
-            }
-        }
-
-        // D. GESTION DES BOUTONS DU DOCK (Navigation 2D Clavier / TV)
-        const dockButtons = Array.from(this._el.querySelectorAll(
-            '#sh-btn-prev-ep, #sh-btn-skip-back, #sh-btn-play-pause, #sh-btn-skip-fwd, #sh-btn-next-ep, #sh-btn-volume, #sh-btn-open-audio-subs, #sh-btn-open-settings, #sh-btn-open-episodes, #sh-btn-fullscreen'
-        )).filter(el => el.offsetParent !== null && window.getComputedStyle(el).display !== 'none');
-
-        const curDockIdx = dockButtons.indexOf(document.activeElement);
-
-        if (curDockIdx !== -1) {
-            if (e.key === 'ArrowRight') {
-                e.preventDefault();
-                if (curDockIdx + 1 < dockButtons.length) {
-                    dockButtons[curDockIdx + 1].focus();
-                }
-                return;
-            }
-
-            if (e.key === 'ArrowLeft') {
-                e.preventDefault();
-                if (curDockIdx > 0) {
-                    dockButtons[curDockIdx - 1].focus();
-                }
-                return;
-            }
-
-            if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                if (timeline) timeline.focus();
-                else if (topBackBtn) topBackBtn.focus();
-                return;
-            }
-
-            if (e.key === 'ArrowDown') {
-                const focusedBtn = document.activeElement;
-                if (focusedBtn.classList.contains('sh-dock-pill-btn')) {
-                    e.preventDefault();
-                    focusedBtn.click(); // Ouvre le popover
-                    return;
-                }
-            }
-
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                document.activeElement.click();
-                return;
-            }
-        }
-
-        // E. TOUCHES DE RACCOURCI DIRECTES
         switch (e.key) {
-            case ' ':
             case 'k':
                 e.preventDefault();
                 this._togglePlayPause();
                 break;
-            case 'ArrowLeft':
             case 'j':
                 e.preventDefault();
                 this._seekRelative(-10);
                 break;
-            case 'ArrowRight':
             case 'l':
                 e.preventDefault();
                 this._seekRelative(+10);
-                break;
-            case 'ArrowUp':
-                e.preventDefault();
-                this._setVolumeDelta(+0.05);
-                break;
-            case 'ArrowDown':
-                e.preventDefault();
-                this._setVolumeDelta(-0.05);
                 break;
             case 'm':
                 e.preventDefault();
@@ -1630,13 +1633,8 @@ class VideoPlayer {
                 e.preventDefault();
                 this._el.querySelector('#sh-btn-open-episodes')?.click();
                 break;
-            case 'Escape':
-            case 'Backspace':
-            case 'BrowserBack':
-            case 'GoBack':
-                e.preventDefault();
-                this.close();
-                break;
+            // Toute touche de navigation (flèches, Entrée, Espace, Échap, Retour)
+            // est désormais gérée EXCLUSIVEMENT par SpatialNavigation → handleNavAction().
         }
     }
 
@@ -1714,7 +1712,9 @@ class VideoPlayer {
             headers: this._auth?.getAuthHeaders(),
             body: JSON.stringify({
                 ItemId: itemId,
-                PlayMethod: 'DirectStream',
+                MediaSourceId: this._mediaSourceId || itemId,
+                PlaySessionId: this._playSessionId || undefined,
+                PlayMethod: this._playMethod || 'DirectStream',
                 PositionTicks: this._playbackStartTicks || Math.round((this._video?.currentTime || 0) * 10000000)
             })
         }).catch(e => this._log.debug('Report play start failed:', e));
@@ -1734,6 +1734,9 @@ class VideoPlayer {
                 headers: this._auth?.getAuthHeaders(),
                 body: JSON.stringify({
                     ItemId: itemId,
+                MediaSourceId: this._mediaSourceId || itemId,
+                PlaySessionId: this._playSessionId || undefined,
+                PlayMethod: this._playMethod || 'DirectStream',
                     PositionTicks: ticks,
                     IsPaused: this._video.paused
                 })
@@ -1752,6 +1755,9 @@ class VideoPlayer {
             headers: this._auth?.getAuthHeaders(),
             body: JSON.stringify({
                 ItemId: itemId,
+                MediaSourceId: this._mediaSourceId || itemId,
+                PlaySessionId: this._playSessionId || undefined,
+                PlayMethod: this._playMethod || 'DirectStream',
                 PositionTicks: ticks
             })
         }).catch(() => {});
@@ -1766,58 +1772,143 @@ class VideoPlayer {
      * Reçoit et exécute les actions de navigation contextuelles de SpatialNavigation
      * @param {string} action - Action NavAction
      */
-    handleNavAction(action) {
+handleNavAction(action) {
+        // Un maintien se caracterise par des impulsions rapprochees. Sans cette
+        // remise a zero, deux appuis espaces de 10 s etaient vus comme un maintien
+        // de 10 s et provoquaient un saut de 300 s.
+        const nowTs = Date.now();
+        if (this._navHoldLastTick && nowTs - this._navHoldLastTick > 250) {
+            this._navHoldAction = null;
+            this._navHoldStart = 0;
+        }
+        this._navHoldLastTick = nowTs;
+
         if (!this._el) return;
 
+        // Réveil du HUD si masqué (repris de l'ancien _onKeyDown)
+        if (!this._isControlsVisible) {
+            this._showControls();
+            this._resetIdleTimer();
+            this._el.querySelector('#sh-btn-play-pause')?.focus();
+            return;
+        }
+        this._resetIdleTimer();
+
+        // 0. Popover ouvert — priorité absolue (repris de la section A de l'ancien _onKeyDown)
+        const openPopover = this._el.querySelector('.sh-player-popover.open');
+        if (openPopover) {
+            this._handlePopoverNav(action, openPopover);
+            return;
+        }
+
         const timeline = this._el.querySelector('#sh-player-timeline-focus');
+        const topBackBtn = this._el.querySelector('#sh-btn-back, #sh-player-btn-back');
         const active = document.activeElement;
 
-        // 1. Navigation sur la Timeline
+        // Suivi de la durée d'appui maintenu, reconstruit sans e.repeat
+        if (action === this._navHoldAction) {
+            // action répétée : on ne touche pas _navHoldStart, l'accélération continue
+        } else {
+            this._navHoldAction = action;
+            this._navHoldStart = Date.now();
+        }
+        const holdTime = Date.now() - this._navHoldStart;
+
+        // 1. Timeline focusée
         if (active === timeline) {
-            if (action === 'left') { this._seekRelative(-10); return; }
-            if (action === 'right') { this._seekRelative(+10); return; }
+            if (action === 'left' || action === 'right') {
+                let step = 5;
+                if (holdTime > 5000) step = 300;
+                else if (holdTime > 3000) step = 60;
+                else if (holdTime > 1000) step = 30;
+                this._seekRelative(action === 'right' ? step : -step);
+                return;
+            }
             if (action === 'down') { this._el.querySelector('#sh-btn-play-pause')?.focus(); return; }
-            if (action === 'up') { this._el.querySelector('#sh-btn-back')?.focus(); return; }
+            if (action === 'up') { (topBackBtn || this._el.querySelector('#sh-btn-back'))?.focus(); return; }
             if (action === 'select') { this._togglePlayPause(); return; }
         }
 
-        // 2. Navigation sur les boutons du Dock
+        // 2. Topbar (bouton retour)
+        if (active === topBackBtn) {
+            if (action === 'down') { (timeline || this._el.querySelector('#sh-btn-play-pause'))?.focus(); return; }
+            if (action === 'select') { this.close(); return; }
+        }
+
+        // 3. Boutons du dock
         const dockButtons = Array.from(this._el.querySelectorAll(
             '#sh-btn-prev-ep, #sh-btn-skip-back, #sh-btn-play-pause, #sh-btn-skip-fwd, #sh-btn-next-ep, #sh-btn-volume, #sh-btn-open-audio-subs, #sh-btn-open-settings, #sh-btn-open-episodes, #sh-btn-fullscreen'
         )).filter(el => el.offsetParent !== null && window.getComputedStyle(el).display !== 'none');
-
         const curIdx = dockButtons.indexOf(active);
         if (curIdx !== -1) {
             if (action === 'left' && curIdx > 0) { dockButtons[curIdx - 1].focus(); return; }
             if (action === 'right' && curIdx + 1 < dockButtons.length) { dockButtons[curIdx + 1].focus(); return; }
-            if (action === 'up') { if (timeline) timeline.focus(); return; }
+            if (action === 'up') { (timeline || topBackBtn)?.focus(); return; }
+            if (action === 'down' && active.classList.contains('sh-dock-pill-btn')) { active.click(); return; }
             if (action === 'select') { active.click(); return; }
+
+            // Audit 1.12 — un bouton du dock est focalisé : la direction est
+            // CONSOMMÉE même si elle ne mène nulle part. Sans ce garde-fou,
+            // « gauche » sur le premier bouton et « bas » sur un bouton non-pilule
+            // retombaient dans le switch global : reculer de 10 s ou changer le
+            // volume alors que l'utilisateur cherchait seulement à se déplacer.
+            if (action === 'left' || action === 'right' || action === 'down') return;
         }
 
-        // 3. Actions Globales Player
+        // 4. Actions globales (aucun élément spécifique focusé)
         switch (action) {
-            case 'play_pause':
-                this._togglePlayPause();
-                break;
-            case 'left':
-                this._seekRelative(-10);
-                break;
-            case 'right':
-                this._seekRelative(+10);
-                break;
-            case 'up':
-                this._setVolumeDelta(+0.05);
-                break;
-            case 'down':
-                this._setVolumeDelta(-0.05);
-                break;
-            case 'select':
-                this._togglePlayPause();
-                break;
+            case 'play_pause': this._togglePlayPause(); break;
+            case 'left': this._seekRelative(-10); break;
+            case 'right': this._seekRelative(+10); break;
+            case 'up': this._setVolumeDelta(+0.05); break;
+            case 'down': this._setVolumeDelta(-0.05); break;
+            case 'select': this._togglePlayPause(); break;
             case 'back':
-            case 'menu':
-                this.close();
-                break;
+            case 'menu': this.close(); break;
+        }
+    }
+
+    _handlePopoverNav(action, openPopover) {
+        const items = Array.from(openPopover.querySelectorAll('.sh-popover-item, .sh-chip-btn, .sh-sync-btn, .sh-popover-ep-card, button:not([disabled])'));
+        const focused = document.activeElement;
+        const curIdx = items.indexOf(focused);
+
+        if (action === 'back' || action === 'menu') {
+            this._closeAllPopovers();
+            const triggerBtn = openPopover.closest('.sh-dock-popover-anchor')?.querySelector('.sh-dock-pill-btn');
+            triggerBtn?.focus();
+            return;
+        }
+        if (action === 'down') {
+            const next = (curIdx === -1 || curIdx + 1 >= items.length) ? items[0] : items[curIdx + 1];
+            next?.focus();
+            next?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
+        }
+        if (action === 'up') {
+            const prev = curIdx <= 0 ? items[items.length - 1] : items[curIdx - 1];
+            prev?.focus();
+            prev?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
+        }
+        if (action === 'left' || action === 'right') {
+            const audioCol = openPopover.querySelector('#sh-player-audio-list')?.closest('.sh-popover-col');
+            const subsCol = openPopover.querySelector('#sh-player-subs-list')?.closest('.sh-popover-col');
+            if (audioCol && subsCol) {
+                if (action === 'right' && audioCol.contains(focused)) {
+                    const target = subsCol.querySelector('.sh-popover-item.selected, .sh-popover-item, .sh-sync-btn');
+                    target?.focus();
+                    target?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else if (action === 'left' && subsCol.contains(focused)) {
+                    const target = audioCol.querySelector('.sh-popover-item.selected, .sh-popover-item');
+                    target?.focus();
+                    target?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+            return;
+        }
+        if (action === 'select' && focused && openPopover.contains(focused)) {
+            focused.click();
         }
     }
 
@@ -1825,12 +1916,27 @@ class VideoPlayer {
     close(exitFullscreen = true) {
         if (!this._el) return;
 
+        this._navHoldAction = null;
         this._reportPlaybackStopped();
 
         if (this._progressInterval) clearInterval(this._progressInterval);
         if (this._idleTimer) clearTimeout(this._idleTimer);
         if (this._nextEpCountdownInterval) clearInterval(this._nextEpCountdownInterval);
         if (this._osdTimer) clearTimeout(this._osdTimer);
+
+        // Lecture hors ligne : mémoriser où on s'est arrêté (le serveur ne peut
+        // pas le savoir), puis révoquer l'object URL. Sans cette révocation le
+        // Blob reste référencé et le navigateur ne libère pas la place, même
+        // après suppression du téléchargement.
+        if (this._urlHorsLigne) {
+            const secondes = this._video?.currentTime || 0;
+            const id = this._currentItem?.Id || this._currentItem?.id;
+            if (id && secondes > 0) {
+                svc.offlineStore()?.memoriserPosition?.(id, secondes).catch(() => {});
+            }
+            URL.revokeObjectURL(this._urlHorsLigne);
+            this._urlHorsLigne = null;
+        }
 
         if (this._keyHandler) {
             document.removeEventListener('keydown', this._keyHandler);
@@ -1878,10 +1984,10 @@ class VideoPlayer {
                 this._closeTimer = null;
                 return;
             }
-            if (sourceItem && window.SpaceHub?.ui?.modalSlideUpSheet) {
-                window.SpaceHub.ui.modalSlideUpSheet.open(sourceItem);
+            if (sourceItem && svc.slideUpSheet()) {
+                svc.slideUpSheet().open(sourceItem);
             } else {
-                const nav = window.SpaceHub?.spatialNav || window.SpaceHub?.ui?.appLayout?._spatialNav;
+                const nav = svc.nav() || svc.appLayout()?._spatialNav;
                 nav?.onModalClosed?.();
             }
             this._closeTimer = null;
@@ -1906,1057 +2012,9 @@ class VideoPlayer {
     }
 
     _injectStyles() {
-        if (document.getElementById('sh-grand-cinema-styles-v3')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-grand-cinema-styles-v3';
-        style.textContent = `
-/* ═══════════════════════════════════════════════════════════════════════════
-   SpaceHub — Grand Cinema Video Player v3.3.0 (VisionOS Floating Popovers)
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* Neutralisation Absolue des Éléments Parasites */
-body.sh-cinema-active {
-    overflow: hidden !important;
-}
-body.sh-cinema-active .btnHeaderClose,
-body.sh-cinema-active .headerBackButton,
-body.sh-cinema-active .headerElements,
-body.sh-cinema-active .videoOsd,
-body.sh-cinema-active .videoOsdBottom,
-body.sh-cinema-active .videoOsdHeader,
-body.sh-cinema-active .headerTop,
-body.sh-cinema-active .dialogContainer,
-body.sh-cinema-active .dialogBackdrop {
-    display: none !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    visibility: hidden !important;
-    z-index: -1 !important;
-}
-
-.sh-grand-cinema-player {
-    position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: 100vh;
-    background: #000000;
-    z-index: 2147483647 !important;
-    overflow: hidden;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-    color: #ffffff;
-    user-select: none;
-    -webkit-font-smoothing: antialiased;
-    transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sh-grand-cinema-player.sh-player--entering {
-    opacity: 0;
-    transform: scale(1.03);
-}
-.sh-grand-cinema-player.sh-player--exiting {
-    opacity: 0;
-    transform: scale(0.97);
-    pointer-events: none;
-}
-
-.sh-cinema-video {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    background: #000;
-}
-
-.sh-ambient-halo {
-    position: absolute;
-    inset: -10%;
-    background: radial-gradient(circle at center, rgba(255, 159, 10, 0.06) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 2;
-}
-
-.sh-vignette-top {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 140px;
-    background: linear-gradient(180deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 65%, transparent 100%);
-    pointer-events: none;
-    z-index: 4;
-    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-vignette-bottom {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 180px;
-    background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 65%, transparent 100%);
-    pointer-events: none;
-    z-index: 4;
-    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sh-grand-cinema-player.hud-hidden {
-    cursor: none;
-}
-.sh-grand-cinema-player.hud-hidden .sh-cinema-topbar,
-.sh-grand-cinema-player.hud-hidden .sh-cinema-dock-anchor,
-.sh-grand-cinema-player.hud-hidden .sh-vignette-top,
-.sh-grand-cinema-player.hud-hidden .sh-vignette-bottom {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(14px);
-}
-.sh-grand-cinema-player.hud-hidden .sh-cinema-topbar {
-    transform: translateY(-14px);
-}
-
-/* 🌀 Buffering Spinner Ambré */
-.sh-cinema-buffering {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    z-index: 40;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-}
-.sh-cinema-buffering.visible { opacity: 1; }
-.sh-buffering-glass {
-    position: relative;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: rgba(14, 14, 20, 0.65);
-    backdrop-filter: blur(30px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 16px 40px rgba(0,0,0,0.8), 0 0 20px rgba(255, 159, 10, 0.35);
-}
-.sh-buffering-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #ff9f0a;
-    box-shadow: 0 0 8px #ff9f0a, 0 0 12px rgba(255, 159, 10, 0.9);
-}
-.sh-buffering-ring {
-    position: absolute;
-    inset: 3px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    border-top-color: #ff9f0a;
-    border-right-color: #ffc04d;
-    animation: shSpinRibbon 0.85s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-}
-@keyframes shSpinRibbon {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-.sh-buffering-label {
-    font-size: 11.5px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.75);
-    letter-spacing: 0.3px;
-}
-
-/* ── Zones Double-Tap Ripple ─────────────────────────────────────────── */
-.sh-gesture-zone {
-    position: absolute;
-    top: 90px;
-    bottom: 100px;
-    width: 35%;
-    z-index: 6;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.sh-gesture-zone--left { left: 0; }
-.sh-gesture-zone--right { right: 0; }
-
-.sh-ripple-badge {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    background: rgba(14, 14, 20, 0.65);
-    backdrop-filter: blur(28px);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    color: #fff;
-    font-size: 11.5px;
-    font-weight: 700;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 159, 10, 0.4);
-    opacity: 0;
-    transform: scale(0.6);
-    pointer-events: none;
-    transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.45, 1);
-}
-.sh-ripple-badge.active {
-    opacity: 1;
-    transform: scale(1.15);
-    animation: shRippleFlash 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-@keyframes shRippleFlash {
-    0% { opacity: 0; transform: scale(0.6); }
-    50% { opacity: 1; transform: scale(1.15); }
-    100% { opacity: 0; transform: scale(1.3); }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   🍏 TOP BAR : EN-TÊTE CINÉMA TRANSLUCIDE ÉPURÉ
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-.sh-cinema-topbar {
-    position: absolute;
-    top: 22px;
-    left: 28px;
-    right: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    z-index: 10;
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sh-topbar-brand-capsule {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 5px 16px 5px 6px;
-    background: rgba(14, 14, 20, 0.48);
-    backdrop-filter: blur(36px) saturate(190%);
-    -webkit-backdrop-filter: blur(36px) saturate(190%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 999px;
-    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.16);
-}
-
-.sh-back-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-back-btn:hover {
-    background: rgba(255, 255, 255, 0.18);
-    transform: scale(1.03);
-}
-
-.sh-capsule-divider {
-    width: 1px;
-    height: 16px;
-    background: rgba(255, 255, 255, 0.12);
-}
-
-.sh-media-meta-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.sh-brand-led {
-    position: relative;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #ff9f0a;
-    box-shadow: 0 0 6px #ff9f0a, 0 0 12px rgba(255, 159, 10, 0.85);
-    flex-shrink: 0;
-}
-.sh-brand-led-core {
-    position: absolute;
-    inset: 1px;
-    border-radius: 50%;
-    background: #ffb340;
-}
-.sh-media-title {
-    font-size: 13.5px;
-    font-weight: 700;
-    color: #ffffff;
-    letter-spacing: -0.2px;
-}
-.sh-media-dot {
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.35);
-}
-.sh-media-sub {
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-/* Actions Droite */
-.sh-topbar-actions-pill {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 6px;
-    background: rgba(14, 14, 20, 0.48);
-    backdrop-filter: blur(36px) saturate(190%);
-    -webkit-backdrop-filter: blur(36px) saturate(190%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 999px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.16);
-}
-.sh-top-icon-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.85);
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-top-icon-btn:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.16);
-    transform: scale(1.08);
-}
-
-/* ── Flash OSD Jauge ─────────────────────────────────────────────────── */
-.sh-cinema-osd {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0.85);
-    background: rgba(14, 14, 20, 0.85);
-    backdrop-filter: blur(40px) saturate(200%);
-    -webkit-backdrop-filter: blur(40px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.9), 0 0 30px rgba(255, 159, 10, 0.2);
-    border-radius: 20px;
-    padding: 12px 22px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    z-index: 50;
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.28s cubic-bezier(0.34, 1.56, 0.45, 1);
-}
-.sh-cinema-osd.active {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-}
-.sh-osd-icon-wrap { font-size: 20px; }
-.sh-osd-info { display: flex; flex-direction: column; gap: 4px; }
-.sh-osd-text { font-size: 13.5px; font-weight: 700; color: #fff; }
-.sh-osd-gauge {
-    width: 120px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.18);
-    border-radius: 999px;
-    overflow: hidden;
-}
-.sh-osd-gauge-fill {
-    height: 100%;
-    width: 70%;
-    background: linear-gradient(90deg, #ff9f0a, #ffc04d);
-    border-radius: 999px;
-    box-shadow: 0 0 10px rgba(255, 159, 10, 0.85);
-}
-
-/* ── Smart Skip Intro & Next Ep ──────────────────────────────────────── */
-.sh-smart-skip-pill {
-    position: absolute;
-    bottom: 95px;
-    right: 32px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 9px 16px;
-    background: rgba(14, 14, 20, 0.82);
-    backdrop-filter: blur(36px) saturate(200%);
-    -webkit-backdrop-filter: blur(36px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 999px;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 16px 45px rgba(0,0,0,0.8), 0 0 25px rgba(255, 159, 10, 0.3);
-    z-index: 12;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(14px);
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-smart-skip-pill.visible {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0);
-}
-.sh-smart-skip-pill:hover {
-    background: rgba(255, 159, 10, 0.25);
-    border-color: #ff9f0a;
-    transform: scale(1.04);
-}
-
-.sh-next-ep-card {
-    position: absolute;
-    bottom: 95px;
-    right: 32px;
-    width: 360px;
-    background: rgba(14, 14, 20, 0.90);
-    backdrop-filter: blur(48px) saturate(200%);
-    -webkit-backdrop-filter: blur(48px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 18px;
-    box-shadow: 0 30px 80px rgba(0,0,0,0.9);
-    z-index: 15;
-    padding: 12px;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(18px);
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-next-ep-card.visible {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0);
-}
-.sh-next-ep-inner { display: flex; align-items: center; gap: 10px; }
-.sh-next-ep-thumb {
-    position: relative;
-    width: 86px;
-    height: 52px;
-    border-radius: 8px;
-    overflow: hidden;
-    flex-shrink: 0;
-    background: #000;
-}
-.sh-next-ep-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.sh-next-ep-countdown {
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.65);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ff9f0a;
-    font-weight: 800;
-    font-size: 18px;
-}
-.sh-next-ep-meta { flex: 1; min-width: 0; }
-.sh-next-ep-kicker { font-size: 9px; font-weight: 800; color: #ff9f0a; letter-spacing: 0.5px; }
-.sh-next-ep-name { margin: 2px 0 0; font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sh-next-ep-btns { display: flex; align-items: center; gap: 6px; }
-.sh-next-ep-play-btn {
-    padding: 6px 13px;
-    background: #ff9f0a;
-    border: none;
-    border-radius: 999px;
-    color: #000;
-    font-size: 11px;
-    font-weight: 750;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(255, 159, 10, 0.4);
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.45, 1);
-}
-.sh-next-ep-play-btn:hover { transform: scale(1.06); }
-.sh-next-ep-close-btn {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.1);
-    border: none;
-    color: #fff;
-    cursor: pointer;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   🍏 GRAND CINEMA LIQUID DOCK (Disposition Studio Apple TV+ Rééquilibrée)
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-.sh-cinema-dock-anchor {
-    position: absolute;
-    bottom: 24px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: center;
-    padding: 0 28px;
-    z-index: 20;
-    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sh-dock-amber-glow {
-    position: absolute;
-    bottom: -6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(860px, 90vw);
-    height: 30px;
-    background: radial-gradient(ellipse at center, rgba(255, 159, 10, 0.20) 0%, transparent 70%);
-    pointer-events: none;
-    filter: blur(14px);
-    z-index: 19;
-}
-
-.sh-liquid-ribbon-dock {
-    position: relative;
-    width: min(1040px, 100%);
-    height: 50px;
-    background: rgba(14, 14, 20, 0.48);
-    backdrop-filter: blur(36px) saturate(190%);
-    -webkit-backdrop-filter: blur(36px) saturate(190%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 999px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 10px 0 8px;
-    z-index: 21;
-    gap: 10px;
-}
-
-/* ── Section Gauche : Commandes Transport Proportionnées ──────────────── */
-.sh-ribbon-group {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-shrink: 0;
-}
-
-/* Master Play/Pause Button (32px Calibré Harmonieux) */
-.sh-pearl-play-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: #ffffff;
-    border: none;
-    color: #000000;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(255, 255, 255, 0.40), 0 0 16px rgba(255, 159, 10, 0.30);
-    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.45, 1), box-shadow 0.22s ease;
-    flex-shrink: 0;
-}
-.sh-pearl-play-btn:hover {
-    transform: scale(1.08);
-    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.65), 0 0 20px rgba(255, 159, 10, 0.45);
-}
-.sh-pearl-play-btn:active { transform: scale(0.94); }
-
-/* Micro Boutons Transport (30px) */
-.sh-micro-btn {
-    position: relative;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.85);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-    flex-shrink: 0;
-}
-.sh-micro-btn:hover {
-    background: rgba(255, 255, 255, 0.14);
-    color: #fff;
-    transform: scale(1.06);
-}
-.sh-micro-num {
-    position: absolute;
-    font-size: 7px;
-    font-weight: 800;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-.sh-time-elapsed-label {
-    font-size: 11.5px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.90);
-    font-variant-numeric: tabular-nums;
-    margin: 0 4px 0 6px;
-}
-
-/* ── Section Centrale : Timeline Scrubber Étendu ─────────────────────── */
-.sh-ribbon-timeline-wrapper {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 160px;
-}
-
-.sh-ribbon-timeline {
-    position: relative;
-    flex: 1;
-    height: 18px;
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-}
-
-.sh-ribbon-timeline-bg {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.16);
-    border-radius: 999px;
-    transition: height 0.18s cubic-bezier(0.34, 1.56, 0.45, 1);
-}
-.sh-ribbon-timeline:hover .sh-ribbon-timeline-bg { height: 6px; }
-
-.sh-ribbon-timeline-buffered {
-    position: absolute;
-    left: 0;
-    height: 4px;
-    width: 0%;
-    background: rgba(255, 255, 255, 0.30);
-    border-radius: 999px;
-    pointer-events: none;
-    transition: height 0.18s;
-}
-.sh-ribbon-timeline:hover .sh-ribbon-timeline-buffered { height: 6px; }
-
-.sh-ribbon-timeline-played {
-    position: absolute;
-    left: 0;
-    height: 4px;
-    width: 0%;
-    background: linear-gradient(90deg, #ff9f0a 0%, #ffc04d 100%);
-    border-radius: 999px;
-    pointer-events: none;
-    box-shadow: 0 0 10px rgba(255, 159, 10, 0.85);
-    transition: height 0.18s;
-}
-.sh-ribbon-timeline:hover .sh-ribbon-timeline-played { height: 6px; }
-
-.sh-ribbon-timeline-thumb {
-    position: absolute;
-    top: 50%;
-    left: 0%;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #ffffff;
-    box-shadow: 0 0 10px rgba(255, 159, 10, 1), 0 2px 6px rgba(0,0,0,0.6);
-    transform: translate(-50%, -50%) scale(0);
-    pointer-events: none;
-    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.45, 1);
-}
-.sh-ribbon-timeline:hover .sh-ribbon-timeline-thumb { transform: translate(-50%, -50%) scale(1.1); }
-
-.sh-timeline-tooltip {
-    position: absolute;
-    bottom: 22px;
-    left: 0%;
-    transform: translateX(-50%);
-    padding: 3px 7px;
-    background: rgba(14, 14, 20, 0.95);
-    backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.20);
-    border-radius: 6px;
-    color: #fff;
-    font-size: 10.5px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.15s ease;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.7);
-}
-.sh-ribbon-timeline:hover .sh-timeline-tooltip { opacity: 1; }
-
-.sh-time-remaining-label {
-    font-size: 11.5px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.65);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-}
-
-/* ── Section Droite : Volume Compact (Micro-perle 7px) & Menus Dépliants ── */
-.sh-volume-flow-box {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    padding-right: 2px;
-}
-.sh-volume-track {
-    width: 48px;
-    display: flex;
-    align-items: center;
-}
-
-/* 🔘 Curseur de Volume Personnalisé Ultra-Fin (Suppression du gros rond orange) */
-.sh-volume-range {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 48px;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.20);
-    border-radius: 999px;
-    outline: none;
-    cursor: pointer;
-}
-.sh-volume-range::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #ff9f0a;
-    box-shadow: 0 0 6px #ff9f0a, 0 1px 3px rgba(0,0,0,0.5);
-    cursor: pointer;
-    border: none;
-    transition: transform 0.15s ease;
-}
-.sh-volume-range:hover::-webkit-slider-thumb {
-    transform: scale(1.25);
-}
-.sh-volume-range::-moz-range-thumb {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #ff9f0a;
-    box-shadow: 0 0 6px #ff9f0a;
-    cursor: pointer;
-    border: none;
-}
-
-/* Boutons Pilules Dépliants du Dock */
-.sh-dock-pill-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    height: 30px;
-    padding: 4px 11px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.90);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-    white-space: nowrap;
-}
-.sh-dock-pill-btn:hover,
-.sh-dock-pill-btn.active {
-    background: rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.28);
-    color: #fff;
-    transform: scale(1.03);
-}
-.sh-popover-chevron {
-    font-size: 9px;
-    opacity: 0.65;
-    margin-left: 1px;
-    transition: transform 0.2s ease;
-}
-.sh-dock-pill-btn.active .sh-popover-chevron {
-    transform: rotate(180deg);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   🗄️ MENUS DÉPLIANTS FLOTTANTS (Glass Popovers au-dessus du Dock)
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-.sh-dock-popover-anchor {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-}
-
-.sh-player-popover {
-    position: absolute;
-    bottom: calc(100% + 14px);
-    right: 0;
-    z-index: 9999;
-    opacity: 0;
-    transform: translateY(10px) scale(0.95);
-    transform-origin: bottom right;
-    pointer-events: none;
-    transition: all 0.24s cubic-bezier(0.34, 1.56, 0.45, 1);
-}
-.sh-player-popover.open {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    pointer-events: auto;
-}
-
-#sh-popover-audio-subs {
-    width: 440px;
-}
-#sh-popover-settings {
-    width: 300px;
-}
-#sh-popover-episodes {
-    width: 350px;
-}
-
-/* Texture de Verre Liquide Identique au Dock */
-.sh-popover-inner {
-    background: rgba(14, 14, 20, 0.52);
-    backdrop-filter: blur(40px) saturate(190%);
-    -webkit-backdrop-filter: blur(40px) saturate(190%);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 20px;
-    padding: 14px 16px;
-    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-}
-
-/* Double Colonne Audio & Subs */
-.sh-popover-cols {
-    display: grid;
-    grid-template-columns: 1fr 1px 1fr;
-    gap: 12px;
-    width: 100%;
-    box-sizing: border-box;
-    overflow-x: hidden;
-}
-.sh-popover-col {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-.sh-popover-divider {
-    background: rgba(255, 255, 255, 0.10);
-    width: 1px;
-    height: 100%;
-}
-
-.sh-popover-col-header,
-.sh-popover-section-title {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 10.5px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: rgba(255, 255, 255, 0.70);
-    padding: 2px 4px 8px;
-}
-
-.sh-popover-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    max-height: 180px;
-    overflow-y: auto;
-    overflow-x: hidden !important;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.20) transparent;
-}
-.sh-popover-list::-webkit-scrollbar {
-    width: 4px;
-    height: 0px;
-}
-.sh-popover-list::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.20);
-    border-radius: 4px;
-}
-
-.sh-popover-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 7px 10px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    cursor: pointer;
-    color: rgba(255, 255, 255, 0.85);
-    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-popover-item:hover {
-    background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(255, 255, 255, 0.22);
-    color: #ffffff;
-    transform: scale(1.02);
-}
-.sh-popover-item.selected {
-    background: rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.35);
-    color: #ffffff;
-    font-weight: 700;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-.sh-popover-item-name {
-    font-size: 11.5px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex: 1;
-}
-.sh-popover-item-badge {
-    font-size: 8px;
-    font-weight: 800;
-    padding: 2px 5px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.10);
-    margin-left: 6px;
-    flex-shrink: 0;
-}
-
-/* Stepper Synchronisation Direct */
-.sh-popover-sub-sync {
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-.sh-popover-sub-sync-title {
-    font-size: 9.5px;
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.60);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 6px;
-}
-.sh-sync-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 3px;
-}
-.sh-sync-btn {
-    padding: 6px 2px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.90);
-    font-size: 9.5px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.16s ease;
-}
-.sh-sync-btn:hover {
-    background: rgba(255, 255, 255, 0.20);
-    border-color: rgba(255, 255, 255, 0.30);
-    color: #ffffff;
-    transform: scale(1.04);
-}
-.sh-sync-btn--reset { font-size: 9px; }
-.sh-sync-label {
-    margin-top: 5px;
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.65);
-}
-
-/* Popover Settings Sections */
-.sh-settings-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-}
-.sh-chip-btn {
-    padding: 6px 12px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.16s ease;
-}
-.sh-chip-btn:hover {
-    background: rgba(255, 255, 255, 0.16);
-    border-color: rgba(255, 255, 255, 0.25);
-    color: #fff;
-    transform: scale(1.03);
-}
-.sh-chip-btn.active {
-    background: rgba(255, 255, 255, 0.22);
-    color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.40);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-    font-weight: 700;
-}
-
-/* Popover Épisodes */
-.sh-episodes-popover-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 280px;
-    overflow-y: auto;
-}
-.sh-popover-episode-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    cursor: pointer;
-    transition: all 0.18s ease;
-}
-.sh-popover-episode-row:hover {
-    background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(255, 255, 255, 0.22);
-    transform: scale(1.02);
-}
-.sh-popover-episode-row.selected {
-    background: rgba(255, 255, 255, 0.20);
-    border-color: rgba(255, 255, 255, 0.35);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-.sh-popover-ep-thumb {
-    position: relative;
-    width: 64px;
-    height: 38px;
-    border-radius: 6px;
-    overflow: hidden;
-    background: #000;
-    flex-shrink: 0;
-}
-.sh-popover-ep-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.sh-popover-ep-tag {
-    position: absolute;
-    bottom: 2px;
-    left: 2px;
-    font-size: 7.5px;
-    font-weight: 800;
-    padding: 1px 3px;
-    border-radius: 3px;
-    background: rgba(0, 0, 0, 0.75);
-    color: #ff9f0a;
-}
-.sh-popover-ep-meta { flex: 1; min-width: 0; }
-.sh-popover-ep-name { font-size: 11px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sh-popover-ep-dur { font-size: 9.5px; color: rgba(255,255,255,0.50); }
-.sh-popover-empty { font-size: 11px; color: rgba(255,255,255,0.45); padding: 10px; text-align: center; }
-`;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans VideoPlayer.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 
