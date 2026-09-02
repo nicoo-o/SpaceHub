@@ -94,7 +94,7 @@ class BazarrWantedWidget {
                         <div class="sh-bazarr-item">
                             <div class="sh-bazarr-item__details">
                                 <span class="sh-bazarr-type-badge sh-bazarr-type-badge--movie">Film</span>
-                                <span class="sh-bazarr-item__title sh-truncate">${m.title || m.radarrId || 'Film'}</span>
+                                <span class="sh-bazarr-item__title sh-truncate">${escapeHtml(m.title || m.radarrId || 'Film')}</span>
                             </div>
                             <button class="sh-btn sh-btn--ghost sh-btn--sm sh-bazarr-search-btn" data-type="movie" data-id="${m.radarrId}">Rechercher</button>
                         </div>

@@ -11,6 +11,7 @@
 
 
 import * as svc from '../../core/services.js';
+import { escapeHtml } from '../../core/utils/domUtils.js';
 class AnimeWidget {
     constructor() {
         this.id = 'anime';
@@ -26,7 +27,7 @@ class AnimeWidget {
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sh-shelf-title-icon" style="color:var(--sh-accent, #6366f1);">
                             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                         </svg>
-                        <span>${this.title}</span>
+                        <span>${escapeHtml(this.title)}</span>
                     </h2>
                     <button class="sh-shelf-see-all-btn" id="sh-btn-see-all-anime" style="background:none; border:none; color:rgba(var(--sh-ink, 255, 255, 255), 0.6); font-size:13px; font-weight:500; cursor:pointer; display:none; align-items:center; gap:4px; transition:color 0.2s;">
                         <span>Tout voir</span>
@@ -79,6 +80,10 @@ class AnimeWidget {
                     });
                     if (animeLib) {
                         animeLibraryId = animeLib.Id;
+                        // Ce titre vient du serveur (nom de bibliothèque choisi par
+                        // l'administrateur Jellyfin). Il est réinjecté par render() en
+                        // innerHTML lors d'un re-rendu du tableau de bord : il doit donc
+                        // être échappé là-bas. Ici, textContent suffit.
                         this.title = animeLib.Name || 'Animés';
                         const titleSpan = container.querySelector('.sh-widget__title span');
                         if (titleSpan) titleSpan.textContent = this.title;

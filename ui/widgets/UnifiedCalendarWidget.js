@@ -6,6 +6,7 @@
 'use strict';
 
 import UnifiedCalendarService from '../../jellyfin/calendar/UnifiedCalendarService.js';
+import { escapeHtml } from '../../core/utils/domUtils.js';
 import GooeyCarouselScroller from '../components/GooeyCarouselScroller.js';
 
 import './UnifiedCalendarWidget.css';
@@ -100,7 +101,7 @@ export class UnifiedCalendarWidget {
                                 : '<span class="sh-cal-type-pill movie">🎬 FILM</span>';
 
                             const posterImg = ev.posterUrl
-                                ? `<img decoding="async" src="${ev.posterUrl}" alt="${ev.title}" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'160\\' height=\\'240\\' fill=\\'%23111\\'><rect width=\\'100%\\' height=\\'100%\\'/></svg>'"/>`
+                                ? `<img decoding="async" src="${encodeURI(ev.posterUrl)}" alt="${escapeHtml(ev.title)}" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'160\\' height=\\'240\\' fill=\\'%23111\\'><rect width=\\'100%\\' height=\\'100%\\'/></svg>'"/>`
                                 : `<div class="sh-cal-poster-placeholder">${ev.type === 'episode' ? '📺' : '🎬'}</div>`;
 
                             return `
@@ -114,8 +115,8 @@ export class UnifiedCalendarWidget {
                                         ${ev.hasFile ? '<span style="position: absolute; bottom: 6px; right: 6px; background: rgba(48, 209, 88, 0.85); color: var(--sh-ink-solid-inv, #000000); font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px;">DISPO</span>' : ''}
                                     </div>
                                     <div class="sh-cal-info" style="display: flex; flex-direction: column; gap: 2px;">
-                                        <strong style="font-size: 13px; color: var(--sh-ink-solid, #ffffff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${ev.title}</strong>
-                                        <small style="font-size: 11px; color: rgba(var(--sh-ink, 255, 255, 255), 0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${ev.subTitle}</small>
+                                        <strong style="font-size: 13px; color: var(--sh-ink-solid, #ffffff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(ev.title)}</strong>
+                                        <small style="font-size: 11px; color: rgba(var(--sh-ink, 255, 255, 255), 0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(ev.subTitle)}</small>
                                     </div>
                                 </div>
                             `;

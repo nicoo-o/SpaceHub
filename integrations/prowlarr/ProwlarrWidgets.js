@@ -95,7 +95,7 @@ class ProwlarrStatusWidget {
                     ${summary.indexers.slice(0, 10).map(idx => `
                         <div class="sh-prowlarr-indexer-item">
                             <span class="sh-prowlarr-badge sh-prowlarr-badge--${idx.protocol}">${idx.protocol === 'torrent' ? 'Torrent' : 'Usenet'}</span>
-                            <span class="sh-prowlarr-indexer-name sh-truncate">${idx.name}</span>
+                            <span class="sh-prowlarr-indexer-name sh-truncate">${escapeHtml(idx.name)}</span>
                             <span class="sh-prowlarr-status-dot ${idx.status === 'Ok' ? 'online' : 'degraded'}" title="${idx.status}"></span>
                         </div>
                     `).join('')}

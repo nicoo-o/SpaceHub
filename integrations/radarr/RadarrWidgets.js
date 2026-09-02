@@ -87,7 +87,7 @@ class UpcomingMoviesWidget {
                             <div class="sh-card sh-card--poster sh-radarr-bento-card">
                                 <div class="sh-card__image-wrap sh-radarr-bento-card__poster-wrap">
                                     ${poster 
-                                        ? `<img class="sh-card__image" src="${poster}" alt="${m.title || 'Film'}" loading="lazy"/>` 
+                                        ? `<img class="sh-card__image" src="${poster}" alt="${escapeHtml(m.title || 'Film')}" loading="lazy"/>` 
                                         : '<div class="sh-card__image sh-placeholder"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg></div>'}
                                     <div class="sh-card__glint"></div>
                                     <div class="sh-radarr-bento-card__floating-badges">
@@ -95,7 +95,7 @@ class UpcomingMoviesWidget {
                                     </div>
                                 </div>
                                 <div class="sh-radarr-bento-card__body">
-                                    <h4 class="sh-radarr-bento-card__title sh-truncate" title="${m.title || 'Film'}">${m.title || 'Film'}</h4>
+                                    <h4 class="sh-radarr-bento-card__title sh-truncate" title="${escapeHtml(m.title || 'Film')}">${escapeHtml(m.title || 'Film')}</h4>
                                     <span class="sh-radarr-bento-card__meta">${year ? `${year} • ` : ''}${studio}</span>
                                 </div>
                             </div>
@@ -191,7 +191,7 @@ class RadarrQueueWidget {
                         return `
                             <div class="sh-radarr-queue-row">
                                 <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
-                                    <span class="sh-truncate" style="font-weight:600; color:var(--sh-ink-solid, #ffffff);">${item.title || item.movie?.title || 'Film'}</span>
+                                    <span class="sh-truncate" style="font-weight:600; color:var(--sh-ink-solid, #ffffff);">${escapeHtml(item.title || item.movie?.title || 'Film')}</span>
                                     <span style="font-weight:700; color:var(--sh-ink-solid, #ffffff); font-size:12px; background:rgba(var(--sh-ink, 255, 255, 255), 0.08); padding:2px 8px; border-radius:9999px;">${progress}%</span>
                                 </div>
                                 <div style="height:4px; background:rgba(var(--sh-ink, 255, 255, 255), 0.08); border-radius:9999px; overflow:hidden;">

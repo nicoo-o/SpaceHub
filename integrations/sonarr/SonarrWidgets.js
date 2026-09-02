@@ -85,7 +85,7 @@ class UpcomingEpisodesWidget {
                         return `
                             <div class="sh-card sh-card--poster sh-sonarr-bento-card">
                                 <div class="sh-card__image-wrap sh-sonarr-bento-card__poster-wrap">
-                                    ${poster ? `<img class="sh-card__image" src="${poster}" alt="${ep.series?.title || 'Série'}" loading="lazy"/>` : '<div class="sh-card__image sh-placeholder"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg></div>'}
+                                    ${poster ? `<img class="sh-card__image" src="${poster}" alt="${escapeHtml(ep.series?.title || 'Série')}" loading="lazy"/>` : '<div class="sh-card__image sh-placeholder"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg></div>'}
                                     <div class="sh-card__glint"></div>
                                     <div class="sh-sonarr-bento-card__floating-badges">
                                         <span class="sh-sonarr-pill-badge sh-sonarr-pill-badge--ep">${epCode}</span>
@@ -93,8 +93,8 @@ class UpcomingEpisodesWidget {
                                     </div>
                                 </div>
                                 <div class="sh-sonarr-bento-card__body">
-                                    <h4 class="sh-sonarr-bento-card__series-title sh-truncate" title="${ep.series?.title || 'Série'}">${ep.series?.title || 'Série'}</h4>
-                                    <p class="sh-sonarr-bento-card__ep-title sh-truncate" title="${ep.title || 'Épisode'}">${ep.title || 'Épisode'}</p>
+                                    <h4 class="sh-sonarr-bento-card__series-title sh-truncate" title="${escapeHtml(ep.series?.title || 'Série')}">${escapeHtml(ep.series?.title || 'Série')}</h4>
+                                    <p class="sh-sonarr-bento-card__ep-title sh-truncate" title="${escapeHtml(ep.title || 'Épisode')}">${escapeHtml(ep.title || 'Épisode')}</p>
                                     ${timeFormatted ? `<span class="sh-sonarr-bento-card__time">${timeFormatted}</span>` : ''}
                                 </div>
                             </div>
@@ -188,7 +188,7 @@ class SonarrQueueWidget {
                     ${queue.map(item => {
                         const progress = item.sizeleft && item.size ? Math.round(((item.size - item.sizeleft) / item.size) * 100) : 0;
                         const seriesTitle = item.series?.title || item.title || 'Série';
-                        const epTitle = item.episode?.title ? ` - ${item.episode.title}` : '';
+                        const epTitle = item.episode?.title ? ` - ${escapeHtml(item.episode.title)}` : '';
                         return `
                             <div class="sh-sonarr-queue-row">
                                 <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">

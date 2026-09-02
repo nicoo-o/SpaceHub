@@ -185,7 +185,7 @@ class QBittorrentActiveWidget {
                                             <span style="font-size:10px; font-weight:750; padding:2px 7px; border-radius:6px; background:${stateColor}22; color:${stateColor}; border:1px solid ${stateColor}44; text-transform:uppercase;">${stateLabel}</span>
                                             ${sizeGB ? `<span style="font-size:11px; color:rgba(var(--sh-ink, 255, 255, 255), 0.45); font-weight:600;">${sizeGB}</span>` : ''}
                                         </div>
-                                        <span class="sh-truncate" style="font-weight:650; font-size:13.5px; color:var(--sh-ink-solid, #ffffff);" title="${t.name}">${t.name}</span>
+                                        <span class="sh-truncate" style="font-weight:650; font-size:13.5px; color:var(--sh-ink-solid, #ffffff);" title="${escapeHtml(t.name)}">${escapeHtml(t.name)}</span>
                                     </div>
                                     <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
                                         <button class="sh-qbit-action-btn sh-qbit-toggle-btn" data-hash="${t.hash}" data-paused="${isPaused}" title="${isPaused ? 'Reprendre' : 'Pause'}">
