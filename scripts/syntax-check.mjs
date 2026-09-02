@@ -4,7 +4,10 @@ import { readdir } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 
 const execFileAsync = promisify(execFile);
-const ignoredDirectories = new Set(['node_modules', 'dist', '.git']);
+// `_to_delete` est le tampon des fichiers en attente de retrait manuel : il
+// contient d'anciens bundles minifiés. Les analyser gonflait le compte de
+// fichiers (131 au lieu de 108) et validait du code qui n'existe plus.
+const ignoredDirectories = new Set(['node_modules', 'dist', '.git', '_to_delete', 'coverage', '.vite']);
 
 async function collectJavaScriptFiles(directory) {
     const entries = await readdir(directory, { withFileTypes: true });

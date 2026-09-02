@@ -12,7 +12,9 @@
     "test:css": "node scripts/css-hygiene-check.mjs",
     "test:xss": "node scripts/xss-hygiene-check.mjs",
     "test:globals": "node scripts/globals-check.mjs",
+    "test:e2e": "node scripts/e2e.mjs",
     "test": "npm run lint && npm run test:smoke && npm run test:nav && npm run test:css && npm run test:xss && npm run test:globals",
+    "verify": "npm run test && npm run build && npm run test:e2e",
     "lint": "node scripts/syntax-check.mjs"
   },
   "keywords": [
