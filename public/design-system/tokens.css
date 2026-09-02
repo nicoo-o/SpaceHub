@@ -405,6 +405,22 @@ body::-webkit-scrollbar, #app::-webkit-scrollbar { display: none; width: 0; heig
     box-shadow: 0 0 0 4px rgba(var(--sh-ink, 255, 255, 255), 0.22) !important;
 }
 
+/* Filet du filet : le focus qui arrive SANS passer par le moteur.
+   Le bloc ci-dessus couvre tout ce que SpatialNavigation focalise — il pose
+   .sh-focus-active a chaque deplacement. Mais un focus obtenu autrement, par
+   tabulation native ou par un appel direct a element.focus() dans un
+   composant, n'a pas cette classe : les "outline: none" des composants
+   reprenaient alors le dessus et le focus redevenait invisible.
+   Ce cas est rare sur televiseur, ou tout passe par la telecommande. Il ne
+   l'est pas au clavier, ni pour un lecteur d'ecran — et un focus invisible
+   est exactement ce qu'une regle d'accessibilite interdit.
+   Le :not(.sh-focus-active) evite tout double anneau : quand le moteur
+   focalise, c'est la regle precedente qui s'applique, celle-ci se retire. */
+:focus-visible:not(.sh-focus-active) {
+    outline: 3px solid var(--sh-focus-ring, rgba(255, 255, 255, 0.95)) !important;
+    outline-offset: -3px !important;
+}
+
 /* Les affiches ont deja un effet de zoom/elevation au focus, mais un ecart de
    2,5% est indetectable sur une grille dense vue de loin (usage TV). On ajoute
    un anneau franc sur la vignette elle-meme, en gardant l'effet existant.

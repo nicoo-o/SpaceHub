@@ -146,6 +146,54 @@ est réellement **émis** par l'application. C'est ce contrôle qui empêche la
 dérive entre le DOM et le moteur, à l'origine de la quasi-totalité des bugs de
 navigation rencontrés.
 
+### Les trois attributs de navigation
+
+Trois mécanismes empruntés aux systèmes professionnels (voir
+[NAVIGATION_ETAT_DE_LART.md](NAVIGATION_ETAT_DE_LART.md)) sont pilotés par des
+attributs HTML. Tous sont **additifs** : sans l'attribut, le comportement est
+exactement celui d'avant.
+
+| Attribut | Sur | Effet |
+|---|---|---|
+| `data-nav-up\|down\|left\|right="<sélecteur>"` | un élément focalisable | Redirige le focus vers l'élément désigné, avant toute considération de géométrie. La valeur `none` bloque la direction. |
+| `data-nav-remember` | un conteneur | Le conteneur retient sa dernière position focalisée, comme les carrousels le font déjà. |
+| `data-nav-container="auto\|strict"` | un conteneur | `auto` : chercher d'abord dedans, puis remonter au parent. `strict` : ne jamais laisser sortir — pour une modale ou un menu. |
+| `data-focus` | *(posé par le moteur)* | Identifiant du dernier élément focalisé dans ce conteneur. Ne pas l'écrire à la main. |
+
+**Redirection** — l'équivalent d'un `UIFocusGuide` de tvOS, d'un `leaveFor`
+d'Enact ou d'un `nextFocusDown` d'Android TV : désigner une destination sans
+tordre la mise en page pour satisfaire l'algorithme.
+
+```html
+<!-- Depuis ce bouton, Bas mène au premier film, pas au voisin géométrique. -->
+<button data-nav-down="#sh-first-movie">Tout voir</button>
+<!-- Bord dur : Haut ne fait rien depuis ici. -->
+<div class="sh-card" data-nav-up="none"></div>
+```
+
+Une redirection dont le sélecteur ne correspond à rien, vise un élément
+invisible ou est mal formé **laisse la géométrie reprendre la main**. Une
+redirection cassée ne doit jamais immobiliser l'utilisateur — c'est le pire
+défaut possible pour ce genre de mécanisme.
+
+À utiliser avec parcimonie : Android TV donne la règle inverse — « s'il
+n'existe pas de chemin direct vers un contrôle, déplacez-le ». La redirection
+est un pansement, une mise en page atteignable est préférable.
+
+**Mémoire de rangée** — quitter un carrousel en huitième position et y revenir
+en huitième position, au lieu de retomber sur la première carte visible. C'est
+le `enterTo: 'last-focused'` d'Enact, l'`activeChild` de LRUD, le `data-focus`
+de lrud-spatial. Volontairement limitée au déplacement vertical : gauche/droite
+est un déplacement *dans* la rangée. La mémoire se périme d'elle-même quand
+l'élément mémorisé quitte le DOM.
+
+**Sortie de l'application** — quand « Retour » n'a plus aucune couche à fermer,
+`_quitterApplication()` appelle la sortie Tizen, puis `webOS.platformBack`, puis
+— en mode TV seulement, et seulement s'il y a une page où revenir — remonte
+l'historique. Android TV impose que Retour finisse par ramener au lanceur ; ne
+rien faire donnait l'impression d'une application coincée. Hors mode TV, Échap
+au niveau racine ne fait rien, comme dans toute application web.
+
 ### Limite connue
 
 La parité clavier / manette / télécommande est établie **hors du lecteur** : les
@@ -178,14 +226,14 @@ npm run verify     # tests statiques + build + bout en bout
 | Suite | Ce qu'elle prouve |
 |---|---|
 | `lint` | Les fichiers s'analysent. |
-| `test:unit` | 117 tests unitaires : Router, ApiClient, InputMapper, InputRouter, SpatialNavigation, PluginManager, gabarits extraits. |
+| `test:unit` | 159 tests unitaires : Router, ApiClient, InputMapper, InputRouter, SpatialNavigation, PluginManager, gabarits extraits, attributs de navigation. |
 | `test:smoke` | Les services s'instancient. |
 | `test:nav` | Les sélecteurs déclarés sont réellement émis. |
 | `test:input` | Aucun écouteur clavier global hors du routeur d'entrée. |
 | `test:css` | Aucun CSS en JS, aucune feuille orpheline, plafond de flou tenu. |
 | `test:xss` | Aucune donnée serveur non échappée hors des cas documentés. |
 | `test:globals` | Le nombre d'accès directs à `window.SpaceHub` ne remonte pas. |
-| `test:e2e` | Onze comportements vérifiés dans un vrai navigateur. |
+| `test:e2e` | Treize comportements vérifiés dans un vrai navigateur. |
 
 Les contrôles statiques lisent le code ; `test:unit` et `test:e2e` l'exécutent.
 C'est la distinction qui compte : `lint` et `smoke` ne pouvaient

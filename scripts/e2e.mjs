@@ -226,6 +226,108 @@ await scenario('Le clavier est distribué dans l\'ordre déclaré, pas dans l\'o
     return { ok, detail: `${r.total} gestionnaire(s) : ${r.ordre.join(' > ')} · Ctrl+K ouvre: ${r.ouverte}` };
 });
 
+await scenario('Redirection déclarée et mémoire de rangée, dans un vrai navigateur', async () => {
+    // Vague A. Les tests unitaires posent la géométrie à la main ; ici c'est le
+    // navigateur qui la calcule, avec la vraie feuille de style de l'application.
+    const r = await page.evaluate(async () => {
+        const nav = window.SpaceHub.core.spatialNavigation;
+
+        const hote = document.createElement('div');
+        hote.className = 'sh-dashboard-body';
+        hote.style.cssText = 'position:absolute;top:0;left:0;width:1900px;';
+        const rangee = (id, y, n) => {
+            const g = document.createElement('div');
+            g.id = id;
+            g.className = 'sh-card-grid';
+            g.style.cssText = `position:absolute;left:0;top:${y}px;width:1900px;height:200px;`;
+            for (let i = 0; i < n; i++) {
+                const c = document.createElement('div');
+                c.id = `${id}-${i}`;
+                c.className = 'sh-card';
+                c.tabIndex = 0;
+                c.style.cssText = `position:absolute;left:${i * 230}px;top:0;width:200px;height:200px;`;
+                g.appendChild(c);
+            }
+            hote.appendChild(g);
+            return g;
+        };
+        rangee('e2eA', 0, 8);
+        rangee('e2eB', 400, 8);
+        document.body.appendChild(hote);
+
+        // 1. Mémoire de rangée : quitter A en cinquième position, y revenir.
+        nav.setFocus(document.getElementById('e2eA-4'), { silent: true, scroll: false });
+        const memoire = document.getElementById('e2eA').dataset.focus;
+        nav.setFocus(document.getElementById('e2eB-0'), { silent: true, scroll: false });
+        const retour = nav._findSpatialTarget('up');
+
+        // 2. Redirection déclarée : elle doit primer sur la géométrie.
+        const depart = document.getElementById('e2eB-0');
+        depart.dataset.navDown = '#e2eA-7';
+        const redirige = nav._findSpatialTarget('down');
+        delete depart.dataset.navDown;
+
+        // 3. Sans attribut, la géométrie reprend la main.
+        const sansAttribut = nav._findSpatialTarget('down');
+
+        hote.remove();
+        return {
+            memoire,
+            retour: retour?.id ?? null,
+            redirige: redirige?.id ?? null,
+            sansAttribut: sansAttribut?.id ?? null,
+        };
+    });
+
+    const ok = r.memoire === 'e2eA-4' && r.retour === 'e2eA-4'
+        && r.redirige === 'e2eA-7' && r.sansAttribut !== 'e2eA-7';
+    return { ok, detail: `mémoire: ${r.memoire} · retour: ${r.retour} · `
+        + `redirigé: ${r.redirige} · sans attribut: ${r.sansAttribut}` };
+});
+
+await scenario('Bas atteint la bannière large juste dessous, pas la carte lointaine', async () => {
+    // Vague B, écart 1. L'ancien score mesurait de centre à centre et
+    // pénalisait l'écart des centres : un élément large était puni d'être
+    // large. Mesuré alors : bannière à 40 px, score −182 ; carte à 500 px,
+    // score 2300 — c'est la carte qui gagnait.
+    const r = await page.evaluate(async () => {
+        const nav = window.SpaceHub.core.spatialNavigation;
+        const hote = document.createElement('div');
+        hote.className = 'sh-dashboard-body';
+        hote.style.cssText = 'position:absolute;top:0;left:0;width:1900px;height:1100px;';
+        const poser = (id, x, y, l, h) => {
+            const e = document.createElement('div');
+            e.id = id;
+            e.className = 'sh-card';
+            e.tabIndex = 0;
+            e.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:${l}px;height:${h}px;`;
+            hote.appendChild(e);
+            return e;
+        };
+        const depart = poser('sc-depart', 100, 100, 200, 200);
+        poser('sc-banniere', 0, 340, 1800, 150);
+        poser('sc-lointaine', 100, 800, 200, 200);
+        // Garde-fou : une bannière DÉCALÉE ne doit pas gagner pour autant.
+        const hote2 = hote.cloneNode(false);
+        document.body.appendChild(hote);
+
+        nav.setFocus(depart, { silent: true, scroll: false });
+        const choisi = nav._findSpatialTarget('down')?.id ?? null;
+
+        // Second cas : la bannière est décalée, elle ne recouvre plus rien.
+        document.getElementById('sc-banniere').style.left = '900px';
+        document.getElementById('sc-banniere').style.width = '900px';
+        nav.setFocus(document.getElementById('sc-depart'), { silent: true, scroll: false });
+        const choisiDecale = nav._findSpatialTarget('down')?.id ?? null;
+
+        hote.remove(); hote2.remove?.();
+        return { choisi, choisiDecale };
+    });
+
+    const ok = r.choisi === 'sc-banniere' && r.choisiDecale === 'sc-lointaine';
+    return { ok, detail: `recouvrante → ${r.choisi} · décalée → ${r.choisiDecale}` };
+});
+
 await scenario('Aucune fuite d\'écouteurs après 30 cycles d\'ouverture/fermeture', async () => {
     const p = await nouvellePage(navigateur, () => {
         window.__n = 0;

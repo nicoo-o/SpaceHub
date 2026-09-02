@@ -24,6 +24,41 @@ import inputRouter, { PRIORITES } from './InputRouter.js';
 // Les conteneurs de défilement viennent désormais de core/DomContracts.js
 const CAROUSEL_SELECTOR = CAROUSELS;
 
+/**
+ * Conteneurs qui gardent en mémoire leur dernier élément focalisé.
+ * Les carrousels par défaut ; `data-nav-remember` permet d'en déclarer d'autres
+ * sans toucher à ce fichier.
+ */
+const MEMOIRE_CONTENEURS = `${CAROUSELS}, [data-nav-remember]`;
+
+/** Blocs de page qui comptent comme « même zone » pour un déplacement vertical. */
+const WIDGETS_SELECTOR = '.sh-widget-section, .sh-dashboard-section, .sh-jellyseerr-view, .sh-dynamic-island';
+
+/**
+ * Poids du recouvrement : un candidat parfaitement aligné gagne l'équivalent
+ * de 1200 px de distance. Assez pour préférer un élément aligné à un élément
+ * plus proche mais décalé — sauter latéralement en descendant est désorientant
+ * sur un téléviseur — sans écraser la distance quand les deux sont alignés.
+ */
+const POIDS_ALIGNEMENT = 1200;
+
+/** Poids du trou latéral réel entre deux projections qui ne se touchent pas. */
+const POIDS_ECART = 3.5;
+
+/**
+ * Tolérance de chevauchement dans l'axe du déplacement, en pixels.
+ * Les mises en page réelles se chevauchent de quelques pixels (ombres,
+ * marges négatives) ; exiger une séparation stricte écarterait des voisins
+ * légitimes. lrud-spatial tolère jusqu'à 30 % de la taille de l'élément.
+ */
+const SEUIL_CHEVAUCHEMENT = 4;
+
+/** Sentinelle : une redirection « none » bloque volontairement la direction. */
+const BLOQUE = Symbol('direction bloquée');
+
+/** Compteur d'identifiants engendrés pour la mémoire de conteneur. */
+let COMPTEUR_ID = 0;
+
 export class SpatialNavigation {
     constructor({ root = document } = {}) {
         this._log = new Logger('SpatialNav-v11');
@@ -68,6 +103,11 @@ export class SpatialNavigation {
 
         // 5. Mémorisation de Colonne X
         this._lastColumnX = null;
+
+        // 5ter. Caches de mesure. `_rectsCourants` ne vit que le temps d'une
+        // recherche ; `_cacheVisibilite` le temps d'une salve de répétition.
+        this._rectsCourants = null;
+        this._cacheVisibilite = null;
 
         // 5bis. Répétition manette dédiée au scope Player (délégation directe, hors moteur générique)
         this._gamepadPlayerRepeatTimer = null;
@@ -235,16 +275,48 @@ export class SpatialNavigation {
         return this._filterVisibleElements(rawElements);
     }
 
+    /**
+     * Écarte les éléments qui ne sont pas réellement à l'écran.
+     *
+     * Chaque rectangle calculé ici est CONSERVÉ dans `_rectsCourants`. C'est le
+     * point le plus rentable de tout le moteur : sans ce cache, la recherche
+     * géométrique remesurait aussitôt les mêmes éléments, soit deux fois plus
+     * de calculs de mise en page par appui — 1801 appels de géométrie sur une
+     * page de 600 éléments, mesurés par `node scripts/nav-benchmark.mjs`.
+     *
+     * Le cache est vidé à chaque nouvel appel : il ne vit que le temps d'une
+     * recherche, et ne peut donc pas renvoyer une position périmée.
+     */
     _filterVisibleElements(elements) {
         if (!Array.isArray(elements)) return [];
-        return elements.filter(el => {
+        const rects = new Map();
+        const cacheStyle = this._cacheVisibilite;   // non nul pendant une salve
+        const visibles = elements.filter(el => {
             if (!el || !(el instanceof HTMLElement) || el.disabled) return false;
             if (el.getAttribute('aria-hidden') === 'true') return false;
+
+            // Le rectangle est TOUJOURS recalculé : il change à chaque
+            // défilement, et une salve de répétition fait précisément défiler.
             const rect = el.getBoundingClientRect();
             if (rect.width === 0 || rect.height === 0) return false;
-            const style = window.getComputedStyle(el);
-            return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+
+            // Le verdict de style, lui, ne bouge quasiment jamais en cours de
+            // salve — et c'est la moitié du coût d'un appui.
+            let visible = cacheStyle?.get(el);
+            if (visible === undefined) {
+                const style = window.getComputedStyle(el);
+                visible = style.display !== 'none'
+                    && style.visibility !== 'hidden'
+                    && style.opacity !== '0';
+                cacheStyle?.set(el, visible);
+            }
+            if (!visible) return false;
+
+            rects.set(el, rect);
+            return true;
         });
+        this._rectsCourants = rects;
+        return visibles;
     }
 
     // ─── FOCUS RECOVERY & DETACHED NODE DETECTION ────────────────────────────
@@ -297,6 +369,9 @@ export class SpatialNavigation {
         if (reason !== 'vertical-move') {
             this._lastColumnX = rect.left + rect.width / 2;
         }
+
+        // Mémoire de conteneur : la rangée retient sa dernière position.
+        this._memoriserDansConteneur(element);
 
         // Synchronisation du carrousel ou défilement avec Pivot Viewport (35%)
         // Les deux axes sont complémentaires, pas redondants :
@@ -402,6 +477,24 @@ export class SpatialNavigation {
 
     // ─── MOTEUR SPATIAL 2D W3C PROJECTION OVERLAP (FONCTION PURE) ────────────
 
+    /**
+     * Inscrit l'élément comme dernière position connue de son conteneur.
+     *
+     * L'identifiant est stocké dans `data-focus`, comme le fait lrud-spatial :
+     * un attribut se lit dans l'inspecteur, survit à un re-rendu partiel, et ne
+     * retient aucun nœud en mémoire — contrairement à une table d'objets, qui
+     * garderait en vie des cartes depuis longtemps remplacées.
+     *
+     * Un identifiant est engendré si l'élément n'en a pas : les cartes n'en
+     * portent pas toutes, et sans identifiant il n'y a rien à mémoriser.
+     */
+    _memoriserDansConteneur(element) {
+        const conteneur = element.closest?.(MEMOIRE_CONTENEURS);
+        if (!conteneur) return;
+        if (!element.id) element.id = `sh-nav-${++COMPTEUR_ID}`;
+        conteneur.dataset.focus = element.id;
+    }
+
     _findSpatialTarget(direction) {
         const current = this._getValidCurrentElement();
         const scope = this._detectCurrentScope();
@@ -410,6 +503,21 @@ export class SpatialNavigation {
         if (candidates.length === 0) return null;
         if (!current || !candidates.includes(current)) return candidates[0];
 
+        // 0. Redirection déclarée sur l'élément lui-même. Elle passe AVANT tout
+        //    le reste, y compris le carrousel : c'est son objet même — dire
+        //    « depuis ici, dans cette direction, va là », sans discussion.
+        const redirection = this._cibleRedirigee(current, direction);
+        if (redirection === BLOQUE) return null;
+        if (redirection) return redirection;
+
+        // 0bis. Conteneur déclaré par l'arbre DOM. Quand l'élément courant est
+        //       dans un `[data-nav-container]`, la recherche se limite d'abord
+        //       à ce conteneur, puis remonte à son parent si elle ne trouve
+        //       rien — c'est le modèle du W3C, d'Enact et de Norigin, là où
+        //       `_detectCurrentScope()` ne connaît qu'une liste plate.
+        const parConteneur = this._chercherDansLesConteneurs(current, direction);
+        if (parConteneur !== undefined) return parConteneur;
+
         // 1. Navigation Horizontale dans un Carrousel ➔ Délégation Pure au CarouselController
         const currentCarousel = current.closest(CAROUSEL_SELECTOR);
         if (currentCarousel && (direction === NavAction.LEFT || direction === NavAction.RIGHT)) {
@@ -417,53 +525,237 @@ export class SpatialNavigation {
             if (targetCard) return targetCard; // Retourne l'élément cible calculé
         }
 
-        const curRect = current.getBoundingClientRect();
-        const curCenterX = this._lastColumnX !== null ? this._lastColumnX : (curRect.left + curRect.width / 2);
-        const curCenterY = curRect.top + curRect.height / 2;
+        const geometrique = this._chercherParGeometrie(current, direction, candidates);
 
-        const currentWidget = current.closest('.sh-widget-section, .sh-dashboard-section, .sh-jellyseerr-view, .sh-dynamic-island');
+        // 3. Mémoire de conteneur : si l'on CHANGE de rangée, on revient là où
+        //    on l'avait quittée plutôt que là où la géométrie tombe.
+        return this._substituerMemoire(current, geometrique, direction) || geometrique;
+    }
+
+    /**
+     * Recherche en remontant l'arbre des conteneurs déclarés.
+     *
+     * `_detectCurrentScope()` choisit un scope dans une liste de priorité fixe,
+     * écrite en dur. Cela fonctionne, mais une couche imbriquée dans une autre
+     * — une modale ouverte depuis les réglages, un popover dans le lecteur —
+     * n'a pas de place naturelle dans une liste plate. Tous les systèmes
+     * étudiés remontent l'arbre à la place :
+     *
+     *   - W3C : « le plus proche ancêtre » qui est un conteneur, et l'on
+     *     remonte au parent quand aucun candidat n'existe dedans ;
+     *   - Enact : `spotlightRestrict: 'self-first' | 'self-only'` ;
+     *   - Norigin : `isFocusBoundary` ; Vega : `setFocusRoot()`.
+     *
+     * Ici, un élément portant `data-nav-container` devient un conteneur. Deux
+     * valeurs sont reconnues :
+     *   - `data-nav-container` (ou `="auto"`) : on cherche d'abord dedans,
+     *     puis on remonte — le `self-first` d'Enact ;
+     *   - `data-nav-container="strict"` : on ne sort jamais — le `self-only`
+     *     d'Enact, pour une modale ou un menu qui doit piéger le focus.
+     *
+     * @returns {HTMLElement|null|undefined} l'élément trouvé, `null` si un
+     *   conteneur strict a bloqué la sortie, ou `undefined` si aucun conteneur
+     *   n'est déclaré — auquel cas l'appelant reprend la voie habituelle. Les
+     *   trois cas sont distincts : `null` signifie « décidé, rien à faire »,
+     *   `undefined` signifie « pas concerné ».
+     */
+    _chercherDansLesConteneurs(current, direction) {
+        let conteneur = current.closest?.('[data-nav-container]');
+        if (!conteneur) return undefined;
+
+        while (conteneur) {
+            const candidats = this.getFocusables(conteneur);
+            const trouve = candidats.length
+                ? this._chercherParGeometrie(current, direction, candidats)
+                : null;
+            if (trouve) return trouve;
+
+            // Rien dans ce conteneur. Un conteneur strict s'arrête là.
+            if (conteneur.dataset.navContainer === 'strict') return null;
+            conteneur = conteneur.parentElement?.closest?.('[data-nav-container]');
+        }
+        // Tous les conteneurs épuisés : on laisse le scope global décider.
+        return undefined;
+    }
+
+    /**
+     * Redirection déclarée par `data-nav-up|down|left|right`.
+     *
+     * Équivalent des guides de focus de tvOS, du `leaveFor` d'Enact ou des
+     * `nextFocusUp/Down/…` d'Android TV : désigner une destination sans tordre
+     * la mise en page pour satisfaire l'algorithme.
+     *
+     * Trois retours possibles :
+     *   - un élément  : redirection appliquée ;
+     *   - `BLOQUE`    : la valeur « none », un bord dur volontaire ;
+     *   - `null`      : rien de déclaré, ou cible introuvable/invisible — la
+     *                   géométrie reprend la main. Une redirection cassée ne
+     *                   doit JAMAIS immobiliser l'utilisateur, c'est le pire
+     *                   défaut possible pour ce genre de mécanisme.
+     */
+    _cibleRedirigee(element, direction) {
+        const cle = { [NavAction.UP]: 'navUp', [NavAction.DOWN]: 'navDown',
+            [NavAction.LEFT]: 'navLeft', [NavAction.RIGHT]: 'navRight' }[direction];
+        const selecteur = cle && element?.dataset?.[cle];
+        if (!selecteur) return null;
+        if (selecteur === 'none') return BLOQUE;
+        let cible = null;
+        try {
+            cible = this._root.querySelector(selecteur);
+        } catch {
+            // Sélecteur mal formé : on le signale une fois, et on continue.
+            this._log.warn(`Redirection « ${cle} » ignorée : sélecteur invalide « ${selecteur} ».`);
+            return null;
+        }
+        if (!cible) return null;
+        return this._filterVisibleElements([cible])[0] || null;
+    }
+
+    /**
+     * Cible que la mémoire de conteneur propose, ou `null`.
+     *
+     * Exposée pour les tests : elle recalcule la géométrie puis applique la
+     * substitution, ce que `_findSpatialTarget` fait en deux temps pour ne pas
+     * parcourir les candidats deux fois.
+     */
+    _cibleMemorisee(current, direction) {
+        const candidates = this.getFocusables(this._detectCurrentScope());
+        const geometrique = this._chercherParGeometrie(current, direction, candidates);
+        return this._substituerMemoire(current, geometrique, direction);
+    }
+
+    /**
+     * Remplace la cible géométrique par la dernière position connue du
+     * conteneur d'arrivée, quand on change de conteneur.
+     *
+     * C'est le `enterTo: 'last-focused'` d'Enact, l'`activeChild` de LRUD, le
+     * `data-focus` de lrud-spatial. Sans cela, quitter une rangée en huitième
+     * position et y revenir ramène à la première carte visible — c'est la
+     * différence la plus immédiatement perceptible avec une application TV
+     * professionnelle.
+     *
+     * Volontairement limité au déplacement VERTICAL : gauche/droite est un
+     * déplacement DANS la rangée, y appliquer la mémoire ferait sauter le focus
+     * au lieu de le faire avancer d'un cran.
+     */
+    _substituerMemoire(current, geometrique, direction) {
+        if (direction !== NavAction.UP && direction !== NavAction.DOWN) return null;
+        if (!geometrique) return null;
+
+        const arrivee = geometrique.closest(MEMOIRE_CONTENEURS);
+        if (!arrivee) return null;
+        if (arrivee === current?.closest?.(MEMOIRE_CONTENEURS)) return null;   // même rangée
+
+        const memoire = arrivee.dataset.focus;
+        if (!memoire) return null;
+
+        // getElementById plutôt qu'un sélecteur : une recherche par table de
+        // hachage, et surtout aucune question d'échappement — un identifiant
+        // engendré peut contenir n'importe quoi.
+        const cible = document.getElementById(memoire);
+        // Le contenu d'une rangée est rechargé en permanence : une mémoire
+        // périmée doit s'effacer d'elle-même, jamais renvoyer un nœud détaché
+        // ni un élément qui a changé de rangée entre-temps.
+        if (!cible || !arrivee.contains(cible)) {
+            delete arrivee.dataset.focus;
+            return null;
+        }
+        return this._filterVisibleElements([cible])[0] || null;
+    }
+
+    /**
+     * Recherche géométrique — le cœur du moteur.
+     *
+     * Le principe suit la spécification CSS Spatial Navigation du W3C :
+     *
+     *     distance = euclidienne + déplacement − alignement − √(recouvrement)
+     *
+     * Le terme qui compte, et qui manquait, est le **recouvrement de
+     * projection** : la part de l'élément de départ que le candidat couvre sur
+     * l'axe perpendiculaire au déplacement. lrud-spatial le calcule autrement
+     * — d'arête de sortie à arête d'entrée — mais aboutit au même endroit.
+     *
+     * Ce que l'ancienne version faisait, et pourquoi c'était faux
+     * ----------------------------------------------------------
+     * Elle mesurait de CENTRE à CENTRE et pénalisait l'écart des centres
+     * (`alignX * 3.5`). Un élément large était donc puni d'être large : une
+     * bannière pleine largeur placée juste sous une carte, qui la recouvre
+     * pourtant à 100 %, obtenait un score très négatif à cause de son centre
+     * lointain. Le focus sautait par-dessus pour atterrir cinq fois plus loin.
+     *
+     * Mesuré : bannière à 40 px, score −182 ; carte à 500 px, score 2300.
+     * C'est la carte qui gagnait. Voir docs/NAVIGATION_ETAT_DE_LART.md, écart 1,
+     * et le cas 6 de tests/NavigationScore.test.js.
+     *
+     * Ce que fait la version actuelle
+     * ------------------------------
+     *   - distance mesurée **d'arête à arête** sur l'axe du déplacement, ce qui
+     *     ne dépend plus de la taille des éléments ;
+     *   - **recouvrement** récompensé en proportion de ce qu'il couvre ;
+     *   - écart latéral pénalisé **seulement s'il y a un vrai trou** entre les
+     *     projections — un élément qui recouvre n'est jamais « décalé ».
+     *
+     * La mémoire de colonne (`_lastColumnX`) est conservée : le rectangle de
+     * référence est translaté sur la colonne mémorisée, pas remplacé par un
+     * point. Sans quoi descendre deux fois de suite dériverait latéralement.
+     */
+    _chercherParGeometrie(current, direction, candidates) {
+        const currentCarousel = current.closest(CAROUSEL_SELECTOR);
+        const brut = this._rect(current);
+
+        // Rectangle de référence : le rectangle courant, recentré sur la
+        // colonne mémorisée quand il y en a une.
+        const curRect = this._lastColumnX === null ? brut : (() => {
+            const decalage = this._lastColumnX - (brut.left + brut.width / 2);
+            return { left: brut.left + decalage, right: brut.right + decalage,
+                top: brut.top, bottom: brut.bottom,
+                width: brut.width, height: brut.height };
+        })();
+
+        const vertical = direction === NavAction.UP || direction === NavAction.DOWN;
+        const currentWidget = current.closest(WIDGETS_SELECTOR);
 
         let bestCandidate = null;
         let bestScore = -Infinity;
 
         for (const cand of candidates) {
             if (cand === current) continue;
-            const candRect = cand.getBoundingClientRect();
-            const candCenterX = candRect.left + candRect.width / 2;
-            const candCenterY = candRect.top + candRect.height / 2;
+            const candRect = this._rect(cand);
 
-            const deltaX = candCenterX - curCenterX;
-            const deltaY = candCenterY - curCenterY;
+            // Filtrage directionnel : le candidat doit franchir l'arête de
+            // sortie. Sur les centres, un élément large chevauchant l'élément
+            // courant était écarté à tort ; sur les arêtes, il ne l'est pas.
+            let distance;
+            if (direction === NavAction.DOWN)  distance = candRect.top - curRect.bottom;
+            else if (direction === NavAction.UP)    distance = curRect.top - candRect.bottom;
+            else if (direction === NavAction.RIGHT) distance = candRect.left - curRect.right;
+            else                                    distance = curRect.left - candRect.right;
+            if (distance < -SEUIL_CHEVAUCHEMENT) continue;
+            distance = Math.max(0, distance);
 
-            // Filtrage directionnel strict
-            if (direction === NavAction.RIGHT && deltaX <= 4) continue;
-            if (direction === NavAction.LEFT && deltaX >= -4) continue;
-            if (direction === NavAction.DOWN && deltaY <= 4) continue;
-            if (direction === NavAction.UP && deltaY >= -4) continue;
+            // Recouvrement des projections sur l'axe perpendiculaire.
+            const [debutA, finA, debutB, finB] = vertical
+                ? [curRect.left, curRect.right, candRect.left, candRect.right]
+                : [curRect.top, curRect.bottom, candRect.top, candRect.bottom];
+            const recouvrement = Math.min(finA, finB) - Math.max(debutA, debutB);
+            const reference = Math.max(1, Math.min(finA - debutA, finB - debutB));
+            const fractionAlignee = Math.max(0, Math.min(1, recouvrement / reference));
+            // Trou réel entre les projections — nul dès qu'elles se touchent.
+            const ecart = Math.max(0, -recouvrement);
 
-            // Distance euclidienne pondérée
-            const dist = Math.hypot(deltaX, deltaY);
-            let score = 3000 - dist;
+            let score = 3000 - distance
+                + fractionAlignee * POIDS_ALIGNEMENT
+                - ecart * POIDS_ECART;
 
-            const candCarousel = cand.closest(CAROUSEL_SELECTOR);
-            const candWidget = cand.closest('.sh-widget-section, .sh-dashboard-section, .sh-jellyseerr-view, .sh-dynamic-island');
-
-            // A. Priorité même carrousel horizontalement
-            if (direction === NavAction.LEFT || direction === NavAction.RIGHT) {
-                if (currentCarousel && candCarousel === currentCarousel) {
-                    score += 1500;
-                }
-                const alignY = Math.abs(deltaY);
-                score -= alignY * 5;
-            }
-
-            // B. Priorité même colonne et conteneur adjacent verticalement
-            if (direction === NavAction.UP || direction === NavAction.DOWN) {
-                if (currentWidget && candWidget === currentWidget) {
-                    score += 500;
-                }
-                const alignX = Math.abs(candCenterX - curCenterX);
-                score -= alignX * 3.5;
+            if (!vertical) {
+                // Rester dans le même carrousel prime : gauche/droite est un
+                // déplacement DANS la rangée.
+                const candCarousel = cand.closest(CAROUSEL_SELECTOR);
+                if (currentCarousel && candCarousel === currentCarousel) score += 1500;
+            } else {
+                // Rester dans le même bloc de la page, à alignement égal.
+                const candWidget = cand.closest(WIDGETS_SELECTOR);
+                if (currentWidget && candWidget === currentWidget) score += 500;
             }
 
             if (score > bestScore) {
@@ -475,11 +767,34 @@ export class SpatialNavigation {
         return bestCandidate;
     }
 
+    /**
+     * Rectangle d'un élément, mesuré une seule fois par appui.
+     *
+     * `getFocusables()` mesure déjà chaque candidat pour écarter les invisibles.
+     * Le remesurer ici doublait le nombre de calculs de mise en page — 1801
+     * appels de géométrie par appui sur une page de 600 éléments. Le cache est
+     * rempli par `_filterVisibleElements` et vidé au début de chaque recherche.
+     */
+    _rect(element) {
+        const cache = this._rectsCourants;
+        if (cache) {
+            const connu = cache.get(element);
+            if (connu) return connu;
+        }
+        const r = element.getBoundingClientRect();
+        cache?.set(element, r);
+        return r;
+    }
+
     // ─── REPEAT & FAST SCROLL ENGINE ─────────────────────────────────────────
 
     _startInputRepeat(action) {
         if (this._repeatState.activeAction === action) return;
         this._stopInputRepeat();
+
+        // Cache de visibilité, ouvert pour la durée de la salve. Voir
+        // _cacheVisibilite pour ce qu'il met en jeu.
+        this._cacheVisibilite = new Map();
 
         this._repeatState.activeAction = action;
         this._repeatState.pressStartTime = Date.now();
@@ -514,7 +829,40 @@ export class SpatialNavigation {
         }
         this._repeatState.activeAction = null;
         this._repeatState.isFastScrolling = false;
+        this._cacheVisibilite = null;
     }
+
+    /**
+     * Cache de visibilité — ce qu'il gagne, et ce qu'il met en jeu.
+     *
+     * Mesuré (`node scripts/nav-benchmark.mjs`) : un appui sur une page de 600
+     * éléments coûtait 600 appels à `getBoundingClientRect` ET 600 à
+     * `getComputedStyle`. La seconde moitié est la plus chère : elle force la
+     * résolution du style calculé, pas seulement de la mise en page.
+     *
+     * En défilement rapide, le moteur tire un pas toutes les 45 ms. Sur le
+     * Chromium d'un téléviseur de 2020 — dix à vingt fois plus lent que la
+     * machine de mesure — le calcul risquait de dépasser l'intervalle entre
+     * deux pas, et la navigation aurait accumulé du retard.
+     *
+     * Le cache ne vit QUE pendant une salve de répétition, c'est-à-dire entre
+     * l'enfoncement et le relâchement d'une direction. C'est le `throttle` de
+     * Norigin, appliqué à la seule mesure qui ne bouge pas.
+     *
+     * Ce qui n'est PAS caché, et pourquoi :
+     *   - **les rectangles** : ils changent à chaque défilement, et une salve
+     *     fait précisément défiler. Les cacher renverrait des positions
+     *     périmées, donc un focus qui saute ;
+     *   - **`display: none`** : un élément ainsi caché a un rectangle nul, et
+     *     le rectangle est recalculé à chaque appui — il reste donc écarté.
+     *
+     * Ce qui peut devenir périmé, en connaissance de cause : un élément qui
+     * passe en `visibility: hidden` ou `opacity: 0` PENDANT une salve reste
+     * candidat jusqu'au relâchement de la touche. Le cas suppose une animation
+     * déclenchée par autre chose que la navigation elle-même, pendant une
+     * pression maintenue — quelques centaines de millisecondes. Le compromis
+     * est assumé : il achète la moitié du coût de chaque appui.
+     */
 
     /**
      * Point d'entrée manette pour une pression directionnelle qui commence.
@@ -702,6 +1050,11 @@ export class SpatialNavigation {
 
     _handleResize() {
         this._lastColumnX = null;
+        // Un redimensionnement ou une rotation refait toute la mise en page :
+        // le verdict de visibilité mis en cache pour la salve en cours n'est
+        // plus fiable. C'est le seul événement qui peut invalider ce cache
+        // sans passer par le relâchement de la touche.
+        this._cacheVisibilite = this._repeatState.activeAction ? new Map() : null;
     }
 
     /**
@@ -750,6 +1103,61 @@ export class SpatialNavigation {
             this._closeLayer(layer, el);
             return;
         }
+
+        // 3. Plus rien à fermer. Android TV est catégorique : appuyer
+        //    plusieurs fois sur Retour doit finir par ramener au lanceur, et
+        //    aucune confirmation ne doit bloquer la sortie. Ne rien faire ici
+        //    donne l'impression d'une application coincée.
+        this._quitterApplication(e);
+    }
+
+    /**
+     * Sortie de l'application, quand Retour n'a plus aucune couche à fermer.
+     *
+     * Chaque plateforme a sa porte de sortie, et aucune n'existe ailleurs :
+     * les appels sont donc gardés par des tests de présence, pas par une
+     * détection d'appareil — un test de présence ne se trompe pas de modèle.
+     *
+     * Reste le cas d'un téléviseur qui n'est ni Tizen ni webOS — un navigateur
+     * d'Android TV, un Fire TV — où il n'existe aucune API de sortie : remonter
+     * l'historique est alors le seul chemin. Deux gardes l'encadrent :
+     *
+     *   - **le mode TV doit être actif.** Sur un ordinateur, Échap au niveau
+     *     racine ne fait rien dans toutes les applications web, et c'est bien
+     *     ainsi. Sortir du site à la place surprendrait sans rien apporter ;
+     *   - **il doit y avoir une page où revenir.** Sur un onglet ouvert
+     *     directement sur l'application, `history.back()` ne mène nulle part.
+     *
+     * Le routeur n'utilise pas l'API History (aucun `pushState` dans le code) :
+     * `history.length > 1` signifie donc bien « l'utilisateur vient d'ailleurs »,
+     * et non « il a changé de vue trois fois ».
+     *
+     * @returns {boolean} vrai si une sortie a été tentée
+     */
+    _quitterApplication(e = null) {
+        try {
+            const tizen = window.tizen?.application?.getCurrentApplication?.();
+            if (typeof tizen?.exit === 'function') {
+                e?.preventDefault?.();
+                tizen.exit();
+                return true;
+            }
+            if (typeof window.webOS?.platformBack === 'function') {
+                e?.preventDefault?.();
+                window.webOS.platformBack();
+                return true;
+            }
+            const modeTv = svc.tvMode()?.isActive?.() === true
+                || document.documentElement.classList.contains('sh-tv-mode');
+            if (modeTv && window.history?.length > 1) {
+                e?.preventDefault?.();
+                window.history.back();
+                return true;
+            }
+        } catch (err) {
+            this._log.warn('Sortie de l\'application impossible :', err);
+        }
+        return false;
     }
 
     /**
