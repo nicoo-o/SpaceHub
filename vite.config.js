@@ -222,7 +222,20 @@ export default defineConfig({
     },
   },
   build: {
-    target: 'esnext',
+    // « esnext » ne rétrograde RIEN. Le bundle partait donc avec 704 `?.` et
+    // 97 `??`, dont la seule présence fait échouer l'ANALYSE du fichier sur
+    // Chromium < 80 : écran blanc, sans message ni trace.
+    //
+    // Le repère n'est pas théorique. Les téléviseurs Samsung embarquent :
+    //   2017 → M47   2019 → M63   2021 → M76   2023 → M94   2025 → M120
+    //   2018 → M56   2020 → M69   2022 → M85   2024 → M108  2026 → M130
+    // et le client Jellyfin officiel transpile, lui, jusqu'à Chrome 27.
+    //
+    // chrome69 couvre les modèles 2020 et plus récents. Descendre davantage
+    // demanderait de vraies prothèses d'API (AbortController, IntersectionObserver),
+    // ce qui n'est pas le même chantier. Les API manquantes entre 69 et 92 sont
+    // couvertes par core/compat.js — esbuild ne traduit que la syntaxe.
+    target: 'chrome69',
     outDir: 'dist',
     sourcemap: true,
     // Un seul fichier CSS pour toute l'application.

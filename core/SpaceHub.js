@@ -12,6 +12,10 @@
 
 'use strict';
 
+// Socle de compatibilité — volontairement le PREMIER import du graphe : il
+// corrige des API que le code d'amorçage de Vite lui-même utilise (Array.at).
+import './compat.js';
+
 import Logger          from './Logger.js';
 import EventBus        from './EventBus.js';
 import ModuleManager   from './ModuleManager.js';

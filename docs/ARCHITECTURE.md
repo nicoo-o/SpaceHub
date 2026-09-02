@@ -1,123 +1,166 @@
-# SpaceHub — Architecture
+# Architecture de SpaceHub
 
-## Vue d'ensemble
+*Dernière révision : 2 septembre 2026.*
 
-SpaceHub est un plugin JavaScript/CSS injecté dans Jellyfin Web. Il utilise une architecture modulaire où chaque fonctionnalité est un module indépendant.
+> Ce document décrivait jusqu'ici SpaceHub comme « un plugin JavaScript/CSS
+> injecté dans Jellyfin Web », avec GridStack et Chart.js. Ce mode a été
+> **entièrement supprimé** du dépôt. Ce qui suit décrit ce qui existe réellement.
 
-## Stack Technique
+## Ce qu'est SpaceHub
 
-- **Frontend** : JavaScript (ES2020+), CSS Custom Properties
-- **Injection** : Plugin "JavaScript Injector" pour Jellyfin
-- **Cache** : IndexedDB (persistant) + localStorage (rapide)
-- **Layout** : GridStack (dashboard drag & drop)
-- **Icônes** : Font Awesome
-- **Graphiques** : Chart.js (v1.0)
+Une **application web autonome** qui parle à un serveur Jellyfin par son API
+REST. Elle ne s'injecte dans rien : elle se sert elle-même, depuis n'importe
+quel serveur de fichiers, et vise trois usages — ordinateur, téléviseur et
+mobile.
 
-## Arborescence
+Aucun framework d'interface. Des modules ES natifs, empaquetés par Vite.
+
+## Plancher navigateur
+
+C'est une contrainte structurante, pas un détail de configuration. Les
+téléviseurs embarquent des moteurs anciens et figés :
+
+| Modèle Samsung | 2017 | 2018 | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Chromium | M47 | M56 | M63 | M69 | M76 | M85 | M94 | M108 | M120 | M130 |
+
+`vite.config.js` fixe donc `build.target: 'chrome69'`. Avec la valeur
+précédente — `esnext` — le bundle partait avec 704 `?.` non transpilés, dont la
+seule présence fait échouer l'**analyse** du fichier sur Chromium < 80 : écran
+blanc, sans message ni trace.
+
+esbuild ne traduit que la **syntaxe**. Les API manquantes (`Array.at`,
+`replaceChildren`, `Promise.allSettled`, le signal d'`addEventListener`) sont
+couvertes par `core/compat.js`, chargé en tout premier — avant même le code
+d'amorçage de Vite, qui utilise lui-même `Array.at`.
+
+Un scénario de `npm run test:e2e` démarre l'application avec ces quatre API
+retirées, pour que la régression soit détectée et non supposée.
+
+## Les couches
 
 ```
-SpaceHub/
-├── core/                    # Socle technique
-│   ├── SpaceHub.js          # Namespace global + point d'entrée
-│   ├── ModuleManager.js     # Chargement/déchargement des modules (v0.2)
-│   ├── EventBus.js          # Pub/Sub entre modules (v0.2)
-│   ├── SettingsManager.js   # Configuration persistante (v0.2)
-│   ├── CacheManager.js      # Cache IndexedDB + localStorage (v0.2)
-│   └── ApiClient.js         # Client HTTP générique (v0.2)
-│
-├── ui/                      # Interface Utilisateur
-│   ├── components/          # Composants réutilisables (v0.3)
-│   │   ├── CardBuilder.js
-│   │   ├── Modal.js
-│   │   └── Toaster.js
-│   ├── layouts/             # Dispositions (v0.3)
-│   │   └── Dashboard.js
-│   ├── themes/              # Thèmes CSS (v0.3)
-│   │   ├── ThemeManager.js
-│   │   └── presets/
-│   └── widgets/             # Widgets dashboard (v0.4)
-│       ├── LatestAdditions.js
-│       └── UpcomingEpisodes.js
-│
-├── integrations/            # Intégrations externes (v0.6+)
-│   ├── sonarr/
-│   ├── radarr/
-│   ├── prowlarr/
-│   ├── bazarr/
-│   ├── jellyseerr/
-│   └── qbittorrent/
-│
-├── jellyfin/                # Améliorations Jellyfin (v0.5)
-│   ├── api/
-│   ├── search/
-│   └── collections/
-│
-├── scripts/                 # Scripts hérités KefinTweaks (migration en cours)
-├── skins/                   # Thèmes CSS prêts à l'emploi
-└── docs/                    # Documentation
+index.html
+   └── core/SpaceHub.js          amorçage, ~41 services enregistrés
+          │
+          ├── core/              socle technique
+          ├── ui/                interface
+          ├── jellyfin/          tout ce qui parle au serveur
+          ├── integrations/      Servarr (optionnel)
+          └── plugins/           extensions tierces
 ```
 
-## Namespace Global
+### core/ — socle
 
-```javascript
-window.SpaceHub = {
-    version: '0.x.x',
-    core: { moduleManager, eventBus, settings, cache, api },
-    ui: { dashboard, themes, components },
-    jellyfin: { api, search, collections },
-    integrations: { sonarr, radarr, prowlarr, bazarr, jellyseerr, qbittorrent }
-};
+| Module | Rôle |
+|---|---|
+| `SpaceHub.js` | Point d'entrée. Construit et enregistre les services. |
+| `ServiceRegistry.js` | Registre de dépendances. `SpaceHub.services.list()` dit ce qui est prêt. |
+| `services.js` | Accesseurs nommés adossés au registre, avec repli sur la façade globale. |
+| `compat.js` | Prothèses d'API pour les navigateurs de téléviseurs. |
+| `EventBus.js` | Publication/abonnement entre modules. |
+| `ApiClient.js` | Client HTTP : reprise sur erreur, détection d'absence de proxy. |
+| `SettingsManager.js` | Réglages persistants (localStorage). |
+| `CacheManager.js` | Cache mémoire et localStorage. |
+| `Router.js` | Navigation entre vues. |
+| `SpatialNavigation.js` | Navigation à la télécommande : scopes, focus, pile de couches. |
+| `DomContracts.js` | Source de vérité des sélecteurs partagés DOM ↔ navigation. |
+| `InputMapper.js` / `GamepadInput.js` / `TouchEngine.js` | Entrées clavier, manette, tactile. |
+| `TvModeManager.js` | Mode TV : échelle, zone de sûreté, coupure du flou. |
+| `ErrorBoundary.js` | Frontière d'erreur locale et globale. |
+| `ParentalControl.js` | Verrouillage par classification (garde-fou d'interface). |
+| `FeatureFlags.js` | Fonctionnalités gelées, réactivables. |
+| `OfflineStore.js` | Stockage IndexedDB des médias téléchargés. |
+| `PluginManager.js` / `PluginCatalog.js` / `PluginPermissions.js` / `PolicyService.js` | SDK d'extensions. |
+
+### ui/ — interface
+
+`layouts/` (AppLayout, Dashboard) · `views/` (Library, Downloads, Login, Admin,
+Console) · `components/` (CardBuilder, ModalSlideUpSheet, SettingsPanel,
+HeroSpotlight, Toaster, Modal, AppSidebarDrawer…) · `widgets/` (les tuiles du
+tableau de bord) · `themes/` (ThemeManager et ses préréglages).
+
+**Le CSS ne vit plus dans le JavaScript.** Chaque composant a son fichier
+`.css` voisin, importé par le module et empaqueté par Vite. Les tokens
+(`public/design-system/tokens.css`) sont servis tels quels et référencés en tête
+de `index.html` : ils doivent précéder la feuille générée, sans quoi ils
+écraseraient les composants.
+
+### jellyfin/ — le serveur
+
+`api/` · `auth/` (dont la liste des comptes publics) · `player/` (VideoPlayer,
+DeviceProfile, PlayQueue) · `offline/` (DownloadManager) · `remote/` (lecture à
+distance) · `search/` · `metadata/` · `collections/` · `analytics/` · `calendar/`.
+
+**Négociation de lecture.** Le lecteur appelle `/Items/{id}/PlaybackInfo` avec
+un `DeviceProfile` construit à partir des capacités réellement mesurées
+(`canPlayType()`), puis suit l'URL que le serveur renvoie. Il n'attaque plus
+`master.m3u8` directement, ce qui forçait un transcodage permanent.
+
+## Navigation à la télécommande
+
+```
+clavier / manette / télécommande
+              │
+              ▼
+        InputMapper            (touche → action)
+              │
+              ▼
+     SpatialNavigation         (scope courant, géométrie, focus)
+              │
+   ┌──────────┴──────────┐
+   ▼                     ▼
+pile de couches      CarouselController
+(quelle couche         (défilement
+ est au-dessus)         horizontal)
 ```
 
-## Écosystème plugins et métadonnées (v2)
+La **pile de couches** enregistre l'ordre d'ouverture réel. « Retour » ferme
+donc celle du dessus, et non la première d'une liste figée — un ordre déclaré
+faisait fermer les réglages situés *sous* la recherche.
 
-SpaceHub distingue désormais trois niveaux :
+`DomContracts.js` déclare les sélecteurs ; `npm run test:nav` vérifie que chacun
+est réellement **émis** par l'application. C'est ce contrôle qui empêche la
+dérive entre le DOM et le moteur, à l'origine de la quasi-totalité des bugs de
+navigation rencontrés.
 
-1. **Plugins Jellyfin serveur** : exécutés par Jellyfin, lus via `JellyfinPluginService` et contrôlés par les permissions Jellyfin. Leur présence dans `/Plugins` ne prouve pas qu'ils sont actifs ; l'état est `unknown` lorsqu'il n'est pas fourni par le serveur.
-2. **Modules natifs SpaceHub** : intégrations Sonarr, Radarr, Prowlarr, Bazarr, Jellyseerr et qBittorrent, gérées par `ModuleManager`.
-3. **Plugins SDK SpaceHub** : extensions client validées par `PluginManager`, avec manifest, permissions, contributions, stockage isolé, santé et nettoyage du cycle de vie.
+### Limite connue
 
-`OnboardingWizard` fournit des parcours utilisateur et administrateur persistés par serveur et compte, avec un scope TV dédié et relance depuis les réglages.
+Treize écouteurs `keydown` subsistent hors du moteur (Router, Modal, lecteur,
+recherche…), dont six traitent Échap. La pile de couches rend le comportement
+correct aujourd'hui, et un scénario E2E le vérifie dans les deux ordres
+d'ouverture. Mais une entrée unique passant par `InputMapper` reste la bonne
+cible à terme.
 
-`MetadataService` fusionne les données selon une politique par bibliothèque et conserve la provenance de chaque champ. Jellyfin reste la source serveur ; les fournisseurs externes doivent être enregistrés explicitement et leurs valeurs ne sont jamais écrites dans Jellyfin automatiquement.
+## Modes de déploiement
 
-`PluginCatalog` impose, pour les plugins distants, une source HTTPS, un manifest, une intégrité SHA-256, une signature ECDSA P-256 et une approbation administrateur. Il charge l'URL configurée au démarrage, propose installation/mise à jour/désinstallation/rollback, conserve les packages vérifiés dans le cache et refuse toute divergence de permissions entre catalogue et package. Le catalogue remet le code à un loader explicite ; il n'utilise pas `eval` ni `new Function`. En l'absence d'un bridge serveur SpaceHub, les approbations et préférences restent locales à l'appareil.
+**Développement** — `npm run dev`. Vite sert les modules et expose le proxy
+`/api-proxy` qui contourne CORS pour les services Servarr. Le service worker est
+volontairement désactivé.
 
-### Permissions SDK
+**Production** — `npm run build`, puis servir `dist/`. Le proxy `/api-proxy`
+**n'existe plus** : il faut un reverse-proxy en façade. Voir
+[DEPLOIEMENT.md](DEPLOIEMENT.md), qui donne des configurations nginx et Caddy.
+Le code détecte désormais l'absence de proxy et le dit, au lieu de recevoir du
+HTML là où il attend du JSON.
 
-Les permissions sont refusées par défaut. Les permissions d'administration (`server.plugins.*`, `server.system.control`, écriture de métadonnées) exigent un compte administrateur Jellyfin. Le contexte plugin ne contient pas le token et n'expose que des façades contrôlées.
+## Vérification
 
-## Conventions CSS
+```
+npm run verify     # tests statiques + build + bout en bout
+```
 
-- Variables : `--sh-color-primary`, `--sh-spacing-md`
-- Classes : `.sh-button`, `.sh-button--primary` (BEM-like)
-- Mobile-first : `@media (min-width: 768px)`
+| Suite | Ce qu'elle prouve |
+|---|---|
+| `lint` | Les fichiers s'analysent. |
+| `test:smoke` | Les services s'instancient. |
+| `test:nav` | Les sélecteurs déclarés sont réellement émis. |
+| `test:css` | Aucun CSS en JS, aucune feuille orpheline, plafond de flou tenu. |
+| `test:xss` | Aucune donnée serveur non échappée hors des cas documentés. |
+| `test:globals` | Le nombre d'accès directs à `window.SpaceHub` ne remonte pas. |
+| `test:e2e` | Dix comportements vérifiés dans un vrai navigateur. |
 
-## Modes d'utilisation
-
-SpaceHub supporte deux modes de déploiement :
-
-### Mode A — Injection Jellyfin (production)
-Le plugin est injecté dans Jellyfin Web via le plugin "JavaScript Injector".
-Ordre de chargement :
-1. `spaceHub-default-config.js`
-2. `spaceHub.minimal.js` (config utilisateur)
-3. `spaceHub-plugin.js` (installation/mise à jour)
-4. `spaceHub-injector.js` (chargement de tous les modules)
-
-### Mode B — SPA Standalone (développement Vite)
-Lance `npm run dev` et accède à `http://localhost:5173`.
-Le point d'entrée est `index.html` → `core/SpaceHub.js`.
-
-## Utilitaires partagés
-
-- `core/utils/domUtils.js` : `escapeHtml()`, `createElement()`, `injectStyles()`, `waitForElement()`
-
-## Correction des vulnérabilités connues
-
-- Toujours utiliser `escapeHtml()` avant `innerHTML` avec des données provenant d'une API
-- Le token Jellyfin est géré par `auth/AuthManager.js` — ne pas le lire depuis `localStorage` directement
-- Les clés API des intégrations sont dans `SettingsManager` — utiliser `settings.get('sonarr.apiKey')`
-- Un plugin SDK doit déclarer ses permissions, dépendances et contributions dans son manifest
-- Les plugins distants doivent être signés et approuvés avant téléchargement/exécution
-- Utiliser `SpaceHub.jellyfin.plugins` pour les plugins serveur et `SpaceHub.metadata` pour la provenance des métadonnées
+Les six premières lisent le code ; seule la dernière l'exécute. C'est la
+distinction qui compte : `lint` et `smoke` ne pouvaient structurellement pas
+détecter un sélecteur ne correspondant à rien, c'est-à-dire la totalité des bugs
+de navigation trouvés en test réel.
