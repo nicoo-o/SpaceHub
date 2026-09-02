@@ -179,6 +179,53 @@ await scenario('« Retour » ferme la couche du DESSUS, quel que soit l\'ordre d
     return { ok, detail: `réglages→recherche: ${JSON.stringify(a)} · recherche→réglages: ${JSON.stringify(b)}` };
 });
 
+await scenario('Le clavier est distribué dans l\'ordre déclaré, pas dans l\'ordre du démarrage', async () => {
+    // Les neuf écouteurs clavier globaux passent désormais par InputRouter.
+    // Ce scénario vérifie dans un vrai navigateur ce que les tests unitaires
+    // vérifient en isolation : l'ordre effectif est celui des priorités
+    // déclarées, la navigation spatiale reste le dernier servi, et Ctrl+K
+    // traverse toute la chaîne — ce dernier point reposait auparavant sur un
+    // stopPropagation() implicite, remplacé par un « return true ».
+    const r = await page.evaluate(async () => {
+        const routeur = window.SpaceHub.core?.inputRouter;
+        if (!routeur) return { erreur: 'routeur d\'entrée absent du registre' };
+
+        const ordre = routeur.ordreDeDistribution();
+        const recherche = window.SpaceHub.jellyfin.search;
+
+        /** Attend une condition plutôt qu'un délai fixe. */
+        const attendre = async (predicat, limite = 4000) => {
+            const fin = Date.now() + limite;
+            while (Date.now() < fin) {
+                if (predicat()) return true;
+                await new Promise(r => setTimeout(r, 50));
+            }
+            return false;
+        };
+        const ouvert = () => !!document.querySelector('.sh-spotlight-overlay.open');
+
+        // Préchauffage : le tout premier affichage construit le DOM de la
+        // recherche et charge les médias récents. Le mesurer reviendrait à
+        // mesurer ce coût d'initialisation, pas la distribution du clavier.
+        recherche.open?.();
+        await attendre(ouvert);
+        recherche.close?.();
+        await attendre(() => !ouvert());
+
+        window.dispatchEvent(new KeyboardEvent('keydown',
+            { key: 'k', ctrlKey: true, bubbles: true, cancelable: true }));
+        const ouverte = await attendre(ouvert);
+        recherche.close?.();
+
+        return { ordre, iSearch: ordre.indexOf('search'), iNav: ordre.indexOf('navigation'),
+                 total: ordre.length, ouverte };
+    });
+
+    if (r.erreur) return { ok: false, detail: r.erreur };
+    const ok = r.iSearch === 0 && r.iNav === r.total - 1 && r.ouverte;
+    return { ok, detail: `${r.total} gestionnaire(s) : ${r.ordre.join(' > ')} · Ctrl+K ouvre: ${r.ouverte}` };
+});
+
 await scenario('Aucune fuite d\'écouteurs après 30 cycles d\'ouverture/fermeture', async () => {
     const p = await nouvellePage(navigateur, () => {
         window.__n = 0;

@@ -103,17 +103,39 @@ un `DeviceProfile` construit à partir des capacités réellement mesurées
 clavier / manette / télécommande
               │
               ▼
-        InputMapper            (touche → action)
-              │
-              ▼
-     SpatialNavigation         (scope courant, géométrie, focus)
-              │
-   ┌──────────┴──────────┐
-   ▼                     ▼
-pile de couches      CarouselController
-(quelle couche         (défilement
- est au-dessus)         horizontal)
+        InputRouter            un seul écouteur de bas niveau,
+              │                gestionnaires triés par priorité déclarée
+   ┌──────────┼──────────┬──────────┐
+   ▼          ▼          ▼          ▼
+recherche  lecteur    modales   navigation   (100 … 10)
+                                     │
+                                     ▼
+                              InputMapper    (touche → action)
+                                     │
+                                     ▼
+                            SpatialNavigation (scope, géométrie, focus)
+                                     │
+                        ┌────────────┴────────────┐
+                        ▼                         ▼
+                  pile de couches          CarouselController
+                (quelle couche              (défilement
+                 est au-dessus)              horizontal)
 ```
+
+`InputRouter` est l'entrée unique du clavier. Auparavant, neuf écouteurs
+globaux se partageaient les touches et **leur ordre n'était écrit nulle part** :
+il découlait de la phase de propagation (un écouteur sur `document` passe avant
+un écouteur sur `window`) et de l'ordre de construction des modules au
+démarrage. Déplacer une ligne d'initialisation pouvait donc changer le
+destinataire de la touche Échap, sans qu'aucun test ne le voie.
+
+Les priorités sont maintenant des constantes (`PRIORITES` dans
+`core/InputRouter.js`) : recherche 100, modales 90, lecteur 80, bande-annonce
+75, feuille 70, hero 60, routeur 50, navigation spatiale 10 — le moteur de
+navigation est délibérément le dernier servi, puisqu'il est le repli. Un
+gestionnaire qui renvoie `true` consomme la touche, ce qui remplace les
+`stopPropagation()` implicites d'avant. `npm run test:input` empêche tout
+nouvel écouteur clavier global.
 
 La **pile de couches** enregistre l'ordre d'ouverture réel. « Retour » ferme
 donc celle du dessus, et non la première d'une liste figée — un ordre déclaré
@@ -126,11 +148,14 @@ navigation rencontrés.
 
 ### Limite connue
 
-Treize écouteurs `keydown` subsistent hors du moteur (Router, Modal, lecteur,
-recherche…), dont six traitent Échap. La pile de couches rend le comportement
-correct aujourd'hui, et un scénario E2E le vérifie dans les deux ordres
-d'ouverture. Mais une entrée unique passant par `InputMapper` reste la bonne
-cible à terme.
+La parité clavier / manette / télécommande est établie **hors du lecteur** : les
+trois entrent dans le même moteur de répétition (`_startInputRepeat`, cadence
+180 → 100 → 70 → 45 ms). Dans le lecteur en revanche, la manette suit une
+cadence propre (280 ms puis 100 ms) tandis que le clavier s'appuie sur la
+répétition native du système (≈500 ms puis ≈30 ms) : l'avance rapide accélère
+donc plus vite au clavier. C'est délibéré, c'est le seul écart mesurable qui
+subsiste, et il ne peut être arbitré qu'en recette réelle — voir
+[RECETTE_MATERIEL.md](RECETTE_MATERIEL.md), tests A21 et B8.
 
 ## Modes de déploiement
 
@@ -153,14 +178,48 @@ npm run verify     # tests statiques + build + bout en bout
 | Suite | Ce qu'elle prouve |
 |---|---|
 | `lint` | Les fichiers s'analysent. |
+| `test:unit` | 117 tests unitaires : Router, ApiClient, InputMapper, InputRouter, SpatialNavigation, PluginManager, gabarits extraits. |
 | `test:smoke` | Les services s'instancient. |
 | `test:nav` | Les sélecteurs déclarés sont réellement émis. |
+| `test:input` | Aucun écouteur clavier global hors du routeur d'entrée. |
 | `test:css` | Aucun CSS en JS, aucune feuille orpheline, plafond de flou tenu. |
 | `test:xss` | Aucune donnée serveur non échappée hors des cas documentés. |
 | `test:globals` | Le nombre d'accès directs à `window.SpaceHub` ne remonte pas. |
-| `test:e2e` | Dix comportements vérifiés dans un vrai navigateur. |
+| `test:e2e` | Onze comportements vérifiés dans un vrai navigateur. |
 
-Les six premières lisent le code ; seule la dernière l'exécute. C'est la
-distinction qui compte : `lint` et `smoke` ne pouvaient structurellement pas
-détecter un sélecteur ne correspondant à rien, c'est-à-dire la totalité des bugs
-de navigation trouvés en test réel.
+Les contrôles statiques lisent le code ; `test:unit` et `test:e2e` l'exécutent.
+C'est la distinction qui compte : `lint` et `smoke` ne pouvaient
+structurellement pas détecter un sélecteur ne correspondant à rien, c'est-à-dire
+la totalité des bugs de navigation trouvés en test réel.
+
+Trois défauts ont été trouvés **par ces tests**, pas par relecture, ce qui est
+le meilleur argument pour les avoir écrits :
+
+- `ApiClient` prétendait retenter les réponses `429` — le code l'exemptait bien
+  du rejet immédiat, puis le rejetait dix lignes plus bas. L'intention était
+  écrite, le comportement était l'inverse.
+- `AnimeWidget` injectait un nom de bibliothèque venu du serveur en HTML non
+  échappé, tout en figurant dans la liste blanche du contrôle d'injection avec
+  la mention « constante du code ».
+- Le contrôle d'injection lui-même s'arrêtait au premier gabarit imbriqué : il
+  n'examinait que 194 interpolations sur 509. Quinze injections non échappées
+  s'y cachaient (noms de torrents, d'indexeurs, titres Sonarr/Radarr). Voir
+  [XSS_EXCEPTIONS.md](XSS_EXCEPTIONS.md).
+
+## Gabarits
+
+Les quatre plus gros littéraux HTML vivent dans des modules `*.template.js`
+dédiés (`VideoPlayer.template.js`, `ModalSlideUpSheet.template.js`,
+`LibraryView.template.js`, `JellyfinConsoleModal.template.js`). Ce sont des
+fonctions pures : elles transforment un objet de valeurs en chaîne, sans lire ni
+écrire le DOM.
+
+L'extraction est mécanique — la seule transformation appliquée au texte est
+`this.` → `ctx.` — et `tests/gabarits.test.js` le **prouve** : il compare le
+HTML produit à une empreinte prise sur le code d'origine, avant tout
+déplacement. Les valeurs de test contiennent `<`, `&` et `"` pour qu'un
+échappement ajouté ou retiré se voie, et les `.map()` sont réellement exécutés.
+
+Les quatre fichiers hôtes ont perdu de 21 à 27 % de leur volume ; le contrôle
+d'injection scanne les modules extraits, pour qu'un gabarit qui déménage ne
+sorte pas du champ de la vérification.
