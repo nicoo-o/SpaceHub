@@ -20,6 +20,7 @@ import { LAYERS, BACK_ORDER, FOCUSABLES, CAROUSELS, SCROLL_CONTAINERS } from './
 
 
 import * as svc from './services.js';
+import inputRouter, { PRIORITES } from './InputRouter.js';
 // Les conteneurs de défilement viennent désormais de core/DomContracts.js
 const CAROUSEL_SELECTOR = CAROUSELS;
 
@@ -922,16 +923,22 @@ export class SpatialNavigation {
     }
 
     _bindEvents() {
-        window.addEventListener('keydown', this._boundKeyDown);
-        window.addEventListener('keyup', this._boundKeyUp);
+        // Le clavier passe par le routeur d'entrée, en dernière priorité : ce
+        // moteur est le repli, toute couche ouverte doit pouvoir le devancer.
+        this._retirerClavier = [
+            inputRouter.inscrire('navigation', this._boundKeyDown,
+                { priorite: PRIORITES.navigation, sur: 'keydown' }),
+            inputRouter.inscrire('navigation:up', this._boundKeyUp,
+                { priorite: PRIORITES.navigation, sur: 'keyup' }),
+        ];
         window.addEventListener('mousemove', this._boundMouseMove, { passive: true });
         window.addEventListener('resize', this._boundResize, { passive: true });
         window.addEventListener('orientationchange', this._boundResize, { passive: true });
     }
 
     _unbindEvents() {
-        window.removeEventListener('keydown', this._boundKeyDown);
-        window.removeEventListener('keyup', this._boundKeyUp);
+        this._retirerClavier?.forEach(retirer => retirer());
+        this._retirerClavier = null;
         window.removeEventListener('mousemove', this._boundMouseMove);
         window.removeEventListener('resize', this._boundResize);
         window.removeEventListener('orientationchange', this._boundResize);

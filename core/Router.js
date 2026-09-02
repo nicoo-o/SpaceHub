@@ -11,6 +11,7 @@
 import Logger from './Logger.js';
 
 import * as svc from './services.js';
+import inputRouter, { PRIORITES } from './InputRouter.js';
 export class Router {
     /**
      * @param {Object} [options]
@@ -113,12 +114,14 @@ export class Router {
             // Escape est désormais géré exclusivement par SpatialNavigation._handleBack()
             // (retrait de la ligne "navigation:back" — aucun abonné actif, doublon supprimé cf. plan A05).
         };
-        window.addEventListener('keydown', this._keydownHandler);
+        this._retirerClavier = inputRouter.inscrire('router', this._keydownHandler,
+            { priorite: PRIORITES.router });
     }
 
     destroy() {
         if (this._keydownHandler) {
-            window.removeEventListener('keydown', this._keydownHandler);
+            this._retirerClavier?.();
+            this._retirerClavier = null;
             this._keydownHandler = null;
         }
         this._routes.clear();

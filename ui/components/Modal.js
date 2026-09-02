@@ -23,6 +23,7 @@ import Logger from '../../core/Logger.js';
 
 import './Modal.css';
 import * as svc from '../../core/services.js';
+import inputRouter, { PRIORITES } from '../../core/InputRouter.js';
 /** @type {Set<Modal>} */
 const activeModals = new Set();
 
@@ -108,7 +109,8 @@ class Modal {
         });
 
         // Écouteur conservé pour le piégeage du focus (Tab) — Escape est géré par SpatialNavigation._handleBack().
-        document.addEventListener('keydown', this._handleKey);
+        this._retirerClavier = inputRouter.inscrire(`modal:${this._id || this._el?.id || 'anonyme'}`,
+            this._handleKey, { priorite: PRIORITES.modal });
         if (this.onOpen) this.onOpen(this);
         this._log.debug('Ouverte.');
     }
@@ -125,7 +127,8 @@ class Modal {
         this._el.classList.remove('sh-modal--open');
         this._el.classList.add('sh-modal--closing');
 
-        document.removeEventListener('keydown', this._handleKey);
+        this._retirerClavier?.();
+        this._retirerClavier = null;
         activeModals.delete(this);
 
         // Restaure le scroll et aria-hidden si plus aucune modale ouverte

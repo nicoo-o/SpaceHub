@@ -93,6 +93,7 @@ export const plugins       = definir('pluginManager', 'plugins');
 
 // ─── Navigation & entrées ────────────────────────────────────────────────────
 export const nav           = definir('nav.spatial', 'core', 'spatialNavigation');
+export const inputRouter   = definir('input.router', 'core', 'inputRouter');
 export const gamepad       = definir('input.gamepad', 'core', 'gamepad');
 export const audioFeedback = definir('input.audioFeedback', 'core', 'audioFeedback');
 export const touchEngine   = definir('input.touch', 'core', 'touchEngine');

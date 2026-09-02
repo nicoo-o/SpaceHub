@@ -7,6 +7,7 @@
 
 import MediaAnalyticsService from '../../jellyfin/analytics/MediaAnalyticsService.js';
 import { escapeHtml } from '../../core/utils/domUtils.js';
+import inputRouter, { PRIORITES } from '../../core/InputRouter.js';
 
 import './AnalyticsModal.css';
 export class AnalyticsModal {
@@ -90,11 +91,12 @@ export class AnalyticsModal {
                 }
             }
         };
-        document.addEventListener('keydown', onKeyDown);
+        const retirerClavier = inputRouter.inscrire('analytics', onKeyDown,
+            { priorite: PRIORITES.analytics });
         requestAnimationFrame(() => modal.querySelector('#sh-analytics-close')?.focus());
         const originalCloseModal = closeModal;
         const closeAndCleanup = () => {
-            document.removeEventListener('keydown', onKeyDown);
+            retirerClavier();
             originalCloseModal();
         };
 

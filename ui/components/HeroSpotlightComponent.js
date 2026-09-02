@@ -14,6 +14,7 @@
 
 import './HeroSpotlightComponent.css';
 import * as svc from '../../core/services.js';
+import inputRouter, { PRIORITES } from '../../core/InputRouter.js';
 class HeroSpotlightComponent {
     constructor() {
         this._currentIndex = 0;
@@ -567,7 +568,7 @@ class HeroSpotlightComponent {
                     }
                 }
             };
-            window.addEventListener('keydown', this._keyHandler);
+            inputRouter.inscrire('hero', this._keyHandler, { priorite: PRIORITES.hero });
         }
 
         container.querySelector('#sh-hero-edge-prev')?.addEventListener('click', (e) => {

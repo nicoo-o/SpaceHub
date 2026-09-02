@@ -30,6 +30,7 @@ import PolicyService   from './PolicyService.js';
 import TouchEngine     from './TouchEngine.js';
 import AudioFeedback    from './AudioFeedback.js';
 import SpatialNavigation from './SpatialNavigation.js';
+import inputRouter from './InputRouter.js';
 import RatingCacheService from './RatingCacheService.js';
 import TvModeManager    from './TvModeManager.js';
 import TrailerService   from './TrailerService.js';
@@ -231,6 +232,11 @@ async function init() {
     SpaceHub.gamepad = spatialNav.getGamepad ? spatialNav.getGamepad() : spatialNav._gamepad;
     SpaceHub.core.spatialNavigation = spatialNav;
     services.register('nav.spatial', spatialNav);
+    // Le routeur d'entrée est exposé pour pouvoir INSPECTER l'ordre de
+    // distribution du clavier — c'est tout l'intérêt de l'avoir rendu
+    // explicite : un ordre qu'on ne peut pas lire n'est pas vérifiable.
+    SpaceHub.core.inputRouter = inputRouter;
+    services.register('input.router', inputRouter);
     SpaceHub.core.gamepad = SpaceHub.gamepad;
     SpaceHub.core.audioFeedback = audioFeedback;
     services.register('input.audioFeedback', audioFeedback);

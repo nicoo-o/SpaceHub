@@ -16,6 +16,7 @@ import Logger from '../../core/Logger.js';
 
 import './UnifiedSearch.css';
 import * as svc from '../../core/services.js';
+import inputRouter, { PRIORITES } from '../../core/InputRouter.js';
 class UnifiedSearch {
     constructor() {
         // Confirmation du scope search dans le Focus Registry
@@ -243,31 +244,30 @@ class UnifiedSearch {
     }
 
     _setupKeyboardShortcut() {
-        if (window._sh_search_shortcut_bound) return;
-        window._sh_search_shortcut_bound = true;
-
-        window.addEventListener('keydown', (e) => {
+        // Le routeur d'entrée remplace une inscription portant le même nom :
+        // le drapeau global qui protégeait autrefois d'une double inscription
+        // n'a plus d'objet.
+        inputRouter.inscrire('search', (e) => {
             const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
-            
-            // Ouvrir avec Ctrl+K ou Cmd+K ou "/" (si hors input)
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+
+            // Ouvrir avec Ctrl+K ou Cmd+K ou « / » (hors champ de saisie).
+            // Renvoyer `true` remplace l'ancien stopPropagation() : la touche
+            // est consommée ici, elle ne redescend pas vers la navigation
+            // spatiale — qui interpréterait « / » comme une frappe ordinaire.
+            if ((e.ctrlKey || e.metaKey) && e.key?.toLowerCase() === 'k') {
                 e.preventDefault();
-                e.stopPropagation();
-                if (svc.search()) {
-                    svc.search().toggle();
-                } else {
-                    this.toggle();
-                }
-            } else if (e.key === '/' && !isTyping && !this._isOpen) {
-                e.preventDefault();
-                e.stopPropagation();
-                if (svc.search()) {
-                    svc.search().open();
-                } else {
-                    this.open();
-                }
+                if (svc.search()) svc.search().toggle();
+                else this.toggle();
+                return true;
             }
-        }, true);
+            if (e.key === '/' && !isTyping && !this._isOpen) {
+                e.preventDefault();
+                if (svc.search()) svc.search().open();
+                else this.open();
+                return true;
+            }
+            return false;
+        }, { priorite: PRIORITES.search });
     }
 
     toggle() {

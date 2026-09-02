@@ -18,6 +18,7 @@ import Logger from './Logger.js';
 import './TrailerService.css';
 import { escapeHtml } from './utils/domUtils.js';
 import * as svc from './services.js';
+import inputRouter, { PRIORITES } from './InputRouter.js';
 class TrailerService {
     constructor() {
         this._log = new Logger('TrailerService');
@@ -216,7 +217,7 @@ class TrailerService {
             ${sources.map((s, i) => `
                 <button class="sh-trailer-menu__item" data-index="${i}" tabindex="0" data-nav-focusable="true">
                     <span class="sh-trailer-menu__icon">${s.type === 'local' ? '📺' : '▶'}</span>
-                    <span>${s.label}</span>
+                    <span>${escapeHtml(s.label)}</span>
                 </button>
             `).join('')}
         `;
@@ -307,7 +308,8 @@ class TrailerService {
         win.addEventListener('click', (e) => {
             if (e.target === win) this.close();
         });
-        document.addEventListener('keydown', this._onKeydown);
+        this._retirerClavier = inputRouter.inscrire('trailer', this._onKeydown,
+            { priorite: PRIORITES.trailer });
 
         // Focus TV initial sur le bouton fermer
         const spatialNav = svc.nav() || svc.nav();
@@ -323,7 +325,8 @@ class TrailerService {
         if (!this._window) return;
         const win = this._window;
         this._window = null;
-        document.removeEventListener('keydown', this._onKeydown);
+        this._retirerClavier?.();
+        this._retirerClavier = null;
         document.body.style.overflow = '';
         win.classList.remove('sh-trailer-window--open');
         const iframe = win.querySelector('iframe');

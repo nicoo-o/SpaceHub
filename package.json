@@ -13,9 +13,11 @@
     "test:xss": "node scripts/xss-hygiene-check.mjs",
     "test:globals": "node scripts/globals-check.mjs",
     "test:e2e": "node scripts/e2e.mjs",
-    "test": "npm run lint && npm run test:smoke && npm run test:nav && npm run test:css && npm run test:xss && npm run test:globals",
+    "test": "npm run lint && npm run test:unit && npm run test:smoke && npm run test:nav && npm run test:input && npm run test:css && npm run test:xss && npm run test:globals",
     "verify": "npm run test && npm run build && npm run test:e2e",
-    "lint": "node scripts/syntax-check.mjs"
+    "lint": "node scripts/syntax-check.mjs",
+    "test:unit": "vitest run",
+    "test:input": "node scripts/input-pipeline-check.mjs"
   },
   "keywords": [
     "jellyfin",
@@ -35,8 +37,10 @@
   "author": "SpaceHub Team",
   "license": "GPL-3.0",
   "devDependencies": {
+    "jsdom": "^25.0.1",
     "playwright-core": "^1.62.1",
-    "vite": "^5.4.14"
+    "vite": "^5.4.14",
+    "vitest": "^2.1.9"
   },
   "dependencies": {
     "hls.js": "^1.5.17"
