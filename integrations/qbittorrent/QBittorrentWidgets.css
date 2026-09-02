@@ -1,0 +1,99 @@
+.sh-qbit-speed-row {
+    display: flex;
+    gap: 12px;
+}
+
+.sh-qbit-speed-card {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.07);
+    border-radius: 14px;
+    padding: 14px 18px;
+    transition: 
+        transform var(--sh-dur-3) var(--sh-ease-out),
+        border-color var(--sh-dur-2) ease,
+        box-shadow var(--sh-dur-3) ease;
+}
+.sh-qbit-speed-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.2);
+    box-shadow: 0 8px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5);
+}
+
+.sh-qbit-speed-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.1);
+}
+.sh-qbit-speed-card--dl .sh-qbit-speed-icon { color: #64d2ff; }
+.sh-qbit-speed-card--up .sh-qbit-speed-icon { color: #32d74b; }
+
+.sh-qbit-speed-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.sh-qbit-speed-val {
+    font-size: 20px;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-qbit-speed-card--dl .sh-qbit-speed-val { color: #64d2ff; }
+.sh-qbit-speed-card--up .sh-qbit-speed-val { color: #32d74b; }
+
+.sh-qbit-speed-lbl {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+}
+
+.sh-qbit-row {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.06);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: background var(--sh-dur-2) ease;
+}
+.sh-qbit-row:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
+}
+
+.sh-qbit-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.1);
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.7);
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+.sh-qbit-action-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.14);
+    color: var(--sh-ink-solid, #ffffff);
+    transform: scale(1.06);
+}
+.sh-qbit-action-btn--del:hover {
+    background: rgba(255, 69, 58, 0.34);
+    border-color: rgba(255, 69, 58, 0.3);
+    color: #ff453a;
+}

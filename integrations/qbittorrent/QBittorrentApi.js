@@ -11,6 +11,7 @@
 
 import Logger from '../../core/Logger.js';
 
+import * as svc from '../../core/services.js';
 class QBittorrentApi {
     constructor() {
         this._log = new Logger('QBittorrentApi');
@@ -18,7 +19,7 @@ class QBittorrentApi {
     }
 
     updateConfig() {
-        const settings = window.SpaceHub?.core?.settings;
+        const settings = svc.settings();
         this.baseUrl = (settings?.get('qbittorrent.url', 'http://localhost:8080') || 'http://localhost:8080').replace(/\/$/, '');
         this.username = settings?.get('qbittorrent.username', 'admin') || 'admin';
         this.password = settings?.get('qbittorrent.password', '') || '';

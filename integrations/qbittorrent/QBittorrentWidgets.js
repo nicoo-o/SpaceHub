@@ -1,4 +1,6 @@
 import { escapeHtml } from '../../core/utils/domUtils.js';
+import './QBittorrentWidgets.css';
+import * as svc from '../../core/services.js';
 /**
  * SpaceHub — qBittorrent Dashboard Widgets
  * Version: 0.11.0
@@ -47,7 +49,7 @@ class QBittorrentSpeedWidget {
         if (!contentEl) return;
 
         try {
-            const qbit = window.SpaceHub?.integrations?.qbittorrent;
+            const qbit = svc.integration('qbittorrent');
             if (!qbit) {
                 contentEl.innerHTML = `
                     <div class="sh-widget-empty" style="padding:var(--sh-space-4,16px); text-align:center; color:var(--sh-text-muted);">
@@ -99,113 +101,9 @@ class QBittorrentSpeedWidget {
     }
 
     _injectStyles() {
-        if (document.getElementById('sh-qbit-widget-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-qbit-widget-styles';
-        style.textContent = `
-.sh-qbit-speed-row {
-    display: flex;
-    gap: 12px;
-}
-
-.sh-qbit-speed-card {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 14px;
-    padding: 14px 18px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    transition: 
-        transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
-        border-color 180ms ease,
-        box-shadow 200ms ease;
-}
-.sh-qbit-speed-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-}
-
-.sh-qbit-speed-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-.sh-qbit-speed-card--dl .sh-qbit-speed-icon { color: #64d2ff; }
-.sh-qbit-speed-card--up .sh-qbit-speed-icon { color: #32d74b; }
-
-.sh-qbit-speed-details {
-    display: flex;
-    flex-direction: column;
-}
-
-.sh-qbit-speed-val {
-    font-size: 20px;
-    font-weight: 750;
-    letter-spacing: -0.02em;
-    color: #ffffff;
-}
-
-.sh-qbit-speed-card--dl .sh-qbit-speed-val { color: #64d2ff; }
-.sh-qbit-speed-card--up .sh-qbit-speed-val { color: #32d74b; }
-
-.sh-qbit-speed-lbl {
-    font-size: 11px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.45);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-top: 2px;
-}
-
-.sh-qbit-row {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    transition: background 150ms ease;
-}
-.sh-qbit-row:hover {
-    background: rgba(255, 255, 255, 0.06);
-}
-
-.sh-qbit-action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.7);
-    cursor: pointer;
-    transition: all 140ms ease;
-}
-.sh-qbit-action-btn:hover {
-    background: rgba(255, 255, 255, 0.14);
-    color: #ffffff;
-    transform: scale(1.06);
-}
-.sh-qbit-action-btn--del:hover {
-    background: rgba(255, 69, 58, 0.18);
-    border-color: rgba(255, 69, 58, 0.3);
-    color: #ff453a;
-}
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans QBittorrentWidgets.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 
@@ -230,7 +128,7 @@ class QBittorrentActiveWidget {
                 </div>
                 <div class="sh-widget__content">
                     <div class="sh-widget__items-container">
-                        <p style="color:rgba(255,255,255,0.4);">Chargement des torrents...</p>
+                        <p style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4);">Chargement des torrents...</p>
                     </div>
                 </div>
             </div>
@@ -245,9 +143,9 @@ class QBittorrentActiveWidget {
         if (!contentEl) return;
 
         try {
-            const qbit = window.SpaceHub?.integrations?.qbittorrent;
+            const qbit = svc.integration('qbittorrent');
             if (!qbit) {
-                contentEl.innerHTML = '<p style="color:rgba(255,255,255,0.4); text-align:center; padding:24px;">qBittorrent non configuré.</p>';
+                contentEl.innerHTML = '<p style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); text-align:center; padding:24px;">qBittorrent non configuré.</p>';
                 return;
             }
 
@@ -285,9 +183,9 @@ class QBittorrentActiveWidget {
                                     <div style="display:flex; flex-direction:column; gap:4px; min-width:0; flex:1;">
                                         <div style="display:flex; align-items:center; gap:8px;">
                                             <span style="font-size:10px; font-weight:750; padding:2px 7px; border-radius:6px; background:${stateColor}22; color:${stateColor}; border:1px solid ${stateColor}44; text-transform:uppercase;">${stateLabel}</span>
-                                            ${sizeGB ? `<span style="font-size:11px; color:rgba(255,255,255,0.45); font-weight:600;">${sizeGB}</span>` : ''}
+                                            ${sizeGB ? `<span style="font-size:11px; color:rgba(var(--sh-ink, 255, 255, 255), 0.45); font-weight:600;">${sizeGB}</span>` : ''}
                                         </div>
-                                        <span class="sh-truncate" style="font-weight:650; font-size:13.5px; color:#ffffff;" title="${t.name}">${t.name}</span>
+                                        <span class="sh-truncate" style="font-weight:650; font-size:13.5px; color:var(--sh-ink-solid, #ffffff);" title="${t.name}">${t.name}</span>
                                     </div>
                                     <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
                                         <button class="sh-qbit-action-btn sh-qbit-toggle-btn" data-hash="${t.hash}" data-paused="${isPaused}" title="${isPaused ? 'Reprendre' : 'Pause'}">
@@ -300,15 +198,15 @@ class QBittorrentActiveWidget {
                                         </button>
                                     </div>
                                 </div>
-                                <div style="height:6px; background:rgba(255,255,255,0.08); border-radius:9999px; overflow:hidden; margin:4px 0;">
+                                <div style="height:6px; background:rgba(var(--sh-ink, 255, 255, 255), 0.08); border-radius:9999px; overflow:hidden; margin:4px 0;">
                                     <div style="width:${progress}%; height:100%; background:linear-gradient(90deg, #38bdf8, ${stateColor}); border-radius:9999px; box-shadow:0 0 10px ${stateColor}88; transition:width 0.3s ease;"></div>
                                 </div>
-                                <div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:rgba(255,255,255,0.5);">
+                                <div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:rgba(var(--sh-ink, 255, 255, 255), 0.5);">
                                     <span><strong>${progress}%</strong> complété ${t.num_seeds !== undefined ? `• ${t.num_seeds} pairs` : ''}</span>
                                     <div style="display:flex; gap:12px; font-weight:600;">
                                         ${dlSpeed ? `<span style="color:#64d2ff;">↓ ${dlSpeed}</span>` : ''}
                                         ${upSpeed ? `<span style="color:#32d74b;">↑ ${upSpeed}</span>` : ''}
-                                        ${eta ? `<span style="color:rgba(255,255,255,0.7);">ETA: ${eta}</span>` : ''}
+                                        ${eta ? `<span style="color:rgba(var(--sh-ink, 255, 255, 255), 0.7);">ETA: ${eta}</span>` : ''}
                                     </div>
                                 </div>
                             </div>

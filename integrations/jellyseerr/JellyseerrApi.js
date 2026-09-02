@@ -12,9 +12,10 @@
 import { BaseApiClient } from '../../core/ApiClient.js';
 import Logger from '../../core/Logger.js';
 
+import * as svc from '../../core/services.js';
 class JellyseerrApi extends BaseApiClient {
     constructor() {
-        const settings = window.SpaceHub?.core?.settings;
+        const settings = svc.settings();
         const url = settings?.get('jellyseerr.url', 'http://localhost:5055') || 'http://localhost:5055';
         const apiKey = settings?.get('jellyseerr.apiKey', '') || '';
 
@@ -27,7 +28,7 @@ class JellyseerrApi extends BaseApiClient {
      * Met à jour la configuration active depuis les settings SpaceHub.
      */
     updateConfig() {
-        const settings = window.SpaceHub?.core?.settings;
+        const settings = svc.settings();
         this.baseUrl = (settings?.get('jellyseerr.url', 'http://localhost:5055') || 'http://localhost:5055').replace(/\/$/, '');
         this.apiKey = settings?.get('jellyseerr.apiKey', '') || '';
     }

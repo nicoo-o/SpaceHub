@@ -12,6 +12,7 @@
 import Logger from '../../core/Logger.js';
 import SonarrApi from './SonarrApi.js';
 
+import * as svc from '../../core/services.js';
 class SonarrService {
     /**
      * @param {Object} [options]
@@ -23,9 +24,9 @@ class SonarrService {
     constructor({ api = null, cache = null, eventBus = null, settings = null } = {}) {
         this.api = api || this._createDefaultApi();
         this._log = new Logger('SonarrService');
-        this._cache = cache || window.SpaceHub?.core?.cache || null;
-        this._eventBus = eventBus || window.SpaceHub?.core?.eventBus || null;
-        this._settings = settings || window.SpaceHub?.core?.settings || null;
+        this._cache = cache || svc.cache() || null;
+        this._eventBus = eventBus || svc.eventBus() || null;
+        this._settings = settings || svc.settings() || null;
         this.status = 'unconfigured';
         this.lastLatency = null;
 
@@ -167,7 +168,7 @@ class SonarrService {
             this._eventBus.emit('sonarr:seriesAdded', result);
         }
 
-        window.SpaceHub?.ui?.components?.toaster?.success(`Série "${seriesData.title}" ajoutée à Sonarr !`);
+        svc.toaster()?.success(`Série "${seriesData.title}" ajoutée à Sonarr !`);
         return result;
     }
 
@@ -185,7 +186,7 @@ class SonarrService {
             this._eventBus.emit('sonarr:seriesDeleted', { seriesId, deleteFiles });
         }
 
-        window.SpaceHub?.ui?.components?.toaster?.info('Série supprimée de Sonarr.');
+        svc.toaster()?.info('Série supprimée de Sonarr.');
     }
 
     /**

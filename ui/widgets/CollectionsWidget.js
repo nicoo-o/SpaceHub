@@ -7,6 +7,8 @@
 
 'use strict';
 
+
+import * as svc from '../../core/services.js';
 class CollectionsWidget {
     constructor() {
         this.id = 'collections-sagas';
@@ -34,7 +36,7 @@ class CollectionsWidget {
         `;
 
         const contentEl = container.querySelector('.sh-widget__items-container');
-        const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
+        const cardBuilder = svc.cardBuilder();
 
         if (cardBuilder) {
             contentEl.appendChild(cardBuilder.createSkeletonGrid(6, 'poster'));
@@ -48,7 +50,7 @@ class CollectionsWidget {
         if (!contentEl) return;
 
         try {
-            const api = window.SpaceHub?.jellyfin?.api;
+            const api = svc.jellyfinApi();
             const itemsMap = new Map();
 
             // 1. Requête globale standard des BoxSets / Collections
@@ -100,14 +102,14 @@ class CollectionsWidget {
             }
 
             container.style.display = '';
-            const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
+            const cardBuilder = svc.cardBuilder();
             if (cardBuilder) {
                 cardBuilder.renderGrid(contentEl, items, {
                     type: 'poster',
                     getImageUrl: (item) => api?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || apiClient?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || '',
                     onClick: (item) => {
-                        if (window.SpaceHub?.ui?.modalSlideUpSheet) {
-                            window.SpaceHub.ui.modalSlideUpSheet.open(item);
+                        if (svc.slideUpSheet()) {
+                            svc.slideUpSheet().open(item);
                         } else if (window.Emby?.Page?.showItem) {
                             window.Emby.Page.showItem(item.Id);
                         } else {

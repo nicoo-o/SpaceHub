@@ -12,6 +12,7 @@
 import Logger from '../../core/Logger.js';
 import BazarrApi from './BazarrApi.js';
 
+import * as svc from '../../core/services.js';
 class BazarrService {
     /**
      * @param {Object} [options]
@@ -23,9 +24,9 @@ class BazarrService {
     constructor({ api = null, cache = null, eventBus = null, settings = null } = {}) {
         this.api = api || this._createDefaultApi();
         this._log = new Logger('BazarrService');
-        this._cache = cache || window.SpaceHub?.core?.cache || null;
-        this._eventBus = eventBus || window.SpaceHub?.core?.eventBus || null;
-        this._settings = settings || window.SpaceHub?.core?.settings || null;
+        this._cache = cache || svc.cache() || null;
+        this._eventBus = eventBus || svc.eventBus() || null;
+        this._settings = settings || svc.settings() || null;
         this.status = 'unconfigured';
         this.lastLatency = null;
 
@@ -129,7 +130,7 @@ class BazarrService {
         if (this._cache) await this._cache.delete('bazarr', 'bazarr_wanted_summary');
         if (this._eventBus) this._eventBus.emit('bazarr:subtitlesDownloaded', { type: 'movie', id: radarrId });
 
-        window.SpaceHub?.ui?.components?.toaster?.success('Recherche de sous-titres lancée dans Bazarr !');
+        svc.toaster()?.success('Recherche de sous-titres lancée dans Bazarr !');
         return result;
     }
 
@@ -145,7 +146,7 @@ class BazarrService {
         if (this._cache) await this._cache.delete('bazarr', 'bazarr_wanted_summary');
         if (this._eventBus) this._eventBus.emit('bazarr:subtitlesDownloaded', { type: 'episode', id: sonarrEpisodeId });
 
-        window.SpaceHub?.ui?.components?.toaster?.success('Recherche de sous-titres d\'épisode lancée !');
+        svc.toaster()?.success('Recherche de sous-titres d\'épisode lancée !');
         return result;
     }
 
@@ -166,14 +167,14 @@ class BazarrService {
         try {
             const result = await this.api.syncLibraries();
             if (result?.success === false || result?.status === 'unsupported') {
-                window.SpaceHub?.ui?.components?.toaster?.warning?.('Bazarr ne propose pas cette tâche de synchronisation via son API.');
+                svc.toaster()?.warning?.('Bazarr ne propose pas cette tâche de synchronisation via son API.');
                 return { success: false, status: result?.status || 'unsupported' };
             }
-            window.SpaceHub?.ui?.components?.toaster?.success?.('Synchronisation Bazarr lancée avec succès !');
+            svc.toaster()?.success?.('Synchronisation Bazarr lancée avec succès !');
             return result || { success: true };
         } catch (err) {
             this._log.warn('Synchronisation Bazarr échouée:', err.message);
-            window.SpaceHub?.ui?.components?.toaster?.error?.('Échec de la synchronisation Bazarr.');
+            svc.toaster()?.error?.('Échec de la synchronisation Bazarr.');
             return { success: false, error: err.message };
         }
     }

@@ -11,14 +11,15 @@
 
 import Logger from '../../core/Logger.js';
 
+import * as svc from '../../core/services.js';
 class JellyfinAPI {
     constructor() {
         this._log = new Logger('JellyfinAPI');
-        this._cache = window.SpaceHub?.core?.cache || null;
+        this._cache = svc.cache() || null;
     }
 
     get _client() {
-        return window.SpaceHub?.core?.api?.getClient('jellyfin');
+        return svc.api()?.getClient('jellyfin');
     }
 
     get _rawApiClient() {
@@ -28,8 +29,8 @@ class JellyfinAPI {
     // ─── Utilisateur & Authentification ───────────────────────────────────────
 
     async getCurrentUser() {
-        if (window.SpaceHub?.auth?.getUser()) {
-            return window.SpaceHub.auth.getUser();
+        if (svc.auth()?.getUser()) {
+            return svc.auth().getUser();
         }
         if (this._rawApiClient?.getCurrentUser) {
             return await this._rawApiClient.getCurrentUser();
@@ -38,7 +39,7 @@ class JellyfinAPI {
     }
 
     getUserId() {
-        return window.SpaceHub?.auth?.getUserId() || this._rawApiClient?.getCurrentUserId?.() || null;
+        return svc.auth()?.getUserId() || this._rawApiClient?.getCurrentUserId?.() || null;
     }
 
     // ─── Bibliothèques & Éléments ─────────────────────────────────────────────
@@ -1163,8 +1164,8 @@ class JellyfinAPI {
         if (!logName) return '';
         try {
             const client = this._client;
-            const baseUrl = client?._baseUrl || window.SpaceHub?.auth?.getServerUrl?.() || '';
-            const token = client?._apiKey || window.SpaceHub?.auth?.getToken?.() || '';
+            const baseUrl = client?._baseUrl || svc.auth()?.getServerUrl?.() || '';
+            const token = client?._apiKey || svc.auth()?.getToken?.() || '';
             const url = `${baseUrl.replace(/\/+$/, '')}/System/Logs/Log?name=${encodeURIComponent(logName)}`;
 
             const res = await fetch(url, {

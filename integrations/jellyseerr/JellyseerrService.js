@@ -11,6 +11,7 @@
 import Logger from '../../core/Logger.js';
 import JellyseerrApi from './JellyseerrApi.js';
 
+import * as svc from '../../core/services.js';
 class JellyseerrService {
     /**
      * @param {Object} [options]
@@ -22,9 +23,9 @@ class JellyseerrService {
     constructor({ api = null, cache = null, eventBus = null, settings = null } = {}) {
         this.api = api || this._createDefaultApi();
         this._log = new Logger('JellyseerrService');
-        this._cache = cache || window.SpaceHub?.core?.cache || null;
-        this._eventBus = eventBus || window.SpaceHub?.core?.eventBus || null;
-        this._settings = settings || window.SpaceHub?.core?.settings || null;
+        this._cache = cache || svc.cache() || null;
+        this._eventBus = eventBus || svc.eventBus() || null;
+        this._settings = settings || svc.settings() || null;
         this.status = 'unconfigured';
         this.lastLatency = null;
 
@@ -107,7 +108,7 @@ class JellyseerrService {
         if (this._cache) await this._cache.delete('general', 'jellyseerr_pending_requests');
         if (this._eventBus) this._eventBus.emit('jellyseerr:requestApproved', { requestId });
 
-        window.SpaceHub?.ui?.components?.toaster?.success('Demande de média approuvée !');
+        svc.toaster()?.success('Demande de média approuvée !');
         return res;
     }
 
@@ -123,7 +124,7 @@ class JellyseerrService {
         if (this._cache) await this._cache.delete('general', 'jellyseerr_pending_requests');
         if (this._eventBus) this._eventBus.emit('jellyseerr:requestDeclined', { requestId });
 
-        window.SpaceHub?.ui?.components?.toaster?.info('Demande de média refusée.');
+        svc.toaster()?.info('Demande de média refusée.');
         return res;
     }
 
@@ -147,7 +148,7 @@ class JellyseerrService {
         if (this._cache) await this._cache.delete('general', 'jellyseerr_pending_requests');
         if (this._eventBus) this._eventBus.emit('jellyseerr:requestCreated', res);
 
-        window.SpaceHub?.ui?.components?.toaster?.success('Demande envoyée avec succès !');
+        svc.toaster()?.success('Demande envoyée avec succès !');
         return res;
     }
 

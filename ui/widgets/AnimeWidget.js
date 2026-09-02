@@ -9,6 +9,8 @@
 
 'use strict';
 
+
+import * as svc from '../../core/services.js';
 class AnimeWidget {
     constructor() {
         this.id = 'anime';
@@ -20,13 +22,13 @@ class AnimeWidget {
         container.innerHTML = `
             <div class="sh-widget sh-widget--anime">
                 <div class="sh-widget__header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
-                    <h2 class="sh-widget__title" style="display:flex; align-items:center; gap:8px; margin:0; font-size:1.15rem; font-weight:600; color:#ffffff;">
+                    <h2 class="sh-widget__title" style="display:flex; align-items:center; gap:8px; margin:0; font-size:1.15rem; font-weight:600; color:var(--sh-ink-solid, #ffffff);">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sh-shelf-title-icon" style="color:var(--sh-accent, #6366f1);">
                             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                         </svg>
                         <span>${this.title}</span>
                     </h2>
-                    <button class="sh-shelf-see-all-btn" id="sh-btn-see-all-anime" style="background:none; border:none; color:rgba(255,255,255,0.6); font-size:13px; font-weight:500; cursor:pointer; display:none; align-items:center; gap:4px; transition:color 0.2s;">
+                    <button class="sh-shelf-see-all-btn" id="sh-btn-see-all-anime" style="background:none; border:none; color:rgba(var(--sh-ink, 255, 255, 255), 0.6); font-size:13px; font-weight:500; cursor:pointer; display:none; align-items:center; gap:4px; transition:color 0.2s;">
                         <span>Tout voir</span>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
                     </button>
@@ -38,7 +40,7 @@ class AnimeWidget {
         `;
 
         const contentEl = container.querySelector('.sh-widget__items-container');
-        const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
+        const cardBuilder = svc.cardBuilder();
 
         if (cardBuilder) {
             contentEl.appendChild(cardBuilder.createSkeletonGrid(6, 'poster'));
@@ -52,9 +54,9 @@ class AnimeWidget {
         if (!contentEl) return;
 
         try {
-            const api = window.SpaceHub?.jellyfin?.api;
-            const apiClient = window.SpaceHub?.core?.api?.getClient('jellyfin');
-            const userId = api?.getUserId?.() || window.SpaceHub?.auth?.getUserId?.();
+            const api = svc.jellyfinApi();
+            const apiClient = svc.api()?.getClient('jellyfin');
+            const userId = api?.getUserId?.() || svc.auth()?.getUserId?.();
             let items = [];
             let animeLibraryId = null;
 
@@ -152,19 +154,19 @@ class AnimeWidget {
             }
 
             if (!items || items.length === 0) {
-                contentEl.innerHTML = '<div style="color:rgba(255,255,255,0.4); padding:20px; font-size:13px;">Aucun animé trouvé dans la médiathèque.</div>';
+                contentEl.innerHTML = '<div style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); padding:20px; font-size:13px;">Aucun animé trouvé dans la médiathèque.</div>';
                 return;
             }
 
             container.style.display = '';
-            const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
+            const cardBuilder = svc.cardBuilder();
             if (cardBuilder) {
                 cardBuilder.renderGrid(contentEl, items, {
                     type: 'poster',
                     getImageUrl: (item) => api?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || apiClient?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || '',
                     onClick: (item) => {
-                        if (window.SpaceHub?.ui?.modalSlideUpSheet) {
-                            window.SpaceHub.ui.modalSlideUpSheet.open(item);
+                        if (svc.slideUpSheet()) {
+                            svc.slideUpSheet().open(item);
                         } else if (window.Emby?.Page?.showItem) {
                             window.Emby.Page.showItem(item.Id);
                         }

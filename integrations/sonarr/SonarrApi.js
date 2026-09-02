@@ -12,9 +12,10 @@
 import { BaseApiClient } from '../../core/ApiClient.js';
 import Logger from '../../core/Logger.js';
 
+import * as svc from '../../core/services.js';
 class SonarrApi extends BaseApiClient {
     constructor() {
-        const settings = window.SpaceHub?.core?.settings;
+        const settings = svc.settings();
         const url = settings?.get('sonarr.url', 'http://localhost:8989') || 'http://localhost:8989';
         const apiKey = settings?.get('sonarr.apiKey', '') || '';
 
@@ -27,7 +28,7 @@ class SonarrApi extends BaseApiClient {
      * Met à jour la configuration depuis les paramètres SpaceHub.
      */
     updateConfig() {
-        const settings = window.SpaceHub?.core?.settings;
+        const settings = svc.settings();
         this.baseUrl = (settings?.get('sonarr.url', 'http://localhost:8989') || 'http://localhost:8989').replace(/\/$/, '');
         this.apiKey = settings?.get('sonarr.apiKey', '') || '';
     }

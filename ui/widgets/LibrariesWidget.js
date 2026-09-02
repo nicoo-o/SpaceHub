@@ -8,6 +8,8 @@
 
 'use strict';
 
+
+import * as svc from '../../core/services.js';
 class LibrariesWidget {
     constructor() {
         this.id = 'user-libraries';
@@ -33,7 +35,7 @@ class LibrariesWidget {
         `;
 
         const contentEl = container.querySelector('.sh-widget__items-container');
-        const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
+        const cardBuilder = svc.cardBuilder();
 
         if (cardBuilder) {
             contentEl.appendChild(cardBuilder.createSkeletonGrid(6, 'poster'));
@@ -47,7 +49,7 @@ class LibrariesWidget {
         if (!contentEl) return;
 
         try {
-            const api = window.SpaceHub?.jellyfin?.api;
+            const api = svc.jellyfinApi();
             let views = [];
 
             if (api?.getUserViews) {
@@ -59,7 +61,7 @@ class LibrariesWidget {
             }
 
             if (!views || views.length === 0) {
-                const apiClient = window.SpaceHub?.core?.api?.getClient('jellyfin');
+                const apiClient = svc.api()?.getClient('jellyfin');
                 const rawViews = await window.ApiClient?.getUserViews?.(apiClient?.getUserId?.() || api?.getUserId?.());
                 views = rawViews?.Items || (Array.isArray(rawViews) ? rawViews : []);
             }
@@ -88,7 +90,7 @@ class LibrariesWidget {
 
             container.style.display = '';
 
-            const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
+            const cardBuilder = svc.cardBuilder();
             if (cardBuilder) {
                 // Adapter les items pour l'affichage épuré de dossiers de bibliothèques
                 const formattedItems = views.map(v => {
@@ -114,8 +116,8 @@ class LibrariesWidget {
                     type: 'poster',
                     getImageUrl: (item) => item.customImage || api?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || '',
                     onClick: (item) => {
-                        if (window.SpaceHub?.ui?.appLayout?.navigate) {
-                            window.SpaceHub.ui.appLayout.navigate('library', { libraryId: item.Id });
+                        if (svc.appLayout()?.navigate) {
+                            svc.appLayout().navigate('library', { libraryId: item.Id });
                         } else if (window.Emby?.Page?.showItem) {
                             window.Emby.Page.showItem(item.Id);
                         } else {

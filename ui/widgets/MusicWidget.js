@@ -7,6 +7,8 @@
 
 'use strict';
 
+
+import * as svc from '../../core/services.js';
 class MusicWidget {
     constructor() {
         this.id = 'music-soundtracks';
@@ -34,7 +36,7 @@ class MusicWidget {
         `;
 
         const contentEl = container.querySelector('.sh-widget__items-container');
-        const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
+        const cardBuilder = svc.cardBuilder();
 
         if (cardBuilder) {
             contentEl.appendChild(cardBuilder.createSkeletonGrid(6, 'poster'));
@@ -48,8 +50,8 @@ class MusicWidget {
         if (!contentEl) return;
 
         try {
-            const api = window.SpaceHub?.jellyfin?.api;
-            const apiClient = window.SpaceHub?.core?.api?.getClient('jellyfin');
+            const api = svc.jellyfinApi();
+            const apiClient = svc.api()?.getClient('jellyfin');
             let items = [];
 
             if (api?.getMusicAlbums) {
@@ -75,14 +77,14 @@ class MusicWidget {
             }
 
             container.style.display = '';
-            const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
+            const cardBuilder = svc.cardBuilder();
             if (cardBuilder) {
                 cardBuilder.renderGrid(contentEl, items, {
                     type: 'poster',
                     getImageUrl: (item) => api?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || apiClient?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || '',
                     onClick: (item) => {
-                        if (window.SpaceHub?.ui?.modalSlideUpSheet) {
-                            window.SpaceHub.ui.modalSlideUpSheet.open(item);
+                        if (svc.slideUpSheet()) {
+                            svc.slideUpSheet().open(item);
                         } else if (window.Emby?.Page?.showItem) {
                             window.Emby.Page.showItem(item.Id);
                         }

@@ -8,22 +8,23 @@
 
 import Logger from '../../core/Logger.js';
 
+import * as svc from '../../core/services.js';
 const PLUGIN_FIELDS = 'Name,Version,Description,Id,AssemblyVersion,Status,ConfigurationFileName';
 const SENSITIVE_KEY = /(?:token|password|secret|apikey|api_key|privatekey|clientsecret)/i;
 const REDACTED_VALUE = '••••••';
 
 class JellyfinPluginService {
     constructor({ api = null, eventBus = null, cache = null } = {}) {
-        this._api = api || window.SpaceHub?.jellyfin?.api;
-        this._eventBus = eventBus || window.SpaceHub?.core?.eventBus;
-        this._cache = cache || window.SpaceHub?.core?.cache;
+        this._api = api || svc.jellyfinApi();
+        this._eventBus = eventBus || svc.eventBus();
+        this._cache = cache || svc.cache();
         this._log = new Logger('JellyfinPluginService');
         this._plugins = null;
         this._capabilities = null;
     }
 
     get client() {
-        return this._api?._client || window.SpaceHub?.core?.api?.getClient?.('jellyfin');
+        return this._api?._client || svc.api()?.getClient?.('jellyfin');
     }
 
     async list({ force = false } = {}) {
@@ -73,7 +74,7 @@ class JellyfinPluginService {
         const plugins = await this.list({ force });
         const client = this.client;
         const hasClient = Boolean(client && typeof client.get === 'function');
-        const administrator = window.SpaceHub?.auth?.getUser?.()?.Policy?.IsAdministrator === true;
+        const administrator = svc.auth()?.getUser?.()?.Policy?.IsAdministrator === true;
         this._capabilities = {
             list: hasClient,
             configuration: administrator && plugins.some(plugin => plugin.canConfigure),
@@ -159,7 +160,7 @@ class JellyfinPluginService {
     }
 
     _assertAdmin() {
-        if (window.SpaceHub?.auth?.getUser?.()?.Policy?.IsAdministrator !== true) {
+        if (svc.auth()?.getUser?.()?.Policy?.IsAdministrator !== true) {
             throw new Error('Cette opération exige un compte administrateur Jellyfin.');
         }
     }

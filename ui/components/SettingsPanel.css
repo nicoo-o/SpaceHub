@@ -1,0 +1,418 @@
+.sh-settings-container {
+    display: flex;
+    gap: var(--sh-space-6, 24px);
+    height: 540px;
+    max-height: 75vh;
+}
+
+.sh-settings-nav {
+    width: 180px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sh-space-1, 4px);
+    border-right: 1px solid var(--sh-border-color, rgba(var(--sh-ink, 255, 255, 255), 0.08));
+    padding-right: var(--sh-space-4, 16px);
+    overflow-y: auto;
+}
+
+.sh-settings-nav__item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 9px 12px;
+    border-radius: 9px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.50);
+    font-size: 13px;
+    font-weight: 550;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    width: 100%;
+}
+
+.sh-settings-nav__item svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+    transition: opacity var(--sh-dur-2) ease;
+}
+
+.sh-settings-nav__item:hover {
+    color: var(--sh-ink-solid, #ffffff);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
+}
+.sh-settings-nav__item:hover svg { opacity: 1; }
+
+.sh-settings-nav__item.active {
+    color: var(--sh-ink-solid-inv, #000000);
+    background: var(--sh-ink-solid, #ffffff);
+    font-weight: 700;
+}
+.sh-settings-nav__item.active svg { stroke: var(--sh-ink-solid-inv, #000000); opacity: 1; }
+
+.sh-settings-content {
+    flex: 1;
+    overflow-y: auto;
+    height: 100%;
+    max-height: 100%;
+    padding-right: 8px;
+}
+
+.sh-onboarding-settings-card { margin-top: 22px; padding: 15px; border: 1px solid rgba(var(--sh-ink, 255, 255, 255), .08); border-radius: 12px; background: rgba(var(--sh-ink, 255, 255, 255), .025); }
+.sh-onboarding-settings-card h4 { margin: 0 0 5px; color: var(--sh-ink-solid, #ffffff); font-size: 14px; }
+.sh-onboarding-settings-card p { margin: 0 0 12px; color: rgba(var(--sh-ink, 255, 255, 255), .45); font-size: 12px; }
+.sh-onboarding-settings-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sh-settings-tab { display: none; }
+.sh-settings-tab.active {
+    display: block;
+    animation: sh-settings-tab-in var(--sh-dur-3) var(--sh-ease-out) forwards;
+}
+
+@keyframes sh-settings-tab-in {
+    0%   { opacity: 0; transform: translateY(4px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.sh-settings-tab h3 {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-settings-desc {
+    margin: 0 0 16px 0;
+    font-size: 12.5px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
+}
+
+.sh-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.sh-form-group label {
+    font-size: 13px;
+    font-weight: 550;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
+}
+
+.sh-form-row {
+    display: flex;
+    gap: 8px;
+}
+
+.sh-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--sh-ink-solid, #ffffff);
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    color-scheme: dark;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-input:focus {
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.35);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.07);
+}
+
+select.sh-input {
+    color-scheme: dark !important;
+    background-color: rgba(var(--sh-ink-inv, 20, 20, 26),  0.90) !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    cursor: pointer;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.10) !important;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+select.sh-input:focus {
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.40) !important;
+}
+
+select.sh-input option {
+    background-color: var(--sh-bg-surface, #0f0f14) !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    padding: 12px 16px;
+}
+
+.sh-theme-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+}
+
+.sh-theme-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.07);
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-theme-choice:hover {
+    transform: translateY(-2px);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.16);
+}
+
+.sh-theme-choice.selected {
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+}
+
+.sh-theme-choice__icon { 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    width: 32px; 
+    height: 32px; 
+    color: var(--sh-ink-solid, #ffffff); 
+    opacity: 0.9;
+}
+.sh-theme-choice__name { font-size: 11px; font-weight: 600; text-align: center; color: var(--sh-ink-solid, #ffffff); }
+
+.sh-integration-card {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.06);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.sh-integration-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.sh-integration-card__header h4 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 650;
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+/* ── Gestion des Médiathèques dans les Réglages ── */
+.sh-settings-libraries-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.sh-settings-lib-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.07);
+    border-radius: 12px;
+    transition: background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease;
+    cursor: default;
+}
+
+.sh-settings-lib-row:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.12);
+}
+
+.sh-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.35);
+    cursor: grab;
+    user-select: none;
+    margin-right: 8px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-drag-handle:hover {
+    color: var(--sh-ink-solid, #ffffff);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+}
+
+.sh-settings-lib-row:active .sh-drag-handle {
+    cursor: grabbing;
+}
+
+.sh-settings-lib-row.dragging {
+    opacity: 0.35;
+    transform: scale(0.98);
+    border: 1px dashed rgba(var(--sh-ink, 255, 255, 255),  0.45);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.02);
+}
+
+.sh-settings-lib-row.drag-over-top {
+    border-top: 2px solid #ffffff !important;
+    box-shadow: 0 -4px 12px rgba(var(--sh-ink, 255, 255, 255),  0.35);
+}
+
+.sh-settings-lib-row.drag-over-bottom {
+    border-bottom: 2px solid #ffffff !important;
+    box-shadow: 0 4px 12px rgba(var(--sh-ink, 255, 255, 255),  0.35);
+}
+
+.sh-settings-lib-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sh-settings-lib-icon {
+    font-size: 20px;
+}
+
+.sh-settings-lib-name {
+    font-size: 13.5px;
+    font-weight: 650;
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-settings-lib-type {
+    font-size: 11px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
+}
+
+/* ── Apple Switch Toggle ── */
+.sh-apple-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.sh-apple-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.sh-apple-switch-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.20);
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+    border-radius: 9999px;
+}
+
+.sh-apple-switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 2px;
+    bottom: 2px;
+    background: var(--sh-ink-solid, #ffffff);
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.4);
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+}
+
+.sh-apple-switch input:checked + .sh-apple-switch-slider {
+    background: #34c759;
+    border-color: #34c759;
+    box-shadow: 0 0 12px rgba(52, 199, 89, 0.45);
+}
+
+.sh-apple-switch input:checked + .sh-apple-switch-slider:before {
+    transform: translateX(18px);
+}
+
+/* Texte d'aide sous un champ : dit la conséquence d'un réglage plutôt que de
+   répéter son intitulé. */
+.sh-form-hint {
+    margin: 6px 2px 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.55);
+}
+
+/* Case à cocher avec son libellé : toute la ligne est cliquable, ce qui évite
+   de viser une case de 16 px — indispensable à la télécommande. */
+.sh-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.sh-checkbox-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--sh-ink-solid, #ffffff);
+    flex-shrink: 0;
+}
+
+/* ── Liste des téléchargements hors-ligne ───────────────────────────────────
+   Une ligne par titre : ce qu'il pèse, quand il expire, et comment l'enlever. */
+
+.sh-offline-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 12px;
+    margin-top: 6px;
+    border-radius: 10px;
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.04);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.07);
+}
+
+.sh-offline-row > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.sh-offline-row__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--sh-ink-solid, #ffffff);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sh-offline-row__meta {
+    font-size: 11.5px;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.55);
+}
+
+.sh-offline-row__del { flex-shrink: 0; }

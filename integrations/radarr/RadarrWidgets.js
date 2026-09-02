@@ -1,4 +1,6 @@
 import { escapeHtml } from '../../core/utils/domUtils.js';
+import './RadarrWidgets.css';
+import * as svc from '../../core/services.js';
 /**
  * SpaceHub — Radarr Dashboard Widgets
  * Version: 0.7.0
@@ -47,7 +49,7 @@ class UpcomingMoviesWidget {
         if (!contentEl) return;
 
         try {
-            const radarr = window.SpaceHub?.integrations?.radarr;
+            const radarr = svc.integration('radarr');
             if (!radarr) {
                 contentEl.innerHTML = `
                     <div class="sh-widget-empty" style="padding:var(--sh-space-4,16px); text-align:center; color:var(--sh-text-muted);">
@@ -104,8 +106,8 @@ class UpcomingMoviesWidget {
 
             setTimeout(() => {
                 const carousel = contentEl.querySelector('.sh-radarr-carousel');
-                if (carousel && window.SpaceHub?.ui?.gooeyScroller) {
-                    window.SpaceHub.ui.gooeyScroller.attach(carousel);
+                if (carousel && svc.gooeyScroller()) {
+                    svc.gooeyScroller().attach(carousel);
                 }
             }, 60);
         } catch (err) {
@@ -122,146 +124,9 @@ class UpcomingMoviesWidget {
     }
 
     _injectStyles() {
-        if (document.getElementById('sh-radarr-widget-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-radarr-widget-styles';
-        style.textContent = `
-.sh-radarr-carousel {
-    display: flex !important;
-    flex-direction: row !important;
-    overflow-x: auto !important;
-    gap: 20px !important;
-    padding: 14px 8px 28px 8px !important;
-    scroll-behavior: smooth !important;
-    scrollbar-width: none !important;
-    -webkit-overflow-scrolling: touch !important;
-    scroll-snap-type: x mandatory !important;
-    width: 100% !important;
-    -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 64px), transparent 100%);
-    mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 64px), transparent 100%);
-}
-
-.sh-radarr-carousel::-webkit-scrollbar {
-    display: none !important;
-}
-
-.sh-radarr-bento-card {
-    flex: 0 0 auto !important;
-    width: 196px !important;
-    scroll-snap-align: start !important;
-    scroll-snap-stop: normal !important;
-    display: flex !important;
-    flex-direction: column !important;
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 18px !important;
-    padding: 8px !important;
-    transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    position: relative !important;
-    cursor: pointer !important;
-}
-
-@media (max-width: 768px) {
-    .sh-radarr-carousel {
-        gap: 16px !important;
-    }
-    .sh-radarr-bento-card {
-        width: 150px !important;
-    }
-}
-
-.sh-radarr-bento-card:hover {
-    background: rgba(255, 255, 255, 0.07) !important;
-    border-color: rgba(255, 255, 255, 0.20) !important;
-    transform: translateY(-4px) !important;
-    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.65) !important;
-}
-
-.sh-radarr-bento-card__poster-wrap {
-    position: relative !important;
-    aspect-ratio: 2/3 !important;
-    border-radius: 12px !important;
-    overflow: hidden !important;
-    background: rgba(0, 0, 0, 0.5) !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important;
-}
-
-.sh-radarr-bento-card__floating-badges {
-    position: absolute !important;
-    bottom: 8px !important;
-    left: 8px !important;
-    right: 8px !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    pointer-events: none !important;
-}
-
-.sh-radarr-pill-badge {
-    padding: 4px 9px !important;
-    border-radius: 8px !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    backdrop-filter: blur(14px) !important;
-    -webkit-backdrop-filter: blur(14px) !important;
-    letter-spacing: 0.02em !important;
-}
-
-.sh-radarr-pill-badge--date {
-    background: rgba(0, 0, 0, 0.80) !important;
-    color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.22) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
-}
-
-.sh-radarr-bento-card__body {
-    padding: 10px 4px 4px 4px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 3px !important;
-}
-
-.sh-radarr-bento-card__title {
-    font-size: 13.5px !important;
-    font-weight: 650 !important;
-    color: #ffffff !important;
-    margin: 0 !important;
-    line-height: 1.3 !important;
-}
-
-.sh-radarr-bento-card__meta {
-    font-size: 11.5px !important;
-    font-weight: 550 !important;
-    color: rgba(255, 255, 255, 0.45) !important;
-}
-
-.sh-widget-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 36px 20px;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 13px;
-}
-
-.sh-radarr-queue-row {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    transition: background 150ms ease;
-}
-.sh-radarr-queue-row:hover {
-    background: rgba(255, 255, 255, 0.06);
-}
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans RadarrWidgets.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 
@@ -286,7 +151,7 @@ class RadarrQueueWidget {
                 </div>
                 <div class="sh-widget__content">
                     <div class="sh-widget__items-container">
-                        <p style="color:rgba(255,255,255,0.4);">Chargement de la file d'attente...</p>
+                        <p style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4);">Chargement de la file d'attente...</p>
                     </div>
                 </div>
             </div>
@@ -301,9 +166,9 @@ class RadarrQueueWidget {
         if (!contentEl) return;
 
         try {
-            const radarr = window.SpaceHub?.integrations?.radarr;
+            const radarr = svc.integration('radarr');
             if (!radarr) {
-                contentEl.innerHTML = '<p style="color:rgba(255,255,255,0.4); text-align:center; padding:24px;">Radarr non configuré.</p>';
+                contentEl.innerHTML = '<p style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); text-align:center; padding:24px;">Radarr non configuré.</p>';
                 return;
             }
 
@@ -326,11 +191,11 @@ class RadarrQueueWidget {
                         return `
                             <div class="sh-radarr-queue-row">
                                 <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
-                                    <span class="sh-truncate" style="font-weight:600; color:#ffffff;">${item.title || item.movie?.title || 'Film'}</span>
-                                    <span style="font-weight:700; color:#ffffff; font-size:12px; background:rgba(255,255,255,0.08); padding:2px 8px; border-radius:9999px;">${progress}%</span>
+                                    <span class="sh-truncate" style="font-weight:600; color:var(--sh-ink-solid, #ffffff);">${item.title || item.movie?.title || 'Film'}</span>
+                                    <span style="font-weight:700; color:var(--sh-ink-solid, #ffffff); font-size:12px; background:rgba(var(--sh-ink, 255, 255, 255), 0.08); padding:2px 8px; border-radius:9999px;">${progress}%</span>
                                 </div>
-                                <div style="height:4px; background:rgba(255,255,255,0.08); border-radius:9999px; overflow:hidden;">
-                                    <div style="width:${progress}%; height:100%; background:#ffffff; border-radius:9999px;"></div>
+                                <div style="height:4px; background:rgba(var(--sh-ink, 255, 255, 255), 0.08); border-radius:9999px; overflow:hidden;">
+                                    <div style="width:${progress}%; height:100%; background:var(--sh-ink-solid, #ffffff); border-radius:9999px;"></div>
                                 </div>
                             </div>
                         `;

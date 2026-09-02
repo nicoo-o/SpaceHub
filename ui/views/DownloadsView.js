@@ -14,6 +14,8 @@
 import Logger from '../../core/Logger.js';
 import UnifiedCalendarService from '../../jellyfin/calendar/UnifiedCalendarService.js';
 
+import './DownloadsView.css';
+import * as svc from '../../core/services.js';
 class DownloadsView {
     constructor() {
         this._log = new Logger('DownloadsView');
@@ -52,7 +54,7 @@ class DownloadsView {
                     <!-- Grille de métriques globales en direct -->
                     <div class="sh-downloads-metrics">
                         <div class="sh-metric-card" id="sh-metric-dl">
-                            <div class="sh-metric-card__icon" style="color: #64d2ff; background: rgba(100, 210, 255, 0.12);">
+                            <div class="sh-metric-card__icon" style="color: #64d2ff; background: rgba(100, 210, 255, 0.28);">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
                             </div>
                             <div class="sh-metric-card__data">
@@ -62,7 +64,7 @@ class DownloadsView {
                         </div>
 
                         <div class="sh-metric-card" id="sh-metric-up">
-                            <div class="sh-metric-card__icon" style="color: #32d74b; background: rgba(50, 215, 75, 0.12);">
+                            <div class="sh-metric-card__icon" style="color: #32d74b; background: rgba(50, 215, 75, 0.28);">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
                             </div>
                             <div class="sh-metric-card__data">
@@ -72,7 +74,7 @@ class DownloadsView {
                         </div>
 
                         <div class="sh-metric-card" id="sh-metric-torrents">
-                            <div class="sh-metric-card__icon" style="color: #bf5af2; background: rgba(191, 90, 242, 0.12);">
+                            <div class="sh-metric-card__icon" style="color: #bf5af2; background: rgba(191, 90, 242, 0.28);">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                             </div>
                             <div class="sh-metric-card__data">
@@ -82,7 +84,7 @@ class DownloadsView {
                         </div>
 
                         <div class="sh-metric-card" id="sh-metric-requests">
-                            <div class="sh-metric-card__icon" style="color: #ffd60a; background: rgba(255, 214, 10, 0.12);">
+                            <div class="sh-metric-card__icon" style="color: #ffd60a; background: rgba(255, 214, 10, 0.28);">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                             </div>
                             <div class="sh-metric-card__data">
@@ -145,14 +147,14 @@ class DownloadsView {
         this._bindEvents();
 
         // Enregistrement formel du scope downloads
-        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        const spatialNav = svc.nav() || svc.nav();
         if (spatialNav?.registerFocusables) {
             spatialNav.registerFocusables('downloads', (container) => {
                 const root = container || document.querySelector('.sh-downloads-view') || document;
                 return Array.from(root.querySelectorAll(
                     '.sh-dl-tab-btn, .sh-dl-action-btn, .sh-card, [data-nav-focusable="true"], .sh-jellyseerr-query-input, .sh-jellyseerr-clear-btn, .sh-jellyseerr-req-btn'
                 ));
-            });
+            }, { force: true }); // re-registration volontaire — cf. plan A04
         }
 
         await this._renderActiveTab();
@@ -177,7 +179,7 @@ class DownloadsView {
         this._container.querySelector('#sh-dl-btn-refresh')?.addEventListener('click', async () => {
             await this._renderActiveTab();
             await this._updateMetrics();
-            window.SpaceHub?.ui?.components?.toaster?.info?.('Données actualisées avec succès.');
+            svc.toaster()?.info?.('Données actualisées avec succès.');
         });
     }
 
@@ -189,7 +191,7 @@ class DownloadsView {
         slotMain.innerHTML = '<div class="sh-dl-loading"><div class="sh-dl-spinner"></div><p>Chargement des données...</p></div>';
         slotSub.innerHTML = '';
 
-        const dashboard = window.SpaceHub?.ui?.dashboard;
+        const dashboard = svc.dashboard();
 
         try {
             if (this._activeTab === 'qbit') {
@@ -256,8 +258,8 @@ class DownloadsView {
      * Rendu interactif de l'onglet Jellyseerr avec barre de recherche directe et demandes.
      */
     async _renderJellyseerrTab(slotMain, slotSub) {
-        const dashboard = window.SpaceHub?.ui?.dashboard;
-        const api = window.SpaceHub?.integrations?.jellyseerr?.api;
+        const dashboard = svc.dashboard();
+        const api = svc.integration('jellyseerr')?.api;
 
         slotMain.innerHTML = `
             <!-- Panel de Recherche et Demande Directe Jellyseerr -->
@@ -346,7 +348,7 @@ class DownloadsView {
                 if (items.length === 0) {
                     // P0 — XSS : query (saisie utilisateur) échappée avant injection innerHTML
                     resultsGrid.innerHTML = `
-                        <div class="sh-jellyseerr-empty" style="grid-column: 1/-1; text-align: center; padding: 30px; color: rgba(255,255,255,0.6);">
+                        <div class="sh-jellyseerr-empty" style="grid-column: 1/-1; text-align: center; padding: 30px; color: rgba(var(--sh-ink, 255, 255, 255), 0.6);">
                             <p>Aucun média trouvé pour "<strong>${this._escape(query)}</strong>" sur Jellyseerr.</p>
                         </div>
                     `;
@@ -373,7 +375,7 @@ class DownloadsView {
 
                     return `
                         <div class="sh-jellyseerr-card">
-                            <div class="sh-jellyseerr-card__poster" style="${poster ? `background-image: url('${poster}');` : 'background: rgba(255,255,255,0.06);'}">
+                            <div class="sh-jellyseerr-card__poster" style="${poster ? `background-image: url('${poster}');` : 'background: rgba(var(--sh-ink, 255, 255, 255), 0.06);'}">
                                 <div class="sh-jellyseerr-card__badges">
                                     <span class="sh-jellyseerr-type-badge">${type}</span>
                                     ${year ? `<span class="sh-jellyseerr-year-badge">${year}</span>` : ''}
@@ -411,11 +413,11 @@ class DownloadsView {
                             await api?.createRequest?.(reqPayload);
                             btn.className = 'sh-jellyseerr-status-pill status-pending';
                             btn.textContent = '✅ Demandé !';
-                            window.SpaceHub?.ui?.components?.toaster?.success(`Demande pour "${mediaTitle}" envoyée à Jellyseerr !`);
+                            svc.toaster()?.success(`Demande pour "${mediaTitle}" envoyée à Jellyseerr !`);
                         } catch (err) {
                             btn.disabled = false;
                             btn.textContent = 'Erreur';
-                            window.SpaceHub?.ui?.components?.toaster?.error(`Échec de la demande : ${err.message}`);
+                            svc.toaster()?.error(`Échec de la demande : ${err.message}`);
                         }
                     });
                 });
@@ -447,7 +449,7 @@ class DownloadsView {
      * 📅 Rendu du calendrier unifié complet avec double vue (Grille Mensuelle Physique & Liste Chronologique).
      */
     async _renderCalendarTab(slotMain, slotSub) {
-        const settings = window.SpaceHub?.core?.settings;
+        const settings = svc.settings();
         let currentViewMode = settings?.get('calendar.viewMode', 'grid');
         let currentFilter = settings?.get('calendar.filter', 'all');
         let displayedMonthDate = new Date();
@@ -698,7 +700,7 @@ class DownloadsView {
                             <div class="sh-cal-cards-grid">
                                 ${dayEvents.map(ev => {
                                     const posterImg = ev.posterUrl
-                                        ? `<img src="${ev.posterUrl}" alt="${ev.title}" loading="lazy" class="sh-cal-card-img" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'50\\' height=\\'75\\' fill=\\'%23111\\'><rect width=\\'100%\\' height=\\'100%\\'/></svg>'"/>`
+                                        ? `<img decoding="async" src="${ev.posterUrl}" alt="${ev.title}" loading="lazy" class="sh-cal-card-img" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'50\\' height=\\'75\\' fill=\\'%23111\\'><rect width=\\'100%\\' height=\\'100%\\'/></svg>'"/>`
                                         : `<div class="sh-cal-card-placeholder">${ev.type === 'episode' ? '📺' : '🎬'}</div>`;
 
                                     const typePill = ev.type === 'episode'
@@ -768,7 +770,7 @@ class DownloadsView {
                     studio: ev.studio || ''
                 };
 
-                const sheet = window.SpaceHub?.ui?.modalSlideUpSheet || window.SpaceHub?.ui?.components?.modalSlideUpSheet;
+                const sheet = svc.slideUpSheet() || svc.slideUpSheet();
                 if (sheet?.open) {
                     try {
                         sheet.open(modalData);
@@ -779,18 +781,18 @@ class DownloadsView {
                 }
 
                 // Fallback Modal classique si besoin
-                if (window.SpaceHub?.ui?.components?.Modal) {
-                    const m = new window.SpaceHub.ui.components.Modal({
+                if (svc.modalClass()) {
+                    const m = new (svc.modalClass())({
                         title: ev.title,
                         content: `
                             <div style="display: flex; gap: 20px; align-items: flex-start; padding: 14px 0;">
-                                ${ev.posterUrl ? `<img src="${ev.posterUrl}" style="width: 120px; height: 180px; border-radius: 14px; object-fit: cover; box-shadow: 0 10px 30px rgba(0,0,0,0.6);" />` : ''}
+                                ${ev.posterUrl ? `<img decoding="async" src="${ev.posterUrl}" style="width: 120px; height: 180px; border-radius: 14px; object-fit: cover; box-shadow: 0 10px 30px rgba(0,0,0,0.6);" />` : ''}
                                 <div style="display: flex; flex-direction: column; gap: 8px; flex: 1;">
-                                    <h3 style="margin: 0; color: #fff; font-size: 18px; font-weight: 700;">${ev.title}</h3>
+                                    <h3 style="margin: 0; color: var(--sh-ink-solid, #ffffff); font-size: 18px; font-weight: 700;">${ev.title}</h3>
                                     <p style="margin: 0; color: #64d2ff; font-weight: 600; font-size: 13px;">${ev.subTitle}</p>
-                                    <p style="margin: 4px 0; color: rgba(255,255,255,0.75); font-size: 13px; line-height: 1.5;">${ev.overview || 'Sortie programmée dans votre médiathèque.'}</p>
+                                    <p style="margin: 4px 0; color: rgba(var(--sh-ink, 255, 255, 255), 0.75); font-size: 13px; line-height: 1.5;">${ev.overview || 'Sortie programmée dans votre médiathèque.'}</p>
                                     <div style="margin-top: 6px;">
-                                        ${ev.hasFile ? '<span style="color: #30d158; font-weight: 700; font-size: 12px; background: rgba(48,209,88,0.15); padding: 4px 8px; border-radius: 6px;">✓ Déjà téléchargé et disponible</span>' : '<span style="color: #ff9f0a; font-weight: 700; font-size: 12px; background: rgba(255,159,10,0.15); padding: 4px 8px; border-radius: 6px;">⏳ En attente de diffusion / téléchargement</span>'}
+                                        ${ev.hasFile ? '<span style="color: #30d158; font-weight: 700; font-size: 12px; background: rgba(48,209,88,0.31); padding: 4px 8px; border-radius: 6px;">✓ Déjà téléchargé et disponible</span>' : '<span style="color: #ff9f0a; font-weight: 700; font-size: 12px; background: rgba(255,159,10,0.31); padding: 4px 8px; border-radius: 6px;">⏳ En attente de diffusion / téléchargement</span>'}
                                     </div>
                                 </div>
                             </div>
@@ -828,7 +830,7 @@ class DownloadsView {
             });
 
         } catch (err) {
-            slotMain.innerHTML = `<p style="color:rgba(255,255,255,0.4); padding:24px;">Erreur chargement calendrier : ${this._escape(err.message)}</p>`;
+            slotMain.innerHTML = `<p style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); padding:24px;">Erreur chargement calendrier : ${this._escape(err.message)}</p>`;
         }
     }
 
@@ -837,42 +839,42 @@ class DownloadsView {
      */
     async _renderHealthTab(slotMain, slotSub) {
         slotMain.innerHTML = `
-            <div class="sh-health-panel" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 24px; padding: 24px; backdrop-filter: blur(24px);">
+            <div class="sh-health-panel" style="background: rgba(var(--sh-ink, 255, 255, 255),  0.04); border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.09); border-radius: 24px; padding: 24px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <div>
-                        <h2 style="font-size: 20px; font-weight: 700; color: #ffffff; margin: 0;">🩺 Santé & Contrôle Qualité de la Médiathèque</h2>
-                        <p style="font-size: 13px; color: rgba(255, 255, 255, 0.55); margin: 4px 0 0 0;">Analyse des sous-titres manquants (Bazarr), résolutions inférieures à 1080p, et intégrité des saisons.</p>
+                        <h2 style="font-size: 20px; font-weight: 700; color: var(--sh-ink-solid, #ffffff); margin: 0;">🩺 Santé & Contrôle Qualité de la Médiathèque</h2>
+                        <p style="font-size: 13px; color: rgba(var(--sh-ink, 255, 255, 255),  0.55); margin: 4px 0 0 0;">Analyse des sous-titres manquants (Bazarr), résolutions inférieures à 1080p, et intégrité des saisons.</p>
                     </div>
-                    <button id="sh-health-btn-rescan" style="background: #ffffff; border: none; color: #000; padding: 8px 16px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; transition: transform 160ms ease;">
+                    <button id="sh-health-btn-rescan" style="background: var(--sh-ink-solid, #ffffff); border: none; color: var(--sh-ink-solid-inv, #000000); padding: 8px 16px; border-radius: 12px; font-size: 12px; font-weight: 700; cursor: pointer; transition: transform 160ms ease;">
                         Re-scanner la Santé
                     </button>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
                     <!-- Carte 1 : Sous-titres Bazarr -->
-                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
+                    <div style="background: rgba(var(--sh-ink, 255, 255, 255),  0.03); border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
                         <div>
                             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                                 <span style="font-size: 22px;">📝</span>
-                                <h3 style="font-size: 16px; font-weight: 600; color: #ffffff; margin: 0;">Sous-titres Français</h3>
+                                <h3 style="font-size: 16px; font-weight: 600; color: var(--sh-ink-solid, #ffffff); margin: 0;">Sous-titres Français</h3>
                             </div>
-                            <p id="sh-health-subtitles-desc" style="font-size: 13px; color: rgba(255, 255, 255, 0.6); margin: 0;">Vérification des manques dans Bazarr...</p>
+                            <p id="sh-health-subtitles-desc" style="font-size: 13px; color: rgba(var(--sh-ink, 255, 255, 255),  0.6); margin: 0;">Vérification des manques dans Bazarr...</p>
                         </div>
-                        <button id="sh-health-btn-subtitles" style="background: rgba(255, 255, 255, 0.10); border: 1px solid rgba(255, 255, 255, 0.16); color: #ffffff; padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                        <button id="sh-health-btn-subtitles" style="background: rgba(var(--sh-ink, 255, 255, 255),  0.10); border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16); color: var(--sh-ink-solid, #ffffff); padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer;">
                             Lancer Synchronisation Bazarr
                         </button>
                     </div>
 
                     <!-- Carte 2 : Qualité & Résolutions -->
-                    <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
+                    <div style="background: rgba(var(--sh-ink, 255, 255, 255),  0.03); border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08); border-radius: 18px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
                         <div>
                             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                                 <span style="font-size: 22px;">💎</span>
-                                <h3 style="font-size: 16px; font-weight: 600; color: #ffffff; margin: 0;">Résolution 4K UHD & 1080p</h3>
+                                <h3 style="font-size: 16px; font-weight: 600; color: var(--sh-ink-solid, #ffffff); margin: 0;">Résolution 4K UHD & 1080p</h3>
                             </div>
-                            <p id="sh-health-quality-desc" style="font-size: 13px; color: rgba(255, 255, 255, 0.6); margin: 0;">Analyse de résolution non disponible sans interrogation de la médiathèque.</p>
+                            <p id="sh-health-quality-desc" style="font-size: 13px; color: rgba(var(--sh-ink, 255, 255, 255),  0.6); margin: 0;">Analyse de résolution non disponible sans interrogation de la médiathèque.</p>
                         </div>
-                        <button id="sh-health-btn-upgrade" style="background: rgba(255, 255, 255, 0.10); border: 1px solid rgba(255, 255, 255, 0.16); color: #ffffff; padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                        <button id="sh-health-btn-upgrade" style="background: rgba(var(--sh-ink, 255, 255, 255),  0.10); border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16); color: var(--sh-ink-solid, #ffffff); padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer;">
                             Vérifier dans Radarr / Sonarr
                         </button>
                     </div>
@@ -887,7 +889,7 @@ class DownloadsView {
         const qualityDesc = slotMain.querySelector('#sh-health-quality-desc');
         if (qualityDesc) qualityDesc.textContent = 'Qualité : non analysée (aucune valeur déduite ou simulée).';
         try {
-            const bazarr = window.SpaceHub?.integrations?.bazarr;
+            const bazarr = svc.integration('bazarr');
             const summary = await bazarr?.getWantedSummary?.();
             const descEl = slotMain.querySelector('#sh-health-subtitles-desc');
             if (descEl) {
@@ -901,14 +903,14 @@ class DownloadsView {
         }
 
         slotMain.querySelector('#sh-health-btn-subtitles')?.addEventListener('click', async () => {
-            await window.SpaceHub?.integrations?.bazarr?.sync?.();
-            window.SpaceHub?.ui?.components?.toaster?.success?.('Recherche automatique de sous-titres lancée !');
+            await svc.integration('bazarr')?.sync?.();
+            svc.toaster()?.success?.('Recherche automatique de sous-titres lancée !');
         });
 
         slotMain.querySelector('#sh-health-btn-rescan')?.addEventListener('click', async () => {
-            window.SpaceHub?.ui?.components?.toaster?.info?.('Scan de santé en cours...');
+            svc.toaster()?.info?.('Scan de santé en cours...');
             await this._renderHealthTab(slotMain, slotSub);
-            window.SpaceHub?.ui?.components?.toaster?.success?.('Scan de santé terminé.');
+            svc.toaster()?.success?.('Scan de santé terminé.');
         });
     }
 
@@ -922,7 +924,7 @@ class DownloadsView {
         if (!this._container) return;
 
         try {
-            const qbit = window.SpaceHub?.integrations?.qbittorrent;
+            const qbit = svc.integration('qbittorrent');
             if (qbit?.getTransferStats) {
                 const info = await qbit.getTransferStats();
                 const dlEl = this._container.querySelector('#sh-metric-dl-val');
@@ -937,7 +939,7 @@ class DownloadsView {
                 if (torEl && Array.isArray(torrents)) torEl.textContent = String(torrents.length);
             }
 
-            const jellyseerr = window.SpaceHub?.integrations?.jellyseerr;
+            const jellyseerr = svc.integration('jellyseerr');
             if (jellyseerr?.getPendingRequests) {
                 const requests = await jellyseerr.getPendingRequests();
                 const reqEl = this._container.querySelector('#sh-metric-requests-val');
@@ -966,1349 +968,9 @@ class DownloadsView {
     }
 
     _injectStyles() {
-        if (document.getElementById('sh-downloads-view-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-downloads-view-styles';
-        style.textContent = `
-/* ── Page Complète Téléchargements & Flux VisionOS ── */
-.sh-downloads-view {
-    min-height: 100vh;
-    padding: 96px 48px 60px 48px;
-    max-width: 1600px;
-    margin: 0 auto;
-    box-sizing: border-box;
-    animation: shDownloadsFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(100, 210, 255, 0.07) 0%, transparent 70%);
-}
-
-@keyframes shDownloadsFadeIn {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* ── Hero Banner & Metrics ── */
-.sh-downloads-hero {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 32px;
-    margin-bottom: 32px;
-    padding-bottom: 28px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.sh-downloads-hero__content {
-    max-width: 600px;
-}
-
-.sh-downloads-hero__badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 14px;
-    border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    font-size: 11px;
-    font-weight: 750;
-    letter-spacing: 0.08em;
-    color: rgba(255, 255, 255, 0.9);
-    margin-bottom: 12px;
-    backdrop-filter: blur(16px);
-}
-
-.sh-pulse-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #32d74b;
-    box-shadow: 0 0 8px #32d74b;
-    animation: shPulse 2s infinite;
-}
-
-@keyframes shPulse {
-    0% { transform: scale(0.95); opacity: 0.8; }
-    50% { transform: scale(1.3); opacity: 1; }
-    100% { transform: scale(0.95); opacity: 0.8; }
-}
-
-.sh-downloads-hero__title {
-    font-size: 34px;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    color: #ffffff;
-    margin: 0 0 8px 0;
-    line-height: 1.15;
-}
-
-.sh-downloads-hero__subtitle {
-    font-size: 14.5px;
-    color: rgba(255, 255, 255, 0.55);
-    margin: 0;
-    line-height: 1.5;
-}
-
-/* ── Metrics Cards ── */
-.sh-downloads-metrics {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-}
-
-.sh-metric-card {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 16px 20px;
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(24px);
-    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sh-metric-card:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.18);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-}
-
-.sh-metric-card__icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.sh-metric-card__data {
-    display: flex;
-    flex-direction: column;
-}
-
-.sh-metric-card__label {
-    font-size: 10.5px;
-    font-weight: 750;
-    letter-spacing: 0.06em;
-    color: rgba(255, 255, 255, 0.45);
-    margin-bottom: 3px;
-}
-
-.sh-metric-card__val {
-    font-size: 17px;
-    font-weight: 800;
-    color: #ffffff;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-}
-
-/* ── Navigation Track & Tabs ── */
-.sh-downloads-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 32px;
-}
-
-.sh-downloads-nav__track {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px;
-    border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    backdrop-filter: blur(28px);
-    overflow-x: auto;
-    scrollbar-width: none;
-}
-.sh-downloads-nav__track::-webkit-scrollbar {
-    display: none;
-}
-
-.sh-dl-tab-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 22px;
-    border-radius: 9999px;
-    border: 1px solid transparent;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.65);
-    font-size: 13.5px;
-    font-weight: 650;
-    cursor: pointer;
-    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-    white-space: nowrap;
-}
-
-.sh-dl-tab-btn:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.sh-dl-tab-btn.active {
-    background: rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.28);
-    color: #ffffff;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-    transform: translateY(-1px);
-}
-
-.sh-dl-tab-icon {
-    font-size: 14.5px;
-}
-
-.sh-dl-action-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-    font-size: 13px;
-    font-weight: 650;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    backdrop-filter: blur(16px);
-}
-
-.sh-dl-action-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.28);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
-
-/* ── Content Slots & Bento Glass Card System ── */
-.sh-downloads-content {
-    animation: shTabContentIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes shTabContentIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Transformation de tous les widgets internes en Bento Glass Cards */
-.sh-downloads-view .sh-widget {
-    background: rgba(14, 14, 18, 0.72) !important;
-    backdrop-filter: blur(40px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.09) !important;
-    border-radius: 24px !important;
-    padding: 24px 28px !important;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
-    margin-bottom: 24px !important;
-    transition: border-color 0.25s ease, box-shadow 0.25s ease;
-}
-
-.sh-downloads-view .sh-widget:hover {
-    border-color: rgba(255, 255, 255, 0.14) !important;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
-}
-
-.sh-downloads-view .sh-widget__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    padding-bottom: 16px;
-}
-
-.sh-downloads-view .sh-widget__title {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 17px;
-    font-weight: 750;
-    color: #ffffff;
-    letter-spacing: -0.3px;
-    margin: 0;
-}
-
-.sh-downloads-view .sh-widget__title svg, 
-.sh-downloads-view .sh-shelf-title-icon {
-    width: 20px;
-    height: 20px;
-    padding: 6px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #64d2ff;
-}
-
-.sh-downloads-view .sh-widget__refresh-btn,
-.sh-downloads-view .sh-widget__sync-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.06) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    color: rgba(255, 255, 255, 0.85) !important;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    backdrop-filter: blur(16px);
-}
-
-.sh-downloads-view .sh-widget__refresh-btn:hover,
-.sh-downloads-view .sh-widget__sync-btn:hover {
-    background: rgba(255, 255, 255, 0.15) !important;
-    border-color: rgba(255, 255, 255, 0.25) !important;
-    color: #ffffff !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba(255, 255, 255, 0.1);
-}
-
-/* ── High-End Empty States ── */
-.sh-downloads-view .sh-widget-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 50px 24px !important;
-    text-align: center;
-    background: rgba(255, 255, 255, 0.02) !important;
-    border: 1px dashed rgba(255, 255, 255, 0.08) !important;
-    border-radius: 18px !important;
-    color: rgba(255, 255, 255, 0.6) !important;
-    gap: 12px;
-}
-
-.sh-downloads-view .sh-widget-empty svg {
-    width: 48px;
-    height: 48px;
-    padding: 12px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.sh-downloads-view .sh-widget-empty p {
-    font-size: 14px;
-    font-weight: 500;
-    margin: 0;
-    max-width: 450px;
-    line-height: 1.5;
-}
-
-/* ── qBittorrent Styles ── */
-.sh-qbit-speed-row {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 16px !important;
-}
-
-.sh-qbit-speed-card {
-    padding: 18px 22px !important;
-    border-radius: 18px !important;
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    backdrop-filter: blur(20px) !important;
-}
-
-.sh-qbit-speed-card--dl {
-    background: linear-gradient(135deg, rgba(100, 210, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
-    border-color: rgba(100, 210, 255, 0.18) !important;
-}
-
-.sh-qbit-speed-card--up {
-    background: linear-gradient(135deg, rgba(50, 215, 75, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
-    border-color: rgba(50, 215, 75, 0.18) !important;
-}
-
-.sh-qbit-row {
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.07) !important;
-    border-radius: 16px !important;
-    padding: 16px 20px !important;
-    margin-bottom: 12px;
-    gap: 12px !important;
-    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.sh-qbit-row:hover {
-    background: rgba(255, 255, 255, 0.06) !important;
-    border-color: rgba(255, 255, 255, 0.16) !important;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-}
-
-.sh-qbit-row > div:nth-child(2) {
-    height: 6px !important;
-    background: rgba(255, 255, 255, 0.08) !important;
-    border-radius: 9999px !important;
-}
-
-.sh-qbit-row > div:nth-child(2) > div {
-    background: linear-gradient(90deg, #38bdf8, #64d2ff, #a78bfa) !important;
-    box-shadow: 0 0 10px rgba(100, 210, 255, 0.5) !important;
-    border-radius: 9999px !important;
-}
-
-/* ── Radarr Styles ── */
-.sh-radarr-movies-grid {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
-    gap: 18px !important;
-    width: 100% !important;
-}
-
-.sh-radarr-movie-card {
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 16px !important;
-    overflow: hidden !important;
-    transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    padding: 8px !important;
-}
-
-.sh-radarr-movie-card:hover {
-    background: rgba(255, 255, 255, 0.07) !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
-    transform: translateY(-4px) !important;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55) !important;
-}
-
-.sh-radarr-movie-card__image-wrap {
-    position: relative !important;
-    border-radius: 12px !important;
-    overflow: hidden !important;
-    aspect-ratio: 2/3 !important;
-}
-
-.sh-radarr-movie-card__image-wrap img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
-    transition: transform 0.3s ease !important;
-}
-
-.sh-radarr-movie-card:hover .sh-radarr-movie-card__image-wrap img {
-    transform: scale(1.05) !important;
-}
-
-.sh-radarr-movie-card__date {
-    position: absolute !important;
-    bottom: 8px !important;
-    left: 8px !important;
-    right: 8px !important;
-    padding: 4px 8px !important;
-    border-radius: 8px !important;
-    background: rgba(0, 0, 0, 0.75) !important;
-    backdrop-filter: blur(10px) !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    text-align: center !important;
-    color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-}
-
-/* ── Sonarr Styles ── */
-.sh-sonarr-episodes-grid {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
-    gap: 16px !important;
-    width: 100% !important;
-}
-
-.sh-sonarr-episode-card {
-    display: flex !important;
-    gap: 14px !important;
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 16px !important;
-    padding: 12px !important;
-    backdrop-filter: blur(20px) !important;
-    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.sh-sonarr-episode-card:hover {
-    background: rgba(255, 255, 255, 0.06) !important;
-    border-color: rgba(255, 255, 255, 0.18) !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
-}
-
-.sh-sonarr-episode-card__image-wrap {
-    width: 70px !important;
-    height: 100px !important;
-    border-radius: 10px !important;
-    overflow: hidden !important;
-    flex-shrink: 0 !important;
-}
-
-.sh-sonarr-episode-card__image-wrap img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
-}
-
-.sh-sonarr-ep-badge {
-    background: rgba(100, 210, 255, 0.15) !important;
-    color: #64d2ff !important;
-    border: 1px solid rgba(100, 210, 255, 0.3) !important;
-    border-radius: 6px !important;
-    padding: 2px 6px !important;
-    font-size: 10px !important;
-    font-weight: 750 !important;
-}
-
-.sh-sonarr-queue-row,
-.sh-radarr-queue-row {
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.07) !important;
-    border-radius: 16px !important;
-    padding: 16px 20px !important;
-    margin-bottom: 12px !important;
-    transition: all 0.2s ease !important;
-}
-
-.sh-sonarr-queue-row:hover,
-.sh-radarr-queue-row:hover {
-    background: rgba(255, 255, 255, 0.06) !important;
-    border-color: rgba(255, 255, 255, 0.16) !important;
-    transform: translateY(-2px) !important;
-}
-
-/* ── Bazarr Styles ── */
-.sh-bazarr-summary-banner {
-    display: flex !important;
-    align-items: center !important;
-    gap: 12px !important;
-    padding: 16px 20px !important;
-    border-radius: 16px !important;
-    background: linear-gradient(135deg, rgba(255, 159, 10, 0.1) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
-    border: 1px solid rgba(255, 159, 10, 0.25) !important;
-    color: #ff9f0a !important;
-    font-size: 14px !important;
-    margin-bottom: 20px !important;
-    backdrop-filter: blur(20px) !important;
-}
-
-.sh-bazarr-item {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.07) !important;
-    border-radius: 14px !important;
-    padding: 12px 18px !important;
-    margin-bottom: 10px !important;
-    transition: all 0.2s ease !important;
-}
-
-.sh-bazarr-item:hover {
-    background: rgba(255, 255, 255, 0.06) !important;
-    border-color: rgba(255, 255, 255, 0.16) !important;
-    transform: translateY(-1px) !important;
-}
-
-.sh-bazarr-type-badge {
-    padding: 3px 8px !important;
-    border-radius: 6px !important;
-    font-size: 10.5px !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
-}
-
-.sh-bazarr-type-badge--movie {
-    background: rgba(100, 210, 255, 0.15) !important;
-    color: #64d2ff !important;
-    border: 1px solid rgba(100, 210, 255, 0.3) !important;
-}
-
-.sh-bazarr-type-badge--series {
-    background: rgba(191, 90, 242, 0.15) !important;
-    color: #bf5af2 !important;
-    border: 1px solid rgba(191, 90, 242, 0.3) !important;
-}
-
-.sh-bazarr-search-btn {
-    padding: 6px 14px !important;
-    border-radius: 9999px !important;
-    background: rgba(255, 255, 255, 0.08) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    color: #ffffff !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-}
-
-.sh-bazarr-search-btn:hover {
-    background: #64d2ff !important;
-    border-color: #64d2ff !important;
-    color: #000000 !important;
-    box-shadow: 0 4px 12px rgba(100, 210, 255, 0.4) !important;
-}
-
-/* ── Jellyseerr Search & Requests ── */
-.sh-jellyseerr-search-panel {
-    margin-bottom: 28px;
-}
-
-.sh-jellyseerr-search-bar {
-    position: relative;
-    display: flex;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 18px;
-    padding: 8px 18px;
-    backdrop-filter: blur(20px);
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-}
-
-.sh-jellyseerr-search-bar:focus-within {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.28);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.15);
-}
-
-.sh-jellyseerr-search-icon {
-    color: rgba(255, 255, 255, 0.5);
-    margin-right: 12px;
-    flex-shrink: 0;
-}
-
-.sh-jellyseerr-query-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: #ffffff;
-    font-size: 15px;
-    font-weight: 500;
-    padding: 8px 0;
-    font-family: inherit;
-}
-
-.sh-jellyseerr-query-input::placeholder {
-    color: rgba(255, 255, 255, 0.38);
-}
-
-.sh-jellyseerr-clear-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: rgba(255, 255, 255, 0.7);
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 11px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-}
-
-.sh-jellyseerr-clear-btn:hover {
-    background: rgba(255, 255, 255, 0.25);
-    color: #ffffff;
-}
-
-.sh-jellyseerr-results-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-    margin-top: 18px;
-    animation: shTabContentIn 0.3s ease;
-}
-
-.sh-jellyseerr-card {
-    display: flex;
-    gap: 14px;
-    padding: 12px;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(20px);
-    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sh-jellyseerr-card:hover {
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(255, 255, 255, 0.16);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
-}
-
-.sh-jellyseerr-card__poster {
-    width: 75px;
-    height: 110px;
-    border-radius: 10px;
-    background-size: cover;
-    background-position: center;
-    position: relative;
-    flex-shrink: 0;
-    overflow: hidden;
-}
-
-.sh-jellyseerr-card__badges {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.sh-jellyseerr-type-badge,
-.sh-jellyseerr-year-badge,
-.sh-jellyseerr-rating-badge {
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 9.5px;
-    font-weight: 700;
-    backdrop-filter: blur(8px);
-}
-
-.sh-jellyseerr-type-badge {
-    background: rgba(0, 0, 0, 0.7);
-    color: #64d2ff;
-}
-
-.sh-jellyseerr-year-badge {
-    background: rgba(0, 0, 0, 0.7);
-    color: rgba(255, 255, 255, 0.85);
-}
-
-.sh-jellyseerr-rating-badge {
-    background: rgba(255, 214, 10, 0.85);
-    color: #000000;
-}
-
-.sh-jellyseerr-card__info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    min-width: 0;
-}
-
-.sh-jellyseerr-card__title {
-    font-size: 14.5px;
-    font-weight: 700;
-    color: #ffffff;
-    margin: 0 0 4px 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.sh-jellyseerr-card__overview {
-    font-size: 11.5px;
-    color: rgba(255, 255, 255, 0.55);
-    margin: 0 0 8px 0;
-    line-height: 1.35;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.sh-jellyseerr-card__action {
-    margin-top: auto;
-}
-
-.sh-jellyseerr-req-btn {
-    width: 100%;
-    padding: 6px 12px;
-    border-radius: 8px;
-    background: rgba(100, 210, 255, 0.15);
-    border: 1px solid rgba(100, 210, 255, 0.35);
-    color: #64d2ff;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.sh-jellyseerr-req-btn:hover {
-    background: #64d2ff;
-    color: #000000;
-    box-shadow: 0 4px 14px rgba(100, 210, 255, 0.4);
-}
-
-.sh-jellyseerr-status-pill {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.sh-jellyseerr-status-pill.status-available {
-    background: rgba(50, 215, 75, 0.15);
-    color: #32d74b;
-    border: 1px solid rgba(50, 215, 75, 0.3);
-}
-
-.sh-jellyseerr-status-pill.status-pending {
-    background: rgba(255, 214, 10, 0.15);
-    color: #ffd60a;
-    border: 1px solid rgba(255, 214, 10, 0.3);
-}
-
-.sh-jellyseerr-request-card {
-    display: flex !important;
-    align-items: center !important;
-    gap: 16px !important;
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 18px !important;
-    padding: 14px 18px !important;
-    margin-bottom: 12px !important;
-    transition: all 0.2s ease !important;
-}
-
-.sh-jellyseerr-request-card:hover {
-    background: rgba(255, 255, 255, 0.06) !important;
-    border-color: rgba(255, 255, 255, 0.16) !important;
-    transform: translateY(-2px) !important;
-}
-
-.sh-jellyseerr-request-card__poster {
-    width: 50px !important;
-    height: 75px !important;
-    border-radius: 10px !important;
-    overflow: hidden !important;
-    flex-shrink: 0 !important;
-}
-
-.sh-jellyseerr-request-card__poster img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
-}
-
-.sh-jellyseerr-trending-grid {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)) !important;
-    gap: 16px !important;
-}
-
-.sh-jellyseerr-trend-card {
-    border-radius: 16px !important;
-    overflow: hidden !important;
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    padding: 8px !important;
-}
-
-.sh-jellyseerr-trend-card:hover {
-    background: rgba(255, 255, 255, 0.07) !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
-    transform: translateY(-4px) !important;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55) !important;
-}
-
-.sh-dl-loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 60px 20px;
-    color: rgba(255, 255, 255, 0.5);
-    gap: 16px;
-}
-
-.sh-dl-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid rgba(255, 255, 255, 0.1);
-    border-top-color: var(--sh-color-primary, #64d2ff);
-    border-radius: 50%;
-    animation: shSpin 0.8s linear infinite;
-}
-
-@keyframes shSpin {
-    to { transform: rotate(360deg); }
-}
-
-@media (max-width: 1024px) {
-    .sh-downloads-hero {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    .sh-downloads-metrics {
-        grid-template-columns: repeat(2, 1fr);
-        width: 100%;
-    }
-    .sh-downloads-view {
-        padding: 80px 20px 40px 20px;
-    }
-}
-/* ─── CALENDRIER UNIFIÉ VISIONOS & GRILLE PHYSIQUE INTERACTIVE ─── */
-.sh-calendar-full-panel {
-    background: rgba(255, 255, 255, 0.04) !important;
-    border: 1px solid rgba(255, 255, 255, 0.09) !important;
-    border-radius: 24px !important;
-    padding: 24px !important;
-    backdrop-filter: blur(24px) !important;
-    -webkit-backdrop-filter: blur(24px) !important;
-}
-
-.sh-cal-header-bar {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    margin-bottom: 24px !important;
-    flex-wrap: wrap !important;
-    gap: 16px !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    padding-bottom: 16px !important;
-}
-
-.sh-cal-brand-tag {
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    padding: 3px 8px !important;
-    background: rgba(255, 255, 255, 0.08) !important;
-    border-radius: 100px !important;
-    font-size: 10px !important;
-    font-weight: 750 !important;
-    color: rgba(255, 255, 255, 0.8) !important;
-    letter-spacing: 0.8px !important;
-    margin-bottom: 4px !important;
-}
-
-.sh-cal-live-dot {
-    width: 6px !important;
-    height: 6px !important;
-    border-radius: 50% !important;
-    background: #30d158 !important;
-    box-shadow: 0 0 6px #30d158 !important;
-}
-
-.sh-cal-main-title {
-    font-size: 20px !important;
-    font-weight: 700 !important;
-    color: #ffffff !important;
-    margin: 0 !important;
-    letter-spacing: -0.3px !important;
-}
-
-.sh-cal-controls-row {
-    display: flex !important;
-    align-items: center !important;
-    gap: 12px !important;
-    flex-wrap: wrap !important;
-}
-
-.sh-cal-pill-track {
-    display: flex !important;
-    gap: 4px !important;
-    background: rgba(255, 255, 255, 0.06) !important;
-    border: 1px solid rgba(255, 255, 255, 0.10) !important;
-    border-radius: 100px !important;
-    padding: 4px !important;
-}
-
-.sh-cal-pill-btn {
-    background: transparent !important;
-    border: none !important;
-    color: rgba(255, 255, 255, 0.65) !important;
-    padding: 6px 14px !important;
-    border-radius: 100px !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    cursor: pointer !important;
-    transition: all 180ms ease !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-}
-
-.sh-cal-pill-btn:hover {
-    color: #ffffff !important;
-    background: rgba(255, 255, 255, 0.08) !important;
-}
-
-.sh-cal-pill-btn.active {
-    background: #ffffff !important;
-    color: #000000 !important;
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.25) !important;
-}
-
-/* ─── VUE GRILLE MENSUELLE PHYSIQUE ─── */
-.sh-cal-month-wrapper {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 14px !important;
-}
-
-.sh-cal-month-nav-bar {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    padding: 4px 0 !important;
-}
-
-.sh-cal-month-title-group {
-    display: flex !important;
-    align-items: center !important;
-    gap: 12px !important;
-}
-
-.sh-cal-month-title {
-    font-size: 18px !important;
-    font-weight: 750 !important;
-    color: #ffffff !important;
-    margin: 0 !important;
-    letter-spacing: -0.2px !important;
-}
-
-.sh-cal-jump-today-btn {
-    background: rgba(255, 255, 255, 0.08) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    color: #ffffff !important;
-    padding: 4px 10px !important;
-    border-radius: 8px !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    cursor: pointer !important;
-    transition: all 140ms ease !important;
-}
-
-.sh-cal-jump-today-btn:hover {
-    background: rgba(255, 255, 255, 0.18) !important;
-}
-
-.sh-cal-month-arrows {
-    display: flex !important;
-    gap: 6px !important;
-}
-
-.sh-cal-arrow-btn {
-    background: rgba(255, 255, 255, 0.06) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    color: #ffffff !important;
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    cursor: pointer !important;
-    font-size: 12px !important;
-    transition: all 140ms ease !important;
-}
-
-.sh-cal-arrow-btn:hover {
-    background: rgba(255, 255, 255, 0.18) !important;
-    transform: scale(1.06) !important;
-}
-
-.sh-cal-weekdays-header {
-    display: grid !important;
-    grid-template-columns: repeat(7, 1fr) !important;
-    gap: 8px !important;
-    text-align: center !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    color: rgba(255, 255, 255, 0.45) !important;
-    letter-spacing: 0.8px !important;
-    padding-bottom: 6px !important;
-}
-
-.sh-cal-month-grid {
-    display: grid !important;
-    grid-template-columns: repeat(7, 1fr) !important;
-    gap: 8px !important;
-}
-
-.sh-cal-grid-cell {
-    min-height: 110px !important;
-    background: rgba(255, 255, 255, 0.02) !important;
-    border: 1px solid rgba(255, 255, 255, 0.06) !important;
-    border-radius: 14px !important;
-    padding: 8px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 6px !important;
-    overflow: hidden !important;
-    box-sizing: border-box !important;
-    transition: all 180ms ease !important;
-}
-
-.sh-cal-grid-cell.empty {
-    background: transparent !important;
-    border-color: transparent !important;
-    pointer-events: none !important;
-}
-
-.sh-cal-grid-cell:hover:not(.empty) {
-    background: rgba(255, 255, 255, 0.05) !important;
-    border-color: rgba(255, 255, 255, 0.15) !important;
-}
-
-.sh-cal-grid-cell.has-events {
-    cursor: pointer !important;
-}
-
-.sh-cal-grid-cell.today {
-    border-color: rgba(48, 209, 88, 0.5) !important;
-    background: rgba(48, 209, 88, 0.04) !important;
-}
-
-.sh-cal-cell-header {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-}
-
-.sh-cal-cell-num {
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    color: rgba(255, 255, 255, 0.7) !important;
-    width: 22px !important;
-    height: 22px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border-radius: 50% !important;
-}
-
-.sh-cal-cell-num.today-badge {
-    background: #30d158 !important;
-    color: #000000 !important;
-    box-shadow: 0 0 8px rgba(48, 209, 88, 0.6) !important;
-}
-
-.sh-cal-cell-count {
-    font-size: 9.5px !important;
-    color: rgba(255, 255, 255, 0.4) !important;
-}
-
-.sh-cal-cell-events {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 4px !important;
-    max-height: 85px !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-}
-
-.sh-cal-cell-events::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-}
-
-.sh-cal-event-chip {
-    display: flex !important;
-    align-items: center !important;
-    gap: 4px !important;
-    padding: 3px 6px !important;
-    border-radius: 6px !important;
-    font-size: 10.5px !important;
-    font-weight: 600 !important;
-    cursor: pointer !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    transition: transform 120ms ease, opacity 120ms ease !important;
-}
-
-.sh-cal-event-chip:hover {
-    transform: scale(1.02) !important;
-    opacity: 0.9 !important;
-}
-
-.sh-cal-event-chip.episode {
-    background: rgba(191, 90, 242, 0.22) !important;
-    border: 1px solid rgba(191, 90, 242, 0.4) !important;
-    color: #df9bfa !important;
-}
-
-.sh-cal-event-chip.movie {
-    background: rgba(100, 210, 255, 0.22) !important;
-    border: 1px solid rgba(100, 210, 255, 0.4) !important;
-    color: #92e0ff !important;
-}
-
-.sh-cal-chip-icon {
-    font-size: 10px !important;
-    flex-shrink: 0 !important;
-}
-
-.sh-cal-chip-title {
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-    flex: 1 !important;
-    min-width: 0 !important;
-}
-
-.sh-cal-chip-dispo {
-    font-size: 9px !important;
-    color: #30d158 !important;
-    font-weight: 800 !important;
-    flex-shrink: 0 !important;
-}
-
-/* ─── VUE CHRONOLOGIQUE TIMELINE ─── */
-.sh-cal-timeline-list {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 24px !important;
-}
-
-.sh-cal-day-group {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 12px !important;
-}
-
-.sh-cal-day-header {
-    display: flex !important;
-    align-items: center !important;
-    gap: 10px !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    padding-bottom: 8px !important;
-}
-
-.sh-cal-day-title {
-    font-size: 15px !important;
-    font-weight: 700 !important;
-    color: #ffffff !important;
-    margin: 0 !important;
-}
-
-.sh-cal-day-counter {
-    font-size: 11px !important;
-    padding: 2px 8px !important;
-    border-radius: 100px !important;
-    background: rgba(255, 255, 255, 0.08) !important;
-    color: rgba(255, 255, 255, 0.6) !important;
-}
-
-.sh-cal-cards-grid {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
-    gap: 14px !important;
-}
-
-.sh-cal-timeline-card {
-    display: flex !important;
-    gap: 12px !important;
-    background: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 16px !important;
-    padding: 10px !important;
-    cursor: pointer !important;
-    transition: all 180ms ease !important;
-}
-
-.sh-cal-timeline-card:hover {
-    background: rgba(255, 255, 255, 0.07) !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
-    transform: translateY(-2px) !important;
-}
-
-.sh-cal-card-img {
-    width: 54px !important;
-    height: 80px !important;
-    object-fit: cover !important;
-    border-radius: 10px !important;
-    flex-shrink: 0 !important;
-}
-
-.sh-cal-card-placeholder {
-    width: 54px !important;
-    height: 80px !important;
-    border-radius: 10px !important;
-    background: rgba(255, 255, 255, 0.06) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-size: 24px !important;
-    flex-shrink: 0 !important;
-}
-
-.sh-cal-card-details {
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
-    overflow: hidden !important;
-    flex: 1 !important;
-}
-
-.sh-cal-card-badge-row {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    margin-bottom: 4px !important;
-}
-
-.sh-cal-badge-type {
-    font-size: 9px !important;
-    font-weight: 750 !important;
-    padding: 2px 6px !important;
-    border-radius: 4px !important;
-}
-
-.sh-cal-badge-type.ep {
-    color: #bf5af2 !important;
-    background: rgba(191, 90, 242, 0.15) !important;
-}
-
-.sh-cal-badge-type.movie {
-    color: #64d2ff !important;
-    background: rgba(100, 210, 255, 0.15) !important;
-}
-
-.sh-cal-badge-dispo {
-    font-size: 9px !important;
-    color: #30d158 !important;
-    font-weight: 750 !important;
-}
-
-.sh-cal-card-name {
-    display: block !important;
-    font-size: 13px !important;
-    color: #ffffff !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}
-
-.sh-cal-card-sub {
-    display: block !important;
-    font-size: 11px !important;
-    color: rgba(255, 255, 255, 0.55) !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    margin-top: 2px !important;
-}
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans DownloadsView.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

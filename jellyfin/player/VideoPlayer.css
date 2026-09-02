@@ -1,0 +1,1086 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SpaceHub — Grand Cinema Video Player v3.3.0 (VisionOS Floating Popovers)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Neutralisation Absolue des Éléments Parasites */
+body.sh-cinema-active {
+    overflow: hidden !important;
+}
+body.sh-cinema-active .btnHeaderClose,
+body.sh-cinema-active .headerBackButton,
+body.sh-cinema-active .headerElements,
+body.sh-cinema-active .videoOsd,
+body.sh-cinema-active .videoOsdBottom,
+body.sh-cinema-active .videoOsdHeader,
+body.sh-cinema-active .headerTop,
+body.sh-cinema-active .dialogContainer,
+body.sh-cinema-active .dialogBackdrop {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    z-index: -1 !important;
+}
+
+.sh-grand-cinema-player {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: var(--sh-bg-base, #000000);
+    z-index: 2147483647 !important;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    color: var(--sh-on-media-solid, #ffffff);
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out), transform var(--sh-dur-4) var(--sh-ease-out);
+}
+
+.sh-grand-cinema-player.sh-player--entering {
+    opacity: 0;
+    transform: scale(1.03);
+}
+.sh-grand-cinema-player.sh-player--exiting {
+    opacity: 0;
+    transform: scale(0.97);
+    pointer-events: none;
+}
+
+.sh-cinema-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: var(--sh-bg-base, #000);
+}
+
+.sh-ambient-halo {
+    position: absolute;
+    inset: -10%;
+    background: radial-gradient(circle at center, rgba(255, 159, 10, 0.22) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 2;
+}
+
+.sh-vignette-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 140px;
+    background: linear-gradient(180deg, rgba(var(--sh-on-media-inv, 0, 0, 0.16), 0.75) 0%, rgba(var(--sh-on-media-inv, 0, 0, 0), 0.2) 65%, transparent 100%);
+    pointer-events: none;
+    z-index: 4;
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out);
+}
+.sh-vignette-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 180px;
+    background: linear-gradient(0deg, rgba(var(--sh-on-media-inv, 0, 0, 0.16), 0.85) 0%, rgba(var(--sh-on-media-inv, 0, 0, 0), 0.3) 65%, transparent 100%);
+    pointer-events: none;
+    z-index: 4;
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out);
+}
+
+.sh-grand-cinema-player.hud-hidden {
+    cursor: none;
+}
+.sh-grand-cinema-player.hud-hidden .sh-cinema-topbar,
+.sh-grand-cinema-player.hud-hidden .sh-cinema-dock-anchor,
+.sh-grand-cinema-player.hud-hidden .sh-vignette-top,
+.sh-grand-cinema-player.hud-hidden .sh-vignette-bottom {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(14px);
+}
+.sh-grand-cinema-player.hud-hidden .sh-cinema-topbar {
+    transform: translateY(-14px);
+}
+
+/* 🌀 Buffering Spinner Ambré */
+.sh-cinema-buffering {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    z-index: 40;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--sh-dur-4) ease;
+}
+.sh-cinema-buffering.visible { opacity: 1; }
+.sh-buffering-glass {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(var(--sh-on-media-inv, 14, 14, 20),  0.65);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 16px 40px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.8), 0 0 20px rgba(255, 159, 10, 0.35);
+}
+.sh-buffering-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ff9f0a;
+    box-shadow: 0 0 8px #ff9f0a, 0 0 12px rgba(255, 159, 10, 0.9);
+}
+.sh-buffering-ring {
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: #ff9f0a;
+    border-right-color: #ffc04d;
+    animation: shSpinRibbon var(--sh-dur-5) var(--sh-ease-in-out) infinite;
+}
+@keyframes shSpinRibbon {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.sh-buffering-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.75);
+    letter-spacing: 0.3px;
+}
+
+/* ── Zones Double-Tap Ripple ─────────────────────────────────────────── */
+.sh-gesture-zone {
+    position: absolute;
+    top: 90px;
+    bottom: 100px;
+    width: 35%;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.sh-gesture-zone--left { left: 0; }
+.sh-gesture-zone--right { right: 0; }
+
+.sh-ripple-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(var(--sh-on-media-inv, 14, 14, 20),  0.65);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.25);
+    color: var(--sh-on-media-solid, #ffffff);
+    font-size: 11.5px;
+    font-weight: 700;
+    box-shadow: 0 16px 40px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.8), 0 0 20px rgba(255, 159, 10, 0.4);
+    opacity: 0;
+    transform: scale(0.6);
+    pointer-events: none;
+    transition: opacity var(--sh-dur-4) ease, transform var(--sh-dur-4) var(--sh-ease-spring);
+}
+.sh-ripple-badge.active {
+    opacity: 1;
+    transform: scale(1.15);
+    animation: shRippleFlash var(--sh-dur-5) var(--sh-ease-out) forwards;
+}
+@keyframes shRippleFlash {
+    0% { opacity: 0; transform: scale(0.6); }
+    50% { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 0; transform: scale(1.3); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🍏 TOP BAR : EN-TÊTE CINÉMA TRANSLUCIDE ÉPURÉ
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sh-cinema-topbar {
+    position: absolute;
+    top: 22px;
+    left: 28px;
+    right: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+    transition: transform var(--sh-dur-4) var(--sh-ease-out), opacity var(--sh-dur-4) var(--sh-ease-out), background-color var(--sh-dur-4) var(--sh-ease-out), background var(--sh-dur-4) var(--sh-ease-out), border-color var(--sh-dur-4) var(--sh-ease-out), box-shadow var(--sh-dur-4) var(--sh-ease-out), color var(--sh-dur-4) var(--sh-ease-out), filter var(--sh-dur-4) var(--sh-ease-out);
+}
+
+.sh-topbar-brand-capsule {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 16px 5px 6px;
+    background: rgba(var(--sh-on-media-inv, 14, 14, 20),  0.48);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.12);
+    border-radius: 999px;
+    box-shadow: 0 14px 40px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.65), inset 0 1px 0 rgba(var(--sh-on-media, 255, 255, 255),  0.16);
+}
+
+.sh-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.12);
+    color: var(--sh-on-media-solid, #ffffff);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+}
+.sh-back-btn:hover {
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.18);
+    transform: scale(1.03);
+}
+
+.sh-capsule-divider {
+    width: 1px;
+    height: 16px;
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.12);
+}
+
+.sh-media-meta-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.sh-brand-led {
+    position: relative;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ff9f0a;
+    box-shadow: 0 0 6px #ff9f0a, 0 0 12px rgba(255, 159, 10, 0.85);
+    flex-shrink: 0;
+}
+.sh-brand-led-core {
+    position: absolute;
+    inset: 1px;
+    border-radius: 50%;
+    background: #ffb340;
+}
+.sh-media-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--sh-on-media-solid, #ffffff);
+    letter-spacing: -0.2px;
+}
+.sh-media-dot {
+    font-size: 10px;
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.35);
+}
+.sh-media-sub {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.7);
+}
+
+/* Actions Droite */
+.sh-topbar-actions-pill {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 6px;
+    background: rgba(var(--sh-on-media-inv, 14, 14, 20),  0.48);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.12);
+    border-radius: 999px;
+    box-shadow: 0 10px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.6), inset 0 1px 0 rgba(var(--sh-on-media, 255, 255, 255),  0.16);
+}
+.sh-top-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.85);
+    cursor: pointer;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+}
+.sh-top-icon-btn:hover {
+    color: var(--sh-on-media-solid, #ffffff);
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.16);
+    transform: scale(1.08);
+}
+
+/* ── Flash OSD Jauge ─────────────────────────────────────────────────── */
+.sh-cinema-osd {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    background: rgba(var(--sh-on-media-inv, 14, 14, 20),  0.85);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.16);
+    box-shadow: 0 30px 80px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.9), 0 0 30px rgba(255, 159, 10, 0.2);
+    border-radius: 20px;
+    padding: 12px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: transform var(--sh-dur-3) var(--sh-ease-spring), opacity var(--sh-dur-3) var(--sh-ease-spring), background-color var(--sh-dur-3) var(--sh-ease-spring), background var(--sh-dur-3) var(--sh-ease-spring), border-color var(--sh-dur-3) var(--sh-ease-spring), box-shadow var(--sh-dur-3) var(--sh-ease-spring), color var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-3) var(--sh-ease-spring);
+}
+.sh-cinema-osd.active {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+.sh-osd-icon-wrap { font-size: 20px; }
+.sh-osd-info { display: flex; flex-direction: column; gap: 4px; }
+.sh-osd-text { font-size: 13.5px; font-weight: 700; color: var(--sh-on-media-solid, #ffffff); }
+.sh-osd-gauge {
+    width: 120px;
+    height: 4px;
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.18);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.sh-osd-gauge-fill {
+    height: 100%;
+    width: 70%;
+    background: linear-gradient(90deg, #ff9f0a, #ffc04d);
+    border-radius: 999px;
+    box-shadow: 0 0 10px rgba(255, 159, 10, 0.85);
+}
+
+/* ── Smart Skip Intro & Next Ep ──────────────────────────────────────── */
+.sh-smart-skip-pill {
+    position: absolute;
+    bottom: 95px;
+    right: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    background: rgba(var(--sh-on-media-inv, 14, 14, 20),  0.82);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.18);
+    border-radius: 999px;
+    color: var(--sh-on-media-solid, #ffffff);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 16px 45px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.8), 0 0 25px rgba(255, 159, 10, 0.3);
+    z-index: 12;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(14px);
+    transition: transform var(--sh-dur-4) var(--sh-ease-out), opacity var(--sh-dur-4) var(--sh-ease-out), background-color var(--sh-dur-4) var(--sh-ease-out), background var(--sh-dur-4) var(--sh-ease-out), border-color var(--sh-dur-4) var(--sh-ease-out), box-shadow var(--sh-dur-4) var(--sh-ease-out), color var(--sh-dur-4) var(--sh-ease-out), filter var(--sh-dur-4) var(--sh-ease-out);
+}
+.sh-smart-skip-pill.visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+.sh-smart-skip-pill:hover {
+    background: rgba(255, 159, 10, 0.41);
+    border-color: #ff9f0a;
+    transform: scale(1.04);
+}
+
+.sh-next-ep-card {
+    position: absolute;
+    bottom: 95px;
+    right: 32px;
+    width: 360px;
+    background: rgba(var(--sh-on-media-inv, 14, 14, 20),  0.90);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.16);
+    border-radius: 18px;
+    box-shadow: 0 30px 80px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.9);
+    z-index: 15;
+    padding: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(18px);
+    transition: transform var(--sh-dur-4) var(--sh-ease-out), opacity var(--sh-dur-4) var(--sh-ease-out), background-color var(--sh-dur-4) var(--sh-ease-out), background var(--sh-dur-4) var(--sh-ease-out), border-color var(--sh-dur-4) var(--sh-ease-out), box-shadow var(--sh-dur-4) var(--sh-ease-out), color var(--sh-dur-4) var(--sh-ease-out), filter var(--sh-dur-4) var(--sh-ease-out);
+}
+.sh-next-ep-card.visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+.sh-next-ep-inner { display: flex; align-items: center; gap: 10px; }
+.sh-next-ep-thumb {
+    position: relative;
+    width: 86px;
+    height: 52px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--sh-bg-base, #000);
+}
+.sh-next-ep-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.sh-next-ep-countdown {
+    position: absolute;
+    inset: 0;
+    background: rgba(var(--sh-on-media-inv, 0, 0, 0.16), 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ff9f0a;
+    font-weight: 800;
+    font-size: 18px;
+}
+.sh-next-ep-meta { flex: 1; min-width: 0; }
+.sh-next-ep-kicker { font-size: 9px; font-weight: 800; color: #ff9f0a; letter-spacing: 0.5px; }
+.sh-next-ep-name { margin: 2px 0 0; font-size: 12px; font-weight: 600; color: var(--sh-on-media-solid, #ffffff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh-next-ep-btns { display: flex; align-items: center; gap: 6px; }
+.sh-next-ep-play-btn {
+    padding: 6px 13px;
+    background: #ff9f0a;
+    border: none;
+    border-radius: 999px;
+    color: var(--sh-on-media-solid-inv, #000000);
+    font-size: 11px;
+    font-weight: 750;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(255, 159, 10, 0.4);
+    transition: transform var(--sh-dur-3) var(--sh-ease-spring);
+}
+.sh-next-ep-play-btn:hover { transform: scale(1.06); }
+.sh-next-ep-close-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(var(--sh-on-media, 255, 255, 255), 0.1);
+    border: none;
+    color: var(--sh-on-media-solid, #ffffff);
+    cursor: pointer;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🍏 GRAND CINEMA LIQUID DOCK (Disposition Studio Apple TV+ Rééquilibrée)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sh-cinema-dock-anchor {
+    position: absolute;
+    bottom: 24px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    padding: 0 28px;
+    z-index: 20;
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out), transform var(--sh-dur-4) var(--sh-ease-out);
+}
+
+.sh-dock-amber-glow {
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(860px, 90vw);
+    height: 30px;
+    background: radial-gradient(ellipse at center, rgba(255, 159, 10, 0.36) 0%, transparent 70%);
+    pointer-events: none;
+    filter: blur(14px);
+    z-index: 19;
+}
+
+.sh-liquid-ribbon-dock {
+    position: relative;
+    width: min(1040px, 100%);
+    height: 50px;
+    background: rgba(var(--sh-on-media-inv, 14, 14, 20),  0.48);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.12);
+    border-radius: 999px;
+    box-shadow: 0 20px 60px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.85), inset 0 1px 0 rgba(var(--sh-on-media, 255, 255, 255),  0.18);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px 0 8px;
+    z-index: 21;
+    gap: 10px;
+}
+
+/* ── Section Gauche : Commandes Transport Proportionnées ──────────────── */
+.sh-ribbon-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+/* Master Play/Pause Button (32px Calibré Harmonieux) */
+.sh-pearl-play-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--sh-on-media-solid, #ffffff);
+    border: none;
+    color: var(--sh-on-media-solid-inv, #000000);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(var(--sh-on-media, 255, 255, 255),  0.40), 0 0 16px rgba(255, 159, 10, 0.30);
+    transition: transform var(--sh-dur-3) var(--sh-ease-spring), box-shadow var(--sh-dur-3) ease;
+    flex-shrink: 0;
+}
+.sh-pearl-play-btn:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 20px rgba(var(--sh-on-media, 255, 255, 255),  0.65), 0 0 20px rgba(255, 159, 10, 0.45);
+}
+.sh-pearl-play-btn:active { transform: scale(0.94); }
+
+/* Micro Boutons Transport (30px) */
+.sh-micro-btn {
+    position: relative;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.85);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
+    flex-shrink: 0;
+}
+.sh-micro-btn:hover {
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.14);
+    color: var(--sh-on-media-solid, #ffffff);
+    transform: scale(1.06);
+}
+.sh-micro-num {
+    position: absolute;
+    font-size: 7px;
+    font-weight: 800;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.sh-time-elapsed-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.90);
+    font-variant-numeric: tabular-nums;
+    margin: 0 4px 0 6px;
+}
+
+/* ── Section Centrale : Timeline Scrubber Étendu ─────────────────────── */
+.sh-ribbon-timeline-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 160px;
+}
+
+.sh-ribbon-timeline {
+    position: relative;
+    flex: 1;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.sh-ribbon-timeline-bg {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.16);
+    border-radius: 999px;
+    transition: height var(--sh-dur-2) var(--sh-ease-spring);
+}
+.sh-ribbon-timeline:hover .sh-ribbon-timeline-bg { height: 6px; }
+
+.sh-ribbon-timeline-buffered {
+    position: absolute;
+    left: 0;
+    height: 4px;
+    width: 0%;
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.30);
+    border-radius: 999px;
+    pointer-events: none;
+    transition: height var(--sh-dur-2);
+}
+.sh-ribbon-timeline:hover .sh-ribbon-timeline-buffered { height: 6px; }
+
+.sh-ribbon-timeline-played {
+    position: absolute;
+    left: 0;
+    height: 4px;
+    width: 0%;
+    background: linear-gradient(90deg, #ff9f0a 0%, #ffc04d 100%);
+    border-radius: 999px;
+    pointer-events: none;
+    box-shadow: 0 0 10px rgba(255, 159, 10, 0.85);
+    transition: height var(--sh-dur-2);
+}
+.sh-ribbon-timeline:hover .sh-ribbon-timeline-played { height: 6px; }
+
+.sh-ribbon-timeline-thumb {
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--sh-on-media-solid, #ffffff);
+    box-shadow: 0 0 10px rgba(255, 159, 10, 1), 0 2px 6px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.6);
+    transform: translate(-50%, -50%) scale(0);
+    pointer-events: none;
+    transition: transform var(--sh-dur-2) var(--sh-ease-spring);
+}
+.sh-ribbon-timeline:hover .sh-ribbon-timeline-thumb { transform: translate(-50%, -50%) scale(1.1); }
+
+.sh-timeline-tooltip {
+    position: absolute;
+    bottom: 22px;
+    left: 0%;
+    transform: translateX(-50%);
+    padding: 3px 7px;
+    background: rgba(var(--sh-on-media-inv, 14, 14, 20),  0.95);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.20);
+    border-radius: 6px;
+    color: var(--sh-on-media-solid, #ffffff);
+    font-size: 10.5px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--sh-dur-2) ease;
+    box-shadow: 0 6px 18px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.7);
+}
+.sh-ribbon-timeline:hover .sh-timeline-tooltip { opacity: 1; }
+
+.sh-time-remaining-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.65);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* ── Section Droite : Volume Compact (Micro-perle 7px) & Menus Dépliants ── */
+.sh-volume-flow-box {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding-right: 2px;
+}
+.sh-volume-track {
+    width: 48px;
+    display: flex;
+    align-items: center;
+}
+
+/* 🔘 Curseur de Volume Personnalisé Ultra-Fin (Suppression du gros rond orange) */
+.sh-volume-range {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 48px;
+    height: 3px;
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.20);
+    border-radius: 999px;
+    outline: none;
+    cursor: pointer;
+}
+.sh-volume-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ff9f0a;
+    box-shadow: 0 0 6px #ff9f0a, 0 1px 3px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.5);
+    cursor: pointer;
+    border: none;
+    transition: transform var(--sh-dur-2) ease;
+}
+.sh-volume-range:hover::-webkit-slider-thumb {
+    transform: scale(1.25);
+}
+.sh-volume-range::-moz-range-thumb {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ff9f0a;
+    box-shadow: 0 0 6px #ff9f0a;
+    cursor: pointer;
+    border: none;
+}
+
+/* Boutons Pilules Dépliants du Dock */
+.sh-dock-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 30px;
+    padding: 4px 11px;
+    border-radius: 999px;
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.12);
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.90);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
+    white-space: nowrap;
+}
+.sh-dock-pill-btn:hover,
+.sh-dock-pill-btn.active {
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.18);
+    border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.28);
+    color: var(--sh-on-media-solid, #ffffff);
+    transform: scale(1.03);
+}
+.sh-popover-chevron {
+    font-size: 9px;
+    opacity: 0.65;
+    margin-left: 1px;
+    transition: transform var(--sh-dur-3) ease;
+}
+.sh-dock-pill-btn.active .sh-popover-chevron {
+    transform: rotate(180deg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   🗄️ MENUS DÉPLIANTS FLOTTANTS (Glass Popovers au-dessus du Dock)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sh-dock-popover-anchor {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.sh-player-popover {
+    position: absolute;
+    bottom: calc(100% + 14px);
+    right: 0;
+    z-index: 9999;
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+    transform-origin: bottom right;
+    pointer-events: none;
+    transition: transform var(--sh-dur-3) var(--sh-ease-spring), opacity var(--sh-dur-3) var(--sh-ease-spring), background-color var(--sh-dur-3) var(--sh-ease-spring), background var(--sh-dur-3) var(--sh-ease-spring), border-color var(--sh-dur-3) var(--sh-ease-spring), box-shadow var(--sh-dur-3) var(--sh-ease-spring), color var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-3) var(--sh-ease-spring);
+}
+.sh-player-popover.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+#sh-popover-audio-subs {
+    width: 440px;
+}
+#sh-popover-settings {
+    width: 300px;
+}
+#sh-popover-episodes {
+    width: 350px;
+}
+
+/* Texture de Verre Liquide Identique au Dock */
+.sh-popover-inner {
+    background: rgba(var(--sh-on-media-inv, 14, 14, 20),  0.52);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.14);
+    border-radius: 20px;
+    padding: 14px 16px;
+    box-shadow: 0 24px 70px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.85), inset 0 1px 0 rgba(var(--sh-on-media, 255, 255, 255),  0.18);
+}
+
+/* Double Colonne Audio & Subs */
+.sh-popover-cols {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+.sh-popover-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.sh-popover-divider {
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.10);
+    width: 1px;
+    height: 100%;
+}
+
+.sh-popover-col-header,
+.sh-popover-section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.70);
+    padding: 2px 4px 8px;
+}
+
+.sh-popover-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 180px;
+    overflow-y: auto;
+    overflow-x: hidden !important;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--sh-on-media, 255, 255, 255),  0.20) transparent;
+}
+.sh-popover-list::-webkit-scrollbar {
+    width: 4px;
+    height: 0px;
+}
+.sh-popover-list::-webkit-scrollbar-thumb {
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.20);
+    border-radius: 4px;
+}
+
+.sh-popover-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    border-radius: 10px;
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.06);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.10);
+    cursor: pointer;
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.85);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
+}
+.sh-popover-item:hover {
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.14);
+    border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.22);
+    color: var(--sh-on-media-solid, #ffffff);
+    transform: scale(1.02);
+}
+.sh-popover-item.selected {
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.18);
+    border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.35);
+    color: var(--sh-on-media-solid, #ffffff);
+    font-weight: 700;
+    box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.4), inset 0 1px 0 rgba(var(--sh-on-media, 255, 255, 255),  0.25);
+}
+.sh-popover-item-name {
+    font-size: 11.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+}
+.sh-popover-item-badge {
+    font-size: 8px;
+    font-weight: 800;
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.10);
+    margin-left: 6px;
+    flex-shrink: 0;
+}
+
+/* Stepper Synchronisation Direct */
+.sh-popover-sub-sync {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.08);
+}
+.sh-popover-sub-sync-title {
+    font-size: 9.5px;
+    font-weight: 800;
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.60);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+.sh-sync-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+}
+.sh-sync-btn {
+    padding: 6px 2px;
+    border-radius: 8px;
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.12);
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.90);
+    font-size: 9.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+.sh-sync-btn:hover {
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.20);
+    border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.30);
+    color: var(--sh-on-media-solid, #ffffff);
+    transform: scale(1.04);
+}
+.sh-sync-btn--reset { font-size: 9px; }
+.sh-sync-label {
+    margin-top: 5px;
+    font-size: 10px;
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.65);
+}
+
+/* Popover Settings Sections */
+.sh-settings-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.sh-chip-btn {
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.12);
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.85);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+.sh-chip-btn:hover {
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.16);
+    border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.25);
+    color: var(--sh-on-media-solid, #ffffff);
+    transform: scale(1.03);
+}
+.sh-chip-btn.active {
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.22);
+    color: var(--sh-on-media-solid, #ffffff);
+    border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.40);
+    box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.4), inset 0 1px 0 rgba(var(--sh-on-media, 255, 255, 255),  0.25);
+    font-weight: 700;
+}
+
+/* Popover Épisodes */
+.sh-episodes-popover-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 280px;
+    overflow-y: auto;
+}
+.sh-popover-episode-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 10px;
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.06);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.10);
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+.sh-popover-episode-row:hover {
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.14);
+    border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.22);
+    transform: scale(1.02);
+}
+.sh-popover-episode-row.selected {
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.20);
+    border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.35);
+    box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.4), inset 0 1px 0 rgba(var(--sh-on-media, 255, 255, 255),  0.25);
+}
+.sh-popover-ep-thumb {
+    position: relative;
+    width: 64px;
+    height: 38px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--sh-bg-base, #000);
+    flex-shrink: 0;
+}
+.sh-popover-ep-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.sh-popover-ep-tag {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    font-size: 7.5px;
+    font-weight: 800;
+    padding: 1px 3px;
+    border-radius: 3px;
+    background: rgba(var(--sh-on-media-inv, 0, 0, 0.16),  0.75);
+    color: #ff9f0a;
+}
+.sh-popover-ep-meta { flex: 1; min-width: 0; }
+.sh-popover-ep-name { font-size: 11px; font-weight: 600; color: var(--sh-on-media-solid, #ffffff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh-popover-ep-dur { font-size: 9.5px; color: rgba(var(--sh-on-media, 255, 255, 255), 0.50); }
+.sh-popover-empty { font-size: 11px; color: rgba(var(--sh-on-media, 255, 255, 255), 0.45); padding: 10px; text-align: center; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Audit 1.13 — Anneau de focus dans le lecteur
+   ═══════════════════════════════════════════════════════════════════════════
+   Le lecteur pilote son focus avec .focus() natif et n'appelle jamais
+   setFocus(), donc la classe .sh-focus-active n'y est jamais posée et aucune
+   règle :focus n'existait dans ce fichier : à la télécommande, RIEN n'indiquait
+   quel bouton était sélectionné.
+
+   Les deux sélecteurs sont couverts (:focus-visible pour la navigation clavier
+   et télécommande, .sh-focus-active si le moteur spatial reprend un jour la
+   main ici) afin que la correction survive à cette migration.
+
+   L'anneau utilise --sh-on-media : les commandes reposent sur un voile sombre
+   au-dessus de la vidéo, l'encre ne doit donc PAS s'inverser en thème clair. */
+
+.sh-back-btn:focus-visible,
+.sh-top-icon-btn:focus-visible,
+.sh-dock-pill-btn:focus-visible,
+.sh-micro-btn:focus-visible,
+.sh-chip-btn:focus-visible,
+.sh-sync-btn:focus-visible,
+.sh-popover-item:focus-visible,
+.sh-next-ep-play-btn:focus-visible,
+.sh-next-ep-close-btn:focus-visible,
+.sh-pearl-play-btn:focus-visible,
+#sh-player-timeline-focus:focus-visible,
+.sh-back-btn.sh-focus-active,
+.sh-top-icon-btn.sh-focus-active,
+.sh-dock-pill-btn.sh-focus-active,
+.sh-micro-btn.sh-focus-active,
+.sh-chip-btn.sh-focus-active,
+.sh-sync-btn.sh-focus-active,
+.sh-popover-item.sh-focus-active,
+.sh-next-ep-play-btn.sh-focus-active,
+.sh-next-ep-close-btn.sh-focus-active,
+.sh-pearl-play-btn.sh-focus-active,
+#sh-player-timeline-focus.sh-focus-active {
+    outline: 2px solid rgba(var(--sh-on-media, 255, 255, 255), 0.95) !important;
+    outline-offset: 2px !important;
+    /* Halo doux : sur une image vidéo claire, un simple trait blanc disparaît. */
+    box-shadow: 0 0 0 5px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.45) !important;
+    border-radius: inherit;
+}
+
+/* La barre de progression est large et plate : un anneau extérieur y est peu
+   lisible, on la met plutôt en relief. */
+#sh-player-timeline-focus:focus-visible,
+#sh-player-timeline-focus.sh-focus-active {
+    outline-offset: 6px !important;
+}
+
+/* Les éléments de popover sont des lignes de liste : un remplissage se lit
+   mieux qu'un contour, on garde l'anneau en complément. */
+.sh-popover-item:focus-visible,
+.sh-popover-item.sh-focus-active {
+    background: rgba(var(--sh-on-media, 255, 255, 255), 0.16) !important;
+}

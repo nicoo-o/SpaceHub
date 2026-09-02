@@ -7,15 +7,16 @@
 
 import Logger from '../../core/Logger.js';
 
+import * as svc from '../../core/services.js';
 const DEFAULT_ORDER = ['jellyfin'];
 const FIELDS = ['Name', 'OriginalTitle', 'Overview', 'Genres', 'People', 'PremiereDate', 'ProductionYear', 'Images', 'ProviderIds', 'CommunityRating'];
 
 class MetadataService {
     constructor({ jellyfinApi = null, settings = null, eventBus = null, cache = null, cacheTtlSeconds = 300 } = {}) {
-        this._jellyfin = jellyfinApi || window.SpaceHub?.jellyfin?.api;
-        this._settings = settings || window.SpaceHub?.core?.settings;
-        this._eventBus = eventBus || window.SpaceHub?.core?.eventBus;
-        this._cache = cache || window.SpaceHub?.core?.cache || null;
+        this._jellyfin = jellyfinApi || svc.jellyfinApi();
+        this._settings = settings || svc.settings();
+        this._eventBus = eventBus || svc.eventBus();
+        this._cache = cache || svc.cache() || null;
         this._cacheTtlSeconds = cacheTtlSeconds;
         this._memoryCache = new Map();
         this._providers = new Map();
@@ -120,7 +121,7 @@ class MetadataService {
 
     async applyToServer(itemId, merged, { confirm = false } = {}) {
         if (!confirm) throw new Error('Confirmation explicite requise avant toute écriture Jellyfin.');
-        if (window.SpaceHub?.auth?.getUser?.()?.Policy?.IsAdministrator !== true) {
+        if (svc.auth()?.getUser?.()?.Policy?.IsAdministrator !== true) {
             throw new Error('L’écriture de métadonnées exige un administrateur Jellyfin.');
         }
         if (!merged?.values || typeof merged.values !== 'object') throw new TypeError('Résultat de métadonnées invalide.');

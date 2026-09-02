@@ -12,9 +12,10 @@
 import { BaseApiClient } from '../../core/ApiClient.js';
 import Logger from '../../core/Logger.js';
 
+import * as svc from '../../core/services.js';
 class RadarrApi extends BaseApiClient {
     constructor() {
-        const settings = window.SpaceHub?.core?.settings;
+        const settings = svc.settings();
         const url = settings?.get('radarr.url', 'http://localhost:7878') || 'http://localhost:7878';
         const apiKey = settings?.get('radarr.apiKey', '') || '';
 
@@ -27,7 +28,7 @@ class RadarrApi extends BaseApiClient {
      * Met à jour la configuration depuis les paramètres SpaceHub.
      */
     updateConfig() {
-        const settings = window.SpaceHub?.core?.settings;
+        const settings = svc.settings();
         this.baseUrl = (settings?.get('radarr.url', 'http://localhost:7878') || 'http://localhost:7878').replace(/\/$/, '');
         this.apiKey = settings?.get('radarr.apiKey', '') || '';
     }

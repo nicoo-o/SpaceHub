@@ -1,4 +1,6 @@
 import { escapeHtml } from '../../core/utils/domUtils.js';
+import './ProwlarrWidgets.css';
+import * as svc from '../../core/services.js';
 /**
  * SpaceHub — Prowlarr Dashboard Widgets
  * Version: 0.8.0
@@ -46,7 +48,7 @@ class ProwlarrStatusWidget {
         this._injectStyles();
         container.querySelector('.sh-widget__refresh-btn')?.addEventListener('click', () => this.refresh(container));
         container.querySelector('.sh-widget__test-btn')?.addEventListener('click', async () => {
-            const prowlarr = window.SpaceHub?.integrations?.prowlarr;
+            const prowlarr = svc.integration('prowlarr');
             if (prowlarr) {
                 await prowlarr.testAllIndexers();
                 await this.loadData(container);
@@ -61,7 +63,7 @@ class ProwlarrStatusWidget {
         if (!contentEl) return;
 
         try {
-            const prowlarr = window.SpaceHub?.integrations?.prowlarr;
+            const prowlarr = svc.integration('prowlarr');
             if (!prowlarr) {
                 contentEl.innerHTML = `
                     <div class="sh-widget-empty" style="padding:var(--sh-space-4,16px); text-align:center; color:var(--sh-text-muted);">
@@ -84,7 +86,7 @@ class ProwlarrStatusWidget {
                         <span class="sh-prowlarr-stat-label">En ligne</span>
                     </div>
                     <div class="sh-prowlarr-stat-box">
-                        <span class="sh-prowlarr-stat-number" style="color:${summary.degraded > 0 ? '#ff453a' : 'rgba(255,255,255,0.4)'};">${summary.degraded}</span>
+                        <span class="sh-prowlarr-stat-number" style="color:${summary.degraded > 0 ? '#ff453a' : 'rgba(var(--sh-ink, 255, 255, 255), 0.4)'};">${summary.degraded}</span>
                         <span class="sh-prowlarr-stat-label">Dégradé</span>
                     </div>
                 </div>
@@ -113,194 +115,9 @@ class ProwlarrStatusWidget {
     }
 
     _injectStyles() {
-        if (document.getElementById('sh-prowlarr-widget-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-prowlarr-widget-styles';
-        style.textContent = `
-.sh-widget__refresh-btn {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 50% !important;
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    color: rgba(255, 255, 255, 0.65) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    cursor: pointer !important;
-    outline: none !important;
-    padding: 0 !important;
-    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
-}
-
-.sh-widget__refresh-btn:hover {
-    background: rgba(255, 255, 255, 0.14) !important;
-    border-color: rgba(255, 255, 255, 0.28) !important;
-    color: #ffffff !important;
-    transform: rotate(45deg) scale(1.08) !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
-}
-
-.sh-widget__refresh-btn:active {
-    transform: rotate(180deg) scale(0.92) !important;
-    background: rgba(255, 255, 255, 0.20) !important;
-}
-
-.sh-widget__refresh-btn svg {
-    width: 14px !important;
-    height: 14px !important;
-    stroke: currentColor !important;
-    stroke-width: 2.3 !important;
-    fill: none !important;
-    pointer-events: none !important;
-}
-
-.sh-widget__test-btn {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 6px !important;
-    padding: 5px 12px !important;
-    border-radius: 9999px !important;
-    background: rgba(255, 255, 255, 0.06) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    color: rgba(255, 255, 255, 0.85) !important;
-    font-size: 11.5px !important;
-    font-weight: 650 !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    cursor: pointer !important;
-    outline: none !important;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.sh-widget__test-btn:hover {
-    background: rgba(255, 255, 255, 0.15) !important;
-    border-color: rgba(255, 255, 255, 0.30) !important;
-    color: #ffffff !important;
-    transform: translateY(-1px) !important;
-}
-
-.sh-widget__test-btn svg {
-    width: 13px !important;
-    height: 13px !important;
-    stroke: currentColor !important;
-    stroke-width: 2.3 !important;
-    fill: none !important;
-}
-
-.sh-prowlarr-stats-row {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 14px;
-}
-
-.sh-prowlarr-stat-box {
-    flex: 1;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 14px;
-    padding: 14px 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    transition: transform 180ms ease, border-color 180ms ease;
-}
-.sh-prowlarr-stat-box:hover {
-    transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.18);
-}
-
-.sh-prowlarr-stat-number {
-    font-size: 22px;
-    font-weight: 750;
-    letter-spacing: -0.02em;
-    color: #ffffff;
-}
-
-.sh-prowlarr-stat-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.45);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-top: 3px;
-}
-
-.sh-prowlarr-indexers-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 8px;
-}
-
-.sh-prowlarr-indexer-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 8px 12px;
-    border-radius: 10px;
-    font-size: 12px;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    transition: background 140ms ease;
-}
-.sh-prowlarr-indexer-item:hover {
-    background: rgba(255, 255, 255, 0.06);
-}
-
-.sh-prowlarr-indexer-name {
-    flex: 1;
-    font-weight: 550;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.sh-prowlarr-badge {
-    font-size: 9.5px;
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: 5px;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-}
-
-.sh-prowlarr-badge--torrent {
-    color: #64d2ff;
-    background: rgba(100, 210, 255, 0.12);
-    border: 1px solid rgba(100, 210, 255, 0.2);
-}
-
-.sh-prowlarr-badge--usenet {
-    color: #32d74b;
-    background: rgba(50, 215, 75, 0.12);
-    border: 1px solid rgba(50, 215, 75, 0.2);
-}
-
-.sh-prowlarr-status-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.sh-prowlarr-status-dot.online {
-    background: #32d74b;
-    box-shadow: 0 0 8px rgba(50, 215, 75, 0.8);
-}
-
-.sh-prowlarr-status-dot.degraded {
-    background: #ff453a;
-    box-shadow: 0 0 8px rgba(255, 69, 58, 0.8);
-}
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans ProwlarrWidgets.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

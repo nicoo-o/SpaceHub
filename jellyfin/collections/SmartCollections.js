@@ -14,15 +14,16 @@
 
 import Logger from '../../core/Logger.js';
 
+import * as svc from '../../core/services.js';
 class SmartCollections {
     constructor() {
         this._log = new Logger('SmartCollections');
-        this._cache = window.SpaceHub?.core?.cache || null;
+        this._cache = svc.cache() || null;
         this._log.info('Initialisé.');
     }
 
     get _apiClient() {
-        return window.SpaceHub?.core?.api?.getClient('jellyfin');
+        return svc.api()?.getClient('jellyfin');
     }
 
     /**

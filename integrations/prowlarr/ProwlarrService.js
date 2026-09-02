@@ -12,6 +12,7 @@
 import Logger from '../../core/Logger.js';
 import ProwlarrApi from './ProwlarrApi.js';
 
+import * as svc from '../../core/services.js';
 class ProwlarrService {
     /**
      * @param {Object} [options]
@@ -23,9 +24,9 @@ class ProwlarrService {
     constructor({ api = null, cache = null, eventBus = null, settings = null } = {}) {
         this.api = api || this._createDefaultApi();
         this._log = new Logger('ProwlarrService');
-        this._cache = cache || window.SpaceHub?.core?.cache || null;
-        this._eventBus = eventBus || window.SpaceHub?.core?.eventBus || null;
-        this._settings = settings || window.SpaceHub?.core?.settings || null;
+        this._cache = cache || svc.cache() || null;
+        this._eventBus = eventBus || svc.eventBus() || null;
+        this._settings = settings || svc.settings() || null;
         this.status = 'unconfigured';
         this.lastLatency = null;
 
@@ -170,7 +171,7 @@ class ProwlarrService {
             this._eventBus.emit('prowlarr:indexersTested', result);
         }
 
-        window.SpaceHub?.ui?.components?.toaster?.info('Test des indexeurs Prowlarr terminé.');
+        svc.toaster()?.info('Test des indexeurs Prowlarr terminé.');
         return result;
     }
 }

@@ -1,0 +1,65 @@
+.sh-cal-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.25) !important;
+    box-shadow: 0 14px 35px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.6) !important;
+}
+
+.sh-cal-poster-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--sh-dur-4) ease;
+}
+
+.sh-cal-card:hover .sh-cal-poster-wrap img {
+    transform: scale(1.06);
+}
+
+.sh-cal-day-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
+    letter-spacing: 0.4px;
+}
+
+.sh-cal-day-badge.today {
+    background: rgba(255, 45, 85, 0.25);
+    border: 1px solid rgba(255, 45, 85, 0.4);
+    color: #ff375f;
+}
+
+.sh-cal-day-badge.tomorrow {
+    background: rgba(255, 159, 10, 0.25);
+    border: 1px solid rgba(255, 159, 10, 0.4);
+    color: #ff9f0a;
+}
+
+.sh-cal-type-pill {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 6px;
+}
+
+.sh-cal-type-pill.ep {
+    background: rgba(191, 90, 242, 0.18);
+    color: #bf5af2;
+}
+
+.sh-cal-type-pill.movie {
+    background: rgba(100, 210, 255, 0.18);
+    color: #64d2ff;
+}
+
+.sh-cal-poster-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.05);
+}

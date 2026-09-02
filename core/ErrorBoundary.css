@@ -1,0 +1,39 @@
+/* Carte de repli affichée à la place d'un contenu qui n'a pas pu se charger.
+   Elle occupe la place du contenu manquant plutôt que de laisser un trou :
+   l'utilisateur voit CE qui a échoué et peut relancer sans recharger la page. */
+
+.sh-error-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 20px 22px;
+    min-height: 140px;
+    justify-content: center;
+    border-radius: 16px;
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.04);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.10);
+    box-sizing: border-box;
+}
+
+.sh-error-card__title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-error-card__detail {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.60);
+    /* Un message d'erreur serveur peut être très long : on le borne plutôt que
+       de laisser la carte pousser la mise en page. */
+    max-width: 60ch;
+    overflow-wrap: anywhere;
+}
+
+.sh-error-card__retry {
+    margin-top: 4px;
+}

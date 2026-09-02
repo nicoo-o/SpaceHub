@@ -7,6 +7,7 @@
 
 import Logger from '../../core/Logger.js';
 
+import * as svc from '../../core/services.js';
 export class UnifiedCalendarService {
     constructor() {
         this._log = new Logger('UnifiedCalendarService');
@@ -26,7 +27,7 @@ export class UnifiedCalendarService {
 
         // 1. Récupération Sonarr (Épisodes de séries)
         try {
-            const sonarrApi = window.SpaceHub?.integrations?.sonarr?.api;
+            const sonarrApi = svc.integration('sonarr')?.api;
             if (sonarrApi?.getCalendar) {
                 const episodes = await sonarrApi.getCalendar(start, end, true);
                 if (Array.isArray(episodes)) {
@@ -84,7 +85,7 @@ export class UnifiedCalendarService {
 
         // 2. Récupération Radarr (Sorties de films)
         try {
-            const radarrApi = window.SpaceHub?.integrations?.radarr?.api;
+            const radarrApi = svc.integration('radarr')?.api;
             if (radarrApi?.getCalendar) {
                 const movies = await radarrApi.getCalendar(start, end);
                 if (Array.isArray(movies)) {
@@ -144,7 +145,7 @@ export class UnifiedCalendarService {
 
         // 3. Récupération Jellyseerr (Sorties populaires attendues)
         try {
-            const jellyseerrApi = window.SpaceHub?.integrations?.jellyseerr?.api;
+            const jellyseerrApi = svc.integration('jellyseerr')?.api;
             if (jellyseerrApi?.getUpcomingMediaList) {
                 const upData = await jellyseerrApi.getUpcomingMediaList();
                 const upcoming = upData?.results || (Array.isArray(upData) ? upData : []);

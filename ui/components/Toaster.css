@@ -1,0 +1,113 @@
+#sh-toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: var(--sh-z-toast, 500);
+    max-width: 380px;
+    width: calc(100vw - 48px);
+    pointer-events: none;
+}
+.sh-toast {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px 13px 16px;
+    background: rgba(var(--sh-ink-inv, 18, 18, 24),  0.94);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    border-radius: 14px;
+    box-shadow:
+        0 8px 32px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.80),
+        inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    color: var(--sh-ink-solid, #ffffff);
+    font-family: var(--sh-font-family, sans-serif);
+    font-size: 13px;
+    font-weight: 500;
+    pointer-events: all;
+    opacity: 0;
+    transform: translateX(calc(100% + 24px));
+    transition:
+        opacity var(--sh-dur-3) var(--sh-ease-out),
+        transform var(--sh-dur-4) var(--sh-ease-out);
+    border-left: 2px solid transparent;
+    overflow: hidden;
+}
+.sh-toast--visible  { opacity: 1; transform: translateX(0); }
+.sh-toast--leaving  { opacity: 0; transform: translateX(calc(100% + 24px)); transition: opacity 220ms ease, transform 220ms ease; }
+
+/* Accents gauche par type */
+.sh-toast--success { border-left-color: #32d74b; }
+.sh-toast--error   { border-left-color: #ff453a; }
+.sh-toast--warning { border-left-color: #ff9f0a; }
+.sh-toast--info    { border-left-color: #64d2ff; }
+.sh-toast--default { border-left-color: rgba(var(--sh-ink, 255, 255, 255), 0.30); }
+
+/* Icône */
+.sh-toast__icon { flex-shrink: 0; display: flex; align-items: center; }
+
+/* Texte */
+.sh-toast__message { flex: 1; line-height: 1.45; color: rgba(var(--sh-ink, 255, 255, 255), 0.90); }
+
+/* Bouton Action */
+.sh-toast__action {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    color: var(--sh-ink-solid, #ffffff);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: inherit;
+    letter-spacing: 0.02em;
+    transition: background var(--sh-dur-2) ease;
+}
+.sh-toast__action:hover { background: rgba(var(--sh-ink, 255, 255, 255),  0.20); }
+
+/* Bouton Fermer */
+.sh-toast__close {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.50);
+    transition: background var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
+}
+.sh-toast__close:hover { background: rgba(var(--sh-ink, 255, 255, 255),  0.14); color: var(--sh-ink-solid, #ffffff); }
+
+/* Barre de progression */
+.sh-toast__progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    width: 100%;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.20);
+    border-radius: 0 0 14px 14px;
+    transform-origin: left;
+    animation: sh-toast-progress linear forwards;
+    animation-play-state: running;
+}
+.sh-toast--success .sh-toast__progress { background: rgba(50,  215, 75,  0.66); }
+.sh-toast--error   .sh-toast__progress { background: rgba(255, 69,  58,  0.66); }
+.sh-toast--warning .sh-toast__progress { background: rgba(255, 159, 10,  0.66); }
+.sh-toast--info    .sh-toast__progress { background: rgba(100, 210, 255, 0.66); }
+
+@keyframes sh-toast-progress {
+    from { transform: scaleX(1); }
+    to   { transform: scaleX(0); }
+}
+
+@media (max-width: 480px) {
+    #sh-toast-container { top: auto; bottom: 16px; right: 12px; left: 12px; width: auto; max-width: none; }
+}

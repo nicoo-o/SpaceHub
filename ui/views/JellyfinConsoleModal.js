@@ -16,6 +16,8 @@
 
 import Logger from '../../core/Logger.js';
 
+import './JellyfinConsoleModal.css';
+import * as svc from '../../core/services.js';
 export class JellyfinConsoleModal {
     constructor() {
         this._log = new Logger('JellyfinConsoleModal');
@@ -35,9 +37,9 @@ export class JellyfinConsoleModal {
      * @param {'system'|'encoding'|'network'|'users'|'tasks'|'logs'|'plugins'} [tab='system']
      */
     async open(tab = 'system') {
-        const user = window.SpaceHub?.auth?.getUser?.();
+        const user = svc.auth()?.getUser?.();
         if (user?.Policy?.IsAdministrator !== true) {
-            window.SpaceHub?.ui?.components?.toaster?.error?.('Accès réservé aux administrateurs Jellyfin.');
+            svc.toaster()?.error?.('Accès réservé aux administrateurs Jellyfin.');
             return false;
         }
         this._activeTab = tab;
@@ -126,7 +128,7 @@ export class JellyfinConsoleModal {
                 this._taskPollTimer = null;
             }
             modal.classList.remove('open');
-            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            const spatialNav = svc.nav() || svc.nav();
             if (spatialNav) spatialNav.onModalClosed();
             this._closeTimer = setTimeout(() => {
                 modal.remove();
@@ -154,7 +156,7 @@ export class JellyfinConsoleModal {
 
         await this._renderActiveTab(modal);
 
-        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        const spatialNav = svc.nav() || svc.nav();
         if (spatialNav) {
             spatialNav.onModalOpened(modal, modal.querySelector('.sh-console-nav-tab.active'));
         }
@@ -217,7 +219,7 @@ export class JellyfinConsoleModal {
     // ─── 1. Onglet Système & Général ──────────────────────────────────────────
 
     async _renderSystemTab(container, modal) {
-        const api = window.SpaceHub?.jellyfin?.api;
+        const api = svc.jellyfinApi();
         const info = await api?.getSystemInfo?.();
         const counts = await api?.getItemCounts?.();
         const genConfig = await api?.getGeneralConfiguration?.() || {};
@@ -325,9 +327,9 @@ export class JellyfinConsoleModal {
 
             const success = await api?.setGeneralConfiguration?.(payload);
             if (success) {
-                window.SpaceHub?.ui?.components?.toaster?.success?.('Configuration générale enregistrée !');
+                svc.toaster()?.success?.('Configuration générale enregistrée !');
             } else {
-                window.SpaceHub?.ui?.components?.toaster?.error?.('Échec de l\'enregistrement.');
+                svc.toaster()?.error?.('Échec de l\'enregistrement.');
             }
             btn.disabled = false;
             btn.textContent = 'Enregistrer';
@@ -336,12 +338,12 @@ export class JellyfinConsoleModal {
         // Gestion du Redémarrage
         container.querySelector('#sh-btn-restart-server')?.addEventListener('click', async () => {
             if (confirm('Voulez-vous vraiment redémarrer le serveur Jellyfin ? Toutes les lectures seront momentanément interrompues.')) {
-                window.SpaceHub?.ui?.components?.toaster?.info?.('Demande de redémarrage envoyée au serveur...');
+                svc.toaster()?.info?.('Demande de redémarrage envoyée au serveur...');
                 const success = await api?.restartServer?.();
                 if (success) {
-                    window.SpaceHub?.ui?.components?.toaster?.success?.('Serveur en cours de redémarrage.');
+                    svc.toaster()?.success?.('Serveur en cours de redémarrage.');
                 } else {
-                    window.SpaceHub?.ui?.components?.toaster?.error?.('Échec de la demande de redémarrage.');
+                    svc.toaster()?.error?.('Échec de la demande de redémarrage.');
                 }
             }
         });
@@ -349,7 +351,7 @@ export class JellyfinConsoleModal {
         // Gestion de l'Arrêt
         container.querySelector('#sh-btn-shutdown-server')?.addEventListener('click', async () => {
             if (confirm('Voulez-vous vraiment arrêter le serveur Jellyfin ?')) {
-                window.SpaceHub?.ui?.components?.toaster?.info?.('Arrêt du serveur en cours...');
+                svc.toaster()?.info?.('Arrêt du serveur en cours...');
                 await api?.shutdownServer?.();
             }
         });
@@ -358,7 +360,7 @@ export class JellyfinConsoleModal {
     // ─── 2. Onglet Transcodage & Accélération GPU ─────────────────────────────
 
     async _renderEncodingTab(container, modal) {
-        const api = window.SpaceHub?.jellyfin?.api;
+        const api = svc.jellyfinApi();
         const options = await api?.getEncodingOptions?.() || {};
         this._encodingConfig = options;
 
@@ -484,9 +486,9 @@ export class JellyfinConsoleModal {
 
             const success = await api?.setEncodingOptions?.(payload);
             if (success) {
-                window.SpaceHub?.ui?.components?.toaster?.success?.('Réglages de transcodage enregistrés !');
+                svc.toaster()?.success?.('Réglages de transcodage enregistrés !');
             } else {
-                window.SpaceHub?.ui?.components?.toaster?.error?.('Impossible de sauvegarder le transcodage.');
+                svc.toaster()?.error?.('Impossible de sauvegarder le transcodage.');
             }
             btn.disabled = false;
             btn.textContent = 'Enregistrer les Réglages';
@@ -496,7 +498,7 @@ export class JellyfinConsoleModal {
     // ─── 3. Onglet Réseau & Ports ─────────────────────────────────────────────
 
     async _renderNetworkTab(container, modal) {
-        const api = window.SpaceHub?.jellyfin?.api;
+        const api = svc.jellyfinApi();
         const netConfig = await api?.getNetworkConfiguration?.() || {};
         this._networkConfig = netConfig;
 
@@ -580,9 +582,9 @@ export class JellyfinConsoleModal {
 
             const success = await api?.setNetworkConfiguration?.(payload);
             if (success) {
-                window.SpaceHub?.ui?.components?.toaster?.success?.('Configuration réseau enregistrée !');
+                svc.toaster()?.success?.('Configuration réseau enregistrée !');
             } else {
-                window.SpaceHub?.ui?.components?.toaster?.error?.('Échec de l\'enregistrement réseau.');
+                svc.toaster()?.error?.('Échec de l\'enregistrement réseau.');
             }
             btn.disabled = false;
             btn.textContent = 'Enregistrer Réseau';
@@ -592,7 +594,7 @@ export class JellyfinConsoleModal {
     // ─── 4. Onglet Gestion des Utilisateurs ───────────────────────────────────
 
     async _renderUsersTab(container, modal) {
-        const api = window.SpaceHub?.jellyfin?.api;
+        const api = svc.jellyfinApi();
         const users = await api?.getUsers?.() || [];
 
         container.innerHTML = `
@@ -639,7 +641,7 @@ export class JellyfinConsoleModal {
     // ─── 5. Onglet Tâches Planifiées (Scheduled Tasks) ─────────────────────────
 
     async _renderTasksTab(container, modal) {
-        const api = window.SpaceHub?.jellyfin?.api;
+        const api = svc.jellyfinApi();
         const tasks = await api?.getScheduledTasks?.() || [];
 
         container.innerHTML = `
@@ -662,7 +664,7 @@ export class JellyfinConsoleModal {
 
         const renderTaskList = (taskList) => {
             if (!taskList || taskList.length === 0) {
-                listContainer.innerHTML = '<p style="color:rgba(255,255,255,0.4); padding:20px;">Aucune tâche planifiée trouvée.</p>';
+                listContainer.innerHTML = '<p style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); padding:20px;">Aucune tâche planifiée trouvée.</p>';
                 return;
             }
 
@@ -704,10 +706,10 @@ export class JellyfinConsoleModal {
                     e.currentTarget.disabled = true;
 
                     if (action === 'start') {
-                        window.SpaceHub?.ui?.components?.toaster?.info?.('Lancement de la tâche...');
+                        svc.toaster()?.info?.('Lancement de la tâche...');
                         await api?.startScheduledTask?.(taskId);
                     } else {
-                        window.SpaceHub?.ui?.components?.toaster?.info?.('Annulation de la tâche...');
+                        svc.toaster()?.info?.('Annulation de la tâche...');
                         await api?.stopScheduledTask?.(taskId);
                     }
                     setTimeout(refreshTasks, 800);
@@ -735,7 +737,7 @@ export class JellyfinConsoleModal {
     // ─── 6. Onglet Journal & Logs en Direct ────────────────────────────────────
 
     async _renderLogsTab(container, modal) {
-        const api = window.SpaceHub?.jellyfin?.api;
+        const api = svc.jellyfinApi();
         const logs = await api?.getServerLogs?.() || [];
         this._cachedLogs = logs;
 
@@ -745,7 +747,7 @@ export class JellyfinConsoleModal {
             <div class="sh-console-logs-wrapper">
                 <div class="sh-console-logs-toolbar">
                     <div class="sh-console-logs-select-group">
-                        <label for="sh-console-log-file-select" style="font-size: 12px; color: rgba(255,255,255,0.6); margin-right: 8px;">Fichier :</label>
+                        <label for="sh-console-log-file-select" style="font-size: 12px; color: rgba(var(--sh-ink, 255, 255, 255), 0.6); margin-right: 8px;">Fichier :</label>
                         <select class="sh-console-select" id="sh-console-log-file-select">
                             ${logs.map(l => `<option value="${this._escape(l.Name)}">${this._escape(l.Name)} (${this._escape((l.Size / 1024).toFixed(0))} KB)</option>`).join('')}
                         </select>
@@ -765,7 +767,7 @@ export class JellyfinConsoleModal {
                 </div>
 
                 <div class="sh-console-terminal sh-scrollbar" id="sh-console-terminal-view">
-                    <div style="padding: 20px; color: rgba(255,255,255,0.4); text-align: center;">Chargement du fichier journal...</div>
+                    <div style="padding: 20px; color: rgba(var(--sh-ink, 255, 255, 255), 0.4); text-align: center;">Chargement du fichier journal...</div>
                 </div>
             </div>
         `;
@@ -779,11 +781,11 @@ export class JellyfinConsoleModal {
         const loadSelectedLog = async () => {
             const fileName = fileSelect?.value || defaultLog;
             if (!fileName) {
-                terminalView.innerHTML = '<p style="color:rgba(255,255,255,0.4); padding:20px;">Aucun fichier log disponible.</p>';
+                terminalView.innerHTML = '<p style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); padding:20px;">Aucun fichier log disponible.</p>';
                 return;
             }
 
-            terminalView.innerHTML = '<div style="padding: 20px; color: rgba(255,255,255,0.4);">Lecture du journal en direct...</div>';
+            terminalView.innerHTML = '<div style="padding: 20px; color: rgba(var(--sh-ink, 255, 255, 255), 0.4);">Lecture du journal en direct...</div>';
             const rawText = await api?.getLogFile?.(fileName);
             this._activeLogContent = rawText;
             renderFormattedLogs();
@@ -791,7 +793,7 @@ export class JellyfinConsoleModal {
 
         const renderFormattedLogs = () => {
             if (!this._activeLogContent) {
-                terminalView.innerHTML = '<p style="color:rgba(255,255,255,0.4); padding:20px;">Fichier journal vide.</p>';
+                terminalView.innerHTML = '<p style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); padding:20px;">Fichier journal vide.</p>';
                 return;
             }
 
@@ -817,7 +819,7 @@ export class JellyfinConsoleModal {
                 return `<div class="sh-log-row ${lineClass}">${safeLine}</div>`;
             }).filter(Boolean).join('');
 
-            terminalView.innerHTML = formattedHtml || '<p style="color:rgba(255,255,255,0.4); padding:20px;">Aucune ligne correspondante trouvée.</p>';
+            terminalView.innerHTML = formattedHtml || '<p style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); padding:20px;">Aucune ligne correspondante trouvée.</p>';
             terminalView.scrollTop = terminalView.scrollHeight;
         };
 
@@ -832,8 +834,8 @@ export class JellyfinConsoleModal {
         // ─── 7. Onglet Extensions & Intégrations Dynamiques (SDK + Backend) ────────
 
     async _renderPluginsTab(container, modal) {
-        const api = window.SpaceHub?.jellyfin?.api;
-        const pluginService = window.SpaceHub?.jellyfin?.plugins;
+        const api = svc.jellyfinApi();
+        const pluginService = svc.jellyfinPlugins();
         const serverPlugins = await pluginService?.list?.({ force: true }) || await api?.getPlugins?.() || [];
 
         // 1. Intégrations natives SpaceHub (distinctes des plugins Jellyfin)
@@ -847,8 +849,8 @@ export class JellyfinConsoleModal {
         ];
 
         // 2. Vrais Plugins SDK enregistrés dans PluginManager
-        const sdkPlugins = window.SpaceHub?.sdk?.getPlugins?.() || [];
-        const settings = window.SpaceHub?.core?.settings;
+        const sdkPlugins = svc.sdk()?.getPlugins?.() || [];
+        const settings = svc.settings();
 
         container.innerHTML = `
             <div class="sh-console-section">
@@ -863,7 +865,7 @@ export class JellyfinConsoleModal {
 
                 <div class="sh-console-plugins-grid">
                     ${servarrIntegrations.map(mod => {
-                        const isEnabled = settings?.get(`${mod.id}.enabled`, true) !== false;                                        const serviceInstance = window.SpaceHub?.integrations?.[mod.id];
+                        const isEnabled = settings?.get(`${mod.id}.enabled`, true) !== false;                                        const serviceInstance = svc.integration(mod.id);
                         const isConfigured = Boolean(
                             settings?.has?.(`${mod.id}.url`) && settings.get(`${mod.id}.url`)?.trim()
                         );
@@ -916,8 +918,8 @@ export class JellyfinConsoleModal {
                             <button class="sh-console-action-btn sh-sdk-approve" data-plugin-id="${this._escape(plugin.id)}">Approuver les permissions</button>
                         </div>
                     `).join('') : `
-                        <div class="sh-console-empty-plugin-state" style="grid-column: 1 / -1; padding: 24px; text-align: center; background: rgba(255,255,255,0.02); border-radius: 16px; border: 1px dashed rgba(255,255,255,0.1);">
-                            <p style="color: rgba(255,255,255,0.5); font-size: 13.5px; margin: 0;">Aucun plugin SDK tiers installé. Vous pouvez enregistrer des extensions via <code>SpaceHub.sdk.registerPlugin()</code>.</p>
+                        <div class="sh-console-empty-plugin-state" style="grid-column: 1 / -1; padding: 24px; text-align: center; background: rgba(var(--sh-ink, 255, 255, 255), 0.02); border-radius: 16px; border: 1px dashed rgba(var(--sh-ink, 255, 255, 255), 0.1);">
+                            <p style="color: rgba(var(--sh-ink, 255, 255, 255), 0.5); font-size: 13.5px; margin: 0;">Aucun plugin SDK tiers installé. Vous pouvez enregistrer des extensions via <code>SpaceHub.sdk.registerPlugin()</code>.</p>
                         </div>
                     `}
                 </div>
@@ -944,27 +946,27 @@ export class JellyfinConsoleModal {
                             <button class="sh-console-action-btn" id="sh-omdb-save-key">Enregistrer la clé</button>
                             <button class="sh-console-action-btn" id="sh-omdb-test">Tester la connexion</button>
                         </div>
-                        <div id="sh-omdb-test-result" style="margin-top: 8px; font-size: 13px; color: rgba(255,255,255,0.7);"></div>
+                        <div id="sh-omdb-test-result" style="margin-top: 8px; font-size: 13px; color: rgba(var(--sh-ink, 255, 255, 255), 0.7);"></div>
                         <div class="sh-console-btn-group" style="margin-top: 12px;">
                             <input class="sh-console-input" id="sh-tmdb-api-key" type="password" placeholder="Clé API TMDB (textes de critiques — optionnel, gratuite sur themoviedb.org)" value="" style="flex:1;" />
                             <button class="sh-console-action-btn" id="sh-tmdb-save-key">Enregistrer TMDB</button>
                             <button class="sh-console-action-btn" id="sh-tmdb-test">Tester TMDB</button>
                         </div>
-                        <div id="sh-tmdb-test-result" style="margin-top: 8px; font-size: 13px; color: rgba(255,255,255,0.7);"></div>
+                        <div id="sh-tmdb-test-result" style="margin-top: 8px; font-size: 13px; color: rgba(var(--sh-ink, 255, 255, 255), 0.7);"></div>
                         <div style="margin-top: 16px;">
-                            <label style="font-size: 13px; color: rgba(255,255,255,0.8); font-weight: 600;">Fournisseurs par défaut :</label>
+                            <label style="font-size: 13px; color: rgba(var(--sh-ink, 255, 255, 255), 0.8); font-weight: 600;">Fournisseurs par défaut :</label>
                             <div style="display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap;">
-                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.8);"><input type="checkbox" class="sh-ratings-provider" value="jellyfin" /> Jellyfin ★</label>
-                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.8);"><input type="checkbox" class="sh-ratings-provider" value="rt" /> Rotten Tomatoes 🍅</label>
-                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.8);"><input type="checkbox" class="sh-ratings-provider" value="imdb" /> IMDb</label>
-                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.8);"><input type="checkbox" class="sh-ratings-provider" value="metacritic" /> Metacritic</label>
-                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.8);"><input type="checkbox" class="sh-ratings-provider" value="tmdb" /> Textes TMDB</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(var(--sh-ink, 255, 255, 255), 0.8);"><input type="checkbox" class="sh-ratings-provider" value="jellyfin" /> Jellyfin ★</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(var(--sh-ink, 255, 255, 255), 0.8);"><input type="checkbox" class="sh-ratings-provider" value="rt" /> Rotten Tomatoes 🍅</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(var(--sh-ink, 255, 255, 255), 0.8);"><input type="checkbox" class="sh-ratings-provider" value="imdb" /> IMDb</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(var(--sh-ink, 255, 255, 255), 0.8);"><input type="checkbox" class="sh-ratings-provider" value="metacritic" /> Metacritic</label>
+                                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(var(--sh-ink, 255, 255, 255), 0.8);"><input type="checkbox" class="sh-ratings-provider" value="tmdb" /> Textes TMDB</label>
                             </div>
                         </div>
                         <div class="sh-console-btn-group" style="margin-top: 12px;">
                             <button class="sh-console-action-btn" id="sh-ratings-save-providers">Enregistrer les fournisseurs</button>
                         </div>
-                        <div id="sh-ratings-save-result" style="margin-top: 8px; font-size: 13px; color: rgba(255,255,255,0.7);"></div>
+                        <div id="sh-ratings-save-result" style="margin-top: 8px; font-size: 13px; color: rgba(var(--sh-ink, 255, 255, 255), 0.7);"></div>
                     </div>
                 </div>
 
@@ -972,7 +974,7 @@ export class JellyfinConsoleModal {
                 <div class="sh-console-section-header" style="margin-top: 32px;">
                     <div>
                         <div class="sh-console-brand-badge small">CATALOGUE SIGNÉ SPACEHUB</div>
-                        <h3 class="sh-console-section-title">Extensions disponibles (${window.SpaceHub?.pluginCatalog?.list?.({ includeRevoked: true })?.length || 0})</h3>
+                        <h3 class="sh-console-section-title">Extensions disponibles (${svc.pluginCatalog()?.list?.({ includeRevoked: true })?.length || 0})</h3>
                         <p class="sh-console-section-sub">Seuls les catalogues HTTPS signés et les packages intègres peuvent être chargés.</p>
                     </div>
                     <div class="sh-console-btn-group">
@@ -981,9 +983,9 @@ export class JellyfinConsoleModal {
                     </div>
                 </div>
                 <div class="sh-console-plugins-grid" id="sh-catalog-grid">
-                    ${(window.SpaceHub?.pluginCatalog?.list?.({ includeRevoked: true }) || []).map(entry => {
-                        const status = window.SpaceHub?.pluginCatalog?.getStatus?.(entry.id) || { state: 'available' };
-                        const installed = window.SpaceHub?.pluginCatalog?.isInstalled?.(entry.id);
+                    ${(svc.pluginCatalog()?.list?.({ includeRevoked: true }) || []).map(entry => {
+                        const status = svc.pluginCatalog()?.getStatus?.(entry.id) || { state: 'available' };
+                        const installed = svc.pluginCatalog()?.isInstalled?.(entry.id);
                         return `
                             <div class="sh-console-plugin-card">
                                 <div class="sh-console-plugin-header">
@@ -1047,21 +1049,21 @@ export class JellyfinConsoleModal {
             chk.addEventListener('change', (e) => {
                 const modId = e.currentTarget.dataset.moduleId;
                 settings?.set(`${modId}.enabled`, e.currentTarget.checked);
-                window.SpaceHub?.ui?.components?.toaster?.info?.(`Intégration ${modId} ${e.currentTarget.checked ? 'activée' : 'désactivée'}.`);
+                svc.toaster()?.info?.(`Intégration ${modId} ${e.currentTarget.checked ? 'activée' : 'désactivée'}.`);
             });
         });
 
         // Actions du catalogue signé (les erreurs restent visibles et aucun succès n'est simulé).
-        const catalog = window.SpaceHub?.pluginCatalog;
+        const catalog = svc.pluginCatalog();
         const catalogAction = async (button, action, successMessage) => {
             button.disabled = true;
             try {
                 await action();
-                window.SpaceHub?.ui?.components?.toaster?.success?.(successMessage);
+                svc.toaster()?.success?.(successMessage);
                 await this._renderPluginsTab(container, modal);
             } catch (error) {
                 button.disabled = false;
-                window.SpaceHub?.ui?.components?.toaster?.error?.(error?.message || 'Opération catalogue refusée.');
+                svc.toaster()?.error?.(error?.message || 'Opération catalogue refusée.');
             }
         };
         container.querySelector('#sh-catalog-load')?.addEventListener('click', async (event) => {
@@ -1077,11 +1079,11 @@ export class JellyfinConsoleModal {
             const id = button.dataset.pluginId;
             const installed = catalog?.isInstalled?.(id);
             await catalogAction(button, () => installed
-                ? window.SpaceHub?.sdk?.updateCatalogPlugin?.(id)
-                : window.SpaceHub?.sdk?.installCatalogPlugin?.(id), installed ? 'Plugin mis à jour.' : 'Plugin installé.');
+                ? svc.sdk()?.updateCatalogPlugin?.(id)
+                : svc.sdk()?.installCatalogPlugin?.(id), installed ? 'Plugin mis à jour.' : 'Plugin installé.');
         }));
         container.querySelectorAll('.sh-catalog-rollback').forEach(button => button.addEventListener('click', async () => {
-            await catalogAction(button, () => window.SpaceHub?.sdk?.rollbackCatalogPlugin?.(button.dataset.pluginId), 'Plugin restauré.');
+            await catalogAction(button, () => svc.sdk()?.rollbackCatalogPlugin?.(button.dataset.pluginId), 'Plugin restauré.');
         }));
         container.querySelectorAll('.sh-catalog-revoke').forEach(button => button.addEventListener('click', async () => {
             await catalogAction(button, () => catalog.revoke(button.dataset.pluginId), 'Plugin révoqué.');
@@ -1091,10 +1093,10 @@ export class JellyfinConsoleModal {
         container.querySelectorAll('.sh-sdk-approve').forEach(btn => btn.addEventListener('click', () => {
             const plugin = sdkPlugins.find(item => item.id === btn.dataset.pluginId);
             try {
-                window.SpaceHub?.sdk?.approvePluginPermissions(plugin.id, plugin.permissions || []);
-                window.SpaceHub?.ui?.components?.toaster?.success?.(`Permissions approuvées pour ${plugin.id}.`);
+                svc.sdk()?.approvePluginPermissions(plugin.id, plugin.permissions || []);
+                svc.toaster()?.success?.(`Permissions approuvées pour ${plugin.id}.`);
             } catch (error) {
-                window.SpaceHub?.ui?.components?.toaster?.error?.(error.message);
+                svc.toaster()?.error?.(error.message);
             }
         }));
         container.querySelectorAll('.sh-sdk-plugin-toggle').forEach(chk => {
@@ -1102,17 +1104,17 @@ export class JellyfinConsoleModal {
                 const pluginId = e.currentTarget.dataset.pluginId;
                 const isChecked = e.currentTarget.checked;
                 const success = isChecked
-                    ? await window.SpaceHub?.sdk?.enablePlugin(pluginId)
-                    : await window.SpaceHub?.sdk?.disablePlugin(pluginId);
+                    ? await svc.sdk()?.enablePlugin(pluginId)
+                    : await svc.sdk()?.disablePlugin(pluginId);
                 if (!success && isChecked) {
                     e.currentTarget.checked = false;
-                    window.SpaceHub?.ui?.components?.toaster?.error?.('Activation refusée : approuvez d’abord les permissions demandées.');
+                    svc.toaster()?.error?.('Activation refusée : approuvez d’abord les permissions demandées.');
                 }
             });
         });
 
         // Écouteurs pour le plugin de notes (spacehub.ratings)
-        const ratingCache = window.SpaceHub?.core?.ratingCache;
+        const ratingCache = svc.ratingCache();
         const ratingsPlugin = sdkPlugins.find(plugin => plugin.id === 'spacehub.ratings');
         const ratingsStatusEl = container.querySelector('#sh-ratings-plugin-status');
         if (ratingsStatusEl) {
@@ -1126,7 +1128,7 @@ export class JellyfinConsoleModal {
         }
         const omdbKeyInput = container.querySelector('#sh-omdb-api-key');
         if (omdbKeyInput && ratingsPlugin) {
-            const storage = window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings');
+            const storage = svc.sdk()?.getPluginStorage?.('spacehub.ratings');
             const savedKey = storage?.get?.('omdbApiKey', '') || '';
             omdbKeyInput.placeholder = savedKey ? 'Clé enregistrée (••••)' : 'Clé API OMDb';
         }
@@ -1138,7 +1140,7 @@ export class JellyfinConsoleModal {
                 return;
             }
             try {
-                const storage = window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings');
+                const storage = svc.sdk()?.getPluginStorage?.('spacehub.ratings');
                 storage?.set?.('omdbApiKey', key);
                 // Purger le cache des notes et rafraîchir les badges déjà montés
                 ratingCache?.clear?.();
@@ -1150,7 +1152,7 @@ export class JellyfinConsoleModal {
         });
         container.querySelector('#sh-omdb-test')?.addEventListener('click', async () => {
             const resultEl = container.querySelector('#sh-omdb-test-result');
-            const key = omdbKeyInput?.value?.trim() || window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.get?.('omdbApiKey', '');
+            const key = omdbKeyInput?.value?.trim() || svc.sdk()?.getPluginStorage?.('spacehub.ratings')?.get?.('omdbApiKey', '');
             if (!key) {
                 if (resultEl) resultEl.textContent = '❌ Saisissez d’abord une clé API.';
                 return;
@@ -1166,7 +1168,7 @@ export class JellyfinConsoleModal {
         // Clé TMDB (textes de critiques réels) — enregistrement + test réel
         const tmdbKeyInput = container.querySelector('#sh-tmdb-api-key');
         if (tmdbKeyInput) {
-            const tmdbStorage = window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings');
+            const tmdbStorage = svc.sdk()?.getPluginStorage?.('spacehub.ratings');
             const savedTmdb = tmdbStorage?.get?.('tmdbApiKey', '') || '';
             tmdbKeyInput.placeholder = savedTmdb ? 'Clé TMDB enregistrée (••••)' : tmdbKeyInput.placeholder;
         }
@@ -1178,7 +1180,7 @@ export class JellyfinConsoleModal {
                 return;
             }
             try {
-                window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.set?.('tmdbApiKey', key);
+                svc.sdk()?.getPluginStorage?.('spacehub.ratings')?.set?.('tmdbApiKey', key);
                 ratingCache?.clear?.();
                 document.dispatchEvent(new CustomEvent('spacehub:ratings-updated'));
                 if (resultEl) resultEl.textContent = '✅ Clé TMDB enregistrée — textes de critiques activés.';
@@ -1189,7 +1191,7 @@ export class JellyfinConsoleModal {
         });
         container.querySelector('#sh-tmdb-test')?.addEventListener('click', async () => {
             const resultEl = container.querySelector('#sh-tmdb-test-result');
-            const key = tmdbKeyInput?.value?.trim() || window.SpaceHub?.sdk?.getPluginStorage?.('spacehub.ratings')?.get?.('tmdbApiKey', '');
+            const key = tmdbKeyInput?.value?.trim() || svc.sdk()?.getPluginStorage?.('spacehub.ratings')?.get?.('tmdbApiKey', '');
             if (!key) {
                 if (resultEl) resultEl.textContent = '❌ Saisissez d’abord une clé TMDB.';
                 return;
@@ -1230,9 +1232,9 @@ export class JellyfinConsoleModal {
                 if (edited === null) return;
                 const parsed = JSON.parse(edited);
                 await pluginService.saveConfiguration(pluginId, pluginService.mergeRedactedConfiguration(config, parsed));
-                window.SpaceHub?.ui?.components?.toaster?.success?.('Configuration envoyée à Jellyfin.');
+                svc.toaster()?.success?.('Configuration envoyée à Jellyfin.');
             } catch (error) {
-                window.SpaceHub?.ui?.components?.toaster?.error?.(`Configuration refusée : ${error.message}`);
+                svc.toaster()?.error?.(`Configuration refusée : ${error.message}`);
             }
         }));
     }
@@ -1258,753 +1260,9 @@ export class JellyfinConsoleModal {
     }
 
     _injectStyles() {
-        if (document.getElementById('sh-jf-console-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-jf-console-styles';
-        style.textContent = `
-.sh-console-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(48px) saturate(180%);
-    -webkit-backdrop-filter: blur(48px) saturate(180%);
-    z-index: 100000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 280ms cubic-bezier(0.16, 1, 0.3, 1);
-    padding: 24px;
-    box-sizing: border-box;
-}
-
-.sh-console-modal-overlay.open {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.sh-console-card {
-    width: 100%;
-    max-width: 1100px;
-    height: 88vh;
-    background: rgba(14, 14, 18, 0.97);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 28px;
-    box-shadow: 0 32px 90px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-    padding: 28px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    transform: scale(0.96) translateY(12px);
-    transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
-    overflow: hidden;
-}
-
-.sh-console-modal-overlay.open .sh-console-card {
-    transform: scale(1) translateY(0);
-}
-
-.sh-console-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    padding-bottom: 16px;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
-.sh-console-brand-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 100px;
-    font-size: 10px;
-    font-weight: 750;
-    color: #ffffff;
-    letter-spacing: 0.8px;
-    margin-bottom: 4px;
-}
-
-.sh-console-brand-badge.small {
-    font-size: 9px;
-    padding: 2px 8px;
-    margin-bottom: 6px;
-}
-
-.sh-console-pulse {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #30d158;
-    box-shadow: 0 0 8px #30d158;
-}
-
-.sh-console-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #ffffff;
-    margin: 0;
-    letter-spacing: -0.4px;
-}
-
-.sh-console-nav {
-    display: flex;
-    gap: 4px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 100px;
-    padding: 4px;
-    flex-wrap: wrap;
-}
-
-.sh-console-nav-tab {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.60);
-    padding: 6px 14px;
-    border-radius: 100px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 180ms ease;
-}
-
-.sh-console-nav-tab:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.sh-console-nav-tab.active {
-    color: #000000;
-    background: #ffffff;
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.25);
-}
-
-.sh-console-close-btn {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 160ms ease;
-}
-
-.sh-console-close-btn:hover {
-    background: rgba(255, 255, 255, 0.20);
-    transform: scale(1.08);
-}
-
-.sh-console-body {
-    flex: 1;
-    overflow-y: auto;
-    padding-right: 6px;
-}
-
-.sh-console-section {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.sh-console-section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-.sh-console-section-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #ffffff;
-    margin: 0;
-}
-
-.sh-console-section-sub {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
-    margin: 2px 0 0 0;
-}
-
-.sh-console-subsection-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
-    margin: 12px 0 6px 0;
-}
-
-.sh-console-btn-group {
-    display: flex;
-    gap: 8px;
-}
-
-.sh-console-primary-btn {
-    background: #ffffff;
-    border: none;
-    color: #000000;
-    padding: 7px 16px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: transform 160ms ease;
-}
-
-.sh-console-primary-btn:hover {
-    transform: scale(1.04);
-}
-
-.sh-console-danger-btn {
-    background: rgba(255, 69, 58, 0.18);
-    border: 1px solid rgba(255, 69, 58, 0.35);
-    color: #ff453a;
-    padding: 7px 16px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 160ms ease;
-}
-
-.sh-console-danger-btn:hover {
-    background: rgba(255, 69, 58, 0.30);
-}
-
-.sh-console-danger-btn.outline {
-    background: transparent;
-    border-color: rgba(255, 69, 58, 0.25);
-    color: rgba(255, 69, 58, 0.8);
-}
-
-/* Form inputs & Selects - Fix styling bug */
-.sh-console-form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.sh-console-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-select.sh-console-select {
-    background-color: #16161e !important;
-    color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.16) !important;
-    border-radius: 12px !important;
-    padding: 10px 14px !important;
-    font-size: 13px !important;
-    outline: none !important;
-    appearance: none !important;
-    -webkit-appearance: none !important;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
-    background-repeat: no-repeat !important;
-    background-position: right 14px center !important;
-    padding-right: 36px !important;
-    box-sizing: border-box !important;
-}
-
-select.sh-console-select option {
-    background-color: #16161e !important;
-    color: #ffffff !important;
-    padding: 10px !important;
-}
-
-input.sh-console-input {
-    background-color: #16161e !important;
-    color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.16) !important;
-    border-radius: 12px !important;
-    padding: 10px 14px !important;
-    font-size: 13px !important;
-    outline: none !important;
-    box-sizing: border-box !important;
-}
-
-input.sh-console-input:focus, select.sh-console-select:focus {
-    border-color: rgba(255, 255, 255, 0.4) !important;
-}
-
-.sh-console-select.full, input.sh-console-input.full {
-    width: 100%;
-}
-
-/* Switches Grid */
-.sh-console-switches-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 12px;
-}
-
-.sh-console-switch-row {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 14px 18px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-}
-
-.sh-console-switch-text strong {
-    display: block;
-    font-size: 13px;
-    color: #ffffff;
-}
-
-.sh-console-switch-text small {
-    display: block;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
-    margin-top: 2px;
-}
-
-.sh-console-bento-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 12px;
-}
-
-.sh-console-stat-box {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.sh-console-stat-box.highlight {
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(255, 255, 255, 0.16);
-}
-
-.sh-console-stat-label {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.sh-console-stat-val {
-    font-size: 15px;
-    color: #ffffff;
-    font-weight: 700;
-}
-
-.sh-console-paths-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.sh-console-path-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    padding: 10px 14px;
-}
-
-.sh-console-path-tag {
-    font-size: 11px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.7);
-    width: 140px;
-    flex-shrink: 0;
-}
-
-.sh-console-path-item code {
-    font-family: monospace;
-    font-size: 12px;
-    color: #64d2ff;
-    word-break: break-all;
-}
-
-.sh-console-logs-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    height: 100%;
-}
-
-.sh-console-logs-toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.sh-console-logs-filter-group {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.sh-console-search-input {
-    background: #16161e;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 12px;
-    color: #ffffff;
-    padding: 8px 14px;
-    font-size: 12px;
-    min-width: 220px;
-    outline: none;
-}
-
-.sh-console-action-btn {
-    background: rgba(255, 255, 255, 0.10);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    color: #ffffff;
-    padding: 8px 16px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 160ms ease;
-}
-
-.sh-console-action-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.sh-console-terminal {
-    background: rgba(5, 5, 8, 0.94);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 16px;
-    padding: 16px;
-    font-family: 'SF Mono', Consolas, monospace;
-    font-size: 11px;
-    line-height: 1.6;
-    height: 480px;
-    overflow-y: auto;
-    color: rgba(255, 255, 255, 0.85);
-}
-
-.sh-log-row {
-    white-space: pre-wrap;
-    word-break: break-all;
-    padding: 2px 0;
-}
-
-.log-line-info { color: #d0d0d8; }
-.log-line-warn { color: #ffd60a; }
-.log-line-error { color: #ff453a; font-weight: bold; background: rgba(255, 69, 58, 0.08); }
-.log-line-fatal { color: #bf5af2; font-weight: bold; }
-
-.sh-console-users-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 14px;
-}
-
-.sh-console-user-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 18px;
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-
-.sh-console-user-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 750;
-    color: #ffffff;
-    flex-shrink: 0;
-}
-
-.sh-user-badge {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 6px;
-}
-
-.sh-user-badge.admin {
-    background: rgba(255, 214, 10, 0.15);
-    color: #ffd60a;
-}
-
-.sh-user-badge.standard {
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.sh-console-user-meta {
-    display: flex;
-    flex-direction: column;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
-    gap: 2px;
-    margin-top: 4px;
-}
-
-.sh-console-tasks-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.sh-console-task-row {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 14px 18px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-}
-
-.sh-console-task-title-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.sh-console-task-cat {
-    font-size: 10px;
-    padding: 2px 6px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 4px;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.sh-console-task-desc {
-    display: block;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
-    margin-top: 4px;
-}
-
-.sh-console-task-badge.running {
-    font-size: 11px;
-    font-weight: 700;
-    color: #30d158;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.sh-console-progress-track {
-    width: 100%;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 100px;
-    margin-top: 8px;
-    overflow: hidden;
-}
-
-.sh-console-progress-fill {
-    height: 100%;
-    background: #30d158;
-    border-radius: 100px;
-}
-
-.sh-console-task-btn {
-    padding: 8px 18px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    transition: all 160ms ease;
-}
-
-.sh-console-task-btn.start {
-    background: #ffffff;
-    color: #000000;
-}
-
-.sh-console-task-btn.stop {
-    background: rgba(255, 69, 58, 0.2);
-    color: #ff453a;
-    border: 1px solid rgba(255, 69, 58, 0.4);
-}
-
-.sh-console-plugins-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 12px;
-}
-
-.sh-console-plugin-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.sh-console-plugin-card.server {
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.sh-console-plugin-card.server.legacy {
-    border-color: rgba(255, 214, 10, 0.25);
-    background: rgba(255, 214, 10, 0.03);
-}
-
-.sh-console-plugin-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.sh-console-plugin-icon {
-    font-size: 22px;
-}
-
-.sh-console-plugin-info {
-    flex: 1;
-}
-
-.sh-console-plugin-info strong {
-    display: block;
-    font-size: 13px;
-    color: #ffffff;
-}
-
-.sh-console-plugin-info code {
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.sh-plugin-status-badge {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 6px;
-}
-
-.sh-plugin-status-badge.loaded {
-    background: rgba(48, 209, 88, 0.15);
-    color: #30d158;
-}
-
-.sh-plugin-status-badge.warn {
-    background: rgba(255, 214, 10, 0.15);
-    color: #ffd60a;
-}
-
-.sh-console-plugin-desc {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.55);
-    margin: 0;
-}
-
-.sh-console-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    padding-top: 16px;
-}
-
-.sh-console-footer-status {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.sh-console-done-btn {
-    background: #ffffff;
-    border: none;
-    color: #000000;
-    padding: 8px 22px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: transform 160ms ease;
-}
-
-.sh-apple-switch {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
-    flex-shrink: 0;
-}
-
-.sh-apple-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.sh-apple-switch-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(255, 255, 255, 0.16);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
-    border-radius: 24px;
-}
-
-.sh-apple-switch-slider:before {
-    position: absolute;
-    content: "";
-    height: 18px;
-    width: 18px;
-    left: 2px;
-    bottom: 2px;
-    background-color: #ffffff;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-    transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
-    border-radius: 50%;
-}
-
-.sh-apple-switch input:checked + .sh-apple-switch-slider {
-    background-color: #30d158;
-    border-color: #30d158;
-}
-
-.sh-apple-switch input:checked + .sh-apple-switch-slider:before {
-    transform: translateX(20px);
-}
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans JellyfinConsoleModal.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

@@ -26,17 +26,17 @@ export class MediaAnalyticsWidget {
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span style="font-size: 20px;">📊</span>
                         <div>
-                            <h3 class="sh-widget__title" style="margin: 0; font-size: 17px; font-weight: 700; color: #ffffff;">Mon Activité & Statistiques</h3>
-                            <p style="margin: 2px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.5);">Temps de visionnage et répartition de votre médiathèque</p>
+                            <h3 class="sh-widget__title" style="margin: 0; font-size: 17px; font-weight: 700; color: var(--sh-ink-solid, #ffffff);">Mon Activité & Statistiques</h3>
+                            <p style="margin: 2px 0 0 0; font-size: 12px; color: rgba(var(--sh-ink, 255, 255, 255), 0.5);">Temps de visionnage et répartition de votre médiathèque</p>
                         </div>
                     </div>
-                    <button class="sh-widget__refresh-btn" id="sh-btn-view-detailed-stats" style="background: rgba(255, 255, 255, 0.10); border: 1px solid rgba(255, 255, 255, 0.16); color: #ffffff; padding: 6px 14px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; backdrop-filter: blur(16px); transition: all 160ms ease;">
+                    <button class="sh-widget__refresh-btn" id="sh-btn-view-detailed-stats" style="background: rgba(var(--sh-ink, 255, 255, 255),  0.10); border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16); color: var(--sh-ink-solid, #ffffff); padding: 6px 14px; border-radius: 12px; font-size: 12px; font-weight: 600; cursor: pointer; transition: transform 160ms ease, opacity 160ms ease, background-color 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease, filter 160ms ease;">
                         <span>Détails complets →</span>
                     </button>
                 </div>
 
                 <div id="sh-analytics-widget-body">
-                    <div style="padding: 24px; text-align: center; color: rgba(255,255,255,0.5);">Calcul de l'activité...</div>
+                    <div style="padding: 24px; text-align: center; color: rgba(var(--sh-ink, 255, 255, 255), 0.5);">Calcul de l'activité...</div>
                 </div>
             </div>
         `;
@@ -57,41 +57,41 @@ export class MediaAnalyticsWidget {
 
             bodyEl.innerHTML = `
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
-                    <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 14px;">
+                    <div style="background: rgba(var(--sh-ink, 255, 255, 255), 0.04); border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 14px;">
                         <span style="font-size: 24px;">⏱️</span>
                         <div>
-                            <strong style="font-size: 20px; color: #ffffff; display: block;">${stats.totalWatchTimeHours} h</strong>
-                            <small style="font-size: 11px; color: rgba(255,255,255,0.5);">Temps total regardé</small>
+                            <strong style="font-size: 20px; color: var(--sh-ink-solid, #ffffff); display: block;">${stats.totalWatchTimeHours} h</strong>
+                            <small style="font-size: 11px; color: rgba(var(--sh-ink, 255, 255, 255), 0.5);">Temps total regardé</small>
                         </div>
                     </div>
 
-                    <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 14px;">
+                    <div style="background: rgba(var(--sh-ink, 255, 255, 255), 0.04); border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 14px;">
                         <span style="font-size: 24px;">🎬</span>
                         <div>
-                            <strong style="font-size: 20px; color: #ffffff; display: block;">${stats.playedMoviesCount} films</strong>
-                            <small style="font-size: 11px; color: rgba(255,255,255,0.5);">Films visionnés</small>
+                            <strong style="font-size: 20px; color: var(--sh-ink-solid, #ffffff); display: block;">${stats.playedMoviesCount} films</strong>
+                            <small style="font-size: 11px; color: rgba(var(--sh-ink, 255, 255, 255), 0.5);">Films visionnés</small>
                         </div>
                     </div>
 
-                    <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 14px;">
+                    <div style="background: rgba(var(--sh-ink, 255, 255, 255), 0.04); border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 14px;">
                         <span style="font-size: 24px;">📺</span>
                         <div>
-                            <strong style="font-size: 20px; color: #ffffff; display: block;">${stats.playedEpisodesCount} épisodes</strong>
-                            <small style="font-size: 11px; color: rgba(255,255,255,0.5);">Épisodes terminés</small>
+                            <strong style="font-size: 20px; color: var(--sh-ink-solid, #ffffff); display: block;">${stats.playedEpisodesCount} épisodes</strong>
+                            <small style="font-size: 11px; color: rgba(var(--sh-ink, 255, 255, 255), 0.5);">Épisodes terminés</small>
                         </div>
                     </div>
 
-                    <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 14px;">
+                    <div style="background: rgba(var(--sh-ink, 255, 255, 255), 0.04); border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 14px;">
                         <span style="font-size: 24px;">💎</span>
                         <div>
-                            <strong style="font-size: 20px; color: #ffffff; display: block;">${stats.resolutionPercentages.uhd4k}% 4K UHD</strong>
-                            <small style="font-size: 11px; color: rgba(255,255,255,0.5);">Titres Ultra Haute Définition</small>
+                            <strong style="font-size: 20px; color: var(--sh-ink-solid, #ffffff); display: block;">${stats.resolutionPercentages.uhd4k}% 4K UHD</strong>
+                            <small style="font-size: 11px; color: rgba(var(--sh-ink, 255, 255, 255), 0.5);">Titres Ultra Haute Définition</small>
                         </div>
                     </div>
                 </div>
             `;
         } catch (e) {
-            bodyEl.innerHTML = '<p style="color:rgba(255,255,255,0.4); padding:16px;">Impossible de charger les métriques.</p>';
+            bodyEl.innerHTML = '<p style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); padding:16px;">Impossible de charger les métriques.</p>';
         }
     }
 }

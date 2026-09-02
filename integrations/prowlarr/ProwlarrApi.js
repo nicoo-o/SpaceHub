@@ -12,9 +12,10 @@
 import { BaseApiClient } from '../../core/ApiClient.js';
 import Logger from '../../core/Logger.js';
 
+import * as svc from '../../core/services.js';
 class ProwlarrApi extends BaseApiClient {
     constructor() {
-        const settings = window.SpaceHub?.core?.settings;
+        const settings = svc.settings();
         const url = settings?.get('prowlarr.url', 'http://localhost:9696') || 'http://localhost:9696';
         const apiKey = settings?.get('prowlarr.apiKey', '') || '';
 
@@ -27,7 +28,7 @@ class ProwlarrApi extends BaseApiClient {
      * Met à jour la configuration depuis les paramètres SpaceHub.
      */
     updateConfig() {
-        const settings = window.SpaceHub?.core?.settings;
+        const settings = svc.settings();
         this.baseUrl = (settings?.get('prowlarr.url', 'http://localhost:9696') || 'http://localhost:9696').replace(/\/$/, '');
         this.apiKey = settings?.get('prowlarr.apiKey', '') || '';
     }

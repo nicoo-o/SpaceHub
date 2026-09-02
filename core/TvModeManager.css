@@ -1,0 +1,108 @@
+
+/* Mode TV : le curseur souris est masqué partout */
+.sh-tv-mode, .sh-tv-mode * { cursor: none !important; }
+/* Révélation temporaire au mouvement de la souris */
+.sh-tv-mode.sh-tv-cursor-reveal, .sh-tv-mode.sh-tv-cursor-reveal * { cursor: default !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODE TV — densité, zone de sécurité, coût GPU
+   ═══════════════════════════════════════════════════════════════════════════
+   Jusqu'ici `.sh-tv-mode` ne faisait que masquer le curseur. La vision produit
+   vise pourtant explicitement le téléviseur, et rien n'adaptait l'interface aux
+   trois contraintes réelles de cette cible (audit §5) :
+
+   1. DISTANCE. Les tailles sont calibrées pour 50 cm ; on regarde une TV à 3 m.
+      Un facteur d'échelle unique est appliqué à toute l'application via `zoom`,
+      qui — contrairement à `transform: scale()` — participe à la mise en page :
+      les positions fixes, le défilement et les zones cliquables restent justes.
+
+   2. OVERSCAN. Beaucoup de téléviseurs rognent les bords de l'image. Tout ce qui
+      est collé au bord est partiellement coupé. Les éléments en position fixe ne
+      se décalent pas avec un padding du corps de page : chaque ancrage de bord
+      est donc décalé explicitement par `--sh-safe-*`.
+
+   3. GPU. Le SoC d'un téléviseur a une à deux générations de retard sur un mobile
+      d'entrée de gamme. Le flou d'arrière-plan y coûte une passe de compositing
+      par frame : il est coupé net.                                            */
+
+:root {
+    /* Aucune marge de sûreté hors mode TV : sur un écran d'ordinateur,
+       rien n'est rogné. */
+    --sh-safe-top: 0px;
+    --sh-safe-right: 0px;
+    --sh-safe-bottom: 0px;
+    --sh-safe-left: 0px;
+    --sh-tv-scale: 1;
+}
+
+html.sh-tv-mode {
+    /* 3,5 % de chaque côté : la zone « titre sûre » de la norme de diffusion est
+       à 5 %, mais les téléviseurs récents rognent nettement moins. 3,5 % protège
+       sans gaspiller d'écran. */
+    --sh-safe-top: 3.5vh;
+    --sh-safe-right: 3.5vw;
+    --sh-safe-bottom: 3.5vh;
+    --sh-safe-left: 3.5vw;
+    --sh-tv-scale: 1.15;
+
+    /* Le flou d'arrière-plan est le premier poste de saccade sur TV. */
+    --sh-blur-chrome: none;
+
+    /* L'anneau de focus doit rester lisible à trois mètres. */
+    --sh-focus-ring-width: 3px;
+}
+
+html.sh-tv-mode body {
+    zoom: var(--sh-tv-scale);
+}
+
+/* ── Décalage des ancrages de bord ──────────────────────────────────────────
+   Ces éléments sont en position fixe : ils s'ancrent au viewport, pas au flux,
+   donc un padding du corps de page ne les déplace pas. */
+
+html.sh-tv-mode .sh-app-shell,
+html.sh-tv-mode .sh-dashboard,
+html.sh-tv-mode .sh-library-explorer,
+html.sh-tv-mode .sh-downloads-view {
+    padding-left: max(var(--sh-safe-left), 0px);
+    padding-right: max(var(--sh-safe-right), 0px);
+}
+
+html.sh-tv-mode .sh-dynamic-island {
+    top: calc(14px + var(--sh-safe-top));
+}
+
+html.sh-tv-mode #sh-toast-container {
+    top: calc(24px + var(--sh-safe-top));
+    right: calc(24px + var(--sh-safe-right));
+}
+
+html.sh-tv-mode .sh-resume-dock {
+    bottom: calc(28px + var(--sh-safe-bottom));
+}
+
+html.sh-tv-mode .sh-sidebar-panel,
+html.sh-tv-mode .sh-sidebar-trigger {
+    padding-top: var(--sh-safe-top);
+    padding-bottom: var(--sh-safe-bottom);
+}
+
+/* Le lecteur occupe tout l'écran : ses commandes doivent rentrer dans la zone sûre. */
+html.sh-tv-mode .sh-player-top-bar {
+    padding-top: var(--sh-safe-top);
+}
+html.sh-tv-mode .sh-player-dock,
+html.sh-tv-mode .sh-ribbon-timeline-wrapper {
+    margin-bottom: var(--sh-safe-bottom);
+}
+
+/* ── Densité de contenu ─────────────────────────────────────────────────────
+   `zoom` agrandit tout uniformément, ce qui suffit pour la lisibilité. Les
+   grilles, elles, doivent aussi montrer MOINS d'affiches à la fois : douze
+   vignettes minuscules à trois mètres sont illisibles quel que soit le zoom. */
+html.sh-tv-mode .sh-lib-grid--poster {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+html.sh-tv-mode .sh-lib-grid--backdrop {
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+}

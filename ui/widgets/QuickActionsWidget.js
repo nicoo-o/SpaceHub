@@ -9,6 +9,9 @@
 
 'use strict';
 
+
+import './QuickActionsWidget.css';
+import * as svc from '../../core/services.js';
 class QuickActionsWidget {
     constructor() {
         this.id = 'quick-actions';
@@ -42,59 +45,18 @@ class QuickActionsWidget {
 
     _bindEvents(container) {
         container.querySelector('[data-action="theme-next"]')?.addEventListener('click', () => {
-            window.SpaceHub?.ui?.themes?.next();
+            svc.themes()?.next();
         });
 
         container.querySelector('[data-action="refresh"]')?.addEventListener('click', () => {
-            window.SpaceHub?.ui?.dashboard?.refreshAll();
+            svc.dashboard()?.refreshAll();
         });
     }
 
     _injectStyles() {
-        if (document.getElementById('sh-quick-actions-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-quick-actions-styles';
-        style.textContent = `
-.sh-quick-actions-compact {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.sh-quick-btn-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    color: rgba(255, 255, 255, 0.85);
-    cursor: pointer;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    transition: 
-        background 160ms ease,
-        border-color 160ms ease,
-        transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
-        color 160ms ease,
-        box-shadow 200ms ease;
-}
-
-.sh-quick-btn-icon:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.28);
-    color: #ffffff;
-    transform: scale(1.08);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-}
-
-.sh-quick-btn-icon:active {
-    transform: scale(0.94);
-}
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans QuickActionsWidget.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

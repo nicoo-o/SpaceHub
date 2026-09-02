@@ -1,0 +1,739 @@
+.sh-console-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.85);
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out);
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.sh-console-modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.sh-console-card {
+    width: 100%;
+    max-width: 1100px;
+    height: 88vh;
+    background: rgba(var(--sh-ink-inv, 14, 14, 18),  0.97);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14);
+    border-radius: 28px;
+    box-shadow: 0 32px 90px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95), inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.25);
+    padding: 28px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    transform: scale(0.96) translateY(12px);
+    transition: transform var(--sh-dur-4) var(--sh-ease-out);
+    overflow: hidden;
+}
+
+.sh-console-modal-overlay.open .sh-console-card {
+    transform: scale(1) translateY(0);
+}
+
+.sh-console-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    padding-bottom: 16px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.sh-console-brand-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14);
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 750;
+    color: var(--sh-ink-solid, #ffffff);
+    letter-spacing: 0.8px;
+    margin-bottom: 4px;
+}
+
+.sh-console-brand-badge.small {
+    font-size: 9px;
+    padding: 2px 8px;
+    margin-bottom: 6px;
+}
+
+.sh-console-pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #30d158;
+    box-shadow: 0 0 8px #30d158;
+}
+
+.sh-console-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--sh-ink-solid, #ffffff);
+    margin: 0;
+    letter-spacing: -0.4px;
+}
+
+.sh-console-nav {
+    display: flex;
+    gap: 4px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.05);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 100px;
+    padding: 4px;
+    flex-wrap: wrap;
+}
+
+.sh-console-nav-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.60);
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-console-nav-tab:hover {
+    color: var(--sh-ink-solid, #ffffff);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+}
+
+.sh-console-nav-tab.active {
+    color: var(--sh-ink-solid-inv, #000000);
+    background: var(--sh-ink-solid, #ffffff);
+    box-shadow: 0 4px 12px rgba(var(--sh-ink, 255, 255, 255),  0.25);
+}
+
+.sh-console-close-btn {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    color: var(--sh-ink-solid, #ffffff);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-console-close-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.20);
+    transform: scale(1.08);
+}
+
+.sh-console-body {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+.sh-console-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sh-console-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.sh-console-section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--sh-ink-solid, #ffffff);
+    margin: 0;
+}
+
+.sh-console-section-sub {
+    font-size: 12px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
+    margin: 2px 0 0 0;
+}
+
+.sh-console-subsection-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.9);
+    margin: 12px 0 6px 0;
+}
+
+.sh-console-btn-group {
+    display: flex;
+    gap: 8px;
+}
+
+.sh-console-primary-btn {
+    background: var(--sh-ink-solid, #ffffff);
+    border: none;
+    color: var(--sh-ink-solid-inv, #000000);
+    padding: 7px 16px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease;
+}
+
+.sh-console-primary-btn:hover {
+    transform: scale(1.04);
+}
+
+.sh-console-danger-btn {
+    background: rgba(255, 69, 58, 0.34);
+    border: 1px solid rgba(255, 69, 58, 0.35);
+    color: #ff453a;
+    padding: 7px 16px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-console-danger-btn:hover {
+    background: rgba(255, 69, 58, 0.46);
+}
+
+.sh-console-danger-btn.outline {
+    background: transparent;
+    border-color: rgba(255, 69, 58, 0.25);
+    color: rgba(255, 69, 58, 0.8);
+}
+
+/* Form inputs & Selects - Fix styling bug */
+.sh-console-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sh-console-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.8);
+}
+
+select.sh-console-select {
+    background-color: var(--sh-bg-surface, #16161e) !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
+    border-radius: 12px !important;
+    padding: 10px 14px !important;
+    font-size: 13px !important;
+    outline: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 14px center !important;
+    padding-right: 36px !important;
+    box-sizing: border-box !important;
+}
+
+select.sh-console-select option {
+    background-color: var(--sh-bg-surface, #16161e) !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    padding: 10px !important;
+}
+
+input.sh-console-input {
+    background-color: var(--sh-bg-surface, #16161e) !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
+    border-radius: 12px !important;
+    padding: 10px 14px !important;
+    font-size: 13px !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+}
+
+input.sh-console-input:focus, select.sh-console-select:focus {
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.4) !important;
+}
+
+.sh-console-select.full, input.sh-console-input.full {
+    width: 100%;
+}
+
+/* Switches Grid */
+.sh-console-switches-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 12px;
+}
+
+.sh-console-switch-row {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 16px;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.sh-console-switch-text strong {
+    display: block;
+    font-size: 13px;
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-console-switch-text small {
+    display: block;
+    font-size: 11px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
+    margin-top: 2px;
+}
+
+.sh-console-bento-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.sh-console-stat-box {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sh-console-stat-box.highlight {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.07);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.16);
+}
+
+.sh-console-stat-label {
+    font-size: 11px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
+}
+
+.sh-console-stat-val {
+    font-size: 15px;
+    color: var(--sh-ink-solid, #ffffff);
+    font-weight: 700;
+}
+
+.sh-console-paths-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sh-console-path-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.06);
+    border-radius: 12px;
+    padding: 10px 14px;
+}
+
+.sh-console-path-tag {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.7);
+    width: 140px;
+    flex-shrink: 0;
+}
+
+.sh-console-path-item code {
+    font-family: monospace;
+    font-size: 12px;
+    color: #64d2ff;
+    word-break: break-all;
+}
+
+.sh-console-logs-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+}
+
+.sh-console-logs-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.sh-console-logs-filter-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.sh-console-search-input {
+    background: var(--sh-bg-surface, #16161e);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    border-radius: 12px;
+    color: var(--sh-ink-solid, #ffffff);
+    padding: 8px 14px;
+    font-size: 12px;
+    min-width: 220px;
+    outline: none;
+}
+
+.sh-console-action-btn {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    color: var(--sh-ink-solid, #ffffff);
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-console-action-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.2);
+}
+
+.sh-console-terminal {
+    background: rgba(var(--sh-ink-inv, 5, 5, 8),  0.94);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    border-radius: 16px;
+    padding: 16px;
+    font-family: 'SF Mono', Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    height: 480px;
+    overflow-y: auto;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
+}
+
+.sh-log-row {
+    white-space: pre-wrap;
+    word-break: break-all;
+    padding: 2px 0;
+}
+
+.log-line-info { color: #d0d0d8; }
+.log-line-warn { color: #ffd60a; }
+.log-line-error { color: #ff453a; font-weight: bold; background: rgba(255, 69, 58, 0.24); }
+.log-line-fatal { color: #bf5af2; font-weight: bold; }
+
+.sh-console-users-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+}
+
+.sh-console-user-card {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 18px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.sh-console-user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(var(--sh-ink, 255, 255, 255), 0.2), rgba(var(--sh-ink, 255, 255, 255), 0.05));
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 750;
+    color: var(--sh-ink-solid, #ffffff);
+    flex-shrink: 0;
+}
+
+.sh-user-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+
+.sh-user-badge.admin {
+    background: rgba(255, 214, 10, 0.31);
+    color: #ffd60a;
+}
+
+.sh-user-badge.standard {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.6);
+}
+
+.sh-console-user-meta {
+    display: flex;
+    flex-direction: column;
+    font-size: 11px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
+    gap: 2px;
+    margin-top: 4px;
+}
+
+.sh-console-tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sh-console-task-row {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 16px;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.sh-console-task-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sh-console-task-cat {
+    font-size: 10px;
+    padding: 2px 6px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 4px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.6);
+}
+
+.sh-console-task-desc {
+    display: block;
+    font-size: 11px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
+    margin-top: 4px;
+}
+
+.sh-console-task-badge.running {
+    font-size: 11px;
+    font-weight: 700;
+    color: #30d158;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sh-console-progress-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 100px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.sh-console-progress-fill {
+    height: 100%;
+    background: #30d158;
+    border-radius: 100px;
+}
+
+.sh-console-task-btn {
+    padding: 8px 18px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-console-task-btn.start {
+    background: var(--sh-ink-solid, #ffffff);
+    color: var(--sh-ink-solid-inv, #000000);
+}
+
+.sh-console-task-btn.stop {
+    background: rgba(255, 69, 58, 0.36);
+    color: #ff453a;
+    border: 1px solid rgba(255, 69, 58, 0.4);
+}
+
+.sh-console-plugins-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 12px;
+}
+
+.sh-console-plugin-card {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sh-console-plugin-card.server {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.02);
+}
+
+.sh-console-plugin-card.server.legacy {
+    border-color: rgba(255, 214, 10, 0.25);
+    background: rgba(255, 214, 10, 0.19);
+}
+
+.sh-console-plugin-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sh-console-plugin-icon {
+    font-size: 22px;
+}
+
+.sh-console-plugin-info {
+    flex: 1;
+}
+
+.sh-console-plugin-info strong {
+    display: block;
+    font-size: 13px;
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-console-plugin-info code {
+    font-size: 10px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
+}
+
+.sh-plugin-status-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+
+.sh-plugin-status-badge.loaded {
+    background: rgba(48, 209, 88, 0.31);
+    color: #30d158;
+}
+
+.sh-plugin-status-badge.warn {
+    background: rgba(255, 214, 10, 0.31);
+    color: #ffd60a;
+}
+
+.sh-console-plugin-desc {
+    font-size: 11px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.55);
+    margin: 0;
+}
+
+.sh-console-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    padding-top: 16px;
+}
+
+.sh-console-footer-status {
+    font-size: 12px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
+}
+
+.sh-console-done-btn {
+    background: var(--sh-ink-solid, #ffffff);
+    border: none;
+    color: var(--sh-ink-solid-inv, #000000);
+    padding: 8px 22px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease;
+}
+
+.sh-apple-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.sh-apple-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.sh-apple-switch-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.18);
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+    border-radius: 24px;
+}
+
+.sh-apple-switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 2px;
+    bottom: 2px;
+    background-color: var(--sh-ink-solid, #ffffff);
+    box-shadow: 0 2px 6px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.4);
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+    border-radius: 50%;
+}
+
+.sh-apple-switch input:checked + .sh-apple-switch-slider {
+    background-color: #30d158;
+    border-color: #30d158;
+}
+
+.sh-apple-switch input:checked + .sh-apple-switch-slider:before {
+    transform: translateX(20px);
+}

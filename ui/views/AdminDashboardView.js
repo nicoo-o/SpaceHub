@@ -3,6 +3,8 @@
 import JellyfinConsoleModal from './JellyfinConsoleModal.js';
 import { escapeHtml } from '../../core/utils/domUtils.js';
 
+import './AdminDashboardView.css';
+import * as svc from '../../core/services.js';
 export class AdminDashboardView {
     constructor() {
         this._container = null;
@@ -16,9 +18,9 @@ export class AdminDashboardView {
      * Ouvre la modale Grand Cinema d'Administration Serveur.
      */
     open() {
-        const user = window.SpaceHub?.auth?.getUser?.();
+        const user = svc.auth()?.getUser?.();
         if (user?.Policy?.IsAdministrator !== true) {
-            window.SpaceHub?.ui?.components?.toaster?.error?.('Accès réservé aux administrateurs Jellyfin.');
+            svc.toaster()?.error?.('Accès réservé aux administrateurs Jellyfin.');
             return false;
         }
         document.getElementById('sh-admin-dashboard-modal')?.remove();
@@ -179,7 +181,7 @@ export class AdminDashboardView {
         document.body.appendChild(modal);
         requestAnimationFrame(() => {
             modal.classList.add('open');
-            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            const spatialNav = svc.nav() || svc.nav();
             if (spatialNav) spatialNav.onModalOpened(modal, modal.querySelector('#sh-admin-btn-refresh'));
         });
 
@@ -190,7 +192,7 @@ export class AdminDashboardView {
                 this._refreshTimer = null;
             }
             modal.classList.remove('open');
-            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            const spatialNav = svc.nav() || svc.nav();
             if (spatialNav) spatialNav.onModalClosed();
             if (this._closeTimer) clearTimeout(this._closeTimer);
             this._closeTimer = setTimeout(() => {
@@ -209,19 +211,19 @@ export class AdminDashboardView {
         // Liaison des boutons d'actions
         modal.querySelector('#sh-admin-btn-refresh')?.addEventListener('click', () => {
             this._loadAllData(modal);
-            window.SpaceHub?.ui?.components?.toaster?.info?.('Données d\'administration actualisées');
+            svc.toaster()?.info?.('Données d\'administration actualisées');
         });
 
         modal.querySelector('#sh-admin-btn-scan-library')?.addEventListener('click', async (e) => {
             const btn = e.currentTarget;
             btn.disabled = true;
             btn.style.opacity = '0.6';
-            const jfApi = window.SpaceHub?.jellyfin?.api;
+            const jfApi = svc.jellyfinApi();
             const success = await jfApi?.refreshLibrary?.();
             if (success) {
-                window.SpaceHub?.ui?.components?.toaster?.success?.('Scan de la médiathèque Jellyfin lancé !');
+                svc.toaster()?.success?.('Scan de la médiathèque Jellyfin lancé !');
             } else {
-                window.SpaceHub?.ui?.components?.toaster?.error?.('Impossible de lancer le scan Jellyfin');
+                svc.toaster()?.error?.('Impossible de lancer le scan Jellyfin');
             }
             setTimeout(() => {
                 btn.disabled = false;
@@ -235,17 +237,17 @@ export class AdminDashboardView {
         });
 
         modal.querySelector('#sh-admin-btn-sync-bazarr')?.addEventListener('click', async () => {
-            const bazarr = window.SpaceHub?.integrations?.bazarr;
+            const bazarr = svc.integration('bazarr');
             try {
                 if (typeof bazarr?.sync === 'function') {
                     await bazarr.sync();
-                    window.SpaceHub?.ui?.components?.toaster?.success?.('Synchronisation Bazarr effectuée !');
+                    svc.toaster()?.success?.('Synchronisation Bazarr effectuée !');
                 } else {
-                    window.SpaceHub?.ui?.components?.toaster?.info?.('Bazarr non configuré ou inactif.');
+                    svc.toaster()?.info?.('Bazarr non configuré ou inactif.');
                 }
             } catch (err) {
                 console.error('[AdminDashboardView] Erreur sync Bazarr:', err);
-                window.SpaceHub?.ui?.components?.toaster?.error?.(`Erreur Bazarr : ${escapeHtml(err?.message || 'Échec de synchronisation')}`);
+                svc.toaster()?.error?.(`Erreur Bazarr : ${escapeHtml(err?.message || 'Échec de synchronisation')}`);
             }
         });
 
@@ -297,7 +299,7 @@ export class AdminDashboardView {
      */
     async _loadSystemInfo(modal) {
         const infoEl = modal.querySelector('#sh-admin-server-info-text');
-        const jfApi = window.SpaceHub?.jellyfin?.api;
+        const jfApi = svc.jellyfinApi();
         try {
             const info = await jfApi?.getSystemInfo?.();
             if (info && infoEl) {
@@ -322,7 +324,7 @@ export class AdminDashboardView {
         const countBadge = modal.querySelector('#sh-admin-sessions-count');
         if (!container) return;
 
-        const jfApi = window.SpaceHub?.jellyfin?.api;
+        const jfApi = svc.jellyfinApi();
         try {
             const allSessions = await jfApi?.getAllSessions?.();
             // Filtrer les sessions qui lisent actuellement un contenu
@@ -337,7 +339,7 @@ export class AdminDashboardView {
                     <div class="sh-admin-empty-state">
                         <div class="sh-admin-empty-icon">✨</div>
                         <p><strong>Aucune lecture en cours</strong></p>
-                        <small style="color:rgba(255,255,255,0.45);">Le serveur est en veille active. Les flux apparaîtront ici en direct dès qu'un utilisateur lance un média.</small>
+                        <small style="color:rgba(var(--sh-ink, 255, 255, 255), 0.45);">Le serveur est en veille active. Les flux apparaîtront ici en direct dès qu'un utilisateur lance un média.</small>
                     </div>
                 `;
                 return;
@@ -367,7 +369,7 @@ export class AdminDashboardView {
                 return `
                     <div class="sh-admin-session-item" data-session-id="${escapeHtml(s.Id)}">
                         <div class="sh-session-poster">
-                            <img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(title)}" onerror="this.style.display='none'" />
+                            <img decoding="async" src="${escapeHtml(imgUrl)}" alt="${escapeHtml(title)}" onerror="this.style.display='none'" />
                         </div>
                         <div class="sh-session-details">
                             <div class="sh-session-top-line">
@@ -396,7 +398,7 @@ export class AdminDashboardView {
                     const sId = e.currentTarget.dataset.sessionId;
                     if (confirm('Voulez-vous vraiment stopper cette lecture à distance ?')) {
                         await jfApi?.stopSession?.(sId);
-                        window.SpaceHub?.ui?.components?.toaster?.success?.('Session de lecture interrompue.');
+                        svc.toaster()?.success?.('Session de lecture interrompue.');
                         this._loadSessions(modal);
                     }
                 });
@@ -408,13 +410,13 @@ export class AdminDashboardView {
                     const msg = prompt('Entrez le message à afficher sur l\'écran de l\'utilisateur :');
                     if (msg && msg.trim()) {
                         await jfApi?.sendMessageToSession?.(sId, msg.trim());
-                        window.SpaceHub?.ui?.components?.toaster?.success?.('Message envoyé à l\'utilisateur !');
+                        svc.toaster()?.success?.('Message envoyé à l\'utilisateur !');
                     }
                 });
             });
 
         } catch (e) {
-            container.innerHTML = '<p style="color:rgba(255,255,255,0.5); padding:16px;">Impossible de contacter l\'API des sessions.</p>';
+            container.innerHTML = '<p style="color:rgba(var(--sh-ink, 255, 255, 255), 0.5); padding:16px;">Impossible de contacter l\'API des sessions.</p>';
         }
     }
 
@@ -422,7 +424,7 @@ export class AdminDashboardView {
      * 💾 Charge le décompte des médias.
      */
     async _loadItemCounts(modal) {
-        const jfApi = window.SpaceHub?.jellyfin?.api;
+        const jfApi = svc.jellyfinApi();
         try {
             const counts = await jfApi?.getItemCounts?.();
             if (counts) {
@@ -453,7 +455,7 @@ export class AdminDashboardView {
         const badge = modal.querySelector('#sh-admin-health-badge');
 
         try {
-            const bazarr = window.SpaceHub?.integrations?.bazarr;
+            const bazarr = svc.integration('bazarr');
             if (bazarr?.getWantedSummary) {
                 const summary = await bazarr.getWantedSummary();
                 const missing = Number(summary?.totalWanted || 0);
@@ -472,8 +474,8 @@ export class AdminDashboardView {
 
             if (badge) {
                 badge.textContent = '⚪ Données partielles';
-                badge.style.background = 'rgba(255, 255, 255, 0.10)';
-                badge.style.color = 'rgba(255, 255, 255, 0.75)';
+                badge.style.background = 'rgba(var(--sh-ink, 255, 255, 255),  0.10)';
+                badge.style.color = 'rgba(var(--sh-ink, 255, 255, 255),  0.75)';
             }
         } catch (e) {
             if (bazarrText) bazarrText.textContent = 'Bazarr indisponible ou non configuré.';
@@ -510,7 +512,7 @@ export class AdminDashboardView {
         const integrations = window.SpaceHub?.integrations || {};
         return [
             { id: 'jellyfin', name: 'Jellyfin Server', icon: '🪐', port: '', check: async () => {
-                const info = await window.SpaceHub?.jellyfin?.api?.getSystemInfo?.();
+                const info = await svc.jellyfinApi()?.getSystemInfo?.();
                 return info ? 'connected' : 'offline';
             } },
             ...[
@@ -547,7 +549,7 @@ export class AdminDashboardView {
      */
     async _testAllServices(modal) {
         const services = this._healthServices || this._getServiceHealthDescriptors();
-        window.SpaceHub?.ui?.components?.toaster?.info?.('Test réel des services en cours...');
+        svc.toaster()?.info?.('Test réel des services en cours...');
         await Promise.all(services.map(async descriptor => {
             this._setServiceStatus(modal, descriptor, 'connecting');
             const startedAt = performance.now();
@@ -560,7 +562,7 @@ export class AdminDashboardView {
         }));
         const statuses = services.map(s => modal.querySelector(`#sh-svc-${s.id}`)?.dataset.status);
         const failed = statuses.filter(status => !['connected'].includes(status));
-        window.SpaceHub?.ui?.components?.toaster?.[failed.length ? 'warning' : 'success']?.(
+        svc.toaster()?.[failed.length ? 'warning' : 'success']?.(
             failed.length ? `${failed.length} service(s) nécessitent une vérification.` : 'Tous les services testés répondent correctement.'
         );
     }
@@ -569,585 +571,9 @@ export class AdminDashboardView {
      * Injecte les styles CSS d'élite Apple VisionOS Bento Glass pour l'Administration.
      */
     _injectStyles() {
-        if (document.getElementById('sh-admin-dashboard-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-admin-dashboard-styles';
-        style.textContent = `
-/* ── Overlay Modal Administration Bento Glass ── */
-.sh-admin-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.78);
-    backdrop-filter: blur(48px) saturate(180%);
-    -webkit-backdrop-filter: blur(48px) saturate(180%);
-    z-index: 99999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 280ms cubic-bezier(0.16, 1, 0.3, 1);
-    padding: 24px;
-    box-sizing: border-box;
-}
-
-.sh-admin-modal-overlay.open {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.sh-admin-modal-card {
-    width: 100%;
-    max-width: 980px;
-    max-height: 90vh;
-    background: rgba(14, 14, 18, 0.94);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 28px;
-    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.92), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-    padding: 32px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    transform: scale(0.96) translateY(12px);
-    transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
-    overflow-y: auto;
-}
-
-.sh-admin-modal-overlay.open .sh-admin-modal-card {
-    transform: scale(1) translateY(0);
-}
-
-/* ── En-tête ── */
-.sh-admin-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    padding-bottom: 20px;
-}
-
-.sh-admin-modal-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    background: rgba(255, 255, 255, 0.10);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 100px;
-    font-size: 10px;
-    font-weight: 700;
-    color: #ffffff;
-    letter-spacing: 0.8px;
-    margin-bottom: 8px;
-}
-
-.sh-admin-modal-title {
-    font-size: 24px;
-    font-weight: 700;
-    color: #ffffff;
-    margin: 0;
-    letter-spacing: -0.5px;
-}
-
-.sh-admin-modal-subtitle {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.55);
-    margin: 4px 0 0 0;
-}
-
-.sh-admin-header-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.sh-admin-header-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.10);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    color: #ffffff;
-    padding: 8px 14px;
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    backdrop-filter: blur(12px);
-    transition: all 180ms ease;
-}
-
-.sh-admin-header-btn:hover {
-    background: rgba(255, 255, 255, 0.20);
-    transform: translateY(-1px);
-}
-
-.sh-admin-modal-close {
-    background: rgba(255, 255, 255, 0.10);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    color: #ffffff;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 15px;
-    transition: all 160ms ease;
-}
-
-.sh-admin-modal-close:hover {
-    background: rgba(255, 255, 255, 0.22);
-    transform: scale(1.08);
-}
-
-/* ── Bento Grid ── */
-.sh-admin-bento-grid {
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 16px;
-}
-
-.sh-admin-bento-card {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    border-radius: 20px;
-    padding: 20px;
-    box-sizing: border-box;
-    backdrop-filter: blur(20px);
-}
-
-.sh-admin-card-sessions {
-    grid-column: span 12;
-}
-
-.sh-admin-card-library {
-    grid-column: span 6;
-}
-
-.sh-admin-card-health {
-    grid-column: span 6;
-}
-
-.sh-admin-card-services {
-    grid-column: span 12;
-}
-
-@media (max-width: 768px) {
-    .sh-admin-card-library,
-    .sh-admin-card-health {
-        grid-column: span 12;
-    }
-}
-
-.sh-admin-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.sh-admin-card-title-group {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.sh-admin-live-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #30d158;
-    box-shadow: 0 0 10px #30d158;
-    animation: sh-pulse-dot 2s infinite ease-in-out;
-}
-
-@keyframes sh-pulse-dot {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.4); opacity: 0.6; }
-}
-
-.sh-admin-card-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #ffffff;
-    margin: 0;
-}
-
-.sh-admin-card-tag {
-    font-size: 12px;
-    padding: 3px 10px;
-    border-radius: 100px;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.7);
-}
-
-/* ── Sessions List ── */
-.sh-admin-sessions-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.sh-admin-session-item {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    padding: 12px;
-}
-
-.sh-session-poster {
-    width: 50px;
-    height: 75px;
-    border-radius: 8px;
-    background: #000;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.sh-session-poster img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.sh-session-details {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.sh-session-top-line {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.sh-session-user {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.sh-session-badge {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-weight: 600;
-}
-
-.sh-badge-direct {
-    background: rgba(48, 209, 88, 0.18);
-    color: #30d158;
-}
-
-.sh-badge-transcode {
-    background: rgba(255, 159, 10, 0.18);
-    color: #ff9f0a;
-}
-
-.sh-session-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #ffffff;
-    margin: 0;
-}
-
-.sh-session-progress-wrapper {
-    width: 100%;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.sh-session-progress-bar {
-    height: 100%;
-    background: #ffffff;
-    border-radius: 10px;
-}
-
-.sh-session-time-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.sh-session-item-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.sh-session-btn-msg,
-.sh-session-btn-stop {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-    padding: 4px 10px;
-    border-radius: 8px;
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 140ms ease;
-}
-
-.sh-session-btn-msg:hover {
-    background: rgba(255, 255, 255, 0.18);
-}
-
-.sh-session-btn-stop:hover {
-    background: rgba(255, 69, 58, 0.25);
-    border-color: rgba(255, 69, 58, 0.4);
-    color: #ff453a;
-}
-
-.sh-admin-empty-state {
-    text-align: center;
-    padding: 28px 16px;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.sh-admin-empty-icon {
-    font-size: 28px;
-    margin-bottom: 8px;
-}
-
-/* ── Metrics Grid ── */
-.sh-admin-metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-}
-
-.sh-admin-metric-pill {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    padding: 12px;
-}
-
-.sh-admin-metric-icon {
-    font-size: 22px;
-}
-
-.sh-admin-metric-data strong {
-    display: block;
-    font-size: 18px;
-    color: #ffffff;
-}
-
-.sh-admin-metric-data small {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.sh-admin-mini-action-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(255, 255, 255, 0.10);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    color: #ffffff;
-    padding: 6px 12px;
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 160ms ease;
-}
-
-.sh-admin-mini-action-btn:hover {
-    background: rgba(255, 255, 255, 0.20);
-}
-
-/* ── Health List ── */
-.sh-admin-health-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.sh-admin-health-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 12px;
-}
-
-.sh-admin-health-icon {
-    font-size: 18px;
-}
-
-.sh-admin-health-info {
-    flex: 1;
-}
-
-.sh-admin-health-info strong {
-    display: block;
-    font-size: 13px;
-    color: #ffffff;
-}
-
-.sh-admin-health-info span {
-    display: block;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
-    margin-top: 2px;
-}
-
-.sh-admin-health-btn {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 140ms ease;
-}
-
-.sh-admin-health-btn:hover {
-    background: rgba(255, 255, 255, 0.18);
-}
-
-.sh-admin-card-badge-health {
-    font-size: 11px;
-    padding: 3px 10px;
-    border-radius: 100px;
-    font-weight: 600;
-}
-
-/* ── Services Grid ── */
-.sh-admin-services-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 12px;
-}
-
-.sh-admin-service-card {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    transition: transform 180ms ease, border-color 180ms ease;
-}
-
-.sh-admin-service-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.20);
-}
-
-.sh-svc-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.sh-svc-icon {
-    font-size: 18px;
-}
-
-.sh-svc-status-pill {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 100px;
-}
-
-.sh-svc-status-pill.online {
-    background: rgba(48, 209, 88, 0.15);
-    color: #30d158;
-}
-
-.sh-svc-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: currentColor;
-}
-
-.sh-svc-name {
-    font-size: 12px;
-    font-weight: 600;
-    color: #ffffff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.sh-svc-port {
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.45);
-}
-
-/* ── Footer ── */
-.sh-admin-modal-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    padding-top: 20px;
-}
-
-.sh-admin-console-link-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: transparent;
-    border: none;
-    color: var(--sh-color-primary, #64d2ff);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 6px 0;
-    transition: opacity 160ms ease;
-}
-
-.sh-admin-console-link-btn:hover {
-    opacity: 0.8;
-    text-decoration: underline;
-}
-
-.sh-admin-close-btn-main {
-    background: #ffffff;
-    border: none;
-    color: #000000;
-    padding: 10px 24px;
-    border-radius: 14px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 180ms ease;
-}
-
-.sh-admin-close-btn-main:hover {
-    transform: scale(1.04);
-    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.35);
-}
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans AdminDashboardView.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

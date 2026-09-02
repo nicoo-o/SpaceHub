@@ -14,15 +14,17 @@
 
 import Logger from '../../core/Logger.js';
 
+import './UnifiedSearch.css';
+import * as svc from '../../core/services.js';
 class UnifiedSearch {
     constructor() {
         // Confirmation du scope search dans le Focus Registry
-        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        const spatialNav = svc.nav() || svc.nav();
         if (spatialNav?.registerFocusables) {
             spatialNav.registerFocusables('search', (container) => {
                 const root = container || document.querySelector('.sh-unified-search--open') || document;
-                return Array.from(root.querySelectorAll('#sh-spotlight-input, .sh-spotlight-filter-chip, .sh-spotlight-card, [data-nav-focusable="true"]'));
-            });
+                return Array.from(root.querySelectorAll('.sh-spotlight-input, .sh-spotlight-tab-btn, .sh-spotlight-item, [data-nav-focusable="true"]'));
+            }, { force: true }); // re-registration volontaire — cf. plan A04
         }
         this._log = new Logger('UnifiedSearch');
         this._overlay = null;
@@ -42,7 +44,7 @@ class UnifiedSearch {
     }
 
     get _apiClient() {
-        return window.SpaceHub?.core?.api?.getClient('jellyfin');
+        return svc.api()?.getClient('jellyfin');
     }
 
     _loadRecentSearches() {
@@ -81,7 +83,7 @@ class UnifiedSearch {
                 sub: 'Tableau de bord principal',
                 action: () => {
                     this._navigateAndDismiss(() => {
-                        window.SpaceHub?.ui?.appLayout?.navigate('home');
+                        svc.appLayout()?.navigate('home');
                     });
                 }
             },
@@ -94,7 +96,7 @@ class UnifiedSearch {
                 sub: 'Explorer tous vos médias',
                 action: () => {
                     this._navigateAndDismiss(() => {
-                        window.SpaceHub?.ui?.appLayout?.navigate('library');
+                        svc.appLayout()?.navigate('library');
                     });
                 }
             },
@@ -107,7 +109,7 @@ class UnifiedSearch {
                 sub: 'Longs-métrages & Cinéma',
                 action: () => {
                     this._navigateAndDismiss(() => {
-                        window.SpaceHub?.ui?.appLayout?.navigate('movies');
+                        svc.appLayout()?.navigate('movies');
                     });
                 }
             },
@@ -120,7 +122,7 @@ class UnifiedSearch {
                 sub: 'Saisons & Épisodes complets',
                 action: () => {
                     this._navigateAndDismiss(() => {
-                        window.SpaceHub?.ui?.appLayout?.navigate('series');
+                        svc.appLayout()?.navigate('series');
                     });
                 }
             },
@@ -133,7 +135,7 @@ class UnifiedSearch {
                 sub: 'Bandes originales et albums',
                 action: () => {
                     this._navigateAndDismiss(() => {
-                        window.SpaceHub?.ui?.appLayout?.navigate('music');
+                        svc.appLayout()?.navigate('music');
                     });
                 }
             },
@@ -146,7 +148,7 @@ class UnifiedSearch {
                 sub: 'Préférences & Clés API',
                 action: () => {
                     this._navigateAndDismiss(() => {
-                        window.SpaceHub?.ui?.settingsPanel?.open();
+                        svc.settingsPanel()?.open();
                     });
                 }
             }
@@ -165,10 +167,10 @@ class UnifiedSearch {
                 action: () => {
                     this._navigateAndDismiss(() => {
                         const themes = ['space-dark', 'cyberpunk', 'oled-black', 'aurora'];
-                        const current = window.SpaceHub?.core?.settings?.get('ui.theme', 'space-dark') || 'space-dark';
+                        const current = svc.settings()?.get('ui.theme', 'space-dark') || 'space-dark';
                         const next = themes[(themes.indexOf(current) + 1) % themes.length];
-                        window.SpaceHub?.ui?.themes?.applyTheme(next);
-                        window.SpaceHub?.ui?.components?.toaster?.success(`Thème : ${next}`);
+                        svc.themes()?.applyTheme(next);
+                        svc.toaster()?.success(`Thème : ${next}`);
                     });
                 }
             },
@@ -181,11 +183,11 @@ class UnifiedSearch {
                 sub: 'Lancer un média au hasard',
                 action: () => {
                     this._navigateAndDismiss(() => {
-                        window.SpaceHub?.ui?.components?.toaster?.info('Sélection d\'un média aléatoire...');
+                        svc.toaster()?.info('Sélection d\'un média aléatoire...');
                         const sampleItems = this._getDefaultCatalog();
                         const pick = sampleItems[Math.floor(Math.random() * sampleItems.length)];
                         setTimeout(() => {
-                            window.SpaceHub?.ui?.modalSlideUpSheet?.open(pick);
+                            svc.slideUpSheet()?.open(pick);
                         }, 80);
                     });
                 }
@@ -201,9 +203,9 @@ class UnifiedSearch {
                     this._navigateAndDismiss(() => {
                         const mainContainer = document.querySelector('#sh-main-view-container');
                         if (mainContainer) {
-                            window.SpaceHub?.ui?.dashboard?.render(mainContainer);
+                            svc.dashboard()?.render(mainContainer);
                         }
-                        window.SpaceHub?.ui?.components?.toaster?.success('Dashboard actualisé');
+                        svc.toaster()?.success('Dashboard actualisé');
                     });
                 }
             }
@@ -212,7 +214,7 @@ class UnifiedSearch {
 
     async _getRecentMediaHighlights() {
         try {
-            const api = window.SpaceHub?.jellyfin?.api;
+            const api = svc.jellyfinApi();
             if (!api) return [];
             
             // 1. Essai sur les reprises en cours
@@ -251,16 +253,16 @@ class UnifiedSearch {
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
                 e.preventDefault();
                 e.stopPropagation();
-                if (window.SpaceHub?.jellyfin?.search) {
-                    window.SpaceHub.jellyfin.search.toggle();
+                if (svc.search()) {
+                    svc.search().toggle();
                 } else {
                     this.toggle();
                 }
             } else if (e.key === '/' && !isTyping && !this._isOpen) {
                 e.preventDefault();
                 e.stopPropagation();
-                if (window.SpaceHub?.jellyfin?.search) {
-                    window.SpaceHub.jellyfin.search.open();
+                if (svc.search()) {
+                    svc.search().open();
                 } else {
                     this.open();
                 }
@@ -274,7 +276,7 @@ class UnifiedSearch {
     }
 
         open() {
-        const isEnabled = window.SpaceHub?.core?.settings?.get('jellyfin.search.enabled', true);
+        const isEnabled = svc.settings()?.get('jellyfin.search.enabled', true);
         if (isEnabled === false) {
             this._log.debug('Recherche unifiée désactivée dans les paramètres.');
             return;
@@ -596,7 +598,10 @@ class UnifiedSearch {
         this._isOpen = true;
         document.body.style.overflow = 'hidden';
 
-        this._bindEvents();
+        // Garde anti-duplication : _bindEvents etait rappele a CHAQUE open()
+        // alors que l'overlay et la modale sont reutilises. Les ecouteurs
+        // s'empilaient : a la N-ieme ouverture, une fleche sautait N elements.
+        if (!this._eventsBound) { this._bindEvents(); this._eventsBound = true; }
         this._renderInitialView();
     }
 
@@ -895,7 +900,7 @@ class UnifiedSearch {
                         return `
                             <div class="sh-spotlight-item ${isSelected ? 'active' : ''}" data-index="${globalIndex}" style="--idx: ${globalIndex}">
                                 <div class="sh-spotlight-thumb-wrap">
-                                    ${media.imageUrl ? `<img src="${media.imageUrl}" alt="${this._escape(media.title)}" />` : `<div class="sh-spotlight-thumb-fallback"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg></div>`}
+                                    ${media.imageUrl ? `<img decoding="async" src="${media.imageUrl}" alt="${this._escape(media.title)}" />` : `<div class="sh-spotlight-thumb-fallback"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg></div>`}
                                 </div>
                                 <div class="sh-spotlight-item-text">
                                     <span class="sh-spotlight-item-title">${this._escape(media.title)}</span>
@@ -988,7 +993,7 @@ class UnifiedSearch {
         let mediaResults = [];
         if (this._activeFilter === 'All' || this._activeFilter === 'Movie' || this._activeFilter === 'Series') {
             try {
-                const api = window.SpaceHub?.jellyfin?.api;
+                const api = svc.jellyfinApi();
                 if (api) {
                     const typeParam = this._activeFilter === 'Movie' ? 'Movie' :
                                       this._activeFilter === 'Series' ? 'Series' : 'Movie,Series,BoxSet';
@@ -1025,7 +1030,7 @@ class UnifiedSearch {
         let jellyseerrResults = [];
         if (this._activeFilter === 'All' || this._activeFilter === 'Movie' || this._activeFilter === 'Series') {
             try {
-                const jellyseerrApi = window.SpaceHub?.integrations?.jellyseerr?.api;
+                const jellyseerrApi = svc.integration('jellyseerr')?.api;
                 if (jellyseerrApi?.search) {
                     const jsData = await jellyseerrApi.search(queryClean);
                     
@@ -1097,7 +1102,7 @@ class UnifiedSearch {
                 html += `
                     <div class="sh-spotlight-item ${isSelected ? 'active' : ''}" data-index="${globalIndex}" style="--idx: ${globalIndex}">
                         <div class="sh-spotlight-thumb-wrap">
-                            ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${this._escape(item.title)}" />` : '<div class="sh-spotlight-thumb-fallback">🎬</div>'}
+                            ${item.imageUrl ? `<img decoding="async" src="${item.imageUrl}" alt="${this._escape(item.title)}" />` : '<div class="sh-spotlight-thumb-fallback">🎬</div>'}
                         </div>
                         <div class="sh-spotlight-item-text">
                             <span class="sh-spotlight-item-title">${this._highlightQuery(item.title, queryClean)}</span>
@@ -1126,7 +1131,7 @@ class UnifiedSearch {
                 html += `
                     <div class="sh-spotlight-item sh-spotlight-item--jellyseerr ${isSelected ? 'active' : ''}" data-index="${globalIndex}" style="--idx: ${globalIndex}">
                         <div class="sh-spotlight-thumb-wrap">
-                            ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${this._escape(item.title)}" />` : '<div class="sh-spotlight-thumb-fallback">🎬</div>'}
+                            ${item.imageUrl ? `<img decoding="async" src="${item.imageUrl}" alt="${this._escape(item.title)}" />` : '<div class="sh-spotlight-thumb-fallback">🎬</div>'}
                         </div>
                         <div class="sh-spotlight-item-text">
                             <div style="display:flex; align-items:center; gap:8px;">
@@ -1245,7 +1250,7 @@ class UnifiedSearch {
 
         // Pour tout média (Film, Série, Musique, Saga) : Plongée vers l'avant et ouverture immédiate de la fiche !
         this._navigateAndDismiss(() => {
-            window.SpaceHub?.ui?.modalSlideUpSheet?.open(currentItem);
+            svc.slideUpSheet()?.open(currentItem);
         });
     }
 
@@ -1264,473 +1269,9 @@ class UnifiedSearch {
     }
 
     _injectStyles() {
-        const existing = document.getElementById('sh-spotlight-palette-styles');
-        if (existing) existing.remove();
-
-        const style = document.createElement('style');
-        style.id = 'sh-spotlight-palette-styles';
-        style.textContent = `
-
-.sh-jellyseerr-search-badge {
-    font-size: 10px !important;
-    font-weight: 750 !important;
-    text-transform: uppercase !important;
-    padding: 2px 6px !important;
-    border-radius: 6px !important;
-    background: rgba(99, 102, 241, 0.2) !important;
-    border: 1px solid rgba(99, 102, 241, 0.4) !important;
-    color: #a5b4fc !important;
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════
-   🍏 MACOS QUICKLOOK / WINDOW ZOOM ANIMATION DEPUIS LA LOUPE DU DOCK
-   ═══════════════════════════════════════════════════════════════════════ */
-
-.sh-spotlight-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.58);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    z-index: 10001;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 380ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-spotlight-overlay.open {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-/* 🍏 Centre exact de l'écran avec verre dépoli VisionOS / macOS */
-.sh-spotlight-macos-modal {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: min(680px, 92vw);
-    height: 510px;
-    max-height: 80vh;
-    background: rgba(13, 13, 18, 0.94);
-    backdrop-filter: blur(60px) saturate(220%);
-    -webkit-backdrop-filter: blur(60px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 24px;
-    box-shadow: 
-        0 40px 100px rgba(0, 0, 0, 0.96),
-        inset 0 1px 0 rgba(255, 255, 255, 0.35),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.08);
-    z-index: 10002;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    pointer-events: auto;
-}
-
-/* ── En-tête Translucide avec Input Épuré ────────────────────────────── */
-.sh-spotlight-header {
-    display: flex;
-    align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.02);
-    width: 100%;
-}
-
-.sh-spotlight-search-bar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 13px 18px;
-    width: 100%;
-}
-
-.sh-spotlight-search-icon {
-    color: rgba(255, 255, 255, 0.50);
-    flex-shrink: 0;
-}
-
-.sh-spotlight-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: #ffffff;
-    font-size: 15px;
-    font-weight: 500;
-    font-family: inherit;
-}
-.sh-spotlight-input::placeholder {
-    color: rgba(255, 255, 255, 0.35);
-}
-
-.sh-spotlight-clear-btn {
-    background: rgba(255, 255, 255, 0.06);
-    border: none;
-    color: rgba(255, 255, 255, 0.6);
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    cursor: pointer;
-    transition: background 140ms ease;
-}
-.sh-spotlight-clear-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #ffffff;
-}
-
-/* ── Filtres Pastilles ───────────────────────────────────────────────── */
-.sh-spotlight-tabs-row {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-}
-
-.sh-spotlight-tab-btn {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.45);
-    padding: 4px 9px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 140ms ease;
-}
-.sh-spotlight-tab-btn:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.06);
-}
-.sh-spotlight-tab-btn.active {
-    color: #000000;
-    background: #ffffff;
-    font-weight: 700;
-}
-
-.sh-spotlight-esc-pill {
-    font-size: 9.5px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.35);
-    background: rgba(255, 255, 255, 0.06);
-    padding: 2px 6px;
-    border-radius: 4px;
-}
-
-/* ── Corps Mono-Colonne (Single-Pane) ────────────────────────────────── */
-.sh-spotlight-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-}
-
-.sh-spotlight-results-pane {
-    position: relative;
-    padding: 10px 14px 12px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 420px;
-}
-
-.sh-spotlight-active-indicator {
-    position: absolute;
-    left: 14px;
-    right: 14px;
-    top: 0;
-    height: 48px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
-    pointer-events: none;
-    transition: transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1), height 140ms ease;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    display: none;
-    z-index: 1;
-}
-
-.sh-spotlight-section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 10px;
-    font-weight: 750;
-    letter-spacing: 0.6px;
-    color: rgba(255, 255, 255, 0.35);
-    padding: 4px 6px 2px;
-    z-index: 2;
-}
-
-.sh-spotlight-clear-history-btn {
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.40);
-    font-size: 10px;
-    cursor: pointer;
-    transition: color 140ms ease;
-}
-.sh-spotlight-clear-history-btn:hover {
-    color: #ffffff;
-}
-
-.sh-spotlight-recent-tags-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 2px 4px 6px;
-    z-index: 2;
-}
-
-.sh-spotlight-recent-pill {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.75);
-    font-size: 11.5px;
-    font-weight: 550;
-    padding: 4px 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    transition: all 140ms ease;
-}
-.sh-spotlight-recent-pill:hover {
-    background: rgba(255, 255, 255, 0.10);
-    border-color: rgba(255, 255, 255, 0.16);
-    color: #ffffff;
-}
-.sh-spotlight-clock-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(255, 255, 255, 0.55);
-    flex-shrink: 0;
-}
-.sh-spotlight-clock-icon svg {
-    display: block;
-    stroke: currentColor;
-}
-
-.sh-spotlight-items-list {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    z-index: 2;
-}
-
-.sh-spotlight-item {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 7px 10px;
-    border-radius: 12px;
-    background: transparent;
-    cursor: pointer;
-    z-index: 2;
-    transition: all 120ms ease;
-    animation: sh-spotlight-stagger-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
-    animation-delay: calc(var(--idx, 0) * 16ms);
-}
-
-@keyframes sh-spotlight-stagger-in {
-    0% {
-        opacity: 0;
-        transform: translateY(6px);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-.sh-spotlight-item:hover,
-.sh-spotlight-item.active {
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.sh-spotlight-thumb-wrap {
-    width: 32px;
-    height: 44px;
-    border-radius: 6px;
-    overflow: hidden;
-    flex-shrink: 0;
-    background: rgba(255, 255, 255, 0.05);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.sh-spotlight-thumb-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.sh-spotlight-thumb-fallback {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(255, 255, 255, 0.45);
-}
-.sh-spotlight-thumb-fallback svg {
-    display: block;
-    stroke: currentColor;
-}
-
-.sh-spotlight-icon-wrap {
-    width: 34px;
-    height: 34px;
-    border-radius: 9px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(255, 255, 255, 0.85);
-    flex-shrink: 0;
-    transition: all 140ms ease;
-}
-
-.sh-spotlight-icon-wrap svg {
-    display: block;
-    stroke: currentColor;
-    stroke-width: 2;
-}
-
-.sh-spotlight-item:hover .sh-spotlight-icon-wrap,
-.sh-spotlight-item.active .sh-spotlight-icon-wrap {
-    background: rgba(255, 255, 255, 0.16);
-    border-color: rgba(255, 255, 255, 0.25);
-    color: #ffffff;
-    transform: scale(1.06);
-}
-
-.sh-spotlight-item-text {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-}
-
-.sh-spotlight-item-title {
-    font-size: 13.5px;
-    font-weight: 650;
-    color: #ffffff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.sh-spotlight-item-sub {
-    font-size: 11.5px;
-    color: rgba(255, 255, 255, 0.45);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.sh-spotlight-action-hint {
-    font-size: 11px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.40);
-    opacity: 0;
-    transition: all 140ms ease;
-    flex-shrink: 0;
-}
-.sh-spotlight-item:hover .sh-spotlight-action-hint,
-.sh-spotlight-item.active .sh-spotlight-action-hint {
-    opacity: 1;
-    color: #38bdf8;
-    transform: translateX(-2px);
-}
-
-.sh-spotlight-highlight {
-    background: rgba(56, 189, 248, 0.25);
-    color: #38bdf8;
-    font-weight: 700;
-    padding: 0 2px;
-    border-radius: 3px;
-}
-
-.sh-spotlight-loading,
-.sh-spotlight-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 40px 20px;
-    color: rgba(255, 255, 255, 0.40);
-    font-size: 13px;
-    gap: 6px;
-}
-.sh-spotlight-empty strong {
-    color: #ffffff;
-}
-.sh-spotlight-empty span {
-    font-size: 11.5px;
-    color: rgba(255, 255, 255, 0.30);
-}
-
-.sh-spotlight-spinner {
-    width: 22px;
-    height: 22px;
-    border: 2px solid rgba(255, 255, 255, 0.10);
-    border-top-color: #ffffff;
-    border-radius: 50%;
-    animation: sh-spotlight-spin 0.7s linear infinite;
-    margin-bottom: 8px;
-}
-@keyframes sh-spotlight-spin {
-    to { transform: rotate(360deg); }
-}
-
-/* ── Barre de pied épurée ────────────────────────────────────────────── */
-.sh-spotlight-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 18px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    background: rgba(255, 255, 255, 0.015);
-    font-size: 10.5px;
-    color: rgba(255, 255, 255, 0.35);
-}
-
-.sh-spotlight-shortcut-hints {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.sh-spotlight-shortcut-hints kbd {
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.70);
-    padding: 1px 5px;
-    border-radius: 4px;
-    font-size: 9.5px;
-    margin-right: 3px;
-}
-
-.sh-spotlight-brand-badge {
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.25);
-    font-weight: 600;
-}
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans UnifiedSearch.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

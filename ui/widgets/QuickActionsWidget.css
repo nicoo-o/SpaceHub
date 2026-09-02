@@ -1,0 +1,36 @@
+.sh-quick-actions-compact {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sh-quick-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.05);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
+    cursor: pointer;
+    transition: 
+        background var(--sh-dur-2) ease,
+        border-color var(--sh-dur-2) ease,
+        transform var(--sh-dur-3) var(--sh-ease-spring),
+        color var(--sh-dur-2) ease,
+        box-shadow var(--sh-dur-3) ease;
+}
+
+.sh-quick-btn-icon:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.15);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28);
+    color: var(--sh-ink-solid, #ffffff);
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5);
+}
+
+.sh-quick-btn-icon:active {
+    transform: scale(0.94);
+}

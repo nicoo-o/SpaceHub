@@ -15,6 +15,9 @@
 
 'use strict';
 
+
+import './ModalSlideUpSheet.css';
+import * as svc from '../../core/services.js';
 class ModalSlideUpSheet {
     constructor() {
         this._sheet = null;
@@ -69,10 +72,12 @@ class ModalSlideUpSheet {
         this._overlay.onclick = () => this.close();
 
         if (!this._escHandler) {
+            // Ferme uniquement le sous-état local (popover audio) qu'aucun autre système ne connaît.
+            // La fermeture de la sheet elle-même est déléguée à SpatialNavigation._handleBack()
+            // (sélecteur .sh-slideup-sheet--open déjà reconnu — doublon supprimé, cf. plan A05).
             this._escHandler = (e) => {
-                if (e.key === 'Escape' && this._isOpen) {
-                    if (this._audioPopoverOpen) this._closeAudioPopover();
-                    else this.close();
+                if (e.key === 'Escape' && this._isOpen && this._audioPopoverOpen) {
+                    this._closeAudioPopover();
                 }
             };
             window.addEventListener('keydown', this._escHandler);
@@ -115,8 +120,8 @@ class ModalSlideUpSheet {
         else this._activeTab = 'synopsis';
 
         // 1. Résolution immédiate des visuels réels Jellyfin ou Servarr/Calendrier
-        const api = window.SpaceHub?.jellyfin?.api;
-        const apiClient = window.SpaceHub?.core?.api?.getClient('jellyfin');
+        const api = svc.jellyfinApi();
+        const apiClient = svc.api()?.getClient('jellyfin');
         const itemId = item.Id || item.id;
         const isCalendarOrServarr = item.source === 'sonarr' || item.source === 'radarr' || item.source === 'jellyseerr' || (typeof item.Id === 'string' && (item.Id.startsWith('sonarr-') || item.Id.startsWith('radarr-') || item.Id.startsWith('sh-cal-') || item.Id.startsWith('jellyseerr-')));
         
@@ -146,7 +151,7 @@ class ModalSlideUpSheet {
         this._renderContent(item, { posterUrl, backdropUrl });
 
         requestAnimationFrame(() => {
-            const nav = window.SpaceHub?.spatialNav || window.SpaceHub?.ui?.appLayout?._spatialNav;
+            const nav = svc.nav() || svc.appLayout()?._spatialNav;
             nav?.onModalOpened(this._sheet);
             this._sheet.querySelector('.sh-cinema-body')?.scrollTo({ top: 0, behavior: 'instant' });
         });
@@ -185,7 +190,7 @@ class ModalSlideUpSheet {
     }
 
     _attachExternalRatings(item) {
-        const ratingCache = window.SpaceHub?.core?.ratingCache;
+        const ratingCache = svc.ratingCache();
         if (!ratingCache) return;
 
         // Idempotence : retirer les badges externes déjà insérés avant réinsertion
@@ -363,7 +368,7 @@ class ModalSlideUpSheet {
         this._currentItem = null;
         document.body.style.overflow = '';
 
-        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        const spatialNav = svc.nav() || svc.nav();
         if (spatialNav && typeof spatialNav.onModalClosed === 'function') {
             spatialNav.onModalClosed(closedItem);
         }
@@ -425,7 +430,7 @@ class ModalSlideUpSheet {
         const hasAtmos = mediaStreams.some(stream => stream.Type === 'Audio' && /atmos/i.test(`${stream.Codec || ''} ${stream.DisplayTitle || ''} ${stream.Title || ''}`));
         const hasDolbyVision = mediaStreams.some(stream => /dolby.?vision/i.test(`${stream.VideoRange || ''} ${stream.VideoRangeType || ''} ${stream.DisplayTitle || ''}`));
 
-        const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
+        const cardBuilder = svc.cardBuilder();
         const criticData = null; // Jellyfin ne fournit pas de données critiques externes vérifiées.
 
         const hasHistory = this._history.length > 0;
@@ -465,15 +470,15 @@ class ModalSlideUpSheet {
                     <!-- Visuel 2:3 (Film/Série/Saga) ou 1:1 Carré (Musique) -->
                     <div class="sh-cinema-hero-poster ${isMusic ? 'sh-cinema-hero-poster--music' : ''}">
                         ${safePosterUrl ? `
-                            <img src="${safePosterUrl}" alt="${this._escape(title)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-                            <div class="sh-cinema-poster-fallback" style="display: none; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.08); border-radius: 16px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 12px; box-sizing: border-box;">
+                            <img decoding="async" src="${safePosterUrl}" alt="${this._escape(title)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                            <div class="sh-cinema-poster-fallback" style="display: none; width: 100%; height: 100%; background: rgba(var(--sh-ink, 255, 255, 255),  0.08); border-radius: 16px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 12px; box-sizing: border-box;">
                                 <span style="font-size: 38px;">${isEpisode || isSeries ? '📺' : '🎬'}</span>
-                                <small style="font-size: 11px; color: rgba(255,255,255,0.7); font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${this._escape(title)}</small>
+                                <small style="font-size: 11px; color: rgba(var(--sh-ink, 255, 255, 255), 0.7); font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${this._escape(title)}</small>
                             </div>
                         ` : `
-                            <div class="sh-cinema-poster-fallback" style="display: flex; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.08); border-radius: 16px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 12px; box-sizing: border-box;">
+                            <div class="sh-cinema-poster-fallback" style="display: flex; width: 100%; height: 100%; background: rgba(var(--sh-ink, 255, 255, 255),  0.08); border-radius: 16px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 12px; box-sizing: border-box;">
                                 <span style="font-size: 38px;">${isEpisode || isSeries ? '📺' : '🎬'}</span>
-                                <small style="font-size: 11px; color: rgba(255,255,255,0.7); font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${this._escape(title)}</small>
+                                <small style="font-size: 11px; color: rgba(var(--sh-ink, 255, 255, 255), 0.7); font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${this._escape(title)}</small>
                             </div>
                         `}
                         ${isMusic ? '<div class="sh-vinyl-disc-grooves"></div>' : ''}
@@ -562,8 +567,8 @@ class ModalSlideUpSheet {
                         <div class="sh-drawer-inner-card">
                             <div class="sh-drawer-header">
                                 <div style="display:flex; align-items:center; gap:8px;">
-                                    <span class="sh-jellyseerr-pill-badge" style="background:#6366f1; color:#fff; font-weight:700; padding:2px 8px; border-radius:6px; font-size:11px;">Jellyseerr</span>
-                                    <h3 style="margin:0; font-size:16px; color:#fff; font-weight:700;">Demande sur le serveur</h3>
+                                    <span class="sh-jellyseerr-pill-badge" style="background:#6366f1; color:var(--sh-ink-solid, #ffffff); font-weight:700; padding:2px 8px; border-radius:6px; font-size:11px;">Jellyseerr</span>
+                                    <h3 style="margin:0; font-size:16px; color:var(--sh-ink-solid, #ffffff); font-weight:700;">Demande sur le serveur</h3>
                                 </div>
                                 <button type="button" class="sh-drawer-close" id="sh-drawer-close">✕</button>
                             </div>
@@ -585,7 +590,7 @@ class ModalSlideUpSheet {
 
                             ${isSeries ? `
                                 <div class="sh-drawer-checkbox-row">
-                                    <label style="display:flex; align-items:center; gap:8px; color:rgba(255,255,255,0.85); font-size:13px; cursor:pointer;">
+                                    <label style="display:flex; align-items:center; gap:8px; color:rgba(var(--sh-ink, 255, 255, 255), 0.85); font-size:13px; cursor:pointer;">
                                         <input type="checkbox" id="sh-drawer-monitor-future" checked style="accent-color:#6366f1; width:16px; height:16px;" />
                                         <span>Surveiller et télécharger automatiquement les saisons futures (Sonarr)</span>
                                     </label>
@@ -635,7 +640,7 @@ class ModalSlideUpSheet {
                                     <button class="sh-season-pill-btn" tabindex="0" data-nav-focusable="true">Chargement des saisons...</button>
                                 </div>
                                 <div class="sh-episodes-cards-grid">
-                                    <div style="color:rgba(255,255,255,0.4); padding:20px;">Chargement des épisodes...</div>
+                                    <div style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); padding:20px;">Chargement des épisodes...</div>
                                 </div>
                             </div>
                         </div>
@@ -645,7 +650,7 @@ class ModalSlideUpSheet {
                     ${isCollection ? `
                         <div class="sh-tab-panel ${this._activeTab === 'sagafilms' ? 'active' : ''}" id="sh-panel-sagafilms">
                             <div class="sh-saga-films-grid">
-                                <div style="color:rgba(255,255,255,0.4); padding:20px;">Chargement des films de la saga...</div>
+                                <div style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); padding:20px;">Chargement des films de la saga...</div>
                             </div>
                         </div>
                     ` : ''}
@@ -655,7 +660,7 @@ class ModalSlideUpSheet {
                         <div class="sh-tab-panel ${this._activeTab === 'tracks' ? 'active' : ''}" id="sh-panel-tracks">
                             <div class="sh-album-tracks-container">
                                 <div class="sh-tracks-table">
-                                    <div style="color:rgba(255,255,255,0.4); padding:20px;">Chargement des pistes audio...</div>
+                                    <div style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); padding:20px;">Chargement des pistes audio...</div>
                                 </div>
                             </div>
                         </div>
@@ -739,7 +744,7 @@ class ModalSlideUpSheet {
                     ${!isMusic ? `
                         <div class="sh-tab-panel ${this._activeTab === 'casting' ? 'active' : ''}" id="sh-panel-casting">
                             <div class="sh-cast-luxury-grid" id="sh-cast-luxury-grid">
-                                <div style="color:rgba(255,255,255,0.4); padding:20px;">Chargement de la distribution...</div>
+                                <div style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); padding:20px;">Chargement de la distribution...</div>
                             </div>
                         </div>
                     ` : ''}
@@ -747,7 +752,7 @@ class ModalSlideUpSheet {
                     <!-- Panneau Titres Similaires -->
                     <div class="sh-tab-panel ${this._activeTab === 'similaires' ? 'active' : ''}" id="sh-panel-similaires">
                         <div class="sh-bento-luxury-grid" id="sh-bento-luxury-grid">
-                            <div style="color:rgba(255,255,255,0.4); padding:20px;">Chargement des recommandations...</div>
+                            <div style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); padding:20px;">Chargement des recommandations...</div>
                         </div>
                     </div>
                 </div>
@@ -769,8 +774,8 @@ class ModalSlideUpSheet {
         const isMusic = rawType === 'musicalbum' || rawType === 'music' || rawType === 'album' || rawType === 'audio' || item.isMusic;
         const isSeries = !isMovie && !isCollection && !isMusic && (rawType === 'series' || rawType === 'tvshow' || rawType === 'season' || item.isSeries || (item.SeasonCount && item.SeasonCount > 0));
 
-        const api = window.SpaceHub?.jellyfin?.api;
-        const jsApi = window.SpaceHub?.integrations?.jellyseerr?.api || (window.SpaceHub?.core?.api?.getClient ? window.SpaceHub.core.api.getClient('jellyseerr') : null);
+        const api = svc.jellyfinApi();
+        const jsApi = svc.integration('jellyseerr')?.api || (svc.api()?.getClient ? svc.api().getClient('jellyseerr') : null);
 
         try {
             // ── 1. CROISEMENT LOCAL JELLYFIN & RÉCUPÉRATION DU TMDB ID ──
@@ -952,7 +957,7 @@ class ModalSlideUpSheet {
                     const loadEpisodesForSeason = async (seasonObj) => {
                         const currentSeasonRenderId = ++seasonRenderId;
                         if (!episodesGrid) return;
-                        episodesGrid.innerHTML = '<div style="color:rgba(255,255,255,0.5); padding:24px; text-align:center;"><span class="sh-spinner-inline" style="margin-right:8px;"></span>Chargement des épisodes de la ' + seasonObj.name + '...</div>';
+                        episodesGrid.innerHTML = '<div style="color:rgba(var(--sh-ink, 255, 255, 255), 0.5); padding:24px; text-align:center;"><span class="sh-spinner-inline" style="margin-right:8px;"></span>Chargement des épisodes de la ' + seasonObj.name + '...</div>';
 
                         let localEps = seasonObj.localEps || [];
                         let tmdbEps = [];
@@ -974,7 +979,7 @@ class ModalSlideUpSheet {
                                 return `
                                     <div class="sh-episode-card" tabindex="0" role="button" data-ep-id="${ep.Id}">
                                         <div class="sh-episode-thumb-wrap" data-action="play">
-                                            ${epImg ? `<img src="${epImg}" alt="${this._escape(ep.Name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.IndexNumber || (idx + 1)}</div>`}
+                                            ${epImg ? `<img decoding="async" src="${epImg}" alt="${this._escape(ep.Name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.IndexNumber || (idx + 1)}</div>`}
                                             <div class="sh-episode-overlay-play">▶</div>
                                             <span class="sh-episode-badge-num">EP ${ep.IndexNumber || (idx + 1)}</span>
                                             ${dur ? `<span class="sh-episode-dur">${dur}</span>` : ''}
@@ -998,7 +1003,7 @@ class ModalSlideUpSheet {
                                     card.addEventListener('click', (e) => {
                                         if (e.target.closest('.sh-episode-thumb-wrap') || e.target.closest('.sh-episode-overlay-play')) {
                                             this.close();
-                                            window.SpaceHub?.player?.play?.(ep);
+                                            svc.player()?.play?.(ep);
                                         } else {
                                             this.open(ep);
                                         }
@@ -1033,7 +1038,7 @@ class ModalSlideUpSheet {
                             return `
                                 <div class="sh-episode-card ${ep.isLocal ? '' : 'sh-episode-card--missing'}" tabindex="0" role="button" style="${ep.isLocal ? '' : 'opacity:0.88;'}">
                                     <div class="sh-episode-thumb-wrap" data-action="${ep.isLocal ? 'play' : 'request'}" data-ep-num="${ep.episodeNumber}">
-                                        ${ep.stillUrl ? `<img src="${this._escape(ep.stillUrl)}" alt="${this._escape(ep.name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.episodeNumber}</div>`}
+                                        ${ep.stillUrl ? `<img decoding="async" src="${this._escape(ep.stillUrl)}" alt="${this._escape(ep.name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.episodeNumber}</div>`}
                                         <div class="sh-episode-overlay-play">${ep.isLocal ? '▶' : '📥'}</div>
                                         <span class="sh-episode-badge-num">EP ${ep.episodeNumber}</span>
                                         ${ep.duration ? `<span class="sh-episode-dur">${ep.duration}</span>` : ''}
@@ -1042,7 +1047,7 @@ class ModalSlideUpSheet {
                                         <div class="sh-episode-title-row">
                                             <span class="sh-episode-title">${ep.episodeNumber}. ${this._escape(ep.name)}</span>
                                             ${ep.isLocal ? `
-                                                <span style="font-size:10.5px; font-weight:750; color:#34d399; background:rgba(16,185,129,0.15); padding:2px 8px; border-radius:6px; margin-left:auto; flex-shrink:0;">Disponible</span>
+                                                <span style="font-size:10.5px; font-weight:750; color:#34d399; background:rgba(16,185,129,0.31); padding:2px 8px; border-radius:6px; margin-left:auto; flex-shrink:0;">Disponible</span>
                                             ` : `
                                                 <button type="button" class="sh-btn-request-single-ep" data-season="${seasonObj.seasonNumber}" data-ep-num="${ep.episodeNumber}">
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -1077,11 +1082,11 @@ class ModalSlideUpSheet {
                                     });
                                                     btn.classList.add('sh-request-complete');
                                     btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Demandé</span>';
-                                    window.SpaceHub?.ui?.components?.toaster?.success(`Demande envoyée pour la Saison ${sNum} • Épisode ${epNum} !`);
+                                    svc.toaster()?.success(`Demande envoyée pour la Saison ${sNum} • Épisode ${epNum} !`);
                                 } catch (err) {
                                     btn.disabled = false;
                                     btn.innerHTML = '<span>Réessayer</span>';
-                                    window.SpaceHub?.ui?.components?.toaster?.error(`Erreur: ${err.message || 'Demande impossible'}`);
+                                    svc.toaster()?.error(`Erreur: ${err.message || 'Demande impossible'}`);
                                 }
                             });
                         });
@@ -1095,7 +1100,7 @@ class ModalSlideUpSheet {
                                     card.addEventListener('click', (e) => {
                                         if (e.target.closest('.sh-episode-thumb-wrap') || e.target.closest('.sh-episode-overlay-play')) {
                                             this.close();
-                                            window.SpaceHub?.player?.play?.(ep);
+                                            svc.player()?.play?.(ep);
                                         } else {
                                             this.open(ep);
                                         }
@@ -1199,9 +1204,9 @@ class ModalSlideUpSheet {
                         return `
                             <div class="sh-bento-card" data-item-id="${sim.Id || sim.id}">
                                 <div class="sh-bento-poster-wrap" data-action="details">
-                                    ${simImg ? `<img src="${this._escape(simImg)}" alt="${this._escape(sim.Name || sim.title)}" />` : '<div class="sh-bento-poster-fallback">🎬</div>'}
+                                    ${simImg ? `<img decoding="async" src="${this._escape(simImg)}" alt="${this._escape(sim.Name || sim.title)}" />` : '<div class="sh-bento-poster-fallback">🎬</div>'}
                                     <div class="sh-bento-quick-play">${sim.isLocal ? '▶' : '📥'}</div>
-                                    <span style="position:absolute; top:8px; left:8px; font-size:10px; font-weight:750; padding:2px 6px; border-radius:6px; background:${sim.isLocal ? 'rgba(16,185,129,0.85)' : 'rgba(99,102,241,0.85)'}; color:#fff; backdrop-filter:blur(8px);">
+                                    <span style="position:absolute; top:8px; left:8px; font-size:10px; font-weight:750; padding:2px 6px; border-radius:6px; background:${sim.isLocal ? 'rgba(16,185,129,0.85)' : 'rgba(99,102,241,0.85)'}; color:var(--sh-ink-solid, #ffffff);">
                                         ${sim.isLocal ? '✓ Serveur' : '📥 Jellyseerr'}
                                     </span>
                                 </div>
@@ -1243,7 +1248,7 @@ class ModalSlideUpSheet {
                         const actorImg = api?.getImageUrl?.(actor.Id, 'Primary', { maxWidth: 200 }) || '';
                         return `
                             <div class="sh-cast-card">
-                                ${actorImg ? `<img src="${this._escape(actorImg)}" alt="${this._escape(actor.Name)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />` : ''}
+                                ${actorImg ? `<img decoding="async" src="${this._escape(actorImg)}" alt="${this._escape(actor.Name)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />` : ''}
                                 <div class="sh-cast-avatar-fallback" style="${actorImg ? 'display:none;' : ''}">${actor.Name.charAt(0)}</div>
                                 <div class="sh-cast-text">
                                     <span class="sh-actor-name">${this._escape(actor.Name)}</span>
@@ -1260,8 +1265,8 @@ class ModalSlideUpSheet {
     }
 
     async _loadSeasonEpisodes(seriesId, seasonId) {
-        const api = window.SpaceHub?.jellyfin?.api;
-        const apiClient = window.SpaceHub?.core?.api?.getClient('jellyfin');
+        const api = svc.jellyfinApi();
+        const apiClient = svc.api()?.getClient('jellyfin');
         let episodes = [];
         if (api?.getEpisodes) {
             try {
@@ -1282,7 +1287,7 @@ class ModalSlideUpSheet {
         // Ne jamais fabriquer d'épisodes : ils doivent rester pilotables par le serveur.
         if (!episodes || episodes.length === 0) {
             const episodesGrid = this._sheet.querySelector('.sh-episodes-cards-grid');
-            if (episodesGrid) episodesGrid.innerHTML = '<div style="color:rgba(255,255,255,0.5); padding:20px;">Aucun épisode disponible sur le serveur.</div>';
+            if (episodesGrid) episodesGrid.innerHTML = '<div style="color:rgba(var(--sh-ink, 255, 255, 255), 0.5); padding:20px;">Aucun épisode disponible sur le serveur.</div>';
             return;
         }
         const episodesGrid = this._sheet.querySelector('.sh-episodes-cards-grid');
@@ -1296,7 +1301,7 @@ class ModalSlideUpSheet {
             return `
                 <div class="sh-episode-card" tabindex="0" role="button" data-ep-id="${ep.Id}">
                     <div class="sh-episode-thumb-wrap" data-action="play" title="▶ Lancer l'Épisode ${ep.IndexNumber || (idx + 1)}">
-                        ${epImg ? `<img src="${epImg}" alt="${this._escape(ep.Name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.IndexNumber || (idx + 1)}</div>`}
+                        ${epImg ? `<img decoding="async" src="${epImg}" alt="${this._escape(ep.Name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.IndexNumber || (idx + 1)}</div>`}
                         <div class="sh-episode-overlay-play">▶</div>
                         <span class="sh-episode-badge-num">EP ${ep.IndexNumber || (idx + 1)}</span>
                         ${durationMin ? `<span class="sh-episode-dur">${durationMin}</span>` : ''}
@@ -1326,7 +1331,7 @@ class ModalSlideUpSheet {
                     if (isPlay) {
                         // Clic sur la vignette 16:9 ou ▶ : Lance immédiatement la lecture
                         this.close();
-                        window.SpaceHub?.player?.play?.(ep);
+                        svc.player()?.play?.(ep);
                     } else {
                         // Clic sur le texte / informations de l'épisode : Ouvre la fiche détaillée de l'épisode avec navigation retour
                         this.open(ep);
@@ -1364,7 +1369,7 @@ class ModalSlideUpSheet {
                 const audioLabelEl = this._sheet.querySelector('#sh-btn-audio-label');
                 if (audioLabelEl) audioLabelEl.textContent = label;
 
-                window.SpaceHub?.ui?.components?.toaster?.info(`Piste audio : ${label}`);
+                svc.toaster()?.info(`Piste audio : ${label}`);
             });
         });
     }
@@ -1377,7 +1382,7 @@ class ModalSlideUpSheet {
                 this._sheet.querySelectorAll('#sh-popover-subs-list .sh-popover-item').forEach(i => i.classList.toggle('selected', i === el));
                 
                 const label = el.querySelector('.sh-popover-item-name')?.textContent || 'Sous-titre';
-                window.SpaceHub?.ui?.components?.toaster?.info(`Sous-titres : ${label}`);
+                svc.toaster()?.info(`Sous-titres : ${label}`);
             });
         });
     }
@@ -1402,7 +1407,7 @@ class ModalSlideUpSheet {
                 const folderSelect = drawer.querySelector('#sh-drawer-folder-select');
 
                 try {
-                    const servarrApi = isSeries ? window.SpaceHub?.integrations?.sonarr?.api : window.SpaceHub?.integrations?.radarr?.api;
+                    const servarrApi = isSeries ? svc.integration('sonarr')?.api : svc.integration('radarr')?.api;
                     if (servarrApi?.getQualityProfiles && profileSelect) {
                         const profiles = await servarrApi.getQualityProfiles();
                         if (Array.isArray(profiles) && profiles.length > 0) {
@@ -1439,7 +1444,7 @@ class ModalSlideUpSheet {
                 if (!Number.isFinite(Number(tmdbId))) {
                     drawerSubmit.disabled = false;
                     drawerSubmit.innerHTML = '<span>Identifiant média indisponible</span>';
-                    window.SpaceHub?.ui?.components?.toaster?.error?.('Impossible d\'envoyer la demande : identifiant TMDB absent.');
+                    svc.toaster()?.error?.('Impossible d\'envoyer la demande : identifiant TMDB absent.');
                     return;
                 }
                 const payload = {
@@ -1451,18 +1456,18 @@ class ModalSlideUpSheet {
                 };
 
                 try {
-                    const api = window.SpaceHub?.integrations?.jellyseerr?.api || (window.SpaceHub?.core?.api?.getClient ? window.SpaceHub.core.api.getClient('jellyseerr') : null);
+                    const api = svc.integration('jellyseerr')?.api || (svc.api()?.getClient ? svc.api().getClient('jellyseerr') : null);
                     if (typeof api?.createRequest !== 'function') {
                         throw new Error('Jellyseerr n’est pas configuré ou ne prend pas en charge les demandes.');
                     }
                     await api.createRequest(payload);
                     drawerSubmit.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Demande confirmée !</span>';
-                    window.SpaceHub?.ui?.components?.toaster?.success(`Demande envoyée pour "${item.title || item.Name}" !`);
+                    svc.toaster()?.success(`Demande envoyée pour "${item.title || item.Name}" !`);
                     setTimeout(() => { drawer.style.display = 'none'; }, 1500);
                 } catch (err) {
                     drawerSubmit.disabled = false;
                     drawerSubmit.innerHTML = '<span>Réessayer</span>';
-                    window.SpaceHub?.ui?.components?.toaster?.error(`Erreur: ${err.message || 'Impossible d envoyer la demande'}`);
+                    svc.toaster()?.error(`Erreur: ${err.message || 'Impossible d envoyer la demande'}`);
                 }
             });
         }
@@ -1521,8 +1526,8 @@ class ModalSlideUpSheet {
 
         this._sheet.querySelector('#sh-slideup-play-btn')?.addEventListener('click', () => {
             this.close();
-            if (window.SpaceHub?.player) {
-                window.SpaceHub.player.play(item.rawItem || item, {
+            if (svc.player()) {
+                svc.player().play(item.rawItem || item, {
                     audioStreamIndex: this._selectedAudioIndex,
                     subtitleStreamIndex: this._selectedSubtitleIndex
                 });
@@ -1539,13 +1544,13 @@ class ModalSlideUpSheet {
         this._sheet.querySelector('#sh-slideup-trailer-btn')?.addEventListener('click', (e) => {
             // Bandes-annonces via notre TrailerService : serveur Jellyfin d'abord,
             // puis YouTube dans la fenêtre SpaceHub (plus d'iframe brute).
-            if (window.SpaceHub?.trailers) {
-                window.SpaceHub.trailers.open(
+            if (svc.trailers()) {
+                svc.trailers().open(
                     { Id: item.Id || item.id, Name: item.Name || item.title || 'Film', RemoteTrailers: item.RemoteTrailers },
                     e.currentTarget
                 );
             } else {
-                window.SpaceHub?.ui?.components?.toaster?.info?.('Bande-annonce indisponible.');
+                svc.toaster()?.info?.('Bande-annonce indisponible.');
             }
         });
 
@@ -1587,7 +1592,7 @@ class ModalSlideUpSheet {
             audioBtn.classList.toggle('active', this._audioPopoverOpen);
 
             if (this._audioPopoverOpen) {
-                const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+                const spatialNav = svc.nav() || svc.nav();
                 if (spatialNav) {
                     setTimeout(() => {
                         const activeItem = audioMenu?.querySelector('.sh-popover-item.selected') || audioMenu?.querySelector('.sh-popover-item');
@@ -1630,1646 +1635,9 @@ class ModalSlideUpSheet {
     }
 
     _injectStyles() {
-        if (document.getElementById('sh-modal-slideup-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-modal-slideup-styles';
-        style.textContent = `
-
-/* ── Bouton Demande d'Épisode Compact & Stylisé ────────────────────────── */
-.sh-episode-title-row {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    gap: 12px !important;
-    min-width: 0 !important;
-}
-
-.sh-episode-title {
-    flex: 1 !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-    font-size: 14.5px !important;
-    font-weight: 700 !important;
-    color: #ffffff !important;
-}
-
-.sh-btn-request-single-ep {
-    flex-shrink: 0 !important;
-    white-space: nowrap !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 6px !important;
-    height: 28px !important;
-    padding: 0 12px !important;
-    border-radius: 8px !important;
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
-    color: #ffffff !important;
-    font-size: 11.5px !important;
-    font-weight: 750 !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35) !important;
-    cursor: pointer !important;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.sh-btn-request-single-ep:hover {
-    transform: translateY(-1px) scale(1.02) !important;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.55) !important;
-}
-
-.sh-btn-request-single-ep.sh-request-complete {
-    background: rgba(16, 185, 129, 0.25) !important;
-    color: #34d399 !important;
-    border-color: rgba(16, 185, 129, 0.4) !important;
-}
-
-
-/* ── Overlay Sombre avec Flou Spatial ───────────────────────── */
-.sh-slideup-overlay {
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 99999 !important;
-    background: rgba(0, 0, 0, 0.55) !important;
-    backdrop-filter: blur(18px) !important;
-    -webkit-backdrop-filter: blur(18px) !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    transition: opacity 280ms cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-.sh-slideup-overlay.sh-slideup-overlay--open {
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    display: block !important;
-}
-
-/* ── Idée A : Halo d'Ambiance Adaptatif (Ambient Halo Glow) ─── */
-.sh-modal-ambient-glow {
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) scale(0.85) !important;
-    width: 1100px !important;
-    height: 750px !important;
-    background-size: cover !important;
-    background-position: center !important;
-    filter: blur(100px) saturate(220%) brightness(0.65) !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    z-index: 99999 !important;
-    transition: opacity 600ms ease, transform 600ms cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-.sh-modal-ambient-glow.sh-modal-ambient-glow--open {
-    opacity: 0.35 !important;
-    transform: translate(-50%, -50%) scale(1.02) !important;
-}
-
-/* ── Fenêtre Flottante Grand Cinema Smoked Glass (1060px x 730px) ────────── */
-.sh-slideup-sheet {
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -46%) scale(0.95) !important;
-    width: 1040px !important;
-    max-width: 94vw !important;
-    height: 740px !important;
-    max-height: 92vh !important;
-    z-index: 100000 !important;
-    background: rgba(12, 12, 16, 0.94) !important;
-    backdrop-filter: blur(50px) saturate(220%) !important;
-    -webkit-backdrop-filter: blur(50px) saturate(220%) !important;
-    border-radius: 24px !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    box-shadow: 
-        0 40px 120px rgba(0, 0, 0, 0.95),
-        inset 0 1px 0 rgba(255, 255, 255, 0.25),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-    overflow: hidden !important;
-    padding: 0 !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1),
-                opacity 260ms cubic-bezier(0.16, 1, 0.3, 1) !important;
-    display: flex !important;
-    flex-direction: column !important;
-}
-
-.sh-slideup-sheet.sh-slideup-sheet--open {
-    transform: translate(-50%, -50%) scale(1) !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-    display: flex !important;
-}
-
-/* Bouton Retour Épuré & Fondu (Seamless Ghost Style, Sans Capsule) */
-/* ── 🎬 En-tête Hero Backdrop 16:9 avec Affiche 2:3 & Barre Supérieure Dédiée ── */
-.sh-cinema-hero {
-    position: relative;
-    flex-shrink: 0;
-    overflow: visible;
-    z-index: 50;
-    display: flex;
-    flex-direction: column;
-    padding: 16px 32px 14px;
-    box-sizing: border-box;
-    gap: 12px;
-}
-
-.sh-cinema-hero-top-bar {
-    position: relative;
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    z-index: 120 !important;
-    min-height: 36px;
-}
-
-/* Bouton Retour Flottant Universel (Dans la barre d'en-tête, au-dessus de l'affiche avec zéro chevauchement) */
-.sh-slideup-back-btn {
-    height: 32px;
-    padding: 5px 14px 5px 10px;
-    border-radius: 9999px;
-    background: rgba(14, 14, 22, 0.70);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    color: rgba(255, 255, 255, 0.90);
-    cursor: pointer;
-    display: inline-flex !important;
-    align-items: center;
-    gap: 7px;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: -0.1px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.40);
-    transition: all 180ms ease;
-    white-space: nowrap;
-    max-width: 320px;
-    overflow: hidden;
-}
-.sh-slideup-back-btn svg {
-    flex-shrink: 0;
-    color: rgba(255, 255, 255, 0.90);
-    transition: transform 180ms ease;
-}
-.sh-slideup-back-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: inherit;
-}
-.sh-slideup-back-btn:hover {
-    background: rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.30);
-    color: #ffffff;
-    transform: scale(1.03);
-}
-.sh-slideup-back-btn:hover svg {
-    transform: translateX(-2px);
-}
-.sh-slideup-back-btn:active {
-    transform: scale(0.97);
-}
-
-/* Bouton Fermer Flottant Discret en Verre (Centrage Géométrique SVG Parfait) */
-.sh-slideup-close-btn {
-    pointer-events: auto !important;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: rgba(14, 14, 22, 0.70);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    color: #ffffff;
-    cursor: pointer;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 0 !important;
-    line-height: 0 !important;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.40);
-    transition: all 180ms ease;
-}
-.sh-slideup-close-btn svg {
-    display: block;
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-}
-.sh-slideup-close-btn:hover {
-    background: rgba(255, 255, 255, 0.20);
-    border-color: rgba(255, 255, 255, 0.30);
-    transform: scale(1.06);
-}
-
-.sh-cinema-hero-bg-container {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    border-radius: 26px 26px 0 0;
-    pointer-events: none;
-    mask-image: linear-gradient(to bottom, black 0%, black 40%, rgba(0, 0, 0, 0.3) 75%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 40%, rgba(0, 0, 0, 0.3) 75%, transparent 100%);
-}
-.sh-cinema-hero-backdrop {
-    position: absolute;
-    inset: 0;
-    background-size: cover;
-    background-position: center 20%;
-    filter: brightness(0.78);
-    transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-slideup-sheet:hover .sh-cinema-hero-backdrop {
-    transform: scale(1.02);
-}
-.sh-cinema-hero-gradient-bottom {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to bottom, rgba(14, 14, 22, 0) 0%, rgba(14, 14, 22, 0.35) 40%, rgba(14, 14, 22, 0.75) 75%, rgba(14, 14, 22, 0.95) 100%);
-    pointer-events: none;
-}
-.sh-cinema-hero-gradient-left {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to right, rgba(14, 14, 22, 0.88) 0%, rgba(14, 14, 22, 0.35) 60%, transparent 100%);
-    pointer-events: none;
-}
-.sh-cinema-hero-content {
-    position: relative;
-    z-index: 10;
-    display: flex;
-    align-items: flex-end;
-    gap: 26px;
-    width: 100%;
-}
-
-/* Affiche 2:3 Restaurée & Sublimée */
-.sh-cinema-hero-poster {
-    width: 120px;
-    aspect-ratio: 2/3;
-    border-radius: 12px;
-    overflow: hidden;
-    flex-shrink: 0;
-    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.90), 0 0 0 1px rgba(255, 255, 255, 0.20);
-    background: #14141e;
-}
-.sh-cinema-hero-poster img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.sh-cinema-hero-details {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-.sh-cinema-badge-top {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.sh-badge-glass-pill {
-    font-size: 9.5px;
-    font-weight: 750;
-    letter-spacing: 0.8px;
-    color: rgba(255, 255, 255, 0.85);
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    padding: 3px 10px;
-    border-radius: 9999px;
-}
-.sh-cinema-title {
-    font-size: 32px;
-    font-weight: 850;
-    letter-spacing: -1px;
-    color: #ffffff;
-    margin: 0;
-    line-height: 1.1;
-    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.85);
-}
-.sh-cinema-meta-line {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    font-size: 13px;
-    font-weight: 600;
-}
-.sh-modal-header-badge {
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    padding: 3px 9px !important;
-    border-radius: 9999px !important;
-    background: rgba(255, 255, 255, 0.08) !important;
-    border: 1px solid rgba(255, 255, 255, 0.16) !important;
-    font-size: 11.5px !important;
-    font-weight: 800 !important;
-    cursor: pointer !important;
-    transition: all 180ms ease !important;
-}
-.sh-modal-header-badge:hover {
-    background: rgba(255, 255, 255, 0.16) !important;
-    border-color: rgba(255, 255, 255, 0.35) !important;
-    transform: scale(1.05) !important;
-}
-.sh-modal-header-badge--rt {
-    color: #ff5252 !important;
-}
-.sh-modal-header-badge--community {
-    color: #f5c518 !important;
-}
-.sh-meta-score-rt { color: #ff5252; font-weight: 800; }
-.sh-meta-score-imdb { color: #ffd600; font-weight: 800; }
-.sh-meta-bullet { color: rgba(255, 255, 255, 0.25); font-size: 10px; }
-.sh-meta-text { color: rgba(255, 255, 255, 0.70); font-weight: 550; }
-
-/* Barre d'Actions Principales Apple TV+ Style (Pills) */
-.sh-cinema-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 4px;
-}
-.sh-cinema-btn-play {
-    background: #ffffff;
-    color: #000000;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 9999px;
-    font-size: 13.5px;
-    font-weight: 750;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.25);
-    transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-cinema-btn-play:hover {
-    transform: scale(1.04);
-    box-shadow: 0 8px 30px rgba(255, 255, 255, 0.45);
-}
-.sh-cinema-btn-glass {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    color: #ffffff;
-    padding: 10px 18px;
-    border-radius: 9999px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-cinema-btn-glass:hover,
-.sh-cinema-btn-glass.active {
-    background: rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.32);
-    transform: scale(1.03);
-}
-.sh-cinema-btn-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    color: #ffffff;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 15px;
-    transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-cinema-btn-icon:hover,
-.sh-cinema-btn-icon.active {
-    background: rgba(255, 255, 255, 0.22);
-    border-color: rgba(255, 255, 255, 0.35);
-    transform: scale(1.06);
-}
-
-/* ── Idée B : Popover Audio & Sous-titres à Double Colonne ───── */
-.sh-audio-popover-wrapper {
-    position: relative;
-    z-index: 100;
-}
-.sh-btn-audio-popover {
-    font-size: 13px;
-}
-.sh-chevron-icon {
-    font-size: 10px;
-    opacity: 0.7;
-    margin-left: 2px;
-}
-.sh-audio-popover-menu {
-    position: absolute;
-    top: calc(100% + 10px);
-    left: 0;
-    z-index: 9999;
-    width: 480px;
-    background: rgba(18, 18, 26, 0.98);
-    backdrop-filter: blur(40px);
-    -webkit-backdrop-filter: blur(40px);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    border-radius: 20px;
-    padding: 14px 16px;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.98), 0 0 1px rgba(255, 255, 255, 0.4);
-    opacity: 0;
-    transform: translateY(-8px) scale(0.96);
-    pointer-events: none;
-    transition: all 220ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-audio-popover-menu.open {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    pointer-events: auto;
-}
-.sh-popover-columns-grid {
-    display: grid;
-    grid-template-columns: 1fr 1px 1fr;
-    gap: 14px;
-}
-.sh-popover-column {
-    display: flex;
-    flex-direction: column;
-}
-.sh-popover-column-divider {
-    background: rgba(255, 255, 255, 0.10);
-    width: 1px;
-    height: 100%;
-}
-.sh-popover-section-header {
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: rgba(255, 255, 255, 0.45);
-    padding: 2px 6px 8px;
-}
-.sh-popover-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.sh-popover-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 7px 10px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 550;
-    color: rgba(255, 255, 255, 0.75);
-    transition: all 160ms ease;
-    border: 1px solid transparent;
-}
-.sh-popover-item:hover {
-    background: rgba(255, 255, 255, 0.10);
-    color: #ffffff;
-}
-.sh-popover-item.selected {
-    color: #ffffff;
-    font-weight: 700;
-    background: rgba(10, 132, 255, 0.20);
-    border-color: rgba(10, 132, 255, 0.40);
-}
-.sh-popover-check {
-    font-size: 13px;
-    opacity: 0;
-    color: #38bdf8;
-    font-weight: 800;
-}
-.sh-popover-item.selected .sh-popover-check {
-    opacity: 1;
-}
-
-/* Rating Flyout Compact */
-.sh-rating-compact-wrapper {
-    position: relative;
-    z-index: 90;
-}
-.sh-rating-stars-flyout {
-    position: absolute;
-    top: calc(100% + 10px);
-    right: 0;
-    left: auto;
-    z-index: 9999;
-    background: rgba(20, 20, 30, 0.98);
-    backdrop-filter: blur(40px);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    border-radius: 9999px;
-    padding: 8px 16px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.98), 0 0 1px rgba(255, 255, 255, 0.4);
-    opacity: 0;
-    transform: translateY(-6px) scale(0.96);
-    pointer-events: none;
-    transition: all 180ms ease;
-    white-space: nowrap;
-}
-.sh-rating-stars-flyout.open {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    pointer-events: auto;
-}
-.sh-star-btn {
-    background: transparent;
-    border: none;
-    font-size: 16px;
-    color: rgba(255, 255, 255, 0.25);
-    cursor: pointer;
-    padding: 0 2px;
-    transition: transform 140ms ease, color 140ms ease;
-}
-.sh-star-btn:hover,
-.sh-star-btn.active {
-    color: #ffd600;
-    transform: scale(1.25);
-    text-shadow: 0 0 10px rgba(255, 214, 0, 0.75);
-}
-.sh-star-score-txt {
-    font-size: 12px;
-    font-weight: 750;
-    color: rgba(255, 255, 255, 0.85);
-    margin-left: 8px;
-}
-
-/* ── 🏛️ Corps & Onglets avec Pastille Glissante Ressort ──────── */
-.sh-cinema-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 0 32px 16px;
-    box-sizing: border-box;
-    overflow: hidden;
-}
-.sh-cinema-tabs-nav {
-    position: relative;
-    display: flex;
-    gap: 2px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 3px;
-    border-radius: 9999px;
-    margin: 4px 0 10px;
-    width: fit-content;
-    flex-shrink: 0;
-}
-.sh-tabs-slider-pill {
-    position: absolute;
-    top: 3px;
-    bottom: 3px;
-    left: 0;
-    width: 90px;
-    border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.14);
-    border: 1px solid rgba(255, 255, 255, 0.20);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
-    pointer-events: none;
-    transition: transform 320ms cubic-bezier(0.34, 1.4, 0.64, 1),
-                width 320ms cubic-bezier(0.34, 1.4, 0.64, 1);
-    z-index: 1;
-}
-.sh-tab-btn {
-    position: relative;
-    z-index: 2;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.55);
-    padding: 5px 16px;
-    border-radius: 9999px;
-    font-size: 12.5px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: color 180ms ease;
-    white-space: nowrap;
-}
-.sh-tab-btn:hover {
-    color: #ffffff;
-}
-.sh-tab-btn.active {
-    color: #ffffff;
-    font-weight: 700;
-}
-
-/* Panneaux d'Onglets */
-.sh-cinema-panels-wrapper {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    position: relative;
-    scrollbar-width: none !important;
-}
-.sh-cinema-panels-wrapper::-webkit-scrollbar { display: none !important; }
-
-.sh-tab-panel {
-    display: none;
-    opacity: 0;
-}
-.sh-tab-panel.active {
-    display: block;
-    opacity: 1;
-}
-
-/* ── Idée C : Animations Échelonnées (Staggered Motion) ──────── */
-.sh-tab-panel.active > * > *:nth-child(1) { animation: sh-stagger-fade 320ms 40ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-.sh-tab-panel.active > * > *:nth-child(2) { animation: sh-stagger-fade 320ms 80ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-.sh-tab-panel.active > * > *:nth-child(3) { animation: sh-stagger-fade 320ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-.sh-tab-panel.active > * > *:nth-child(4) { animation: sh-stagger-fade 320ms 160ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-.sh-tab-panel.active > * > *:nth-child(5) { animation: sh-stagger-fade 320ms 200ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-.sh-tab-panel.active > * > *:nth-child(6) { animation: sh-stagger-fade 320ms 240ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-
-@keyframes sh-stagger-fade {
-    from { opacity: 0; transform: translateY(12px) scale(0.98); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* ── 📖 Onglet 1 : Synopsis & Structure Éditoriale Zéro-Scroll ── */
-.sh-synopsis-layout {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-bottom: 6px;
-}
-
-.sh-synopsis-text-block {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.sh-section-subtitle {
-    font-size: 10px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: rgba(255, 255, 255, 0.40);
-}
-.sh-panel-overview {
-    font-size: 13.5px !important;
-    line-height: 1.55 !important;
-    color: rgba(255, 255, 255, 0.90) !important;
-    margin: 0 !important;
-    font-weight: 400;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* ── 🏆 Section Réputation Cinéma : 2 Boîtes Bento Smoked Glass Compactes ─ */
-.sh-cinema-critics-block {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 12px !important;
-    margin: 0 !important;
-}
-@media (max-width: 820px) {
-    .sh-cinema-critics-block { grid-template-columns: 1fr !important; }
-}
-
-/* Masquage conditionnel (carte sans données réelles) — display:none !important bat le display:flex !important de base */
-.sh-critics-bento-card[hidden],
-.sh-critics-bento-card--hidden {
-    display: none !important;
-}
-
-.sh-critics-bento-card {
-    background: rgba(20, 20, 28, 0.75) !important;
-    -webkit-backdrop-filter: blur(30px) saturate(190%) !important;
-    backdrop-filter: blur(30px) saturate(190%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-radius: 14px !important;
-    padding: 12px 14px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.60), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
-    transition: border-color 220ms ease, transform 220ms ease, box-shadow 220ms ease;
-}
-.sh-critics-bento-card:hover {
-    border-color: rgba(255, 255, 255, 0.28) !important;
-    transform: translateY(-1px);
-    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.70), inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
-}
-
-.sh-critics-card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-.sh-critics-brand-row {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-}
-.sh-critics-title-label {
-    font-size: 12.5px;
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.85);
-    letter-spacing: -0.2px;
-}
-.sh-critics-badge {
-    font-size: 9px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 1.5px 6px;
-    border-radius: 5px;
-}
-.sh-critics-badge.certified {
-    background: rgba(250, 50, 10, 0.22);
-    color: #ff5252;
-    border: 1px solid rgba(250, 50, 10, 0.45);
-}
-.sh-critics-badge.fresh {
-    background: rgba(56, 142, 60, 0.22);
-    color: #4caf50;
-    border: 1px solid rgba(56, 142, 60, 0.45);
-}
-.sh-critics-badge.rotten {
-    background: rgba(120, 177, 63, 0.22);
-    color: #8bc34a;
-    border: 1px solid rgba(120, 177, 63, 0.45);
-}
-
-.sh-critics-score-val-large {
-    font-size: 19px;
-    font-weight: 900;
-    color: #ffffff;
-    letter-spacing: -0.5px;
-}
-.sh-critics-score-val-large.imdb-gold {
-    color: #f5c518;
-}
-.sh-critics-score-val-large small {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
-    font-weight: 600;
-}
-
-.sh-critics-consensus-text {
-    margin: 0;
-    font-size: 11.5px;
-    line-height: 1.45;
-    color: rgba(255, 255, 255, 0.82);
-    font-weight: 400;
-}
-
-.sh-critics-quote-box {
-    background: rgba(255, 255, 255, 0.04);
-    border-left: 2.5px solid #ff9f0a;
-    padding: 7px 10px;
-    border-radius: 6px;
-    font-size: 11.5px;
-    font-style: italic;
-    color: rgba(255, 255, 255, 0.85);
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-.sh-critics-quote-box cite {
-    font-style: normal;
-    font-weight: 700;
-    color: #ff9f0a;
-    font-size: 10px;
-    text-align: right;
-}
-
-.sh-critics-stars-display {
-    color: #f5c518;
-    font-size: 13px;
-    letter-spacing: 1.5px;
-}
-
-.sh-critics-stat-section {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-.sh-critics-bar-track {
-    width: 100%;
-    height: 5px;
-    background: rgba(255, 255, 255, 0.10);
-    border-radius: 9999px;
-    overflow: hidden;
-}
-.sh-critics-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #f5c518 0%, #30d158 100%);
-    border-radius: 9999px;
-}
-.sh-critics-legend-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.70);
-}
-
-.sh-critics-footer-meta {
-    font-size: 10px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.40);
-    padding-top: 2px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* ── ⚙️ Fiche Technique & Métadonnées (Grille 4 cases Compacte) ──────── */
-.sh-panel-meta-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin-top: 0;
-}
-.sh-meta-card {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 7px 12px;
-    transition: all 180ms ease;
-}
-.sh-meta-card:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.18);
-}
-.sh-cell-label {
-    font-size: 9.5px;
-    font-weight: 750;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: rgba(255, 255, 255, 0.40);
-}
-.sh-cell-val {
-    font-size: 11.5px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.90);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* ── Idée D : Onglet 2 : Casting & Équipe Enrichi ────────────── */
-.sh-cast-luxury-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    padding: 2px 0;
-}
-.sh-cast-card {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 12px 16px;
-    transition: all 180ms ease;
-}
-.sh-cast-card:hover {
-    background: rgba(255, 255, 255, 0.10);
-    border-color: rgba(255, 255, 255, 0.24);
-    transform: translateY(-2px);
-}
-.sh-cast-card img {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1px solid rgba(255, 255, 255, 0.20);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-}
-.sh-cast-avatar-fallback {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.20);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    font-weight: 800;
-    color: #ffffff;
-    flex-shrink: 0;
-}
-.sh-episode-thumb-fallback {
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 15px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.6);
-}
-.sh-cast-text {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-.sh-actor-name {
-    font-size: 13.5px;
-    font-weight: 750;
-    color: #ffffff;
-}
-.sh-role-name {
-    font-size: 11.5px;
-    color: rgba(255, 255, 255, 0.55);
-}
-.sh-role-badge {
-    font-size: 10.5px;
-    font-weight: 700;
-    color: #38bdf8;
-}
-
-/* Onglet 3 : Bonus & Vidéos (3 Cartes 16:9 Spacieuses) */
-.sh-bonus-luxury-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
-    padding: 2px 0;
-}
-.sh-bonus-item {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 200ms ease;
-}
-.sh-bonus-item:hover {
-    background: rgba(255, 255, 255, 0.10);
-    border-color: rgba(255, 255, 255, 0.25);
-    transform: translateY(-3px);
-}
-.sh-bonus-thumb-wrap {
-    height: 140px;
-    background: linear-gradient(135deg, #181824, #323248);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-}
-.sh-bonus-play-disc {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.92);
-    color: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 15px;
-    padding-left: 2px;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
-    transition: transform 180ms ease;
-}
-.sh-bonus-item:hover .sh-bonus-play-disc {
-    transform: scale(1.15);
-}
-.sh-bonus-dur-badge {
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
-    background: rgba(0, 0, 0, 0.80);
-    color: #ffffff;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 3px 7px;
-    border-radius: 5px;
-}
-.sh-bonus-meta {
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-.sh-bonus-pill-tag {
-    font-size: 9.5px;
-    font-weight: 800;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.50);
-}
-.sh-bonus-headline {
-    font-size: 13px;
-    font-weight: 650;
-    color: #ffffff;
-}
-
-/* ── Onglet 4 : Titres Similaires — Grille Bento Responsive ── */
-.sh-similar-bento-grid,
-.sh-bento-luxury-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 16px;
-    padding: 2px 0 16px;
-}
-.sh-bento-card {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    border-radius: 18px;
-    overflow: hidden;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    transition: all 220ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-bento-card:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.28);
-    transform: translateY(-4px);
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.75);
-}
-.sh-bento-poster-wrap,
-.sh-bento-thumb-container {
-    height: 130px;
-    position: relative;
-    background: #14141e;
-    overflow: hidden;
-}
-.sh-bento-poster-wrap img,
-.sh-bento-thumb-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 380ms ease;
-}
-.sh-bento-card:hover .sh-bento-poster-wrap img,
-.sh-bento-card:hover .sh-bento-thumb-container img {
-    transform: scale(1.06);
-}
-.sh-bento-thumb-overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to top, rgba(12, 12, 18, 0.85) 0%, transparent 60%);
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    padding: 8px 12px;
-}
-.sh-bento-quick-play {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.90);
-    color: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    padding-left: 2px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-    opacity: 0;
-    transform: scale(0.8);
-    transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-bento-card:hover .sh-bento-quick-play {
-    opacity: 1;
-    transform: scale(1);
-}
-.sh-bento-match-badge {
-    font-size: 10px;
-    font-weight: 800;
-    color: #4ade80;
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(8px);
-    padding: 3px 7px;
-    border-radius: 6px;
-    border: 1px solid rgba(74, 222, 128, 0.3);
-}
-.sh-bento-content {
-    padding: 12px 14px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-.sh-bento-header-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-.sh-bento-title {
-    font-size: 13.5px;
-    font-weight: 750;
-    color: #ffffff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.sh-bento-add-btn {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    color: #ffffff;
-    font-size: 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 160ms ease;
-    flex-shrink: 0;
-}
-.sh-bento-add-btn:hover,
-.sh-bento-add-btn.added {
-    background: rgba(255, 255, 255, 0.25);
-    transform: scale(1.10);
-}
-.sh-bento-meta-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.60);
-    font-weight: 550;
-}
-.sh-bento-score {
-    color: #ffd600;
-    font-weight: 750;
-}
-.sh-bento-dot {
-    color: rgba(255, 255, 255, 0.25);
-    font-size: 8px;
-}
-.sh-bento-age-tag {
-    font-size: 9.5px;
-    font-weight: 700;
-    padding: 1px 5px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-}
-.sh-bento-tech-tag {
-    font-size: 9.5px;
-    font-weight: 700;
-    padding: 1px 5px;
-    border-radius: 4px;
-    background: rgba(56, 189, 248, 0.12);
-    border: 1px solid rgba(56, 189, 248, 0.25);
-    color: #38bdf8;
-}
-.sh-bento-desc {
-    font-size: 11.5px;
-    line-height: 1.45;
-    color: rgba(255, 255, 255, 0.70);
-    margin: 2px 0 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-/* ── 🎵 Musique : Artwork Carré 1:1 & Effet Disque Vinyle ───── */
-.sh-cinema-hero-poster--music {
-    width: 140px !important;
-    aspect-ratio: 1/1 !important;
-    border-radius: 16px !important;
-    position: relative !important;
-    overflow: visible !important;
-}
-.sh-cinema-hero-poster--music img {
-    border-radius: 14px;
-    box-shadow: 0 14px 32px rgba(0,0,0,0.85);
-}
-.sh-vinyl-disc-grooves {
-    position: absolute;
-    top: 5px;
-    right: -24px;
-    width: 130px;
-    height: 130px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #09090c 25%, #181822 45%, #050508 70%, #151520 100%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.75);
-    z-index: -1;
-    animation: sh-vinyl-spin 20s linear infinite;
-}
-@keyframes sh-vinyl-spin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
-}
-
-/* ── 📺 Séries : Épisodes & Saisons ─────────────────────────── */
-.sh-series-episodes-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-.sh-season-pills-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 2px;
-}
-.sh-season-pill-btn {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.70);
-    padding: 6px 14px;
-    border-radius: 9999px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 180ms ease;
-}
-.sh-season-pill-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-}
-.sh-season-pill-btn.active {
-    background: rgba(255, 255, 255, 0.20);
-    border-color: rgba(255, 255, 255, 0.35);
-    color: #ffffff;
-    font-weight: 750;
-}
-.sh-season-badge-state {
-    margin-left: auto;
-    font-size: 11px;
-    font-weight: 700;
-    color: #4ade80;
-    background: rgba(74, 222, 128, 0.12);
-    border: 1px solid rgba(74, 222, 128, 0.25);
-    padding: 3px 10px;
-    border-radius: 9999px;
-}
-.sh-episodes-cards-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    padding-bottom: 16px;
-}
-.sh-episode-card {
-    display: flex;
-    gap: 12px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 10px;
-    cursor: pointer;
-    transition: all 200ms ease;
-}
-.sh-episode-card:hover {
-    background: rgba(255, 255, 255, 0.09);
-    border-color: rgba(255, 255, 255, 0.22);
-    transform: translateY(-2px);
-}
-.sh-episode-thumb-wrap {
-    width: 135px;
-    aspect-ratio: 16/9;
-    border-radius: 10px;
-    overflow: hidden;
-    position: relative;
-    flex-shrink: 0;
-    background: #181824;
-}
-.sh-episode-thumb-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.sh-episode-overlay-play {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.45);
-    font-size: 14px;
-    color: #ffffff;
-    opacity: 0;
-    transition: opacity 180ms ease;
-}
-.sh-episode-card:hover .sh-episode-overlay-play {
-    opacity: 1;
-}
-.sh-episode-badge-num {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    background: rgba(0, 0, 0, 0.75);
-    color: #ffffff;
-    font-size: 9.5px;
-    font-weight: 800;
-    padding: 2px 6px;
-    border-radius: 4px;
-}
-.sh-episode-dur {
-    position: absolute;
-    bottom: 5px;
-    right: 5px;
-    background: rgba(0, 0, 0, 0.80);
-    color: #ffffff;
-    font-size: 9px;
-    font-weight: 700;
-    padding: 2px 5px;
-    border-radius: 4px;
-}
-.sh-episode-progress-bar {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.20);
-}
-.sh-episode-progress-fill {
-    height: 100%;
-    background: #ff3b30;
-}
-.sh-episode-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    justify-content: center;
-    min-width: 0;
-    flex: 1;
-}
-.sh-episode-title-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 6px;
-}
-.sh-episode-title {
-    font-size: 12.5px;
-    font-weight: 700;
-    color: #ffffff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: color 160ms ease;
-}
-.sh-episode-date {
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.45);
-    flex-shrink: 0;
-}
-.sh-episode-synopsis {
-    font-size: 11px;
-    line-height: 1.4;
-    color: rgba(255, 255, 255, 0.65);
-    margin: 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-.sh-episode-details-hint,
-.sh-saga-details-hint {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 10.5px;
-    font-weight: 700;
-    color: #38bdf8;
-    margin-top: 2px;
-    opacity: 0.85;
-    transition: all 180ms ease;
-}
-.sh-episode-info:hover .sh-episode-details-hint,
-.sh-saga-card-content:hover .sh-saga-details-hint {
-    opacity: 1;
-    color: #7dd3fc;
-    transform: translateX(2px);
-}
-.sh-episode-info:hover .sh-episode-title,
-.sh-saga-card-content:hover .sh-saga-title {
-    color: #38bdf8;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-}
-.sh-episode-thumb-wrap:hover .sh-episode-overlay-play,
-.sh-saga-thumb-container:hover .sh-saga-quick-play {
-    opacity: 1 !important;
-    transform: scale(1.12);
-    background: rgba(0, 0, 0, 0.60);
-}
-
-/* ── 🎬 Collections : Films de la Saga ───────────────────────── */
-.sh-saga-films-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-bottom: 16px;
-}
-.sh-saga-movie-card {
-    display: flex;
-    gap: 16px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 12px;
-    cursor: pointer;
-    transition: all 200ms ease;
-}
-.sh-saga-movie-card:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.24);
-    transform: translateY(-2px);
-}
-.sh-saga-thumb-container {
-    width: 170px;
-    aspect-ratio: 16/9;
-    border-radius: 12px;
-    overflow: hidden;
-    position: relative;
-    flex-shrink: 0;
-    background: #14141e;
-}
-.sh-saga-thumb-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.sh-saga-quick-play {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.45);
-    font-size: 15px;
-    color: #ffffff;
-    opacity: 0;
-    transition: opacity 180ms ease;
-}
-.sh-saga-movie-card:hover .sh-saga-quick-play {
-    opacity: 1;
-}
-.sh-saga-num-badge {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    background: rgba(0, 0, 0, 0.75);
-    color: #ffd600;
-    font-size: 9.5px;
-    font-weight: 800;
-    padding: 2px 7px;
-    border-radius: 5px;
-    border: 1px solid rgba(255, 214, 0, 0.3);
-}
-.sh-saga-card-content {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    flex: 1;
-    justify-content: center;
-}
-.sh-saga-header-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-.sh-saga-title {
-    font-size: 14.5px;
-    font-weight: 750;
-    color: #ffffff;
-    transition: color 160ms ease;
-}
-.sh-saga-play-btn {
-    background: #ffffff;
-    color: #000000;
-    border: none;
-    font-size: 11.5px;
-    font-weight: 750;
-    padding: 6px 14px;
-    border-radius: 9999px;
-    cursor: pointer;
-    transition: transform 160ms ease, background 160ms ease;
-}
-.sh-saga-play-btn:hover {
-    transform: scale(1.06);
-    background: #f0f0f8;
-}
-.sh-saga-meta-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11.5px;
-    color: rgba(255, 255, 255, 0.60);
-    font-weight: 550;
-}
-
-
-/* ── 🎵 Musique : Pistes & Morceaux ─────────────────────────── */
-.sh-album-tracks-container {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding-bottom: 16px;
-}
-.sh-tracks-table {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.sh-track-row {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 8px 14px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid transparent;
-    cursor: pointer;
-    transition: all 160ms ease;
-}
-.sh-track-row:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
-}
-.sh-track-row.playing {
-    background: rgba(56, 189, 248, 0.14);
-    border-color: rgba(56, 189, 248, 0.30);
-    color: #38bdf8;
-}
-.sh-track-num-col {
-    width: 26px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.40);
-    position: relative;
-}
-.sh-track-play-btn {
-    display: none;
-    background: transparent;
-    border: none;
-    color: #ffffff;
-    font-size: 12px;
-    cursor: pointer;
-}
-.sh-track-row:hover .sh-track-index {
-    display: none;
-}
-.sh-track-row:hover .sh-track-play-btn {
-    display: block;
-}
-.sh-track-title-col {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-.sh-track-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: #ffffff;
-}
-.sh-track-artist {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.50);
-}
-.sh-track-tag-col {
-    display: flex;
-    align-items: center;
-}
-.sh-track-badge {
-    font-size: 9.5px;
-    font-weight: 750;
-    color: #38bdf8;
-    background: rgba(56, 189, 248, 0.10);
-    border: 1px solid rgba(56, 189, 248, 0.22);
-    padding: 2px 7px;
-    border-radius: 5px;
-}
-.sh-track-duration-col {
-    font-size: 11.5px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.60);
-}
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans ModalSlideUpSheet.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

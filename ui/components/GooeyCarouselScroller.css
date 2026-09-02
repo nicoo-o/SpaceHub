@@ -1,0 +1,79 @@
+.sh-gooey-scroll-enabled {
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    scroll-behavior: smooth;
+}
+.sh-gooey-scroll-enabled.sh-gooey-grabbing {
+    cursor: grabbing !important;
+    scroll-behavior: auto !important;
+}
+
+/* ── Chevrons de Navigation sur les Étagères (Apple TV Style) ── */
+.sh-shelf-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%) scale(0.92);
+    z-index: 120;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(var(--sh-ink-inv, 12, 12, 18),  0.92);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.25);
+    color: var(--sh-ink-solid, #ffffff);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 10px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.92), 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.45);
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out),
+                transform var(--sh-dur-3) var(--sh-ease-spring),
+                background var(--sh-dur-2) ease,
+                border-color var(--sh-dur-2) ease,
+                box-shadow var(--sh-dur-2) ease;
+}
+
+.sh-shelf-nav-btn--prev {
+    left: 4px;
+}
+
+.sh-shelf-nav-btn--next {
+    right: 4px;
+}
+
+/* Révélation douce au survol de la rangée ou des boutons */
+.sh-widget:hover .sh-shelf-nav-btn:not(.sh-shelf-nav-btn--hidden),
+.sh-widget__content:hover .sh-shelf-nav-btn:not(.sh-shelf-nav-btn--hidden),
+.sh-dashboard__item:hover .sh-shelf-nav-btn:not(.sh-shelf-nav-btn--hidden),
+.sh-shelf-nav-btn:hover {
+    opacity: 0.95;
+    pointer-events: auto;
+    transform: translateY(-50%) scale(1);
+}
+
+/* Flèche active quand la souris est dans la zone de fondu (détection JS) */
+.sh-shelf-nav-btn--edge-active:not(.sh-shelf-nav-btn--hidden) {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: translateY(-50%) scale(1.05) !important;
+}
+
+.sh-shelf-nav-btn:hover {
+    opacity: 1 !important;
+    background: rgba(var(--sh-ink-inv, 32, 32, 48),  0.98) !important;
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.55) !important;
+    transform: translateY(-50%) scale(1.10) !important;
+    box-shadow: 0 14px 36px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95), 0 0 18px rgba(var(--sh-ink, 255, 255, 255),  0.30) !important;
+}
+
+.sh-shelf-nav-btn:active {
+    transform: translateY(-50%) scale(0.92) !important;
+}
+
+.sh-shelf-nav-btn--hidden {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden;
+}

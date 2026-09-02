@@ -1,0 +1,540 @@
+.sh-dashboard {
+    width: 100%;
+    margin: 0;
+    padding: 0 0 64px 0;
+    box-sizing: border-box;
+    font-family: var(--sh-font-family, sans-serif);
+    color: var(--sh-ink-solid, #ffffff);
+    background-color: var(--sh-bg-base, #000000);
+}
+
+.sh-dashboard__grid {
+    /* Gabarit de page partagé (tokens.css) — mêmes marges que Bibliothèque
+       et Téléchargements, pour que le contenu commence au même endroit d'un
+       écran à l'autre. */
+    max-width: var(--sh-page-max);
+    margin-inline: auto;
+    padding: 0 var(--sh-page-gutter) 60px;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 36px;
+    position: relative;
+}
+
+/* Ambient Blur Floor Reflection (Sol en verre fumé) */
+.sh-dashboard__grid::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 48px;
+    right: 48px;
+    height: 30px;
+    background: radial-gradient(ellipse at 50% 100%, rgba(124, 106, 255, 0.21) 0%, transparent 70%);
+    filter: blur(14px);
+    pointer-events: none;
+}
+
+.sh-dashboard__item {
+    display: flex;
+    flex-direction: column;
+    grid-column: span 12;
+}
+
+@keyframes shSectionFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.sh-dashboard__item--col-12 { grid-column: span 12; }
+.sh-dashboard__item--col-6  { grid-column: span 6; }
+.sh-dashboard__item--col-4  { grid-column: span 4; }
+
+@media (max-width: 900px) {
+    .sh-dashboard__item--col-6,
+    .sh-dashboard__item--col-4 {
+        grid-column: span 12;
+    }
+}
+
+/* ── Responsive Mobile ───────────────────────────────────────── */
+@media (max-width: 768px) {
+    .sh-dashboard__grid {
+        padding: 0 var(--sh-page-gutter) 60px;
+        gap: 24px;
+    }
+    .sh-dashboard__grid::after {
+        left: 16px;
+        right: 16px;
+    }
+    .sh-genre-chips-container {
+        padding: 0 16px;
+        margin: 24px auto 20px;
+    }
+    .sh-widget__title {
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .sh-dashboard__grid {
+        padding: 0 var(--sh-page-gutter) 48px;
+        gap: 20px;
+    }
+    .sh-genre-chips-container {
+        padding: 0 10px;
+    }
+}
+
+/* Base Widget Container */
+/* Zero-Container Apple TV Shelves */
+.sh-widget {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: relative;
+    overflow: visible;
+}
+
+.sh-widget__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.sh-widget__refresh-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.05) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12) !important;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.65) !important;
+    cursor: pointer !important;
+    outline: none !important;
+    padding: 0 !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important, filter var(--sh-dur-3) var(--sh-ease-out) !important;
+    box-shadow: 0 2px 8px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.3) !important;
+}
+
+.sh-widget__refresh-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.14) !important;
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28) !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    transform: rotate(45deg) scale(1.08) !important;
+    box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5) !important;
+}
+
+.sh-widget__refresh-btn:active {
+    transform: rotate(180deg) scale(0.92) !important;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.20) !important;
+}
+
+.sh-widget__refresh-btn svg {
+    width: 14px !important;
+    height: 14px !important;
+    stroke: currentColor !important;
+    stroke-width: 2.3 !important;
+    fill: none !important;
+    pointer-events: none !important;
+}
+
+.sh-widget__sync-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 5px 12px !important;
+    border-radius: 9999px !important;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.06) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14) !important;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85) !important;
+    font-size: 11.5px !important;
+    font-weight: 650 !important;
+    cursor: pointer !important;
+    outline: none !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important, filter var(--sh-dur-3) var(--sh-ease-out) !important;
+}
+
+.sh-widget__sync-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.15) !important;
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.30) !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    transform: translateY(-1px) !important;
+}
+
+.sh-widget__sync-btn svg {
+    width: 13px !important;
+    height: 13px !important;
+    stroke: currentColor !important;
+    stroke-width: 2.3 !important;
+    fill: none !important;
+}
+
+.sh-widget__title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    color: var(--sh-ink-solid, #ffffff);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sh-shelf-title-icon {
+    flex-shrink: 0;
+    stroke: rgba(var(--sh-ink, 255, 255, 255),  0.85);
+    stroke-width: 2.1;
+    transition: transform var(--sh-dur-2) ease, stroke var(--sh-dur-2) ease;
+}
+
+.sh-widget:hover .sh-shelf-title-icon {
+    stroke: var(--sh-ink-solid, #ffffff);
+    transform: scale(1.08);
+}
+
+.sh-widget__content {
+    flex: 1;
+}
+
+.sh-widget-error {
+    background: rgba(255, 92, 122, 0.26);
+    border: 1px solid var(--sh-color-danger, #ff5c7a);
+    border-radius: var(--sh-radius-md, 12px);
+    padding: var(--sh-space-4, 16px);
+    color: var(--sh-color-danger, #ff5c7a);
+}
+
+.sh-dashboard-config__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sh-space-3, 12px);
+    margin-top: var(--sh-space-4, 16px);
+}
+
+.sh-dashboard-config__item {
+    display: flex;
+    align-items: center;
+    gap: var(--sh-space-3, 12px);
+    padding: var(--sh-space-3, 12px);
+    background: var(--sh-bg-surface-2, var(--sh-bg-surface-3, #22222e));
+    border-radius: var(--sh-radius-sm, 8px);
+    cursor: pointer;
+}
+
+/* ── Ambilight Dynamic Aura Full-Bleed (Sans boîte ni coupure) ─ */
+.sh-ambient-aura {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle 800px at 50% 30%, rgba(124, 106, 255, 0.24) 0%, rgba(255, 107, 107, 0.03) 45%, transparent 70%);
+    filter: blur(160px);
+    pointer-events: none;
+    z-index: 0;
+    transition: background var(--sh-dur-5) ease, opacity var(--sh-dur-5) ease;
+}
+
+/* ── Segmented Control "Elastic Liquid Spring Pill" ────────── */
+.sh-genre-chips-container {
+    max-width: 1560px;
+    margin: 36px auto 28px;
+    padding: 0 48px;
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.sh-genre-chips-container::-webkit-scrollbar { display: none; }
+
+/* Rail entièrement invisible — se fond dans le fond OLED */
+.sh-genre-bar-track {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background: transparent;
+    border: none;
+    border-radius: 9999px;
+    padding: 4px;
+}
+
+/* Pilule glissante "Mercury Glass" — très subtile, zéro contraste brutal */
+.sh-genre-sliding-pill {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    height: calc(100% - 8px);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14);
+    border-radius: 9999px;
+    box-shadow:
+        0 2px 12px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.35),
+        inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.18),
+        inset 0 -1px 0 rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.12);
+    pointer-events: none;
+    z-index: 1;
+    will-change: transform, width;
+    transform-origin: center center;
+}
+
+.sh-genre-chip {
+    position: relative;
+    z-index: 2;
+    background: transparent;
+    border: none;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.50);
+    padding: 8px 16px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color var(--sh-dur-3) ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sh-genre-chip:hover {
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
+}
+.sh-genre-chip.active {
+    color: var(--sh-ink-solid, #ffffff);
+    font-weight: 650;
+}
+
+/* Emoji Pulse au clic */
+.sh-chip-emoji {
+    display: inline-block;
+    transition: transform var(--sh-dur-3) ease;
+}
+.sh-chip-emoji--pulse {
+    animation: sh-emoji-pulse var(--sh-dur-4) var(--sh-ease-spring) forwards;
+}
+@keyframes sh-emoji-pulse {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(1.30); }
+    100% { transform: scale(1); }
+}
+
+/* ── Card Display & Animations ──────────────────────────── */
+.sh-card {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity var(--sh-dur-3) ease, transform var(--sh-dur-4) var(--sh-ease-spring);
+}
+.sh-card--skeleton {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+/* ── Tactile Spring Press Physics (tout le monde) ───────────── */
+.sh-card:active,
+.sh-genre-chip:active,
+.sh-ctx-item:active,
+.sh-card__bookmark-btn:active {
+    transform: scale(0.97) !important;
+    transition: transform var(--sh-dur-1) ease !important;
+}
+
+/* ── Ambient Chromatic Light Leak au survol ─────────────────── */
+.sh-card__image-wrap::after {
+    content: '';
+    position: absolute;
+    top: -30%;
+    right: -20%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(160, 140, 255, 0.34) 0%, transparent 70%);
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 5;
+    filter: blur(20px);
+    transition: opacity var(--sh-dur-5) ease;
+}
+.sh-card:hover .sh-card__image-wrap::after {
+    opacity: 1;
+}
+
+/* ── Quick-Resume Floating Mini-Dock (Dynamic Island Capsule Styling) ── */
+.sh-resume-dock {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(40px);
+    opacity: 0;
+    z-index: 9000;
+    background: rgba(var(--sh-ink-inv, 12, 12, 16),  0.92);
+    /* Audit 3.7 — flou retiré : mesuré à 0,92 d'opacité, `backdrop-filter`
+       ne change que 5 valeurs sur 255 au-dessus d'un fond à contraste maximal,
+       pour le prix d'une passe de compositing par frame. Invisible, coûteux. */
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    border-radius: 9999px;
+    padding: 6px 14px 6px 8px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 
+        0 20px 50px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.90),
+        inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.25),
+        inset 0 -1px 0 rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5),
+        0 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.05);
+    pointer-events: none;
+    cursor: pointer;
+    transition: opacity var(--sh-dur-4) ease, transform var(--sh-dur-4) var(--sh-ease-spring), background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease;
+    user-select: none;
+    max-width: 480px;
+}
+
+.sh-resume-dock--visible {
+    display: flex !important;
+    opacity: 1;
+    pointer-events: auto !important;
+    transform: translateX(-50%) translateY(0);
+}
+
+.sh-resume-dock:hover {
+    background: rgba(var(--sh-ink-inv, 18, 18, 24),  0.95);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.22);
+    box-shadow: 
+        0 26px 70px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95),
+        inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.35),
+        0 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    transform: translateX(-50%) translateY(-2px) scale(1.02);
+}
+
+.sh-resume-dock__thumb-wrap {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.25);
+    box-shadow: 0 4px 12px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.50);
+}
+
+.sh-resume-dock__thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sh-resume-dock__play-icon {
+    position: absolute;
+    inset: 0;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--sh-ink-solid, #ffffff);
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity var(--sh-dur-2) ease;
+}
+
+.sh-resume-dock:hover .sh-resume-dock__play-icon {
+    opacity: 1;
+}
+
+.sh-resume-dock__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 150px;
+    max-width: 220px;
+}
+
+.sh-resume-dock__title {
+    font-size: 13px;
+    font-weight: 750;
+    color: var(--sh-ink-solid, #ffffff);
+    letter-spacing: -0.2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sh-resume-dock__meta {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.60);
+    letter-spacing: -0.1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sh-resume-dock__progress-bar {
+    width: 100%;
+    height: 3px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    border-radius: 9999px;
+    overflow: hidden;
+    margin-top: 3px;
+}
+
+.sh-resume-dock__progress-fill {
+    height: 100%;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.75);
+    border-radius: 9999px;
+    box-shadow: 0 0 6px rgba(var(--sh-ink, 255, 255, 255),  0.30);
+}
+
+.sh-resume-dock__btn-play {
+    background: var(--sh-ink-solid, #ffffff);
+    border: none;
+    border-radius: 9999px;
+    padding: 6px 14px 6px 12px;
+    color: var(--sh-ink-solid-inv, #000000);
+    font-size: 12px;
+    font-weight: 750;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(var(--sh-ink, 255, 255, 255),  0.35);
+    transition: transform var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease;
+    flex-shrink: 0;
+}
+
+.sh-resume-dock__btn-play:hover {
+    transform: scale(1.06);
+    box-shadow: 0 6px 18px rgba(var(--sh-ink, 255, 255, 255),  0.50);
+}
+
+.sh-resume-dock__btn-play:active {
+    transform: scale(0.95);
+}
+
+.sh-resume-dock__btn-dismiss {
+    background: transparent;
+    border: none;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
+    font-size: 11px;
+    padding: 4px 6px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: color var(--sh-dur-2) ease, background var(--sh-dur-2) ease;
+    flex-shrink: 0;
+}
+
+.sh-resume-dock__btn-dismiss:hover {
+    color: var(--sh-ink-solid, #ffffff);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.12);
+}

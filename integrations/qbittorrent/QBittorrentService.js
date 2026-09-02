@@ -12,6 +12,7 @@
 import Logger from '../../core/Logger.js';
 import QBittorrentApi from './QBittorrentApi.js';
 
+import * as svc from '../../core/services.js';
 class QBittorrentService {
     /**
      * @param {Object} [options]
@@ -23,9 +24,9 @@ class QBittorrentService {
     constructor({ api = null, cache = null, eventBus = null, settings = null } = {}) {
         this.api = api || this._createDefaultApi();
         this._log = new Logger('QBittorrentService');
-        this._cache = cache || window.SpaceHub?.core?.cache || null;
-        this._eventBus = eventBus || window.SpaceHub?.core?.eventBus || null;
-        this._settings = settings || window.SpaceHub?.core?.settings || null;
+        this._cache = cache || svc.cache() || null;
+        this._eventBus = eventBus || svc.eventBus() || null;
+        this._settings = settings || svc.settings() || null;
         this.status = 'unconfigured';
         this.lastLatency = null;
 
@@ -110,7 +111,7 @@ class QBittorrentService {
         await this.api.pauseTorrents(hash);
         if (this._cache) await this._cache.delete('general', 'qbittorrent_torrents_all');
         if (this._eventBus) this._eventBus.emit('qbittorrent:torrentsUpdated');
-        window.SpaceHub?.ui?.components?.toaster?.info('Téléchargement mis en pause.');
+        svc.toaster()?.info('Téléchargement mis en pause.');
     }
 
     /**
@@ -121,7 +122,7 @@ class QBittorrentService {
         await this.api.resumeTorrents(hash);
         if (this._cache) await this._cache.delete('general', 'qbittorrent_torrents_all');
         if (this._eventBus) this._eventBus.emit('qbittorrent:torrentsUpdated');
-        window.SpaceHub?.ui?.components?.toaster?.success('Téléchargement repris.');
+        svc.toaster()?.success('Téléchargement repris.');
     }
 
     /**
@@ -133,7 +134,7 @@ class QBittorrentService {
         await this.api.deleteTorrents(hash, deleteFiles);
         if (this._cache) await this._cache.delete('general', 'qbittorrent_torrents_all');
         if (this._eventBus) this._eventBus.emit('qbittorrent:torrentsUpdated');
-        window.SpaceHub?.ui?.components?.toaster?.info('Torrent supprimé de qBittorrent.');
+        svc.toaster()?.info('Torrent supprimé de qBittorrent.');
     }
 }
 

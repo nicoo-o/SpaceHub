@@ -21,6 +21,8 @@
 
 import Logger from '../../core/Logger.js';
 
+import './Modal.css';
+import * as svc from '../../core/services.js';
 /** @type {Set<Modal>} */
 const activeModals = new Set();
 
@@ -61,15 +63,15 @@ class Modal {
 
         this._injectStyles();
 
-        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        const spatialNav = svc.nav() || svc.nav();
         if (spatialNav?.registerFocusables) {
             spatialNav.registerFocusables('modal', () => {
                 const openModal = document.querySelector('.sh-modal--open, .sh-slideup-sheet--open, .sh-modal-overlay.open, #sh-modal-spacehub-settings.sh-modal--open');
                 if (!openModal) return [];
                 return Array.from(openModal.querySelectorAll(
-                    '.sh-modal__close, .sh-slideup-close-btn, .sh-settings-nav-item, .sh-settings-input, .sh-settings-toggle, .sh-btn-primary, [data-nav-focusable="true"], button:not([disabled]), input:not([disabled]), select:not([disabled])'
+                    '.sh-modal__close, .sh-slideup-close-btn, .sh-settings-nav__item, .sh-input, .sh-settings-toggle, .sh-btn--primary, [data-nav-focusable="true"], button:not([disabled]), input:not([disabled]), select:not([disabled])'
                 ));
-            });
+            }, { force: true }); // re-registration volontaire — cf. plan A04
         }
 
         this._build();
@@ -101,11 +103,12 @@ class Modal {
         requestAnimationFrame(() => {
             this._el.classList.add('sh-modal--open');
             this._focusFirstElement();
-            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            const spatialNav = svc.nav() || svc.nav();
             spatialNav?.onModalOpened?.(this._el, this._el.querySelector('.sh-modal__close, [data-nav-focusable="true"], button:not([disabled]), input:not([disabled]), select:not([disabled])'));
         });
 
-        if (this.closeOnEscape) document.addEventListener('keydown', this._handleKey);
+        // Écouteur conservé pour le piégeage du focus (Tab) — Escape est géré par SpatialNavigation._handleBack().
+        document.addEventListener('keydown', this._handleKey);
         if (this.onOpen) this.onOpen(this);
         this._log.debug('Ouverte.');
     }
@@ -130,7 +133,7 @@ class Modal {
 
         // Restaure le focus et informe le moteur TV quel contexte reprendre.
         this._prevFocus?.focus?.();
-        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        const spatialNav = svc.nav() || svc.nav();
         spatialNav?.onModalClosed?.();
 
         this._el.addEventListener('transitionend', () => {
@@ -237,10 +240,8 @@ class Modal {
     }
 
     _onKeyDown(e) {
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            this.close();
-        }
+        // Escape est désormais géré exclusivement par SpatialNavigation._handleBack()
+        // (le sélecteur .sh-modal--open y est déjà reconnu — doublon supprimé, cf. plan A05).
         if (e.key === 'Tab') {
             this._trapFocus(e);
         }
@@ -290,154 +291,9 @@ class Modal {
     // ─── Styles ──────────────────────────────────────────────────────────────────
 
     _injectStyles() {
-        if (document.getElementById('sh-modal-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-modal-styles';
-        style.textContent = `
-.sh-modal {
-    position: fixed; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    z-index: var(--sh-z-modal, 400);
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 260ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-modal--open    { opacity: 1; pointer-events: all; }
-.sh-modal--closing { opacity: 0; pointer-events: none; }
-
-.sh-modal__backdrop {
-    position: absolute; inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    transition: opacity 260ms ease;
-}
-
-.sh-modal__container {
-    position: relative;
-    background: rgba(12, 12, 16, 0.92);
-    backdrop-filter: blur(50px) saturate(220%);
-    -webkit-backdrop-filter: blur(50px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 22px;
-    box-shadow: 
-        0 20px 50px rgba(0, 0, 0, 0.90),
-        inset 0 1px 0 rgba(255, 255, 255, 0.25),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.05);
-    display: flex; flex-direction: column;
-    max-height: calc(100vh - 64px);
-    overflow-y: auto;
-    transform: scale(0.97) translateY(8px);
-    opacity: 0;
-    transition: 
-        transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
-        opacity 240ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sh-modal--open .sh-modal__container {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-}
-.sh-modal--closing .sh-modal__container {
-    transform: scale(0.97) translateY(8px);
-    opacity: 0;
-    transition: transform 200ms ease, opacity 200ms ease;
-}
-
-/* Tailles */
-.sh-modal--sm .sh-modal__container  { width: min(380px, 90vw); }
-.sh-modal--md .sh-modal__container  { width: min(580px, 90vw); }
-.sh-modal--lg .sh-modal__container  { width: min(800px, 92vw); }
-.sh-modal--xl .sh-modal__container  { width: min(1100px, 96vw); }
-.sh-modal--fullscreen .sh-modal__container { width: 100vw; height: 100vh; max-height: 100vh; border-radius: 0; }
-
-.sh-modal__header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 18px 24px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(255, 255, 255, 0.015);
-    flex-shrink: 0;
-}
-.sh-modal__title {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-    color: #ffffff;
-}
-.sh-modal__close {
-    background: rgba(255, 255, 255, 0.06);
-    border: none;
-    cursor: pointer;
-    color: rgba(255, 255, 255, 0.60);
-    font-size: 16px;
-    line-height: 1;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all 140ms ease;
-}
-.sh-modal__close:hover { color: #ffffff; background: rgba(255, 255, 255, 0.15); }
-
-.sh-modal__body {
-    padding: 24px;
-    color: rgba(255, 255, 255, 0.70);
-    font-size: 14px;
-    line-height: 1.5;
-    flex: 1;
-    overflow-y: auto;
-}
-
-.sh-modal__footer {
-    display: flex; gap: 10px; justify-content: flex-end;
-    padding: 14px 24px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(255, 255, 255, 0.015);
-    flex-shrink: 0;
-}
-
-.sh-modal__loading {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 12px; padding: 48px;
-    color: rgba(255, 255, 255, 0.40);
-}
-.sh-spinner {
-    width: 28px; height: 28px;
-    border: 2px solid rgba(255, 255, 255, 0.10);
-    border-top-color: #ffffff;
-    border-radius: 50%;
-    animation: sh-spin 0.8s linear infinite;
-    display: block;
-}
-
-/* Boutons standard SpaceHub Smoked Glass */
-.sh-btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 12.5px;
-    font-weight: 600;
-    border: none; cursor: pointer;
-    transition: all 140ms ease;
-}
-.sh-btn--primary {
-    background: #ffffff;
-    color: #000000;
-}
-.sh-btn--primary:hover { background: #e8e8f0; }
-.sh-btn--ghost {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.80);
-}
-.sh-btn--ghost:hover { background: rgba(255, 255, 255, 0.10); color: #ffffff; }
-.sh-btn--danger { background: var(--sh-color-danger, #ff5c7a); color: #fff; }
-.sh-btn--danger:hover { filter: brightness(1.1); }
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans Modal.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

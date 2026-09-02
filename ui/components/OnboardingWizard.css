@@ -1,0 +1,16 @@
+.sh-onboarding-modal .sh-modal__container { max-width: 620px; }
+.sh-onboarding-modal .sh-modal__body { padding: 28px 30px 18px; }
+.sh-onboarding { text-align: center; }
+.sh-onboarding__badge { display:inline-flex; padding:5px 10px; border:1px solid rgba(var(--sh-ink, 255, 255, 255), .14); border-radius:999px; color:rgba(var(--sh-ink, 255, 255, 255), .55); font-size:10px; font-weight:800; letter-spacing:.09em; }
+.sh-onboarding__hero { display:flex; flex-direction:column; align-items:center; gap:12px; margin:18px 0 14px; }
+.sh-onboarding__icon { display:flex; align-items:center; justify-content:center; width:82px; height:82px; border-radius:26px; background:rgba(var(--sh-ink, 255, 255, 255), .08); border:1px solid rgba(var(--sh-ink, 255, 255, 255), .14); font-size:42px; box-shadow:0 18px 50px rgba(var(--sh-shadow-rgb, 0, 0, 0),.3); }
+.sh-onboarding__progress { width:min(300px,80%); height:5px; overflow:hidden; border-radius:999px; background:rgba(var(--sh-ink, 255, 255, 255), .1); }
+.sh-onboarding__progress span { display:block; height:100%; border-radius:inherit; background:var(--sh-ink-solid, #ffffff); transition:width 240ms ease; }
+.sh-onboarding__counter { color:rgba(var(--sh-ink, 255, 255, 255), .45); font-size:11px; }
+.sh-onboarding__title { margin:10px 0 8px; color:var(--sh-ink-solid, #ffffff); font-size:22px; letter-spacing:-.03em; }
+.sh-onboarding__text { max-width:500px; margin:0 auto; color:rgba(var(--sh-ink, 255, 255, 255), .72); font-size:14px; line-height:1.65; }
+.sh-onboarding__hint { max-width:500px; margin:18px auto 0; padding:11px 14px; border:1px solid rgba(var(--sh-ink, 255, 255, 255), .09); border-radius:12px; color:rgba(var(--sh-ink, 255, 255, 255), .5); font-size:12px; line-height:1.5; }
+.sh-onboarding__footer-spacer { flex:1; }
+.sh-onboarding-modal .sh-modal__footer { align-items:center; }
+@media (max-width:600px) { .sh-onboarding-modal .sh-modal__body { padding:22px 18px 14px; } .sh-onboarding__title { font-size:19px; } }
+@media (prefers-reduced-motion:reduce) { .sh-onboarding__progress span { transition:none; } }

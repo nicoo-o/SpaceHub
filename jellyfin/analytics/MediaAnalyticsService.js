@@ -7,6 +7,7 @@
 
 import Logger from '../../core/Logger.js';
 
+import * as svc from '../../core/services.js';
 export class MediaAnalyticsService {
     constructor() {
         this._log = new Logger('MediaAnalyticsService');
@@ -24,7 +25,7 @@ export class MediaAnalyticsService {
             return this._cachedStats;
         }
 
-        const jfApi = window.SpaceHub?.jellyfin?.api;
+        const jfApi = svc.jellyfinApi();
         const userId = jfApi?.getUserId?.();
 
         const stats = {

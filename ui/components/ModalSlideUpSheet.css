@@ -1,0 +1,1618 @@
+
+/* ── Bouton Demande d'Épisode Compact & Stylisé ────────────────────────── */
+.sh-episode-title-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    min-width: 0 !important;
+}
+
+.sh-episode-title {
+    flex: 1 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: 14.5px !important;
+    font-weight: 700 !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+}
+
+.sh-btn-request-single-ep {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    height: 28px !important;
+    padding: 0 12px !important;
+    border-radius: 8px !important;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    font-size: 11.5px !important;
+    font-weight: 750 !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.2) !important;
+    box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35) !important;
+    cursor: pointer !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important, filter var(--sh-dur-3) var(--sh-ease-out) !important;
+}
+
+.sh-btn-request-single-ep:hover {
+    transform: translateY(-1px) scale(1.02) !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.55) !important;
+}
+
+.sh-btn-request-single-ep.sh-request-complete {
+    background: rgba(16, 185, 129, 0.41) !important;
+    color: #34d399 !important;
+    border-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+
+/* ── Overlay Sombre avec Flou Spatial ───────────────────────── */
+.sh-slideup-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 99999 !important;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.55) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out) !important;
+}
+.sh-slideup-overlay.sh-slideup-overlay--open {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    display: block !important;
+}
+
+/* ── Idée A : Halo d'Ambiance Adaptatif (Ambient Halo Glow) ─── */
+.sh-modal-ambient-glow {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) scale(0.85) !important;
+    width: 1100px !important;
+    height: 750px !important;
+    background-size: cover !important;
+    background-position: center !important;
+    filter: blur(100px) saturate(220%) brightness(0.65) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: 99999 !important;
+    transition: opacity var(--sh-dur-5) ease, transform var(--sh-dur-5) var(--sh-ease-out) !important;
+}
+.sh-modal-ambient-glow.sh-modal-ambient-glow--open {
+    opacity: 0.35 !important;
+    transform: translate(-50%, -50%) scale(1.02) !important;
+}
+
+/* ── Fenêtre Flottante Grand Cinema Smoked Glass (1060px x 730px) ────────── */
+.sh-slideup-sheet {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -46%) scale(0.95) !important;
+    width: 1040px !important;
+    max-width: 94vw !important;
+    height: 740px !important;
+    max-height: 92vh !important;
+    z-index: 100000 !important;
+    background: rgba(var(--sh-ink-inv, 12, 12, 16),  0.94) !important;
+    /* Audit 3.7 — flou retiré : mesuré à 0,94 d'opacité, `backdrop-filter`
+       ne change que 4 valeurs sur 255 au-dessus d'un fond à contraste maximal,
+       pour le prix d'une passe de compositing par frame. Invisible, coûteux. */
+    border-radius: 24px !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12) !important;
+    box-shadow: 
+        0 40px 120px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95),
+        inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.25),
+        inset 0 -1px 0 rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5),
+        0 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.05) !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: transform var(--sh-dur-4) var(--sh-ease-out),
+                opacity var(--sh-dur-3) var(--sh-ease-out) !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.sh-slideup-sheet.sh-slideup-sheet--open {
+    transform: translate(-50%, -50%) scale(1) !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    display: flex !important;
+}
+
+/* Bouton Retour Épuré & Fondu (Seamless Ghost Style, Sans Capsule) */
+/* ── 🎬 En-tête Hero Backdrop 16:9 avec Affiche 2:3 & Barre Supérieure Dédiée ── */
+.sh-cinema-hero {
+    position: relative;
+    flex-shrink: 0;
+    overflow: visible;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 32px 14px;
+    box-sizing: border-box;
+    gap: 12px;
+}
+
+.sh-cinema-hero-top-bar {
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 120 !important;
+    min-height: 36px;
+}
+
+/* Bouton Retour Flottant Universel (Dans la barre d'en-tête, au-dessus de l'affiche avec zéro chevauchement) */
+.sh-slideup-back-btn {
+    height: 32px;
+    padding: 5px 14px 5px 10px;
+    border-radius: 9999px;
+    background: rgba(var(--sh-ink-inv, 14, 14, 22),  0.70);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.90);
+    cursor: pointer;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.1px;
+    box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.40);
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    white-space: nowrap;
+    max-width: 320px;
+    overflow: hidden;
+}
+.sh-slideup-back-btn svg {
+    flex-shrink: 0;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.90);
+    transition: transform var(--sh-dur-2) ease;
+}
+.sh-slideup-back-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: inherit;
+}
+.sh-slideup-back-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.18);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.30);
+    color: var(--sh-ink-solid, #ffffff);
+    transform: scale(1.03);
+}
+.sh-slideup-back-btn:hover svg {
+    transform: translateX(-2px);
+}
+.sh-slideup-back-btn:active {
+    transform: scale(0.97);
+}
+
+/* Bouton Fermer Flottant Discret en Verre (Centrage Géométrique SVG Parfait) */
+.sh-slideup-close-btn {
+    pointer-events: auto !important;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(var(--sh-ink-inv, 14, 14, 22),  0.70);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    color: var(--sh-ink-solid, #ffffff);
+    cursor: pointer;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    line-height: 0 !important;
+    box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.40);
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+.sh-slideup-close-btn svg {
+    display: block;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+.sh-slideup-close-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.20);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.30);
+    transform: scale(1.06);
+}
+
+.sh-cinema-hero-bg-container {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: 26px 26px 0 0;
+    pointer-events: none;
+    mask-image: linear-gradient(to bottom, black 0%, black 40%, rgba(0, 0, 0, 0.3) 75%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 40%, rgba(0, 0, 0, 0.3) 75%, transparent 100%);
+}
+.sh-cinema-hero-backdrop {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center 20%;
+    filter: brightness(0.78);
+    transition: transform var(--sh-dur-5) var(--sh-ease-out);
+}
+.sh-slideup-sheet:hover .sh-cinema-hero-backdrop {
+    transform: scale(1.02);
+}
+.sh-cinema-hero-gradient-bottom {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(var(--sh-ink-inv, 14, 14, 22),  0) 0%, rgba(var(--sh-ink-inv, 14, 14, 22),  0.35) 40%, rgba(var(--sh-ink-inv, 14, 14, 22),  0.75) 75%, rgba(var(--sh-ink-inv, 14, 14, 22),  0.95) 100%);
+    pointer-events: none;
+}
+.sh-cinema-hero-gradient-left {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, rgba(var(--sh-ink-inv, 14, 14, 22),  0.88) 0%, rgba(var(--sh-ink-inv, 14, 14, 22),  0.35) 60%, transparent 100%);
+    pointer-events: none;
+}
+.sh-cinema-hero-content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: flex-end;
+    gap: 26px;
+    width: 100%;
+}
+
+/* Affiche 2:3 Restaurée & Sublimée */
+.sh-cinema-hero-poster {
+    width: 120px;
+    aspect-ratio: 2/3;
+    border-radius: 12px;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 14px 32px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.90), 0 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.20);
+    background: var(--sh-bg-surface, #14141e);
+}
+.sh-cinema-hero-poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sh-cinema-hero-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.sh-cinema-badge-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.sh-badge-glass-pill {
+    font-size: 9.5px;
+    font-weight: 750;
+    letter-spacing: 0.8px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14);
+    padding: 3px 10px;
+    border-radius: 9999px;
+}
+.sh-cinema-title {
+    font-size: 32px;
+    font-weight: 850;
+    letter-spacing: -1px;
+    color: var(--sh-ink-solid, #ffffff);
+    margin: 0;
+    line-height: 1.1;
+    text-shadow: 0 4px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.85);
+}
+.sh-cinema-meta-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    font-weight: 600;
+}
+.sh-modal-header-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 3px 9px !important;
+    border-radius: 9999px !important;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
+    font-size: 11.5px !important;
+    font-weight: 800 !important;
+    cursor: pointer !important;
+    transition: transform var(--sh-dur-2) ease !important, opacity var(--sh-dur-2) ease !important, background-color var(--sh-dur-2) ease !important, background var(--sh-dur-2) ease !important, border-color var(--sh-dur-2) ease !important, box-shadow var(--sh-dur-2) ease !important, color var(--sh-dur-2) ease !important, filter var(--sh-dur-2) ease !important;
+}
+.sh-modal-header-badge:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.35) !important;
+    transform: scale(1.05) !important;
+}
+.sh-modal-header-badge--rt {
+    color: #ff5252 !important;
+}
+.sh-modal-header-badge--community {
+    color: #f5c518 !important;
+}
+.sh-meta-score-rt { color: #ff5252; font-weight: 800; }
+.sh-meta-score-imdb { color: #ffd600; font-weight: 800; }
+.sh-meta-bullet { color: rgba(var(--sh-ink, 255, 255, 255),  0.25); font-size: 10px; }
+.sh-meta-text { color: rgba(var(--sh-ink, 255, 255, 255),  0.70); font-weight: 550; }
+
+/* Barre d'Actions Principales Apple TV+ Style (Pills) */
+.sh-cinema-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+}
+.sh-cinema-btn-play {
+    background: var(--sh-ink-solid, #ffffff);
+    color: var(--sh-ink-solid-inv, #000000);
+    border: none;
+    padding: 10px 24px;
+    border-radius: 9999px;
+    font-size: 13.5px;
+    font-weight: 750;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 20px rgba(var(--sh-ink, 255, 255, 255),  0.25);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
+}
+.sh-cinema-btn-play:hover {
+    transform: scale(1.04);
+    box-shadow: 0 8px 30px rgba(var(--sh-ink, 255, 255, 255),  0.45);
+}
+.sh-cinema-btn-glass {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    color: var(--sh-ink-solid, #ffffff);
+    padding: 10px 18px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
+}
+.sh-cinema-btn-glass:hover,
+.sh-cinema-btn-glass.active {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.18);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.32);
+    transform: scale(1.03);
+}
+.sh-cinema-btn-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 9999px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    color: var(--sh-ink-solid, #ffffff);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
+}
+.sh-cinema-btn-icon:hover,
+.sh-cinema-btn-icon.active {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.22);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.35);
+    transform: scale(1.06);
+}
+
+/* ── Idée B : Popover Audio & Sous-titres à Double Colonne ───── */
+.sh-audio-popover-wrapper {
+    position: relative;
+    z-index: 100;
+}
+.sh-btn-audio-popover {
+    font-size: 13px;
+}
+.sh-chevron-icon {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: 2px;
+}
+.sh-audio-popover-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    z-index: 9999;
+    width: 480px;
+    background: rgba(var(--sh-ink-inv, 18, 18, 26),  0.98);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.22);
+    border-radius: 20px;
+    padding: 14px 16px;
+    box-shadow: 0 30px 80px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.98), 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.4);
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+    pointer-events: none;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+}
+.sh-audio-popover-menu.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+.sh-popover-columns-grid {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 14px;
+}
+.sh-popover-column {
+    display: flex;
+    flex-direction: column;
+}
+.sh-popover-column-divider {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    width: 1px;
+    height: 100%;
+}
+.sh-popover-section-header {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
+    padding: 2px 6px 8px;
+}
+.sh-popover-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.sh-popover-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 550;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.75);
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    border: 1px solid transparent;
+}
+.sh-popover-item:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    color: var(--sh-ink-solid, #ffffff);
+}
+.sh-popover-item.selected {
+    color: var(--sh-ink-solid, #ffffff);
+    font-weight: 700;
+    background: rgba(10, 132, 255, 0.36);
+    border-color: rgba(10, 132, 255, 0.40);
+}
+.sh-popover-check {
+    font-size: 13px;
+    opacity: 0;
+    color: #38bdf8;
+    font-weight: 800;
+}
+.sh-popover-item.selected .sh-popover-check {
+    opacity: 1;
+}
+
+/* Rating Flyout Compact */
+.sh-rating-compact-wrapper {
+    position: relative;
+    z-index: 90;
+}
+.sh-rating-stars-flyout {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    left: auto;
+    z-index: 9999;
+    background: rgba(var(--sh-ink-inv, 20, 20, 30),  0.98);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.22);
+    border-radius: 9999px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 30px 80px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.98), 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.4);
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+    pointer-events: none;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    white-space: nowrap;
+}
+.sh-rating-stars-flyout.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+.sh-star-btn {
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.25);
+    cursor: pointer;
+    padding: 0 2px;
+    transition: transform var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
+}
+.sh-star-btn:hover,
+.sh-star-btn.active {
+    color: #ffd600;
+    transform: scale(1.25);
+    text-shadow: 0 0 10px rgba(255, 214, 0, 0.75);
+}
+.sh-star-score-txt {
+    font-size: 12px;
+    font-weight: 750;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
+    margin-left: 8px;
+}
+
+/* ── 🏛️ Corps & Onglets avec Pastille Glissante Ressort ──────── */
+.sh-cinema-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 32px 16px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+.sh-cinema-tabs-nav {
+    position: relative;
+    display: flex;
+    gap: 2px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    padding: 3px;
+    border-radius: 9999px;
+    margin: 4px 0 10px;
+    width: fit-content;
+    flex-shrink: 0;
+}
+.sh-tabs-slider-pill {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    left: 0;
+    width: 90px;
+    border-radius: 9999px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.14);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.20);
+    box-shadow: 0 2px 10px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.35);
+    pointer-events: none;
+    transition: transform var(--sh-dur-4) var(--sh-ease-spring),
+                width var(--sh-dur-4) var(--sh-ease-spring);
+    z-index: 1;
+}
+.sh-tab-btn {
+    position: relative;
+    z-index: 2;
+    background: transparent;
+    border: none;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.55);
+    padding: 5px 16px;
+    border-radius: 9999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color var(--sh-dur-2) ease;
+    white-space: nowrap;
+}
+.sh-tab-btn:hover {
+    color: var(--sh-ink-solid, #ffffff);
+}
+.sh-tab-btn.active {
+    color: var(--sh-ink-solid, #ffffff);
+    font-weight: 700;
+}
+
+/* Panneaux d'Onglets */
+.sh-cinema-panels-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    scrollbar-width: none !important;
+}
+.sh-cinema-panels-wrapper::-webkit-scrollbar { display: none !important; }
+
+.sh-tab-panel {
+    display: none;
+    opacity: 0;
+}
+.sh-tab-panel.active {
+    display: block;
+    opacity: 1;
+}
+
+/* ── Idée C : Animations Échelonnées (Staggered Motion) ──────── */
+.sh-tab-panel.active > * > *:nth-child(1) { animation: sh-stagger-fade 320ms 40ms var(--sh-ease-out) both; }
+.sh-tab-panel.active > * > *:nth-child(2) { animation: sh-stagger-fade 320ms 80ms var(--sh-ease-out) both; }
+.sh-tab-panel.active > * > *:nth-child(3) { animation: sh-stagger-fade 320ms 120ms var(--sh-ease-out) both; }
+.sh-tab-panel.active > * > *:nth-child(4) { animation: sh-stagger-fade 320ms 160ms var(--sh-ease-out) both; }
+.sh-tab-panel.active > * > *:nth-child(5) { animation: sh-stagger-fade 320ms 200ms var(--sh-ease-out) both; }
+.sh-tab-panel.active > * > *:nth-child(6) { animation: sh-stagger-fade 320ms 240ms var(--sh-ease-out) both; }
+
+@keyframes sh-stagger-fade {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── 📖 Onglet 1 : Synopsis & Structure Éditoriale Zéro-Scroll ── */
+.sh-synopsis-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 6px;
+}
+
+.sh-synopsis-text-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.sh-section-subtitle {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
+}
+.sh-panel-overview {
+    font-size: 13.5px !important;
+    line-height: 1.55 !important;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.90) !important;
+    margin: 0 !important;
+    font-weight: 400;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── 🏆 Section Réputation Cinéma : 2 Boîtes Bento Smoked Glass Compactes ─ */
+.sh-cinema-critics-block {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+    margin: 0 !important;
+}
+@media (max-width: 820px) {
+    .sh-cinema-critics-block { grid-template-columns: 1fr !important; }
+}
+
+/* Masquage conditionnel (carte sans données réelles) — display:none !important bat le display:flex !important de base */
+.sh-critics-bento-card[hidden],
+.sh-critics-bento-card--hidden {
+    display: none !important;
+}
+
+.sh-critics-bento-card {
+    background: rgba(var(--sh-ink-inv, 20, 20, 28),  0.75) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12) !important;
+    border-radius: 14px !important;
+    padding: 12px 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    box-shadow: 0 10px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.60), inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.15) !important;
+    transition: border-color var(--sh-dur-3) ease, transform var(--sh-dur-3) ease, box-shadow var(--sh-dur-3) ease;
+}
+.sh-critics-bento-card:hover {
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 14px 32px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.70), inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.22) !important;
+}
+
+.sh-critics-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+}
+.sh-critics-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+.sh-critics-title-label {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
+    letter-spacing: -0.2px;
+}
+.sh-critics-badge {
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 1.5px 6px;
+    border-radius: 5px;
+}
+.sh-critics-badge.certified {
+    background: rgba(250, 50, 10, 0.38);
+    color: #ff5252;
+    border: 1px solid rgba(250, 50, 10, 0.45);
+}
+.sh-critics-badge.fresh {
+    background: rgba(56, 142, 60, 0.38);
+    color: #4caf50;
+    border: 1px solid rgba(56, 142, 60, 0.45);
+}
+.sh-critics-badge.rotten {
+    background: rgba(120, 177, 63, 0.38);
+    color: #8bc34a;
+    border: 1px solid rgba(120, 177, 63, 0.45);
+}
+
+.sh-critics-score-val-large {
+    font-size: 19px;
+    font-weight: 900;
+    color: var(--sh-ink-solid, #ffffff);
+    letter-spacing: -0.5px;
+}
+.sh-critics-score-val-large.imdb-gold {
+    color: #f5c518;
+}
+.sh-critics-score-val-large small {
+    font-size: 11px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
+    font-weight: 600;
+}
+
+.sh-critics-consensus-text {
+    margin: 0;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.82);
+    font-weight: 400;
+}
+
+.sh-critics-quote-box {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
+    border-left: 2.5px solid #ff9f0a;
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-style: italic;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.sh-critics-quote-box cite {
+    font-style: normal;
+    font-weight: 700;
+    color: #ff9f0a;
+    font-size: 10px;
+    text-align: right;
+}
+
+.sh-critics-stars-display {
+    color: #f5c518;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+}
+
+.sh-critics-stat-section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.sh-critics-bar-track {
+    width: 100%;
+    height: 5px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    border-radius: 9999px;
+    overflow: hidden;
+}
+.sh-critics-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f5c518 0%, #30d158 100%);
+    border-radius: 9999px;
+}
+.sh-critics-legend-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.70);
+}
+
+.sh-critics-footer-meta {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
+    padding-top: 2px;
+    border-top: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.05);
+}
+
+/* ── ⚙️ Fiche Technique & Métadonnées (Grille 4 cases Compacte) ──────── */
+.sh-panel-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 0;
+}
+.sh-meta-card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 10px;
+    padding: 7px 12px;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+.sh-meta-card:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.18);
+}
+.sh-cell-label {
+    font-size: 9.5px;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
+}
+.sh-cell-val {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.90);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Idée D : Onglet 2 : Casting & Équipe Enrichi ────────────── */
+.sh-cast-luxury-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    padding: 2px 0;
+}
+.sh-cast-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 16px;
+    padding: 12px 16px;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+.sh-cast-card:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.24);
+    transform: translateY(-2px);
+}
+.sh-cast-card img {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.20);
+    box-shadow: 0 4px 14px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.4);
+}
+.sh-cast-avatar-fallback {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.20);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--sh-ink-solid, #ffffff);
+    flex-shrink: 0;
+}
+.sh-episode-thumb-fallback {
+    width: 100%;
+    height: 100%;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.6);
+}
+.sh-cast-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.sh-actor-name {
+    font-size: 13.5px;
+    font-weight: 750;
+    color: var(--sh-ink-solid, #ffffff);
+}
+.sh-role-name {
+    font-size: 11.5px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.55);
+}
+.sh-role-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #38bdf8;
+}
+
+/* Onglet 3 : Bonus & Vidéos (3 Cartes 16:9 Spacieuses) */
+.sh-bonus-luxury-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    padding: 2px 0;
+}
+.sh-bonus-item {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform var(--sh-dur-3) ease, opacity var(--sh-dur-3) ease, background-color var(--sh-dur-3) ease, background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease, box-shadow var(--sh-dur-3) ease, color var(--sh-dur-3) ease, filter var(--sh-dur-3) ease;
+}
+.sh-bonus-item:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.25);
+    transform: translateY(-3px);
+}
+.sh-bonus-thumb-wrap {
+    height: 140px;
+    background: linear-gradient(135deg, var(--sh-bg-surface-2, #181824), #323248);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+.sh-bonus-play-disc {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.92);
+    color: var(--sh-ink-solid-inv, #000000);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    padding-left: 2px;
+    box-shadow: 0 6px 18px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.6);
+    transition: transform var(--sh-dur-2) ease;
+}
+.sh-bonus-item:hover .sh-bonus-play-disc {
+    transform: scale(1.15);
+}
+.sh-bonus-dur-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.80);
+    color: var(--sh-ink-solid, #ffffff);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 5px;
+}
+.sh-bonus-meta {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.sh-bonus-pill-tag {
+    font-size: 9.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.50);
+}
+.sh-bonus-headline {
+    font-size: 13px;
+    font-weight: 650;
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+/* ── Onglet 4 : Titres Similaires — Grille Bento Responsive ── */
+.sh-similar-bento-grid,
+.sh-bento-luxury-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    padding: 2px 0 16px;
+}
+.sh-bento-card {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.09);
+    border-radius: 18px;
+    overflow: hidden;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+}
+.sh-bento-card:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 36px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.75);
+}
+.sh-bento-poster-wrap,
+.sh-bento-thumb-container {
+    height: 130px;
+    position: relative;
+    background: var(--sh-bg-surface, #14141e);
+    overflow: hidden;
+}
+.sh-bento-poster-wrap img,
+.sh-bento-thumb-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--sh-dur-4) ease;
+}
+.sh-bento-card:hover .sh-bento-poster-wrap img,
+.sh-bento-card:hover .sh-bento-thumb-container img {
+    transform: scale(1.06);
+}
+.sh-bento-thumb-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(var(--sh-ink-inv, 12, 12, 18),  0.85) 0%, transparent 60%);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 8px 12px;
+}
+.sh-bento-quick-play {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.90);
+    color: var(--sh-ink-solid-inv, #000000);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    padding-left: 2px;
+    box-shadow: 0 4px 12px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.6);
+    opacity: 0;
+    transform: scale(0.8);
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+}
+.sh-bento-card:hover .sh-bento-quick-play {
+    opacity: 1;
+    transform: scale(1);
+}
+.sh-bento-match-badge {
+    font-size: 10px;
+    font-weight: 800;
+    color: #4ade80;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.65);
+    padding: 3px 7px;
+    border-radius: 6px;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+}
+.sh-bento-content {
+    padding: 12px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.sh-bento-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.sh-bento-title {
+    font-size: 13.5px;
+    font-weight: 750;
+    color: var(--sh-ink-solid, #ffffff);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sh-bento-add-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    color: var(--sh-ink-solid, #ffffff);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    flex-shrink: 0;
+}
+.sh-bento-add-btn:hover,
+.sh-bento-add-btn.added {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.25);
+    transform: scale(1.10);
+}
+.sh-bento-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.60);
+    font-weight: 550;
+}
+.sh-bento-score {
+    color: #ffd600;
+    font-weight: 750;
+}
+.sh-bento-dot {
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.25);
+    font-size: 8px;
+}
+.sh-bento-age-tag {
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
+}
+.sh-bento-tech-tag {
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(56, 189, 248, 0.28);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    color: #38bdf8;
+}
+.sh-bento-desc {
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.70);
+    margin: 2px 0 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ── 🎵 Musique : Artwork Carré 1:1 & Effet Disque Vinyle ───── */
+.sh-cinema-hero-poster--music {
+    width: 140px !important;
+    aspect-ratio: 1/1 !important;
+    border-radius: 16px !important;
+    position: relative !important;
+    overflow: visible !important;
+}
+.sh-cinema-hero-poster--music img {
+    border-radius: 14px;
+    box-shadow: 0 14px 32px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.85);
+}
+.sh-vinyl-disc-grooves {
+    position: absolute;
+    top: 5px;
+    right: -24px;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--sh-bg-base, #09090c) 25%, var(--sh-bg-surface-2, #181822) 45%, var(--sh-bg-base, #050508) 70%, var(--sh-bg-surface, #151520) 100%);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    box-shadow: 0 10px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.75);
+    z-index: -1;
+    animation: sh-vinyl-spin var(--sh-dur-5) linear infinite;
+}
+@keyframes sh-vinyl-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* ── 📺 Séries : Épisodes & Saisons ─────────────────────────── */
+.sh-series-episodes-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.sh-season-pills-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+.sh-season-pill-btn {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.70);
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+.sh-season-pill-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    color: var(--sh-ink-solid, #ffffff);
+}
+.sh-season-pill-btn.active {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.20);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.35);
+    color: var(--sh-ink-solid, #ffffff);
+    font-weight: 750;
+}
+.sh-season-badge-state {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 700;
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.28);
+    border: 1px solid rgba(74, 222, 128, 0.25);
+    padding: 3px 10px;
+    border-radius: 9999px;
+}
+.sh-episodes-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding-bottom: 16px;
+}
+.sh-episode-card {
+    display: flex;
+    gap: 12px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 16px;
+    padding: 10px;
+    cursor: pointer;
+    transition: transform var(--sh-dur-3) ease, opacity var(--sh-dur-3) ease, background-color var(--sh-dur-3) ease, background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease, box-shadow var(--sh-dur-3) ease, color var(--sh-dur-3) ease, filter var(--sh-dur-3) ease;
+}
+.sh-episode-card:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.09);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.22);
+    transform: translateY(-2px);
+}
+.sh-episode-thumb-wrap {
+    width: 135px;
+    aspect-ratio: 16/9;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+    background: var(--sh-bg-surface-2, #181824);
+}
+.sh-episode-thumb-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.sh-episode-overlay-play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.45);
+    font-size: 14px;
+    color: var(--sh-ink-solid, #ffffff);
+    opacity: 0;
+    transition: opacity var(--sh-dur-2) ease;
+}
+.sh-episode-card:hover .sh-episode-overlay-play {
+    opacity: 1;
+}
+.sh-episode-badge-num {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.75);
+    color: var(--sh-ink-solid, #ffffff);
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.sh-episode-dur {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.80);
+    color: var(--sh-ink-solid, #ffffff);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 4px;
+}
+.sh-episode-progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.20);
+}
+.sh-episode-progress-fill {
+    height: 100%;
+    background: #ff3b30;
+}
+.sh-episode-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    justify-content: center;
+    min-width: 0;
+    flex: 1;
+}
+.sh-episode-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+}
+.sh-episode-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--sh-ink-solid, #ffffff);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color var(--sh-dur-2) ease;
+}
+.sh-episode-date {
+    font-size: 10px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
+    flex-shrink: 0;
+}
+.sh-episode-synopsis {
+    font-size: 11px;
+    line-height: 1.4;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.65);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.sh-episode-details-hint,
+.sh-saga-details-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #38bdf8;
+    margin-top: 2px;
+    opacity: 0.85;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+.sh-episode-info:hover .sh-episode-details-hint,
+.sh-saga-card-content:hover .sh-saga-details-hint {
+    opacity: 1;
+    color: #7dd3fc;
+    transform: translateX(2px);
+}
+.sh-episode-info:hover .sh-episode-title,
+.sh-saga-card-content:hover .sh-saga-title {
+    color: #38bdf8;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.sh-episode-thumb-wrap:hover .sh-episode-overlay-play,
+.sh-saga-thumb-container:hover .sh-saga-quick-play {
+    opacity: 1 !important;
+    transform: scale(1.12);
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.60);
+}
+
+/* ── 🎬 Collections : Films de la Saga ───────────────────────── */
+.sh-saga-films-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 16px;
+}
+.sh-saga-movie-card {
+    display: flex;
+    gap: 16px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 16px;
+    padding: 12px;
+    cursor: pointer;
+    transition: transform var(--sh-dur-3) ease, opacity var(--sh-dur-3) ease, background-color var(--sh-dur-3) ease, background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease, box-shadow var(--sh-dur-3) ease, color var(--sh-dur-3) ease, filter var(--sh-dur-3) ease;
+}
+.sh-saga-movie-card:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.24);
+    transform: translateY(-2px);
+}
+.sh-saga-thumb-container {
+    width: 170px;
+    aspect-ratio: 16/9;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+    background: var(--sh-bg-surface, #14141e);
+}
+.sh-saga-thumb-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.sh-saga-quick-play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.45);
+    font-size: 15px;
+    color: var(--sh-ink-solid, #ffffff);
+    opacity: 0;
+    transition: opacity var(--sh-dur-2) ease;
+}
+.sh-saga-movie-card:hover .sh-saga-quick-play {
+    opacity: 1;
+}
+.sh-saga-num-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.75);
+    color: #ffd600;
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 214, 0, 0.3);
+}
+.sh-saga-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    justify-content: center;
+}
+.sh-saga-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.sh-saga-title {
+    font-size: 14.5px;
+    font-weight: 750;
+    color: var(--sh-ink-solid, #ffffff);
+    transition: color var(--sh-dur-2) ease;
+}
+.sh-saga-play-btn {
+    background: var(--sh-ink-solid, #ffffff);
+    color: var(--sh-ink-solid-inv, #000000);
+    border: none;
+    font-size: 11.5px;
+    font-weight: 750;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, background var(--sh-dur-2) ease;
+}
+.sh-saga-play-btn:hover {
+    transform: scale(1.06);
+    background: #f0f0f8;
+}
+.sh-saga-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.60);
+    font-weight: 550;
+}
+
+
+/* ── 🎵 Musique : Pistes & Morceaux ─────────────────────────── */
+.sh-album-tracks-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 16px;
+}
+.sh-tracks-table {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.sh-track-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 14px;
+    border-radius: 12px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+.sh-track-row:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.15);
+}
+.sh-track-row.playing {
+    background: rgba(56, 189, 248, 0.3);
+    border-color: rgba(56, 189, 248, 0.30);
+    color: #38bdf8;
+}
+.sh-track-num-col {
+    width: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
+    position: relative;
+}
+.sh-track-play-btn {
+    display: none;
+    background: transparent;
+    border: none;
+    color: var(--sh-ink-solid, #ffffff);
+    font-size: 12px;
+    cursor: pointer;
+}
+.sh-track-row:hover .sh-track-index {
+    display: none;
+}
+.sh-track-row:hover .sh-track-play-btn {
+    display: block;
+}
+.sh-track-title-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.sh-track-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--sh-ink-solid, #ffffff);
+}
+.sh-track-artist {
+    font-size: 11px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.50);
+}
+.sh-track-tag-col {
+    display: flex;
+    align-items: center;
+}
+.sh-track-badge {
+    font-size: 9.5px;
+    font-weight: 750;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.26);
+    border: 1px solid rgba(56, 189, 248, 0.22);
+    padding: 2px 7px;
+    border-radius: 5px;
+}
+.sh-track-duration-col {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.60);
+}

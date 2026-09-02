@@ -7,6 +7,8 @@
 
 'use strict';
 
+
+import * as svc from '../../core/services.js';
 class ContinueWatchingWidget {
     constructor() {
         this.id = 'continue-watching';
@@ -33,7 +35,7 @@ class ContinueWatchingWidget {
         `;
 
         const contentEl = container.querySelector('.sh-widget__items-container');
-        const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
+        const cardBuilder = svc.cardBuilder();
 
         if (cardBuilder) {
             contentEl.appendChild(cardBuilder.createSkeletonGrid(4, 'backdrop'));
@@ -47,7 +49,7 @@ class ContinueWatchingWidget {
         if (!contentEl) return;
 
         try {
-            const api = window.SpaceHub?.jellyfin?.api;
+            const api = svc.jellyfinApi();
             let items = [];
             if (api?.getUnifiedContinueWatching) {
                 items = await api.getUnifiedContinueWatching(16);
@@ -62,7 +64,7 @@ class ContinueWatchingWidget {
             }
 
             container.style.display = '';
-            const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
+            const cardBuilder = svc.cardBuilder();
             if (cardBuilder) {
                 // Enrichissement du titre et du sous-titre pour une lisibilité Apple TV+ parfaite
                 const enrichedItems = items.map(it => {
@@ -108,8 +110,8 @@ class ContinueWatchingWidget {
                         }
                     },
                     onClick: (item) => {
-                        if (window.SpaceHub?.ui?.modalSlideUpSheet) {
-                            window.SpaceHub.ui.modalSlideUpSheet.open(item);
+                        if (svc.slideUpSheet()) {
+                            svc.slideUpSheet().open(item);
                         } else if (window.Emby?.Page?.showItem) {
                             window.Emby.Page.showItem(item.Id);
                         } else {

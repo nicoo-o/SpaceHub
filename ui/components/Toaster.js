@@ -15,6 +15,7 @@
 
 import Logger from '../../core/Logger.js';
 
+import './Toaster.css';
 const ICONS = {
     success: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
     error:   `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
@@ -165,127 +166,9 @@ class Toaster {
     // ─── Styles ──────────────────────────────────────────────────────────────────
 
     _injectStyles() {
-        if (document.getElementById('sh-toaster-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-toaster-styles';
-        style.textContent = `
-#sh-toast-container {
-    position: fixed;
-    top: 24px;
-    right: 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    z-index: var(--sh-z-toast, 500);
-    max-width: 380px;
-    width: calc(100vw - 48px);
-    pointer-events: none;
-}
-.sh-toast {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 13px 14px 13px 16px;
-    background: rgba(18, 18, 24, 0.94);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 14px;
-    box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.80),
-        inset 0 1px 0 rgba(255, 255, 255, 0.10);
-    backdrop-filter: blur(32px) saturate(180%);
-    -webkit-backdrop-filter: blur(32px) saturate(180%);
-    color: #ffffff;
-    font-family: var(--sh-font-family, sans-serif);
-    font-size: 13px;
-    font-weight: 500;
-    pointer-events: all;
-    opacity: 0;
-    transform: translateX(calc(100% + 24px));
-    transition:
-        opacity 280ms cubic-bezier(0.16, 1, 0.3, 1),
-        transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
-    border-left: 2px solid transparent;
-    overflow: hidden;
-}
-.sh-toast--visible  { opacity: 1; transform: translateX(0); }
-.sh-toast--leaving  { opacity: 0; transform: translateX(calc(100% + 24px)); transition: opacity 220ms ease, transform 220ms ease; }
-
-/* Accents gauche par type */
-.sh-toast--success { border-left-color: #32d74b; }
-.sh-toast--error   { border-left-color: #ff453a; }
-.sh-toast--warning { border-left-color: #ff9f0a; }
-.sh-toast--info    { border-left-color: #64d2ff; }
-.sh-toast--default { border-left-color: rgba(255,255,255,0.30); }
-
-/* Icône */
-.sh-toast__icon { flex-shrink: 0; display: flex; align-items: center; }
-
-/* Texte */
-.sh-toast__message { flex: 1; line-height: 1.45; color: rgba(255,255,255,0.90); }
-
-/* Bouton Action */
-.sh-toast__action {
-    flex-shrink: 0;
-    padding: 4px 10px;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.10);
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    cursor: pointer;
-    font-size: 11px;
-    font-weight: 700;
-    font-family: inherit;
-    letter-spacing: 0.02em;
-    transition: background 140ms ease;
-}
-.sh-toast__action:hover { background: rgba(255, 255, 255, 0.20); }
-
-/* Bouton Fermer */
-.sh-toast__close {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    background: rgba(255, 255, 255, 0.06);
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    color: rgba(255, 255, 255, 0.50);
-    transition: background 140ms ease, color 140ms ease;
-}
-.sh-toast__close:hover { background: rgba(255, 255, 255, 0.14); color: #ffffff; }
-
-/* Barre de progression */
-.sh-toast__progress {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    height: 2px;
-    width: 100%;
-    background: rgba(255, 255, 255, 0.20);
-    border-radius: 0 0 14px 14px;
-    transform-origin: left;
-    animation: sh-toast-progress linear forwards;
-    animation-play-state: running;
-}
-.sh-toast--success .sh-toast__progress { background: rgba(50,  215, 75,  0.50); }
-.sh-toast--error   .sh-toast__progress { background: rgba(255, 69,  58,  0.50); }
-.sh-toast--warning .sh-toast__progress { background: rgba(255, 159, 10,  0.50); }
-.sh-toast--info    .sh-toast__progress { background: rgba(100, 210, 255, 0.50); }
-
-@keyframes sh-toast-progress {
-    from { transform: scaleX(1); }
-    to   { transform: scaleX(0); }
-}
-
-@media (max-width: 480px) {
-    #sh-toast-container { top: auto; bottom: 16px; right: 12px; left: 12px; width: auto; max-width: none; }
-}
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans Toaster.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

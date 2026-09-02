@@ -1,4 +1,6 @@
 import { escapeHtml } from '../../core/utils/domUtils.js';
+import './BazarrWidgets.css';
+import * as svc from '../../core/services.js';
 /**
  * SpaceHub — Bazarr Dashboard Widgets
  * Version: 0.9.0
@@ -45,7 +47,7 @@ class BazarrWantedWidget {
         this._injectStyles();
         container.querySelector('.sh-widget__refresh-btn')?.addEventListener('click', () => this.refresh(container));
         container.querySelector('.sh-widget__sync-btn')?.addEventListener('click', async () => {
-            const bazarr = window.SpaceHub?.integrations?.bazarr;
+            const bazarr = svc.integration('bazarr');
             if (bazarr) await bazarr.triggerSync();
         });
 
@@ -57,7 +59,7 @@ class BazarrWantedWidget {
         if (!contentEl) return;
 
         try {
-            const bazarr = window.SpaceHub?.integrations?.bazarr;
+            const bazarr = svc.integration('bazarr');
             if (!bazarr) {
                 contentEl.innerHTML = `
                     <div class="sh-widget-empty" style="padding:var(--sh-space-4,16px); text-align:center; color:var(--sh-text-muted);">
@@ -135,164 +137,9 @@ class BazarrWantedWidget {
     }
 
     _injectStyles() {
-        if (document.getElementById('sh-bazarr-widget-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-bazarr-widget-styles';
-        style.textContent = `
-.sh-widget__refresh-btn {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 50% !important;
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    color: rgba(255, 255, 255, 0.65) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    cursor: pointer !important;
-    outline: none !important;
-    padding: 0 !important;
-    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
-}
-
-.sh-widget__refresh-btn:hover {
-    background: rgba(255, 255, 255, 0.14) !important;
-    border-color: rgba(255, 255, 255, 0.28) !important;
-    color: #ffffff !important;
-    transform: rotate(45deg) scale(1.08) !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
-}
-
-.sh-widget__refresh-btn:active {
-    transform: rotate(180deg) scale(0.92) !important;
-    background: rgba(255, 255, 255, 0.20) !important;
-}
-
-.sh-widget__refresh-btn svg {
-    width: 14px !important;
-    height: 14px !important;
-    stroke: currentColor !important;
-    stroke-width: 2.3 !important;
-    fill: none !important;
-    pointer-events: none !important;
-}
-
-.sh-widget__sync-btn {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 6px !important;
-    padding: 5px 12px !important;
-    border-radius: 9999px !important;
-    background: rgba(255, 255, 255, 0.06) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    color: rgba(255, 255, 255, 0.85) !important;
-    font-size: 11.5px !important;
-    font-weight: 650 !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    cursor: pointer !important;
-    outline: none !important;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.sh-widget__sync-btn:hover {
-    background: rgba(255, 255, 255, 0.15) !important;
-    border-color: rgba(255, 255, 255, 0.30) !important;
-    color: #ffffff !important;
-    transform: translateY(-1px) !important;
-}
-
-.sh-widget__sync-btn svg {
-    width: 13px !important;
-    height: 13px !important;
-    stroke: currentColor !important;
-    stroke-width: 2.3 !important;
-    fill: none !important;
-}
-
-.sh-bazarr-summary-banner {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 9px 12px;
-    margin-bottom: 10px;
-    font-size: 12.5px;
-    color: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-}
-.sh-bazarr-summary-banner strong {
-    color: #ffffff;
-}
-
-.sh-bazarr-items-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.sh-bazarr-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    padding: 10px 14px;
-    gap: 10px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    transition: background 140ms ease, border-color 140ms ease;
-}
-.sh-bazarr-item:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.14);
-}
-
-.sh-bazarr-item__details {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-    flex: 1;
-}
-
-.sh-bazarr-type-badge {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: 5px;
-    flex-shrink: 0;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-}
-
-.sh-bazarr-type-badge--movie {
-    color: #64d2ff;
-    background: rgba(100, 210, 255, 0.12);
-    border: 1px solid rgba(100, 210, 255, 0.2);
-}
-
-.sh-bazarr-type-badge--series {
-    color: #32d74b;
-    background: rgba(50, 215, 75, 0.12);
-    border: 1px solid rgba(50, 215, 75, 0.2);
-}
-
-.sh-bazarr-item__title {
-    font-size: 13px;
-    font-weight: 550;
-    color: #ffffff;
-}
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans BazarrWidgets.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

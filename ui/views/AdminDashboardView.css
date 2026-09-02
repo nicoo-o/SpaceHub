@@ -1,0 +1,569 @@
+/* ── Overlay Modal Administration Bento Glass ── */
+.sh-admin-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.78);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out);
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.sh-admin-modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.sh-admin-modal-card {
+    width: 100%;
+    max-width: 980px;
+    max-height: 90vh;
+    background: rgba(var(--sh-ink-inv, 14, 14, 18),  0.94);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14);
+    border-radius: 28px;
+    box-shadow: 0 32px 80px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.92), inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.25);
+    padding: 32px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    transform: scale(0.96) translateY(12px);
+    transition: transform var(--sh-dur-4) var(--sh-ease-out);
+    overflow-y: auto;
+}
+
+.sh-admin-modal-overlay.open .sh-admin-modal-card {
+    transform: scale(1) translateY(0);
+}
+
+/* ── En-tête ── */
+.sh-admin-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    padding-bottom: 20px;
+}
+
+.sh-admin-modal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--sh-ink-solid, #ffffff);
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+}
+
+.sh-admin-modal-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--sh-ink-solid, #ffffff);
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.sh-admin-modal-subtitle {
+    font-size: 13px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.55);
+    margin: 4px 0 0 0;
+}
+
+.sh-admin-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sh-admin-header-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    color: var(--sh-ink-solid, #ffffff);
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-admin-header-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.20);
+    transform: translateY(-1px);
+}
+
+.sh-admin-modal-close {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14);
+    color: var(--sh-ink-solid, #ffffff);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 15px;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-admin-modal-close:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.22);
+    transform: scale(1.08);
+}
+
+/* ── Bento Grid ── */
+.sh-admin-bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px;
+}
+
+.sh-admin-bento-card {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.09);
+    border-radius: 20px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.sh-admin-card-sessions {
+    grid-column: span 12;
+}
+
+.sh-admin-card-library {
+    grid-column: span 6;
+}
+
+.sh-admin-card-health {
+    grid-column: span 6;
+}
+
+.sh-admin-card-services {
+    grid-column: span 12;
+}
+
+@media (max-width: 768px) {
+    .sh-admin-card-library,
+    .sh-admin-card-health {
+        grid-column: span 12;
+    }
+}
+
+.sh-admin-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.sh-admin-card-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sh-admin-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #30d158;
+    box-shadow: 0 0 10px #30d158;
+    animation: sh-pulse-dot var(--sh-dur-5) infinite ease-in-out;
+}
+
+@keyframes sh-pulse-dot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: 0.6; }
+}
+
+.sh-admin-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--sh-ink-solid, #ffffff);
+    margin: 0;
+}
+
+.sh-admin-card-tag {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 100px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.7);
+}
+
+/* ── Sessions List ── */
+.sh-admin-sessions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sh-admin-session-item {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.05);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 14px;
+    padding: 12px;
+}
+
+.sh-session-poster {
+    width: 50px;
+    height: 75px;
+    border-radius: 8px;
+    background: var(--sh-bg-base, #000);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.sh-session-poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sh-session-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sh-session-top-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sh-session-user {
+    font-size: 13px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.9);
+}
+
+.sh-session-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.sh-badge-direct {
+    background: rgba(48, 209, 88, 0.34);
+    color: #30d158;
+}
+
+.sh-badge-transcode {
+    background: rgba(255, 159, 10, 0.34);
+    color: #ff9f0a;
+}
+
+.sh-session-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--sh-ink-solid, #ffffff);
+    margin: 0;
+}
+
+.sh-session-progress-wrapper {
+    width: 100%;
+    height: 4px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.sh-session-progress-bar {
+    height: 100%;
+    background: var(--sh-ink-solid, #ffffff);
+    border-radius: 10px;
+}
+
+.sh-session-time-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
+}
+
+.sh-session-item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.sh-session-btn-msg,
+.sh-session-btn-stop {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    color: var(--sh-ink-solid, #ffffff);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-session-btn-msg:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.18);
+}
+
+.sh-session-btn-stop:hover {
+    background: rgba(255, 69, 58, 0.41);
+    border-color: rgba(255, 69, 58, 0.4);
+    color: #ff453a;
+}
+
+.sh-admin-empty-state {
+    text-align: center;
+    padding: 28px 16px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.7);
+}
+
+.sh-admin-empty-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+/* ── Metrics Grid ── */
+.sh-admin-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.sh-admin-metric-pill {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 14px;
+    padding: 12px;
+}
+
+.sh-admin-metric-icon {
+    font-size: 22px;
+}
+
+.sh-admin-metric-data strong {
+    display: block;
+    font-size: 18px;
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-admin-metric-data small {
+    font-size: 11px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
+}
+
+.sh-admin-mini-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14);
+    color: var(--sh-ink-solid, #ffffff);
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-admin-mini-action-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.20);
+}
+
+/* ── Health List ── */
+.sh-admin-health-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sh-admin-health-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.sh-admin-health-icon {
+    font-size: 18px;
+}
+
+.sh-admin-health-info {
+    flex: 1;
+}
+
+.sh-admin-health-info strong {
+    display: block;
+    font-size: 13px;
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-admin-health-info span {
+    display: block;
+    font-size: 11px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
+    margin-top: 2px;
+}
+
+.sh-admin-health-btn {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    color: var(--sh-ink-solid, #ffffff);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-admin-health-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.18);
+}
+
+.sh-admin-card-badge-health {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-weight: 600;
+}
+
+/* ── Services Grid ── */
+.sh-admin-services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+}
+
+.sh-admin-service-card {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: transform var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease;
+}
+
+.sh-admin-service-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.20);
+}
+
+.sh-svc-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sh-svc-icon {
+    font-size: 18px;
+}
+
+.sh-svc-status-pill {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 100px;
+}
+
+.sh-svc-status-pill.online {
+    background: rgba(48, 209, 88, 0.31);
+    color: #30d158;
+}
+
+.sh-svc-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.sh-svc-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--sh-ink-solid, #ffffff);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sh-svc-port {
+    font-size: 10px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
+}
+
+/* ── Footer ── */
+.sh-admin-modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    padding-top: 20px;
+}
+
+.sh-admin-console-link-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    color: var(--sh-color-primary, #64d2ff);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 0;
+    transition: opacity var(--sh-dur-2) ease;
+}
+
+.sh-admin-console-link-btn:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+.sh-admin-close-btn-main {
+    background: var(--sh-ink-solid, #ffffff);
+    border: none;
+    color: var(--sh-ink-solid-inv, #000000);
+    padding: 10px 24px;
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-admin-close-btn-main:hover {
+    transform: scale(1.04);
+    box-shadow: 0 6px 20px rgba(var(--sh-ink, 255, 255, 255),  0.35);
+}

@@ -41,9 +41,12 @@ function isAllowedProxyTarget(urlStr) {
 }
 
 function dynamicCorsProxyPlugin() {
-  return {
-    name: 'dynamic-cors-proxy',
-    configureServer(server) {
+  // Le middleware est identique en dev et en preview : on le définit une seule
+  // fois et on l'accroche aux deux serveurs. Sans configurePreviewServer, le
+  // proxy /api-proxy n'existait qu'en `vite dev` — en `vite preview` (et sur
+  // tout serveur statique servant dist/) chaque appel repli CORS des
+  // intégrations Servarr/Jellyseerr repondait 404.
+  const attachProxy = (server) => {
       server.middlewares.use('/api-proxy', (req, res) => {
         const urlObj = new URL(req.url, 'http://localhost');
         const target = urlObj.searchParams.get('url');
@@ -170,7 +173,12 @@ function dynamicCorsProxyPlugin() {
           }
         });
       });
-    },
+  };
+
+  return {
+    name: 'dynamic-cors-proxy',
+    configureServer: attachProxy,
+    configurePreviewServer: attachProxy,
   };
 }
 
@@ -217,6 +225,14 @@ export default defineConfig({
     target: 'esnext',
     outDir: 'dist',
     sourcemap: true,
+    // Un seul fichier CSS pour toute l'application.
+    // Raison : depuis l'extraction du CSS hors des fichiers JS, l'ordre de la
+    // cascade dépend de l'ordre d'émission des feuilles. Avec le découpage par
+    // chunk, tokens.css se retrouvait émis en DERNIER (il appartient au chunk
+    // d'entrée) et écrasait les composants — l'inverse de l'ordre historique.
+    // Un fichier unique rend l'ordre déterministe (= ordre des imports, donc
+    // tokens.css en premier) et évite 5 feuilles bloquantes en cascade sur TV.
+    cssCodeSplit: false,
     // hls.js et le chunk app font 584 kB / 590 kB — libs externes non fragmentables.
     // On monte la limite à 700 kB pour éviter le warning non-actionnable sur vendor-hls.
     chunkSizeWarningLimit: 700,
@@ -226,14 +242,23 @@ export default defineConfig({
         // pour accélérer le premier rendu sur TV (connexion Wi-Fi faible).
         //
         // Priorité de matching (première règle qui match gagne) :
-        //   1. vendor-hls  → hls.js isolé (590 kB, lazy, uniquement si lecture HLS)
-        //   2. integrations → /integrations/ (Servarr, qBit, Jellyseerr…)
-        //   3. app         → /jellyfin/ + /ui/views/ groupés ensemble pour éviter le
-        //                    circular warning VideoPlayer↔LibraryView (dépendances croisées)
-        //   4. (index)     → core + composants + plugins (chunk bootstrap chargé en premier)
+        //   1. vendor-hls    → hls.js isolé (590 kB, lazy, uniquement si lecture HLS)
+        //   2. integrations  → /integrations/ (Servarr, qBit, Jellyseerr…)
+        //   3. admin-console → AdminDashboardView + JellyfinConsoleModal (rarement ouverts,
+        //                      pas de dépendance croisée avec VideoPlayer/LibraryView — cf. A10)
+        //   4. settings      → SettingsPanel (idem, ouvert ponctuellement)
+        //   5. app           → /jellyfin/ + /ui/views/ restants groupés ensemble pour éviter
+        //                      le circular warning VideoPlayer↔LibraryView (dépendances croisées)
+        //   6. (index)       → core + composants + plugins (chunk bootstrap chargé en premier)
         //
         // Gains attendus : le navigateur TV met en cache vendor-hls et ne le re-télécharge
-        // pas si seul le code applicatif change.
+        // pas si seul le code applicatif change ; admin-console/settings n'alourdissent plus
+        // le chunk "app" chargé à chaque visite de la bibliothèque/des téléchargements.
+        //
+        // Note : ce découpage améliore le cache HTTP et le parallélisme du téléchargement des
+        // chunks, mais ne les rend pas "chargés à la demande" — ces modules restent importés
+        // statiquement depuis core/SpaceHub.js. Un vrai chargement paresseux demanderait de
+        // convertir ces imports en import() dynamique (changement plus large, non fait ici).
         manualChunks(id) {
           // hls.js isolé — ne chargé que lors d'une lecture HLS
           if (id.includes('node_modules/hls.js')) return 'vendor-hls';
@@ -241,8 +266,16 @@ export default defineConfig({
           // Intégrations tierces — pas de dépendances vers ui/ ou plugins/
           if (id.includes('/integrations/')) return 'integrations';
 
-          // jellyfin + ui/views groupés : VideoPlayer (jellyfin/) et LibraryView (ui/views/)
-          // s'importent mutuellement → les réunir dans "app" supprime le circular warning.
+          // Console admin — vue autonome, aucune dépendance croisée avec le player/la library
+          if (id.includes('/ui/views/AdminDashboardView') || id.includes('/ui/views/JellyfinConsoleModal')) {
+            return 'admin-console';
+          }
+
+          // Panneau de réglages — composant autonome
+          if (id.includes('/ui/components/SettingsPanel')) return 'settings';
+
+          // jellyfin + ui/views restants groupés : VideoPlayer (jellyfin/) et LibraryView
+          // (ui/views/) s'importent mutuellement → les réunir dans "app" supprime le circular warning.
           if (id.includes('/jellyfin/') || id.includes('/ui/views/')) return 'app';
 
           // Core runtime + composants + plugins → chunk bootstrap (index.js)

@@ -7,6 +7,8 @@
 import Logger from '../../core/Logger.js';
 import Modal from './Modal.js';
 
+import './OnboardingWizard.css';
+import * as svc from '../../core/services.js';
 const USER_VERSION = 1;
 const ADMIN_VERSION = 1;
 
@@ -95,9 +97,9 @@ function safePart(value, fallback) {
 
 export class OnboardingWizard {
     constructor({ settings = null, auth = null, eventBus = null } = {}) {
-        this._settings = settings || window.SpaceHub?.core?.settings || null;
-        this._auth = auth || window.SpaceHub?.auth || null;
-        this._eventBus = eventBus || window.SpaceHub?.core?.eventBus || null;
+        this._settings = settings || svc.settings() || null;
+        this._auth = auth || svc.auth() || null;
+        this._eventBus = eventBus || svc.eventBus() || null;
         this._log = new Logger('OnboardingWizard');
         this._modal = null;
         this._role = null;
@@ -250,7 +252,7 @@ export class OnboardingWizard {
             if (previous) previous.disabled = this._index === 0;
             if (next) next.textContent = this._index === this._steps.length - 1 ? 'Terminer' : 'Suivant';
             const focusTarget = next?.disabled ? previous : next;
-            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            const spatialNav = svc.nav() || svc.nav();
             if (focusTarget) {
                 spatialNav?.onModalOpened?.(root, focusTarget);
                 focusTarget.focus?.();
@@ -275,28 +277,9 @@ export class OnboardingWizard {
     }
 
     _injectStyles() {
-        if (document.getElementById('sh-onboarding-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-onboarding-styles';
-        style.textContent = `
-.sh-onboarding-modal .sh-modal__container { max-width: 620px; }
-.sh-onboarding-modal .sh-modal__body { padding: 28px 30px 18px; }
-.sh-onboarding { text-align: center; }
-.sh-onboarding__badge { display:inline-flex; padding:5px 10px; border:1px solid rgba(255,255,255,.14); border-radius:999px; color:rgba(255,255,255,.55); font-size:10px; font-weight:800; letter-spacing:.09em; }
-.sh-onboarding__hero { display:flex; flex-direction:column; align-items:center; gap:12px; margin:18px 0 14px; }
-.sh-onboarding__icon { display:flex; align-items:center; justify-content:center; width:82px; height:82px; border-radius:26px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); font-size:42px; box-shadow:0 18px 50px rgba(0,0,0,.3); }
-.sh-onboarding__progress { width:min(300px,80%); height:5px; overflow:hidden; border-radius:999px; background:rgba(255,255,255,.1); }
-.sh-onboarding__progress span { display:block; height:100%; border-radius:inherit; background:#fff; transition:width 240ms ease; }
-.sh-onboarding__counter { color:rgba(255,255,255,.45); font-size:11px; }
-.sh-onboarding__title { margin:10px 0 8px; color:#fff; font-size:22px; letter-spacing:-.03em; }
-.sh-onboarding__text { max-width:500px; margin:0 auto; color:rgba(255,255,255,.72); font-size:14px; line-height:1.65; }
-.sh-onboarding__hint { max-width:500px; margin:18px auto 0; padding:11px 14px; border:1px solid rgba(255,255,255,.09); border-radius:12px; color:rgba(255,255,255,.5); font-size:12px; line-height:1.5; }
-.sh-onboarding__footer-spacer { flex:1; }
-.sh-onboarding-modal .sh-modal__footer { align-items:center; }
-@media (max-width:600px) { .sh-onboarding-modal .sh-modal__body { padding:22px 18px 14px; } .sh-onboarding__title { font-size:19px; } }
-@media (prefers-reduced-motion:reduce) { .sh-onboarding__progress span { transition:none; } }
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans OnboardingWizard.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

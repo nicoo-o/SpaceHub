@@ -1,0 +1,794 @@
+/* ── Carrousel Horizontal Continu Format Cinéma Apple TV+ ─────────────── */
+.sh-card-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 24px;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 20px 12px 34px 12px;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    width: 100%;
+    -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 64px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 64px), transparent 100%);
+    transition: mask-image var(--sh-dur-4) ease, -webkit-mask-image var(--sh-dur-4) ease;
+}
+
+.sh-card-grid.sh-grid-scrolled-middle {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 48px, #000 calc(100% - 48px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 48px, #000 calc(100% - 48px), transparent 100%);
+}
+
+.sh-card-grid.sh-grid-scrolled-end {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 64px, #000 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 64px, #000 100%);
+}
+
+.sh-card-grid::-webkit-scrollbar {
+    display: none;
+}
+.sh-card-grid .sh-card {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;
+}
+.sh-card-grid--poster .sh-card   { width: 196px; }
+.sh-card-grid--backdrop .sh-card { width: 330px; }
+.sh-card-grid--thumb .sh-card    { width: 250px; }
+
+@media (max-width: 768px) {
+    .sh-card-grid { gap: 16px; }
+    .sh-card-grid--poster .sh-card   { width: 150px; }
+    .sh-card-grid--backdrop .sh-card { width: 260px; }
+}
+
+/* ── Carte Média Floating Cinema Artwork ──────────────────── */
+.sh-card {
+    background: transparent;
+    border: none;
+    border-radius: 16px;
+    box-shadow: none;
+    overflow: visible;
+    cursor: pointer;
+    position: relative;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) ease;
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+.sh-card:hover, .sh-card.sh-tv-focused {
+    transform: translateY(-6px) scale(1.025);
+}
+
+.sh-card:focus-visible {
+    outline: none;
+}
+
+/* ── Image & Artwork Flottant ────────────────────────────── */
+.sh-card__image-wrap { 
+    position: relative; 
+    overflow: hidden; 
+    border-radius: 16px;
+    background: var(--sh-bg-base, #000000);
+    box-shadow: 0 10px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.80), inset 0 1px 0 rgba(var(--sh-on-media, 255, 255, 255),  0.12), 0 0 0 1px rgba(var(--sh-on-media, 255, 255, 255),  0.05);
+    transition: box-shadow var(--sh-dur-4) ease;
+}
+.sh-card:hover .sh-card__image-wrap, .sh-card.sh-tv-focused .sh-card__image-wrap {
+    box-shadow: 0 28px 65px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95), inset 0 1px 0 rgba(var(--sh-on-media, 255, 255, 255),  0.35), 0 0 0 1px rgba(var(--sh-on-media, 255, 255, 255),  0.22);
+}
+
+.sh-card--poster   .sh-card__image-wrap { aspect-ratio: 2/3; }
+.sh-card--backdrop .sh-card__image-wrap { aspect-ratio: 16/9; }
+.sh-card--backdrop .sh-card__image { image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
+.sh-card--thumb    .sh-card__image-wrap { aspect-ratio: 4/3; }
+
+.sh-card__image {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform var(--sh-dur-5) var(--sh-ease-out);
+}
+.sh-card:hover .sh-card__image, .sh-card.sh-tv-focused .sh-card__image { transform: scale(1.04); }
+
+/* ── Glint & Edge Shimmer ────────────────────────────────── */
+.sh-card__glint {
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(105deg, transparent 40%, rgba(var(--sh-on-media, 255, 255, 255),  0.15) 50%, transparent 60%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 6;
+    transition: opacity var(--sh-dur-4) ease;
+}
+.sh-card:hover .sh-card__glint, .sh-card.sh-tv-focused .sh-card__glint {
+    opacity: 1;
+    animation: sh-glintSweep var(--sh-dur-5) ease forwards;
+}
+@keyframes sh-glintSweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* ── Dual-Pill Micro-Capsule Transparente Glass (Infuse / Apple TV) ── */
+.sh-card__dual-score {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 100 !important;
+    pointer-events: auto !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.38) !important;
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.14) !important;
+    border-radius: 9999px;
+    padding: 2px 5px;
+    font-size: 11px;
+    font-weight: 750;
+    color: var(--sh-on-media-solid, #ffffff);
+    box-shadow: 0 4px 10px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.40);
+    transition: transform var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease;
+}
+.sh-card__dual-score:hover {
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.55) !important;
+    border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.28) !important;
+}
+
+.sh-score-btn {
+    background: transparent !important;
+    border: none !important;
+    padding: 2px 3.5px !important;
+    margin: 0 !important;
+    border-radius: 9999px !important;
+    color: inherit !important;
+    font: inherit !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 3px !important;
+    transition: transform var(--sh-dur-2) var(--sh-ease-spring), background var(--sh-dur-2) ease !important;
+    user-select: none !important;
+}
+.sh-score-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.12) !important;
+    transform: scale(1.08) !important;
+}
+
+.sh-score-val {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+}
+.sh-score-rt {
+    color: #ff5252 !important;
+    font-weight: 750 !important;
+}
+.sh-score-sep {
+    opacity: 0.30;
+    font-size: 9px;
+    pointer-events: none;
+    margin: 0 -1px;
+}
+.sh-score-imdb {
+    color: #f5c518 !important;
+    font-weight: 750 !important;
+}
+.sh-score-jellyfin {
+    color: #ffd700 !important;
+    font-weight: 750 !important;
+}
+.sh-score-mc {
+    color: #54c96a !important;
+    font-weight: 750 !important;
+    font-size: 10px !important;
+}
+
+.sh-rt-svg {
+    width: 12px;
+    height: 12px;
+    display: inline-block;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 2px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.5));
+    transition: transform var(--sh-dur-3) var(--sh-ease-spring);
+}
+.sh-score-btn.sh-score-rt:hover .sh-rt-svg {
+    transform: scale(1.22) rotate(-14deg);
+    filter: drop-shadow(0 0 6px rgba(250, 50, 10, 0.8));
+}
+
+.sh-imdb-star-svg {
+    width: 12px;
+    height: 12px;
+    display: inline-block;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 3px rgba(245, 197, 24, 0.5));
+    transition: transform var(--sh-dur-3) var(--sh-ease-spring);
+}
+.sh-score-btn.sh-score-imdb:hover .sh-imdb-star-svg {
+    transform: scale(1.22) rotate(16deg);
+    filter: drop-shadow(0 0 6px rgba(245, 197, 24, 0.8));
+}
+
+/* ── Global Popover Base (Apple VisionOS Glass) ─────────────── */
+.sh-global-popover {
+    position: fixed !important;
+    z-index: 2147483647 !important;
+    width: 265px !important;
+    background: rgba(var(--sh-ink-inv, 12, 12, 18),  0.96) !important;
+    /* Audit 3.7 — flou retiré : mesuré à 0,94-0,96 d'opacité, `backdrop-filter`
+       ne change que 2,5 à 4 valeurs sur 255 au-dessus d'un fond à contraste maximal,
+       pour le prix d'une passe de compositing par frame. Invisible, coûteux. */
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.20) !important;
+    border-radius: 16px !important;
+    padding: 12px 14px !important;
+    box-shadow: 0 24px 60px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95), 0 0 25px rgba(255, 159, 10, 0.18), inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.28) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transform: translateY(-8px) scale(0.92) !important;
+    filter: blur(8px) !important;
+    pointer-events: none !important;
+    transition: opacity var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-2) ease, visibility var(--sh-dur-2) !important;
+    text-align: left !important;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif !important;
+}
+.sh-global-popover.visible {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) scale(1) !important;
+    filter: blur(0px) !important;
+    pointer-events: auto !important;
+}
+
+.sh-popover-tag {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
+    margin-top: -2px;
+}
+
+/* 🍅 Rotten Tomatoes Popover */
+.sh-rt-popover__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.1);
+}
+.sh-rt-brand {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.sh-rt-popover__title {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    color: #ff5252;
+}
+.sh-rt-popover__audience {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
+}
+.sh-rt-popover__consensus {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.9);
+}
+.sh-rt-popover__quote {
+    padding: 7px 9px;
+    border-radius: 8px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.05);
+    border-left: 2px solid #ff9f0a;
+    font-size: 10.5px;
+    font-style: italic;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
+    line-height: 1.35;
+}
+.sh-rt-popover__author {
+    display: block;
+    margin-top: 3px;
+    font-size: 9.5px;
+    font-style: normal;
+    font-weight: 700;
+    color: #ff9f0a;
+    text-align: right;
+}
+.sh-rt-popover__footer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.7);
+}
+.sh-meta-tag { color: #30d158; }
+.sh-rt-popover__dot { color: rgba(var(--sh-ink, 255, 255, 255),  0.3); }
+
+/* ★ IMDb Popover */
+.sh-imdb-popover__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.1);
+}
+.sh-imdb-brand {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.sh-imdb-badge {
+    background: #f5c518;
+    color: var(--sh-ink-solid-inv, #000000);
+    font-size: 10px;
+    font-weight: 900;
+    padding: 1px 4px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+.sh-imdb-score {
+    font-size: 13px;
+    font-weight: 800;
+    color: #ffd600;
+}
+.sh-imdb-score small {
+    font-size: 10px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
+    font-weight: 500;
+}
+.sh-imdb-stars-row {
+    color: #ffd600;
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+.sh-imdb-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin: 2px 0;
+}
+.sh-imdb-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.75);
+}
+.sh-imdb-bar-row span { width: 85px; flex-shrink: 0; font-size: 10px; }
+.sh-imdb-bar {
+    flex: 1;
+    height: 4px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.1);
+    border-radius: 9999px;
+    overflow: hidden;
+}
+.sh-imdb-bar-fill { height: 100%; border-radius: 9999px; }
+.sh-imdb-bar-fill.green { background: #30d158; }
+.sh-imdb-bar-fill.yellow { background: #ffd600; }
+.sh-imdb-bar-fill.red { background: #ff453a; }
+.sh-imdb-bar-row strong { font-size: 10px; width: 28px; text-align: right; color: var(--sh-ink-solid, #ffffff); }
+.sh-imdb-footer {
+    padding-top: 5px;
+    border-top: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    font-size: 10px;
+    font-weight: 700;
+    color: #ff9f0a;
+}
+
+/* ── Bouton Favoris Rapide (Quick Bookmark Pill) ─────────── */
+.sh-card__bookmark-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 25;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(var(--sh-ink-inv, 12, 12, 16),  0.78);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.14);
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.75);
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    line-height: 0 !important;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.85);
+    box-shadow: 0 4px 12px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.50);
+    transition: transform var(--sh-dur-3) var(--sh-ease-spring), opacity var(--sh-dur-3) var(--sh-ease-spring), background-color var(--sh-dur-3) var(--sh-ease-spring), background var(--sh-dur-3) var(--sh-ease-spring), border-color var(--sh-dur-3) var(--sh-ease-spring), box-shadow var(--sh-dur-3) var(--sh-ease-spring), color var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-3) var(--sh-ease-spring);
+}
+.sh-card:hover .sh-card__bookmark-btn {
+    opacity: 1;
+    transform: scale(1);
+}
+.sh-card__bookmark-btn:hover {
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.22);
+    color: var(--sh-on-media-solid, #ffffff);
+    border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.35);
+}
+.sh-card__bookmark-btn.active {
+    background: var(--sh-on-media-solid, #ffffff);
+    color: var(--sh-ink-solid-inv, #000000);
+    opacity: 1;
+    box-shadow: 0 4px 12px rgba(var(--sh-on-media, 255, 255, 255), 0.40);
+}
+.sh-bookmark-btn--pulse {
+    animation: sh-bm-ripple var(--sh-dur-4) var(--sh-ease-spring) forwards;
+}
+@keyframes sh-bm-ripple {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.35); box-shadow: 0 0 16px rgba(var(--sh-ink, 255, 255, 255),  0.7); }
+    100% { transform: scale(1); }
+}
+
+/* ── Badge "Déjà vu" (haut-gauche, libre — favori en haut-droite, codec en bas-gauche) ── */
+.sh-card__watched-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 20;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(48, 209, 88, 0.92);
+    color: var(--sh-on-media-solid, #ffffff);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.45);
+}
+
+/* ── Master Codec Tag "Dark Frosted Glass" ────────────────── */
+.sh-card__codec-tag {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    z-index: 10;
+    background: rgba(var(--sh-ink-inv, 12, 12, 16),  0.78);
+    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.14);
+    padding: 3px 7px;
+    border-radius: 6px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.7px;
+    color: rgba(var(--sh-on-media, 255, 255, 255),  0.90);
+    text-transform: uppercase;
+    box-shadow: 0 4px 12px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.50);
+    transition: opacity var(--sh-dur-2) ease, transform var(--sh-dur-2) ease;
+}
+.sh-card:hover .sh-card__codec-tag, .sh-card.sh-tv-focused .sh-card__codec-tag {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+/* ── Liquid Action Pill (Bas de Carte au Survol) ─────────── */
+.sh-card__action-pill {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    opacity: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.95);
+    color: var(--sh-ink-solid-inv, #000000);
+    padding: 7px 16px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 750;
+    box-shadow: 0 8px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.60);
+    transition: transform var(--sh-dur-3) var(--sh-ease-spring), opacity var(--sh-dur-3) var(--sh-ease-spring), background-color var(--sh-dur-3) var(--sh-ease-spring), background var(--sh-dur-3) var(--sh-ease-spring), border-color var(--sh-dur-3) var(--sh-ease-spring), box-shadow var(--sh-dur-3) var(--sh-ease-spring), color var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-3) var(--sh-ease-spring);
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    white-space: nowrap;
+}
+.sh-card__action-pill:hover {
+    transform: translateX(-50%) translateY(0) scale(1.06) !important;
+    background: var(--sh-on-media-solid, #ffffff) !important;
+    box-shadow: 0 10px 30px rgba(var(--sh-on-media, 255, 255, 255),  0.45) !important;
+}
+.sh-card__action-pill:active {
+    transform: translateX(-50%) translateY(0) scale(0.95) !important;
+}
+.sh-card:hover .sh-card__action-pill, .sh-card.sh-tv-focused .sh-card__action-pill {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+.sh-pill-duration {
+    font-weight: 500;
+    color: rgba(0,0,0,0.65);
+}
+
+/* ── Barre de progression Glass ──────────────────────────── */
+.sh-card__progress {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 3.5px; 
+    background: rgba(var(--sh-on-media, 255, 255, 255), 0.18);
+    z-index: 8;
+}
+.sh-card__progress-bar {
+    height: 100%; 
+    background: var(--sh-on-media-solid, #ffffff);
+    box-shadow: 0 0 12px rgba(var(--sh-on-media, 255, 255, 255),  0.95), 0 2px 10px rgba(var(--sh-on-media, 255, 255, 255),  0.60);
+    border-radius: 0 2px 2px 0;
+}
+
+/* ── Informations sous la carte (Fondu Organique) ─────────── */
+.sh-card__info {
+    padding: 10px 4px 4px;
+    background: transparent;
+}
+.sh-card__title {
+    margin: 0;
+    font-size: 15px; 
+    font-weight: 700;
+    color: var(--sh-ink-solid, #ffffff);
+    letter-spacing: -0.3px;
+}
+.sh-card__meta-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+}
+.sh-card__subtitle {
+    font-size: 12px; 
+    font-weight: 500;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.50);
+}
+.sh-card__remaining-time {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.80);
+}
+
+/* ── Side-Flyout Context Menu ─────────────────────────────── */
+.sh-context-menu {
+    position: fixed;
+    z-index: 9999;
+    width: 220px;
+    background: rgba(var(--sh-ink-inv, 18, 18, 24),  0.94);
+    /* Audit 3.7 — flou retiré : mesuré à 0,94-0,96 d'opacité, `backdrop-filter`
+       ne change que 2,5 à 4 valeurs sur 255 au-dessus d'un fond à contraste maximal,
+       pour le prix d'une passe de compositing par frame. Invisible, coûteux. */
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.90), 0 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    padding: 8px;
+    opacity: 0;
+    transform-origin: top left;
+    transform: scale(0.88) translateY(-8px);
+    filter: blur(8px);
+    pointer-events: none;
+    transition: transform var(--sh-dur-3) var(--sh-ease-spring), opacity var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) ease;
+}
+.sh-context-menu.sh-context-menu--open {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0px);
+    pointer-events: auto;
+}
+.sh-context-menu.sh-context-menu--closing {
+    opacity: 0;
+    transform: scale(0.92) translateY(-6px);
+    filter: blur(6px);
+    pointer-events: none;
+    transition: opacity var(--sh-dur-2) ease, transform var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+.sh-context-menu__header {
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 800;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.50);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.sh-ctx-sep {
+    border: none;
+    border-top: 1px solid rgba(var(--sh-on-media, 255, 255, 255), 0.08);
+    margin: 4px 0;
+}
+.sh-ctx-item {
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 8px 10px;
+    border-radius: 8px;
+    color: var(--sh-on-media-solid, #ffffff);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: background var(--sh-dur-1) ease;
+}
+.sh-context-menu--open .sh-ctx-item {
+    animation: sh-ctx-item-unfold var(--sh-dur-3) var(--sh-ease-out) forwards;
+    animation-delay: calc(var(--idx, 0) * 28ms + 40ms);
+}
+@keyframes sh-ctx-item-unfold {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.sh-ctx-item:hover {
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.14);
+}
+
+/* ── Lightbox Bande-Annonce Vidéo ────────────────────────── */
+.sh-trailer-lightbox {
+    position: fixed; inset: 0; z-index: 50000;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.85);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--sh-dur-3) ease;
+}
+.sh-trailer-lightbox.sh-lightbox--open {
+    opacity: 1;
+    pointer-events: auto;
+}
+.sh-trailer-box {
+    width: 80vw; max-width: 960px;
+    aspect-ratio: 16/9;
+    background: var(--sh-bg-base, #000);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 32px 80px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95);
+    position: relative;
+}
+.sh-trailer-close {
+    position: absolute; top: 16px; right: 16px; z-index: 10;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.65); color: var(--sh-ink-solid, #ffffff);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.2);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+}
+.sh-trailer-content {
+    width: 100%; height: 100%;
+}
+
+/* ── Skeleton Organic Waveform ────────────────────────────── */
+.sh-skeleton-block {
+    background: linear-gradient(115deg, var(--sh-bg-surface, #121218) 15%, var(--sh-bg-surface-2, #1e1e28) 35%, var(--sh-bg-surface-3, #2a2a3a) 50%, var(--sh-bg-surface-2, #1e1e28) 65%, var(--sh-bg-surface, #121218) 85%);
+    background-size: 250% 100%;
+    animation: sh-shimmer var(--sh-dur-5) var(--sh-ease-standard) infinite;
+}
+@keyframes sh-shimmer {
+    0%   { background-position: 200% center; }
+    100% { background-position: -200% center; }
+}
+.sh-card--skeleton { pointer-events: none; }
+.sh-card--skeleton .sh-card__image-wrap { background: var(--sh-bg-surface, #121218); border-color: rgba(var(--sh-ink, 255, 255, 255), 0.04); }
+
+/* ── Sélecteur d'appareil (lecture à distance) ──────────────────────────────
+   Envoi d'un média vers un autre client Jellyfin connecté au même serveur. */
+
+.sh-cast-picker {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483646;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0), 0.55);
+    animation: sh-cast-in var(--sh-dur-2) var(--sh-ease-out);
+}
+
+@keyframes sh-cast-in { from { opacity: 0; } to { opacity: 1; } }
+
+.sh-cast-picker__card {
+    width: min(380px, calc(100vw - 48px));
+    max-height: 70vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 18px;
+    border-radius: 18px;
+    background: rgba(var(--sh-ink-inv, 16, 16, 22), 0.96);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.14);
+    box-shadow: 0 24px 64px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.55);
+}
+
+.sh-cast-picker__title {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.70);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sh-cast-picker__item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    padding: 10px 12px;
+    text-align: left;
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.04);
+    border: 1px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background var(--sh-dur-1) var(--sh-ease-out),
+                border-color var(--sh-dur-1) var(--sh-ease-out);
+}
+
+.sh-cast-picker__item:hover,
+.sh-cast-picker__item:focus-visible {
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.10);
+    border-color: rgba(var(--sh-ink, 255, 255, 255), 0.22);
+    outline: none;
+}
+
+.sh-cast-picker__name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-cast-picker__state {
+    font-size: 11.5px;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.55);
+}
+
+.sh-cast-picker__cancel { margin-top: 8px; }
+
+/* ── Carte verrouillée par le mode enfant ───────────────────────────────────
+   Le titre reste dans la rangée : le faire disparaître laisserait un trou
+   inexplicable. L'affiche est floutée et désaturée, un cadenas dit pourquoi. */
+
+.sh-card--locked .sh-card__image-wrap {
+    filter: blur(14px) saturate(0.25) brightness(0.55);
+}
+
+.sh-card--locked .sh-card__image-wrap::after {
+    content: '🔒';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    /* Le contenu du pseudo-élément n'est pas flouté par le filtre du parent
+       s'il est repositionné dans son propre plan de composition. */
+    filter: none;
+    text-shadow: 0 2px 10px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.8);
+}
+
+.sh-card--locked .sh-card__title,
+.sh-card--locked .sh-card__subtitle {
+    opacity: 0.55;
+}
+
+/* Le focus reste possible : la personne doit pouvoir atteindre la carte pour
+   lire le motif du verrouillage. C'est la LECTURE qui est refusée, pas la
+   navigation. */
+.sh-card--locked.sh-focus-active .sh-card__image-wrap {
+    filter: blur(14px) saturate(0.25) brightness(0.75);
+}

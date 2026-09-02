@@ -1,0 +1,554 @@
+/* ── Zone Fantôme de Détection Gauche ── */
+.sh-sidebar-trigger-zone {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 20px;
+    height: 100vh;
+    z-index: 290;
+    background: transparent;
+    pointer-events: auto;
+}
+
+.sh-sidebar-trigger-glow {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 2px;
+    background: linear-gradient(180deg, transparent, rgba(var(--sh-ink, 255, 255, 255),  0.3), transparent);
+    opacity: 0;
+    transition: opacity var(--sh-dur-3) ease;
+}
+
+.sh-sidebar-trigger-zone:hover .sh-sidebar-trigger-glow {
+    opacity: 1;
+}
+
+/* ── Panneau Latéral Glissant Noir Translucide Glass (Apple VisionOS / TV) ── */
+.sh-sidebar-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 270px;
+    height: 100vh;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.72);
+    backdrop-filter: var(--sh-blur-chrome, blur(48px) saturate(190%));
+    -webkit-backdrop-filter: var(--sh-blur-chrome, blur(48px) saturate(190%));
+    border-right: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    padding: 24px 16px;
+    transform: translateX(-100%);
+    transition: transform var(--sh-dur-4) var(--sh-ease-out), box-shadow var(--sh-dur-4) ease;
+    box-shadow: 20px 0 60px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.85);
+    overflow-x: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+.sh-sidebar-panel::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.sh-sidebar-panel.open {
+    transform: translateX(0);
+}
+
+/* ── En-tête : Logo Monochrome ── */
+.sh-sidebar-header {
+    margin-bottom: 20px;
+    padding-left: 8px;
+}
+
+.sh-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--sh-ink-solid, #ffffff);
+    cursor: default;
+    user-select: none;
+}
+
+.sh-sidebar-brand:hover .sh-sidebar-rocket-icon {
+    transform: translateY(-2px) rotate(-8deg) scale(1.15);
+    stroke: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-sidebar-rocket-icon {
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), stroke var(--sh-dur-3) ease;
+}
+
+.sh-sidebar-luminous-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sh-sidebar-dot-core {
+    width: 3.5px;
+    height: 3.5px;
+    border-radius: 50%;
+    background: var(--sh-ink-solid, #ffffff);
+    animation: sh-pulse-dot var(--sh-dur-5) infinite ease-in-out;
+}
+
+@keyframes sh-pulse-dot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: 0.5; }
+}
+
+.sh-sidebar-brand-title {
+    font-size: 18px;
+    font-weight: 750;
+    letter-spacing: -0.03em;
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+/* ── Navigation List avec Capsule Coulissante ── */
+.sh-sidebar-nav {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    padding-right: 2px;
+}
+
+.sh-sidebar-nav::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* 🌟 Indicateur Coulissant Apple TV (Liquid Spring Slider) 🌟 */
+.sh-sidebar-active-indicator {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: var(--sh-ink-solid, #ffffff);
+    border-radius: 12px;
+    box-shadow: 0 4px 22px rgba(var(--sh-ink, 255, 255, 255),  0.38), 0 1px 3px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.2);
+    pointer-events: none;
+    z-index: 1;
+    transform: translateY(0);
+    transition: transform var(--sh-dur-4) var(--sh-ease-out), height var(--sh-dur-3) ease, opacity var(--sh-dur-2) ease;
+    opacity: 0;
+}
+
+.sh-sidebar-section {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.sh-sidebar-dynamic-libs {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.sh-sidebar-divider {
+    height: 1px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.07);
+    margin: 10px 8px;
+    position: relative;
+    z-index: 2;
+}
+
+.sh-sidebar-item {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.65);
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 550;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    box-sizing: border-box;
+    transition: color var(--sh-dur-3) ease, background-color var(--sh-dur-3) ease;
+}
+
+.sh-sidebar-item:active {
+    transform: scale(0.97);
+}
+
+.sh-sidebar-icon {
+    stroke: rgba(var(--sh-ink, 255, 255, 255),  0.65);
+    flex-shrink: 0;
+    transition: stroke var(--sh-dur-3) ease, transform var(--sh-dur-3) var(--sh-ease-out);
+}
+
+.sh-sidebar-item-loading {
+    font-size: 12px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.35);
+    padding: 8px 14px;
+}
+
+.sh-sidebar-item:hover:not(.active) {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-sidebar-item:hover:not(.active) .sh-sidebar-icon {
+    stroke: var(--sh-ink-solid, #ffffff);
+    transform: scale(1.12);
+}
+
+/* 🌟 Élément Sélectionné traversé par la Capsule Blanche 🌟 */
+.sh-sidebar-item.active {
+    color: var(--sh-ink-solid-inv, #000000) !important;
+    font-weight: 750;
+    background: transparent !important;
+    transform: none !important;
+}
+
+.sh-sidebar-item.active .sh-sidebar-icon {
+    stroke: var(--sh-ink-solid-inv, #000000) !important;
+}
+
+/* ── Pied de Sidebar : Capsules Verre Fixes ── */
+.sh-sidebar-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.07);
+}
+
+.sh-sidebar-footer-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 12px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border-radius: 11px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.75);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
+}
+
+.sh-sidebar-footer-btn svg {
+    stroke: rgba(var(--sh-ink, 255, 255, 255),  0.75);
+    transition: stroke var(--sh-dur-2) ease;
+}
+
+.sh-sidebar-footer-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.22);
+    color: var(--sh-ink-solid, #ffffff);
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 14px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.4);
+}
+
+.sh-sidebar-footer-btn:active {
+    transform: scale(0.97);
+}
+
+.sh-sidebar-footer-btn:hover svg {
+    stroke: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-sidebar-footer-btn kbd {
+    margin-left: auto;
+    font-size: 10px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    padding: 2px 5px;
+    border-radius: 5px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.65);
+    font-family: inherit;
+}
+
+/* ── Modales Spéciales (Ambilight / Lights) ── */
+.sh-sidebar-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.82);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--sh-dur-3) ease;
+}
+
+.sh-sidebar-modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.sh-sidebar-modal-card {
+    width: 100%;
+    max-width: 460px;
+    max-height: 85vh;
+    background: rgba(var(--sh-ink-inv, 12, 12, 14),  0.96);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    border-radius: 22px;
+    box-shadow: 0 24px 64px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: scale(0.94) translateY(10px);
+    transition: transform var(--sh-dur-3) var(--sh-ease-out);
+}
+
+.sh-sidebar-modal-overlay.open .sh-sidebar-modal-card {
+    transform: scale(1) translateY(0);
+}
+
+.sh-sidebar-modal-header {
+    padding: 20px 22px 14px;
+    border-bottom: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.07);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.sh-sidebar-modal-badge {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.6);
+    margin-bottom: 3px;
+}
+
+.sh-sidebar-modal-title {
+    font-size: 19px;
+    font-weight: 750;
+    color: var(--sh-ink-solid, #ffffff);
+    margin: 0 0 3px;
+}
+
+.sh-sidebar-modal-subtitle {
+    font-size: 12px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.50);
+    margin: 0;
+    line-height: 1.35;
+}
+
+.sh-sidebar-modal-close {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.07);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    color: var(--sh-ink-solid, #ffffff);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-sidebar-modal-close:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.16);
+}
+
+.sh-sidebar-modal-body {
+    padding: 16px 22px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.sh-ambilight-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.07);
+    border-radius: 14px;
+}
+
+.sh-ambilight-card-title {
+    font-size: 13.5px;
+    font-weight: 650;
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-ambilight-card-sub {
+    font-size: 11px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
+    margin-top: 2px;
+}
+
+.sh-ambilight-section-label {
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
+    margin-top: 4px;
+}
+
+.sh-ambilight-presets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+}
+
+.sh-ambilight-preset {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.025);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.06);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-ambilight-preset:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.07);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.14);
+}
+
+.sh-ambilight-preset.active {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    border-color: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-preset-glow {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+}
+
+.sh-preset-name {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--sh-ink-solid, #ffffff);
+    text-align: center;
+}
+
+.sh-ambilight-slider {
+    width: 100%;
+    accent-color: var(--sh-ink-solid, #ffffff);
+    cursor: pointer;
+}
+
+.sh-sidebar-modal-footer {
+    padding: 14px 22px;
+    border-top: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.07);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.sh-sidebar-modal-btn-pri {
+    background: var(--sh-ink-solid, #ffffff);
+    border: none;
+    border-radius: 9999px;
+    color: var(--sh-ink-solid-inv, #000000);
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 7px 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(var(--sh-ink, 255, 255, 255),  0.25);
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-sidebar-modal-btn-pri:hover {
+    transform: scale(1.02);
+}
+
+/* ── Centre de Téléchargements & Médias (Hub) ── */
+.sh-downloads-hub-card {
+    max-width: 960px !important;
+    width: 90vw !important;
+    max-height: 86vh !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.sh-downloads-hub-tabs {
+    display: flex;
+    gap: 8px;
+    margin: 14px 0 16px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+}
+.sh-downloads-hub-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.sh-hub-tab-btn {
+    padding: 8px 18px;
+    border-radius: 9999px;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.05);
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.72);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+    white-space: nowrap;
+}
+
+.sh-hub-tab-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    color: var(--sh-ink-solid, #ffffff);
+    transform: translateY(-1px);
+}
+
+.sh-hub-tab-btn.active {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.22);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.38);
+    color: var(--sh-ink-solid, #ffffff);
+    box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.4);
+}
+
+.sh-downloads-hub-body {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 6px;
+    max-height: 56vh;
+}
+.sh-downloads-hub-body::-webkit-scrollbar {
+    width: 6px;
+}
+.sh-downloads-hub-body::-webkit-scrollbar-thumb {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.15);
+    border-radius: 9999px;
+}

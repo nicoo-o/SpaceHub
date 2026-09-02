@@ -1,0 +1,98 @@
+/* ── SAFE AREAS & MOBILE ADAPTATION ── */
+@supports (padding-top: env(safe-area-inset-top)) {
+    .sh-dynamic-island {
+        top: max(16px, env(safe-area-inset-top) + 8px) !important;
+    }
+    .sh-slideup-sheet {
+        padding-bottom: max(24px, env(safe-area-inset-bottom) + 12px) !important;
+    }
+}
+
+/* ── CIBLES TACTILES ÉTENDUES (MIN 48×48px SANS CHANGER LE DESIGN) ── */
+@media (hover: none) and (pointer: coarse) {
+    .sh-genre-chip,
+    .sh-tab-btn,
+    .sh-season-pill-btn,
+    .sh-nav-tab-btn,
+    .sh-nav-action-btn,
+    .sh-admin-mini-action-btn,
+    .sh-lib-alpha-btn,
+    .sh-sync-btn,
+    .sh-chip-btn {
+        position: relative;
+        min-height: 38px;
+        touch-action: manipulation;
+    }
+
+    .sh-genre-chip::before,
+    .sh-tab-btn::before,
+    .sh-season-pill-btn::before,
+    .sh-nav-tab-btn::before,
+    .sh-nav-action-btn::before,
+    .sh-lib-alpha-btn::before,
+    .sh-sync-btn::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        min-width: 48px;
+        min-height: 48px;
+        width: 100%;
+        height: 100%;
+        pointer-events: auto;
+        z-index: 1;
+    }
+
+    /* Scroll inertiel fluide sur iOS/Android */
+    .sh-cinema-body,
+    .sh-cinema-panels-wrapper,
+    .sh-series-episodes-container,
+    .sh-console-body,
+    .sh-admin-modal-card,
+    .sh-card-grid {
+        -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior-y: contain;
+    }
+}
+
+/* ── INDICATEUR PULL-TO-REFRESH ── */
+.sh-pull-refresh-indicator {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-60px);
+    z-index: 999999;
+    background: rgba(var(--sh-ink-inv, 20, 20, 30),  0.95);
+    border: 1px solid rgba(255, 159, 10, 0.4);
+    box-shadow: 0 10px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.7), 0 0 20px rgba(255, 159, 10, 0.3);
+    border-radius: 9999px;
+    padding: 8px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--sh-ink-solid, #ffffff);
+    font-size: 12px;
+    font-weight: 700;
+    pointer-events: none;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease;
+    opacity: 0;
+}
+
+.sh-pull-refresh-indicator.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.sh-pull-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(var(--sh-ink, 255, 255, 255),  0.2);
+    border-top-color: #ff9f0a;
+    border-radius: 50%;
+    animation: sh-pull-spin var(--sh-dur-5) linear infinite;
+}
+
+@keyframes sh-pull-spin {
+    to { transform: rotate(360deg); }
+}

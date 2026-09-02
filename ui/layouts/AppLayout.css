@@ -1,0 +1,791 @@
+/* ── Universal Smooth Scroll Flow (Apple TV Zero-Constraint) ── */
+html, body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: var(--sh-bg-base, #000000) !important;
+    overflow-x: hidden;
+    overflow-y: auto !important;
+    scrollbar-width: none;
+}
+html::-webkit-scrollbar, body::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.sh-app-shell {
+    display: block;
+    width: 100%;
+    min-height: 100vh;
+    background-color: var(--sh-bg-base, #000000);
+    overflow: visible;
+    position: relative;
+}
+
+.sh-app-main {
+    display: block;
+    width: 100%;
+    background-color: var(--sh-bg-base, #000000);
+    overflow: visible;
+    position: relative;
+}
+
+
+
+/* ── Dynamic Island Liquid Glass (Apple Dynamic Island Spring Physics) */
+/* ── Dynamic Island Liquid Glass (Apple Dynamic Island Spring Physics) */
+.sh-island-nav-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100vw;
+    height: 80px;
+    z-index: 10003;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.sh-dynamic-island.sh-island--portal-active {
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.35) !important;
+    box-shadow: 
+        0 0 35px rgba(var(--sh-ink, 255, 255, 255),  0.22),
+        0 20px 50px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95),
+        inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.60),
+        0 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.15) !important;
+    transform: translateX(-50%) scale(1.02) !important;
+}
+
+/* Dynamic Island Ambient Glass Shadow (Monochrome & Épuré) */
+.sh-island-underglow {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 44px;
+    height: 20px;
+    border-radius: 9999px;
+    background: radial-gradient(ellipse at center, rgba(var(--sh-ink, 255, 255, 255),  0.10) 0%, transparent 80%);
+    filter: blur(16px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--sh-dur-5) ease, width var(--sh-dur-5) var(--sh-ease-spring), height var(--sh-dur-5) var(--sh-ease-spring);
+}
+.sh-island-underglow.sh-underglow--compact {
+    opacity: 0.40;
+    width: 204px;
+    height: 38px;
+}
+.sh-island-underglow.sh-underglow--expanded {
+    opacity: 0.65;
+    width: 535px;
+    height: 50px;
+}
+
+.sh-dynamic-island {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: auto;
+    background: rgba(var(--sh-ink-inv, 12, 12, 16),  0.92);
+    /* Audit 3.7 — flou retiré : mesuré à 0,92 d'opacité, `backdrop-filter`
+       ne change que 5 valeurs sur 255 au-dessus d'un fond à contraste maximal,
+       pour le prix d'une passe de compositing par frame. Invisible, coûteux. */
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    border-radius: 9999px;
+    box-shadow: 
+        0 20px 50px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.90),
+        inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.25),
+        inset 0 -1px 0 rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5),
+        0 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.05);
+    transition: 
+        width var(--sh-dur-5) var(--sh-ease-out),
+        height var(--sh-dur-5) var(--sh-ease-out),
+        border-radius var(--sh-dur-4) var(--sh-ease-out),
+        background var(--sh-dur-4) ease,
+        border-color var(--sh-dur-4) ease,
+        box-shadow var(--sh-dur-5) ease;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10002;
+}
+
+/* Liseré Spéculaire Fin au survol (100% Monochrome & Épuré) */
+.sh-dynamic-island:hover {
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.22);
+    box-shadow: 
+        0 26px 70px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95),
+        inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.35),
+        0 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.08);
+}
+
+/* ── Vue Micro Encoche (Phase 0) ────────────────────────────── */
+.sh-island-notch {
+    position: absolute;
+    width: 36px;
+    height: 5px;
+    border-radius: 9999px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.25);
+    opacity: 0;
+    transform: scale(0.6);
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity var(--sh-dur-4) ease, transform var(--sh-dur-4) var(--sh-ease-out), visibility var(--sh-dur-4);
+}
+
+/* ── Animations Élastiques & Ressort Souple (Soft Damped Spring) ── */
+@keyframes shIslandSquashBounce {
+    0% {
+        width: 535px;
+        height: 52px;
+    }
+    44% {
+        width: 156px; /* Compression prononcée bien visible (Squash profond) */
+        height: 35px;
+        box-shadow: 0 8px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95), inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.60), 0 0 14px rgba(var(--sh-ink, 255, 255, 255),  0.20);
+    }
+    72% {
+        width: 216px; /* Rebond élastique bien visible */
+        height: 39px;
+    }
+    88% {
+        width: 202px; /* Micro oscillation d'amorti organique */
+        height: 37.8px;
+    }
+    100% {
+        width: 204px; /* Repos stabilisé parfait */
+        height: 38px;
+        box-shadow: 0 16px 40px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.85), inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.26);
+    }
+}
+
+@keyframes shUnderglowSquashBounce {
+    0% {
+        width: 535px;
+        height: 50px;
+        opacity: 0.65;
+    }
+    44% {
+        width: 150px;
+        height: 32px;
+        opacity: 0.75;
+    }
+    72% {
+        width: 218px;
+        height: 40px;
+        opacity: 0.45;
+    }
+    88% {
+        width: 202px;
+        height: 37.5px;
+        opacity: 0.42;
+    }
+    100% {
+        width: 204px;
+        height: 38px;
+        opacity: 0.40;
+    }
+}
+
+.sh-dynamic-island.sh-island--collapsing {
+    animation: shIslandSquashBounce var(--sh-dur-5) var(--sh-ease-out) forwards !important;
+}
+
+.sh-island-underglow.sh-underglow--collapsing {
+    animation: shUnderglowSquashBounce var(--sh-dur-5) var(--sh-ease-out) forwards !important;
+}
+
+/* ── Vue Compacte (Phase 1 : 204px) ─────────────────────────── */
+.sh-island-compact-view {
+    position: absolute;
+    left: 18px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    white-space: nowrap;
+    opacity: 0;
+    transform: scale(0.65) translateY(-2px);
+    filter: blur(4px);
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity var(--sh-dur-3) ease, transform var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-3) ease, visibility var(--sh-dur-3);
+}
+
+/* ── Vue Déployée Complète (Phase 2 : 535px) ────────────────── */
+.sh-island-full-view {
+    position: absolute;
+    left: 18px;
+    right: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    white-space: nowrap;
+    pointer-events: none;
+    visibility: hidden;
+    transition: visibility var(--sh-dur-3);
+}
+
+/* ── ÉTAT 0 : Stealth (Micro encoche) ────────────────────────── */
+.sh-dynamic-island.sh-island--stealth {
+    width: 36px;
+    height: 5px;
+    padding: 0;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.22);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    opacity: 0.35;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.4);
+}
+.sh-dynamic-island.sh-island--stealth .sh-island-notch {
+    opacity: 1;
+    transform: scale(1);
+    visibility: visible;
+}
+
+/* ── ÉTAT 1 : Compact Island (204px) ─────────────────────────── */
+.sh-dynamic-island.sh-island--compact {
+    width: 204px;
+    height: 38px;
+    background: rgba(var(--sh-ink-inv, 12, 12, 16),  0.94);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.18);
+    opacity: 1;
+    cursor: pointer;
+    box-shadow: 0 16px 40px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.85), inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.26);
+    transition: 
+        width var(--sh-dur-5) var(--sh-ease-out),
+        height var(--sh-dur-4) var(--sh-ease-out),
+        border-radius var(--sh-dur-4) var(--sh-ease-out),
+        background var(--sh-dur-4) ease,
+        border-color var(--sh-dur-4) ease,
+        box-shadow var(--sh-dur-5) var(--sh-ease-out);
+}
+.sh-dynamic-island.sh-island--compact .sh-island-compact-view {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0px);
+    pointer-events: auto;
+    visibility: visible;
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out) 180ms, transform var(--sh-dur-4) var(--sh-ease-out) 160ms, filter var(--sh-dur-3) ease 180ms, visibility var(--sh-dur-3);
+}
+
+/* Liquid Pinch en mode compact : les éléments convergent au centre et sont masqués */
+.sh-dynamic-island.sh-island--compact .sh-nav-brand {
+    opacity: 0;
+    transform: translateX(65px) scale(0.60);
+    filter: blur(3px);
+    transition: opacity var(--sh-dur-1) ease, transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) ease;
+}
+
+.sh-dynamic-island.sh-island--compact .sh-nav-tabs {
+    opacity: 0;
+    transform: scale(0.55, 0.75);
+    filter: blur(3px);
+    transition: opacity var(--sh-dur-1) ease, transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) ease;
+}
+
+.sh-dynamic-island.sh-island--compact .sh-nav-actions {
+    opacity: 0;
+    transform: translateX(-65px) scale(0.60);
+    filter: blur(3px);
+    transition: opacity var(--sh-dur-1) ease, transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) ease;
+}
+
+/* ── ÉTAT 2 : Full Expanded (535px — Apple Spring Morphing) ─── */
+.sh-dynamic-island.sh-island--expanded,
+.sh-dynamic-island.sh-dropdown-active {
+    width: 535px;
+    height: 52px;
+    background: rgba(var(--sh-ink-inv, 10, 10, 14),  0.96);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.22);
+    box-shadow: 
+        0 26px 70px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95),
+        inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.32);
+    opacity: 1;
+    overflow: visible !important;
+    transition: 
+        width var(--sh-dur-5) var(--sh-ease-spring),
+        height var(--sh-dur-4) var(--sh-ease-spring),
+        border-radius var(--sh-dur-4) var(--sh-ease-out),
+        background var(--sh-dur-4) ease,
+        border-color var(--sh-dur-4) ease,
+        box-shadow var(--sh-dur-5) var(--sh-ease-spring);
+}
+.sh-dynamic-island.sh-island--expanded .sh-island-compact-view,
+.sh-dynamic-island.sh-dropdown-active .sh-island-compact-view {
+    opacity: 0;
+    transform: scale(0.65) translateY(-4px);
+    filter: blur(4px);
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity var(--sh-dur-2) ease, transform var(--sh-dur-3) ease, filter var(--sh-dur-2) ease, visibility var(--sh-dur-2);
+}
+.sh-dynamic-island.sh-island--expanded .sh-island-full-view,
+.sh-dynamic-island.sh-dropdown-active .sh-island-full-view {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+    overflow: visible !important;
+}
+
+/* Apparition fluide et déploiement des éléments internes */
+.sh-dynamic-island.sh-island--expanded .sh-nav-brand {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0px);
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out) 120ms, transform var(--sh-dur-5) var(--sh-ease-spring) 100ms, filter var(--sh-dur-4) ease 120ms;
+}
+
+.sh-dynamic-island.sh-island--expanded .sh-nav-tabs {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0px);
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out) 150ms, transform var(--sh-dur-4) var(--sh-ease-spring) 130ms, filter var(--sh-dur-4) ease 150ms;
+}
+
+.sh-dynamic-island.sh-island--expanded .sh-nav-actions {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0px);
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out) 180ms, transform var(--sh-dur-5) var(--sh-ease-spring) 160ms, filter var(--sh-dur-4) ease 180ms;
+}
+
+/* ── ÉTAT 3 : Search Spotlight (Concept 3 : Framer FLIP Dynamic Morph) ─── */
+.sh-dynamic-island.sh-island--search {
+    top: 14px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: min(660px, 92vw) !important;
+    height: 500px !important;
+    max-height: 75vh !important;
+    border-radius: 24px !important;
+    background: rgba(var(--sh-ink-inv, 12, 12, 16),  0.94) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
+    box-shadow: 
+        0 35px 95px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.96),
+        inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.30),
+        inset 0 -1px 0 rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5),
+        0 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
+    z-index: 10002 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    padding: 0 !important;
+    cursor: default !important;
+    overflow: hidden !important;
+    transition: none !important;
+}
+
+.sh-dynamic-island.sh-island--search .sh-island-notch,
+.sh-dynamic-island.sh-island--search .sh-island-compact-view,
+.sh-dynamic-island.sh-island--search .sh-island-full-view {
+    opacity: 0 !important;
+    transform: scale(0.90) translateY(-6px) !important;
+    filter: blur(6px) !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    transition: opacity var(--sh-dur-1) ease, transform var(--sh-dur-2) ease, filter var(--sh-dur-1) ease, visibility var(--sh-dur-1) !important;
+}
+
+.sh-island-search-view {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transform: scale(0.97) translateY(-6px);
+    filter: blur(4px);
+    pointer-events: none;
+    visibility: hidden;
+    overflow: hidden;
+    transition: opacity var(--sh-dur-3) ease 80ms, transform var(--sh-dur-4) var(--sh-ease-out) 80ms, filter var(--sh-dur-3) ease 80ms, visibility var(--sh-dur-3) 80ms;
+}
+
+.sh-dynamic-island.sh-island--search .sh-island-search-view {
+    opacity: 1 !important;
+    transform: scale(1) translateY(0) !important;
+    filter: blur(0px) !important;
+    pointer-events: auto !important;
+    visibility: visible !important;
+}
+
+/* ── Point Jaune / Orange Ambré iPhone (Indicateur Téléphone Apple) ── */
+.sh-luminous-dot {
+    position: relative;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ff9f0a;
+    box-shadow: 0 0 5px #ff9f0a, 0 0 12px rgba(255, 159, 10, 0.85);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform var(--sh-dur-4) var(--sh-ease-out), box-shadow var(--sh-dur-4) ease;
+}
+
+.sh-dynamic-island:hover .sh-luminous-dot {
+    transform: scale(1.18);
+    box-shadow: 0 0 8px #ff9f0a, 0 0 16px rgba(255, 159, 10, 0.95);
+}
+
+.sh-dot-core {
+    position: absolute;
+    inset: 1px;
+    border-radius: 50%;
+    background: #ffb340;
+}
+
+/* 🕒 Micro-Badge Horloge Live (Mode Compact) */
+.sh-island-clock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    padding: 2px 7px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
+    letter-spacing: -0.2px;
+}
+
+.sh-clock-pulse-dot {
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.90);
+    font-weight: 800;
+    animation: sh-clock-dot-blink var(--sh-dur-5) ease-in-out infinite;
+}
+
+@keyframes sh-clock-dot-blink {
+    0%, 100% { opacity: 0.90; transform: scale(1); }
+    50%      { opacity: 0.30; transform: scale(0.85); }
+}
+
+.sh-island-label {
+    font-size: 13px;
+    font-weight: 750;
+    color: var(--sh-ink-solid, #ffffff);
+    letter-spacing: -0.2px;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+
+.sh-island-rocket {
+    color: var(--sh-ink-solid, #ffffff);
+    transition: transform var(--sh-dur-3) var(--sh-ease-spring);
+}
+
+.sh-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--sh-ink-solid, #ffffff);
+    cursor: pointer !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    transition: transform var(--sh-dur-2) var(--sh-ease-spring), opacity var(--sh-dur-2) ease;
+}
+
+.sh-nav-brand:hover,
+.sh-island-compact-view:hover {
+    transform: scale(1.04);
+}
+
+.sh-nav-brand:active,
+.sh-island-compact-view:active {
+    transform: scale(0.94);
+}
+
+.sh-nav-brand-txt {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    color: var(--sh-ink-solid, #ffffff);
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+}
+
+/* 🚀 Animation de Décollage / Propulsion au Clic sur le Logo */
+.sh-nav-brand.sh-logo-clicked,
+.sh-island-compact-view.sh-logo-clicked {
+    animation: shLogoClickBurst var(--sh-dur-5) var(--sh-ease-spring) forwards !important;
+}
+
+.sh-nav-brand.sh-logo-clicked svg,
+.sh-island-compact-view.sh-logo-clicked svg {
+    animation: shRocketThrust var(--sh-dur-5) var(--sh-ease-spring) forwards !important;
+}
+
+.sh-nav-brand.sh-logo-clicked .sh-dot-core,
+.sh-island-compact-view.sh-logo-clicked .sh-dot-core {
+    animation: shDotRippleShockwave var(--sh-dur-5) ease-out forwards !important;
+}
+
+@keyframes shLogoClickBurst {
+    0% {
+        transform: scale(0.92);
+        filter: brightness(1);
+    }
+    40% {
+        transform: scale(1.10) translateY(-2px);
+        filter: brightness(1.4);
+    }
+    100% {
+        transform: scale(1) translateY(0);
+        filter: brightness(1);
+    }
+}
+
+@keyframes shRocketThrust {
+    0% {
+        transform: scale(0.9) rotate(0deg);
+    }
+    45% {
+        transform: scale(1.30) translateY(-3px) rotate(-14deg);
+        filter: drop-shadow(0 0 10px #64d2ff);
+    }
+    100% {
+        transform: scale(1) translateY(0) rotate(0deg);
+        filter: none;
+    }
+}
+
+@keyframes shDotRippleShockwave {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 4px #30d158;
+    }
+    50% {
+        transform: scale(1.6);
+        box-shadow: 0 0 16px #30d158, 0 0 26px rgba(48, 209, 88, 0.7);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 6px #30d158;
+    }
+}
+
+.sh-nav-tabs {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    padding: 3px;
+    border-radius: 9999px;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    margin-right: 8px;
+}
+
+.sh-nav-tabs-sliding-pill {
+    position: absolute;
+    top: 3px;
+    left: 0;
+    height: calc(100% - 6px);
+    background: var(--sh-ink-solid, #ffffff);
+    border-radius: 9999px;
+    box-shadow: 0 4px 14px rgba(var(--sh-ink, 255, 255, 255),  0.35);
+    pointer-events: none;
+    z-index: 1;
+    transform-origin: center center;
+    transition: transform var(--sh-dur-4) var(--sh-ease-out), width var(--sh-dur-4) var(--sh-ease-out), box-shadow var(--sh-dur-3) ease;
+    will-change: transform, width;
+}
+
+.sh-nav-tab-btn {
+    position: relative;
+    z-index: 2;
+    background: transparent !important;
+    border: none;
+    padding: 7px 18px;
+    border-radius: 9999px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.65);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color var(--sh-dur-3) ease;
+}
+
+.sh-nav-tab-btn:hover {
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-nav-tab-btn.active {
+    color: var(--sh-ink-solid-inv, #000000) !important;
+    font-weight: 750;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.sh-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: 8px;
+}
+
+.sh-nav-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    color: var(--sh-ink-solid, #ffffff);
+    cursor: pointer;
+    transition: transform var(--sh-dur-3) var(--sh-ease-spring), opacity var(--sh-dur-3) var(--sh-ease-spring), background-color var(--sh-dur-3) var(--sh-ease-spring), background var(--sh-dur-3) var(--sh-ease-spring), border-color var(--sh-dur-3) var(--sh-ease-spring), box-shadow var(--sh-dur-3) var(--sh-ease-spring), color var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-3) var(--sh-ease-spring);
+}
+
+.sh-nav-action-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.22);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28);
+    transform: scale(1.08);
+    box-shadow: 0 4px 14px rgba(var(--sh-ink, 255, 255, 255),  0.18);
+}
+
+.sh-user-menu-wrapper {
+    position: relative;
+    z-index: 20000;
+}
+
+.sh-user-avatar-btn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.sh-avatar-pill {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.18);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.24);
+    color: var(--sh-ink-solid, #ffffff);
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform var(--sh-dur-2) ease;
+}
+
+.sh-avatar-pill:hover {
+    transform: scale(1.05);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.28);
+}
+
+.sh-user-dropdown {
+    position: absolute;
+    top: calc(100% + 14px);
+    right: -6px;
+    width: 240px;
+    background: rgba(var(--sh-ink-inv, 14, 14, 20),  0.96) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
+    border-radius: 18px !important;
+    box-shadow: 0 24px 70px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95), 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.4) !important;
+    padding: 14px !important;
+    z-index: 20005 !important;
+    transform-origin: top right;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.88) translateY(-10px);
+    filter: blur(10px);
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-3) var(--sh-ease-out);
+}
+
+.sh-user-dropdown.sh-dropdown--open {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0px);
+    pointer-events: auto;
+}
+
+.sh-user-dropdown.sh-dropdown--closing {
+    opacity: 0;
+    transform: scale(0.92) translateY(-8px);
+    filter: blur(6px);
+    pointer-events: none;
+    transition: opacity var(--sh-dur-2) ease, transform var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+}
+
+.sh-user-dropdown.sh-dropdown--open .sh-user-dropdown__item {
+    animation: sh-menu-item-cascade var(--sh-dur-3) var(--sh-ease-out) backwards;
+    animation-delay: calc(var(--item-idx, 0) * 22ms + 40ms);
+}
+
+@keyframes sh-menu-item-cascade {
+    0% {
+        opacity: 0;
+        transform: translateY(8px) scale(0.96);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.sh-user-dropdown__header strong {
+    display: block;
+    font-size: 14px;
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-user-server {
+    display: block;
+    font-size: 11px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
+    margin-top: 2px;
+}
+
+.sh-user-dropdown__item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background var(--sh-dur-1) ease;
+    margin-bottom: 2px;
+}
+
+.sh-user-dropdown__item:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
+    color: var(--sh-ink-solid, #ffffff);
+}
+
+.sh-user-dropdown__item.sh-danger {
+    color: #ff453a;
+}
+.sh-user-dropdown__item.sh-danger:hover {
+    background: rgba(255, 69, 58, 0.31);
+}
+
+.sh-app-main {
+    flex: 1;
+    background-color: var(--sh-bg-base, #000000);
+}

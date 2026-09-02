@@ -12,9 +12,10 @@
 import { BaseApiClient } from '../../core/ApiClient.js';
 import Logger from '../../core/Logger.js';
 
+import * as svc from '../../core/services.js';
 class BazarrApi extends BaseApiClient {
     constructor() {
-        const settings = window.SpaceHub?.core?.settings;
+        const settings = svc.settings();
         const url = settings?.get('bazarr.url', 'http://localhost:6767') || 'http://localhost:6767';
         const apiKey = settings?.get('bazarr.apiKey', '') || '';
 
@@ -27,7 +28,7 @@ class BazarrApi extends BaseApiClient {
      * Met à jour la configuration depuis les paramètres SpaceHub.
      */
     updateConfig() {
-        const settings = window.SpaceHub?.core?.settings;
+        const settings = svc.settings();
         this.baseUrl = (settings?.get('bazarr.url', 'http://localhost:6767') || 'http://localhost:6767').replace(/\/$/, '');
         this.apiKey = settings?.get('bazarr.apiKey', '') || '';
     }

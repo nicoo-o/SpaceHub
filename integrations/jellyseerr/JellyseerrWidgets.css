@@ -1,0 +1,977 @@
+
+
+
+
+
+
+/* ── Hub Multimédia Master Panorama 1200px Apple TV VisionOS ── */
+.sh-jellyseerr-modal-card,
+.sh-jellyseerr-modal-card--panorama,
+.sh-jellyseerr-modal-card--wide {
+    width: 1200px !important;
+    max-width: 95vw !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+    padding: 32px !important;
+    border-radius: 28px !important;
+    background: rgba(var(--sh-ink-inv, 14, 14, 18),  0.94) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12) !important;
+    box-shadow: 0 40px 120px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.95), 0 0 0 1px rgba(var(--sh-ink, 255, 255, 255), 0.08) inset !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    box-sizing: border-box !important;
+}
+
+.sh-jellyseerr-modal-card::-webkit-scrollbar,
+.sh-jellyseerr-modal-card--panorama::-webkit-scrollbar,
+.sh-jellyseerr-modal-card--wide::-webkit-scrollbar,
+.sh-jellyseerr-episodes-list::-webkit-scrollbar,
+.sh-jellyseerr-season-tabs::-webkit-scrollbar,
+.sh-jellyseerr-modal-desc::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.sh-jellyseerr-panorama-dual-pane {
+    display: grid !important;
+    grid-template-columns: 420px 1fr !important;
+    gap: 32px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-top: 20px !important;
+}
+
+@media (max-width: 1024px) {
+    .sh-jellyseerr-panorama-dual-pane {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+.sh-jellyseerr-pane-left {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 18px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.sh-jellyseerr-pane-right {
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.sh-jellyseerr-synopsis-box {
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.03) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08) !important;
+    border-radius: 20px !important;
+    padding: 20px !important;
+}
+
+.sh-jellyseerr-modal-desc {
+    font-size: 13.5px !important;
+    line-height: 1.6 !important;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.8) !important;
+    margin: 0 !important;
+}
+
+.sh-jellyseerr-settings-box {
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.03) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08) !important;
+    border-radius: 20px !important;
+    padding: 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+}
+
+.sh-jellyseerr-episodes-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    max-height: 420px !important;
+    overflow-y: auto !important;
+    scrollbar-width: none !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.sh-episode-rich-card {
+    display: flex !important;
+    align-items: center !important;
+    gap: 16px !important;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.07) !important;
+    border-radius: 16px !important;
+    padding: 12px 16px !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important, filter var(--sh-dur-3) var(--sh-ease-out) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.sh-episode-rich-card:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.07) !important;
+    border-color: rgba(99, 102, 241, 0.4) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 10px 28px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.5) !important;
+}
+
+.sh-ep-thumb-wrap {
+    width: 140px !important;
+    height: 78px !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    background: #111 !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.4) !important;
+}
+
+.sh-ep-thumb-wrap img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+.sh-ep-info-wrap {
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+
+.sh-ep-title {
+    font-size: 14.5px !important;
+    font-weight: 700 !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    margin: 0 !important;
+    white-space: normal !important;
+}
+
+.sh-ep-overview {
+    font-size: 12.5px !important;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.7) !important;
+    line-height: 1.45 !important;
+    margin-top: 4px !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+}
+
+/* ── Hub Panorama 1200px Dual-Pane Apple TV VisionOS ── */
+.sh-jellyseerr-modal-card--panorama {
+    width: 1200px !important;
+    max-width: 93vw !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+    padding: 28px 32px !important;
+    border-radius: 28px !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    box-shadow: 0 40px 100px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.9), 0 0 0 1px rgba(var(--sh-ink, 255, 255, 255), 0.1) inset !important;
+}
+
+.sh-jellyseerr-modal-card--panorama::-webkit-scrollbar,
+.sh-jellyseerr-episodes-list::-webkit-scrollbar,
+.sh-jellyseerr-season-tabs::-webkit-scrollbar,
+.sh-jellyseerr-modal-desc::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.sh-jellyseerr-modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.72) !important;
+    z-index: 999999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out) !important;
+}
+
+.sh-jellyseerr-modal-overlay.open {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+.sh-jellyseerr-modal-overlay.open .sh-jellyseerr-modal-card--panorama {
+    transform: scale(1) translateY(0) !important;
+}
+
+.sh-jellyseerr-modal-card--panorama {
+    transform: scale(0.93) translateY(24px) !important;
+    transition: transform var(--sh-dur-4) var(--sh-ease-out), opacity var(--sh-dur-4) ease !important;
+}
+
+.sh-jellyseerr-panorama-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 24px !important;
+    margin-bottom: 24px !important;
+    padding-bottom: 20px !important;
+    border-bottom: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08) !important;
+}
+
+.sh-jellyseerr-panorama-poster-wrap {
+    width: 110px !important;
+    height: 165px !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    background: #111 !important;
+    box-shadow: 0 12px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.7) !important;
+    flex-shrink: 0 !important;
+    position: relative !important;
+}
+
+.sh-jellyseerr-panorama-poster-wrap img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+.sh-jellyseerr-poster-glint {
+    position: absolute !important;
+    inset: 0 !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.15) !important;
+    border-radius: 16px !important;
+    pointer-events: none !important;
+}
+
+.sh-jellyseerr-panorama-title {
+    font-size: 26px !important;
+    font-weight: 800 !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    letter-spacing: -0.02em !important;
+    margin: 0 0 12px 0 !important;
+    line-height: 1.2 !important;
+}
+
+.sh-jellyseerr-panorama-dual-pane {
+    display: grid !important;
+    grid-template-columns: 40% 60% !important;
+    gap: 28px !important;
+}
+
+@media (max-width: 900px) {
+    .sh-jellyseerr-panorama-dual-pane {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+.sh-jellyseerr-pane-left {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 18px !important;
+}
+
+.sh-jellyseerr-pane-right {
+    min-width: 0 !important;
+}
+
+.sh-jellyseerr-settings-box {
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.03) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08) !important;
+    border-radius: 18px !important;
+    padding: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+}
+
+.sh-jellyseerr-episodes-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    max-height: 380px !important;
+    overflow-y: auto !important;
+    scrollbar-width: none !important;
+}
+
+.sh-episode-rich-card {
+    display: flex !important;
+    align-items: center !important;
+    gap: 14px !important;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.06) !important;
+    border-radius: 14px !important;
+    padding: 10px 14px !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important, filter var(--sh-dur-3) var(--sh-ease-out) !important;
+}
+
+.sh-episode-rich-card:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.07) !important;
+    border-color: rgba(99, 102, 241, 0.35) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.5) !important;
+}
+
+.sh-ep-thumb-wrap {
+    width: 130px !important;
+    height: 74px !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    background: #111 !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 4px 14px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.4) !important;
+}
+
+.sh-ep-thumb-wrap img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+.sh-ep-title {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    margin: 0 !important;
+}
+
+.sh-ep-overview {
+    font-size: 12.5px !important;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.65) !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+}
+
+.sh-jellyseerr-modal-card--wide::-webkit-scrollbar,
+.sh-jellyseerr-episodes-list::-webkit-scrollbar {
+    width: 6px !important;
+}
+
+.sh-jellyseerr-modal-card--wide::-webkit-scrollbar-track,
+.sh-jellyseerr-episodes-list::-webkit-scrollbar-track {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.02) !important;
+    border-radius: 4px !important;
+}
+
+.sh-jellyseerr-modal-card--wide::-webkit-scrollbar-thumb,
+.sh-jellyseerr-episodes-list::-webkit-scrollbar-thumb {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.2) !important;
+    border-radius: 4px !important;
+}
+
+.sh-jellyseerr-modal-card--wide::-webkit-scrollbar-thumb:hover,
+.sh-jellyseerr-episodes-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.35) !important;
+}
+
+.sh-trailer-player-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16), 0.88) !important;
+    z-index: 2000000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 0 !important;
+    transition: opacity var(--sh-dur-3) ease !important;
+}
+.sh-trailer-player-overlay.open {
+    opacity: 1 !important;
+}
+.sh-trailer-player-box {
+    width: 900px !important;
+    max-width: 94vw !important;
+    aspect-ratio: 16/9 !important;
+    background: var(--sh-bg-base, #000) !important;
+    border-radius: 20px !important;
+    overflow: hidden !important;
+    position: relative !important;
+    box-shadow: 0 30px 90px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.95) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.18) !important;
+}
+.sh-trailer-player-box iframe {
+    width: 100% !important;
+    height: 100% !important;
+}
+.sh-trailer-close-btn {
+    position: absolute !important;
+    top: 14px !important;
+    right: 14px !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16), 0.7) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.25) !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    font-size: 15px !important;
+    cursor: pointer !important;
+    z-index: 10 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* ── Hub Multimédia Jellyseerr Avancé ── */
+.sh-jellyseerr-modal-card {
+    width: 600px !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+}
+.sh-jellyseerr-synopsis-box {
+    margin-bottom: 16px !important;
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.03) !important;
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.06) !important;
+}
+.sh-jellyseerr-section-header {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: #a1a1aa !important;
+    margin-bottom: 4px !important;
+}
+.sh-jellyseerr-grid-selectors {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+}
+@media (max-width: 600px) {
+    .sh-jellyseerr-grid-selectors { grid-template-columns: 1fr !important; }
+}
+.sh-jellyseerr-seasons-master-section {
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.03) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08) !important;
+    border-radius: 16px !important;
+    padding: 14px !important;
+    margin-bottom: 18px !important;
+}
+.sh-jellyseerr-seasons-header-bar {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 12px !important;
+}
+.sh-jellyseerr-seasons-quick-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+.sh-season-quick-btn {
+    background: none !important;
+    border: none !important;
+    color: #818cf8 !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+}
+.sh-season-quick-btn:hover {
+    text-decoration: underline !important;
+}
+.sh-quick-sep {
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.3) !important;
+    font-size: 10px !important;
+}
+.sh-jellyseerr-seasons-accordion-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    max-height: 220px !important;
+    overflow-y: auto !important;
+}
+.sh-season-card {
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.04) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.07) !important;
+    border-radius: 12px !important;
+    padding: 10px 12px !important;
+}
+.sh-season-card-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 8px !important;
+}
+.sh-checkbox-container {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+}
+.sh-season-title-text {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+}
+.sh-season-badge {
+    font-size: 11px !important;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.5) !important;
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.06) !important;
+    padding: 2px 8px !important;
+    border-radius: 10px !important;
+}
+.sh-season-episodes-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+}
+.sh-ep-chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.06) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.1) !important;
+    border-radius: 8px !important;
+    padding: 3px 8px !important;
+    font-size: 11px !important;
+    color: #d4d4d8 !important;
+    cursor: pointer !important;
+}
+.sh-ep-chip input {
+    accent-color: #6366f1 !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+}
+.sh-jellyseerr-modal-status-badge.status-downloading {
+    background: rgba(59, 130, 246, 0.31) !important;
+    border-color: rgba(59, 130, 246, 0.35) !important;
+    color: #93c5fd !important;
+}
+.sh-jellyseerr-modal-status-badge.status-available {
+    background: rgba(34, 197, 94, 0.31) !important;
+    border-color: rgba(34, 197, 94, 0.35) !important;
+    color: #86efac !important;
+}
+
+/* ── Modale de Demande Jellyseerr Ultra-Glass ── */
+.sh-jellyseerr-modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.65) !important;
+    z-index: 999999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out) !important;
+}
+.sh-jellyseerr-modal-overlay.open {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+.sh-jellyseerr-modal-card {
+    width: 480px !important;
+    max-width: 92vw !important;
+    background: rgba(var(--sh-ink-inv, 20, 20, 28),  0.88) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12) !important;
+    border-radius: 24px !important;
+    padding: 24px !important;
+    box-shadow: 0 30px 80px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.85), 0 0 0 1px rgba(var(--sh-ink, 255, 255, 255), 0.06) inset !important;
+    position: relative !important;
+    transform: scale(0.94) translateY(12px) !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important;
+}
+.sh-jellyseerr-modal-overlay.open .sh-jellyseerr-modal-card {
+    transform: scale(1) translateY(0) !important;
+}
+.sh-jellyseerr-modal-close {
+    position: absolute !important;
+    top: 18px !important;
+    right: 18px !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12) !important;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: transform var(--sh-dur-3) !important, opacity var(--sh-dur-3) !important, background-color var(--sh-dur-3) !important, background var(--sh-dur-3) !important, border-color var(--sh-dur-3) !important, box-shadow var(--sh-dur-3) !important, color var(--sh-dur-3) !important, filter var(--sh-dur-3) !important;
+}
+.sh-jellyseerr-modal-close:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.18) !important;
+    transform: scale(1.08) !important;
+}
+.sh-jellyseerr-modal-header {
+    display: flex !important;
+    gap: 18px !important;
+    margin-bottom: 20px !important;
+}
+.sh-jellyseerr-modal-poster-wrap {
+    width: 100px !important;
+    height: 145px !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    background: #111 !important;
+    box-shadow: 0 8px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.6) !important;
+    flex-shrink: 0 !important;
+}
+.sh-jellyseerr-modal-poster-wrap img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+.sh-jellyseerr-modal-header-info {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+}
+.sh-jellyseerr-modal-type-tag {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    color: #a1a1aa !important;
+    margin-bottom: 4px !important;
+}
+.sh-jellyseerr-modal-title {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    margin: 0 0 10px 0 !important;
+    line-height: 1.25 !important;
+}
+.sh-jellyseerr-modal-status-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 4px 10px !important;
+    background: rgba(99, 102, 241, 0.3) !important;
+    border: 1px solid rgba(99, 102, 241, 0.28) !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #a5b4fc !important;
+    width: fit-content !important;
+}
+.sh-jellyseerr-modal-status-badge.status-requested {
+    background: rgba(34, 197, 94, 0.3) !important;
+    border-color: rgba(34, 197, 94, 0.3) !important;
+    color: #86efac !important;
+}
+.sh-status-dot {
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    background: currentColor !important;
+}
+.sh-jellyseerr-modal-desc {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.72) !important;
+    margin-bottom: 18px !important;
+    max-height: 72px !important;
+    overflow-y: auto !important;
+}
+.sh-jellyseerr-form-row {
+    margin-bottom: 16px !important;
+}
+.sh-jellyseerr-form-label {
+    display: block !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #e4e4e7 !important;
+    margin-bottom: 6px !important;
+}
+
+.sh-jellyseerr-form-select {
+    width: 100% !important;
+    padding: 10px 14px !important;
+    border-radius: 12px !important;
+    background: var(--sh-bg-surface-2, #181824) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    font-size: 13px !important;
+    outline: none !important;
+    cursor: pointer !important;
+    color-scheme: dark !important;
+}
+.sh-jellyseerr-form-select option {
+    background: var(--sh-bg-surface-2, #181824) !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    padding: 8px !important;
+}
+.sh-jellyseerr-seasons-container {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    max-height: 110px !important;
+    overflow-y: auto !important;
+    padding: 4px 0 !important;
+}
+.sh-checkbox-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 6px 12px !important;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.06) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12) !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
+    color: #e4e4e7 !important;
+    cursor: pointer !important;
+}
+.sh-checkbox-pill input {
+    accent-color: #6366f1 !important;
+    cursor: pointer !important;
+}
+
+.sh-jellyseerr-modal-actions {
+    margin-top: 24px !important;
+}
+.sh-jellyseerr-btn-submit {
+    width: 100% !important;
+    padding: 12px 18px !important;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.2) !important;
+    border-radius: 14px !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4) !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important, filter var(--sh-dur-3) var(--sh-ease-out) !important;
+}
+.sh-jellyseerr-btn-submit:hover:not(:disabled) {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 12px 30px rgba(99, 102, 241, 0.6) !important;
+}
+.sh-jellyseerr-btn-submit.success {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
+    box-shadow: 0 8px 24px rgba(34, 197, 94, 0.4) !important;
+}
+
+
+.sh-jellyseerr-carousel {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    gap: 20px !important;
+    padding: 14px 8px 28px 8px !important;
+    scroll-behavior: smooth !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    scroll-snap-type: x mandatory !important;
+    width: 100% !important;
+    -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 64px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 64px), transparent 100%);
+    transition: mask-image var(--sh-dur-4) ease, -webkit-mask-image var(--sh-dur-4) ease;
+}
+
+.sh-jellyseerr-carousel::-webkit-scrollbar {
+    display: none !important;
+}
+
+.sh-jellyseerr-carousel.sh-grid-scrolled-middle {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 48px, #000 calc(100% - 48px), transparent 100%) !important;
+    mask-image: linear-gradient(to right, transparent 0%, #000 48px, #000 calc(100% - 48px), transparent 100%) !important;
+}
+
+.sh-jellyseerr-carousel.sh-grid-scrolled-end {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 64px, #000 100%) !important;
+    mask-image: linear-gradient(to right, transparent 0%, #000 64px, #000 100%) !important;
+}
+
+.sh-jellyseerr-bento-card {
+    flex: 0 0 auto !important;
+    width: 196px !important;
+    scroll-snap-align: start !important;
+    scroll-snap-stop: normal !important;
+    display: flex !important;
+    flex-direction: column !important;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.03) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
+    border-radius: 18px !important;
+    padding: 8px !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important, filter var(--sh-dur-3) var(--sh-ease-out) !important;
+    position: relative !important;
+    cursor: default !important;
+}
+
+@media (max-width: 768px) {
+    .sh-jellyseerr-carousel {
+        gap: 16px !important;
+    }
+    .sh-jellyseerr-bento-card {
+        width: 150px !important;
+    }
+}
+
+.sh-jellyseerr-bento-card:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.07) !important;
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.20) !important;
+    transform: translateY(-4px) !important;
+    box-shadow: 0 14px 35px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.65) !important;
+}
+
+.sh-jellyseerr-bento-card__poster-wrap {
+    position: relative !important;
+    aspect-ratio: 2/3 !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.5) !important;
+    box-shadow: 0 8px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.6) !important;
+}
+
+.sh-jellyseerr-bento-card__img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    display: block !important;
+    transition: transform var(--sh-dur-4) var(--sh-ease-out) !important;
+}
+
+.sh-jellyseerr-bento-card:hover .sh-jellyseerr-bento-card__img {
+    transform: scale(1.06) !important;
+}
+
+.sh-jellyseerr-bento-card__placeholder {
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.02) !important;
+}
+
+.sh-jellyseerr-bento-card__floating-badges {
+    position: absolute !important;
+    top: 6px !important;
+    left: 6px !important;
+    right: 6px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    pointer-events: none !important;
+}
+
+.sh-jellyseerr-pill-badge {
+    padding: 3px 7px !important;
+    border-radius: 6px !important;
+    font-size: 10.5px !important;
+    font-weight: 750 !important;
+    letter-spacing: 0.02em !important;
+}
+
+.sh-jellyseerr-pill-badge--type {
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.75) !important;
+    color: #64d2ff !important;
+    border: 1px solid rgba(100, 210, 255, 0.3) !important;
+}
+
+.sh-jellyseerr-pill-badge--rating {
+    background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.75) !important;
+    color: #ffd60a !important;
+    border: 1px solid rgba(255, 214, 10, 0.3) !important;
+}
+
+.sh-jellyseerr-bento-card__body {
+    padding: 10px 4px 4px 4px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    flex: 1 !important;
+    justify-content: space-between !important;
+}
+
+.sh-jellyseerr-bento-card__title {
+    font-size: 13.5px !important;
+    font-weight: 650 !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    margin: 0 0 3px 0 !important;
+    line-height: 1.3 !important;
+}
+
+.sh-jellyseerr-bento-card__year {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.45) !important;
+}
+
+.sh-jellyseerr-req-action-btn {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 7px 10px !important;
+    border-radius: 10px !important;
+    background: rgba(100, 210, 255, 0.28) !important;
+    border: 1px solid rgba(100, 210, 255, 0.28) !important;
+    color: #64d2ff !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important, filter var(--sh-dur-3) var(--sh-ease-out) !important;
+}
+
+.sh-jellyseerr-req-action-btn:hover:not(:disabled) {
+    background: #64d2ff !important;
+    color: var(--sh-ink-solid-inv, #000000) !important;
+    box-shadow: 0 4px 14px rgba(100, 210, 255, 0.4) !important;
+    transform: translateY(-1px) !important;
+}
+
+.sh-jellyseerr-req-action-btn.requested {
+    background: rgba(50, 215, 75, 0.31) !important;
+    border-color: rgba(50, 215, 75, 0.35) !important;
+    color: #32d74b !important;
+    cursor: default !important;
+}
+
+.sh-widget__refresh-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.05) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12) !important;
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.65) !important;
+    cursor: pointer !important;
+    outline: none !important;
+    padding: 0 !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important, filter var(--sh-dur-3) var(--sh-ease-out) !important;
+    box-shadow: 0 2px 8px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.3) !important;
+}
+
+.sh-widget__refresh-btn:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.14) !important;
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28) !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
+    transform: rotate(45deg) scale(1.08) !important;
+    box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5) !important;
+}
+
+.sh-widget__refresh-btn:active {
+    transform: rotate(180deg) scale(0.92) !important;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.20) !important;
+}
+
+.sh-widget__refresh-btn svg {
+    width: 14px !important;
+    height: 14px !important;
+    stroke: currentColor !important;
+    stroke-width: 2.3 !important;
+    fill: none !important;
+    pointer-events: none !important;
+}
+
+.sh-spinner-inline {
+    width: 11px;
+    height: 11px;
+    border: 2px solid rgba(var(--sh-ink, 255, 255, 255),  0.2);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: shSpin var(--sh-dur-5) linear infinite;
+}

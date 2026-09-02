@@ -7,6 +7,8 @@
 
 'use strict';
 
+
+import * as svc from '../../core/services.js';
 class LatestAdditionsWidget {
     constructor() {
         this.id = 'latest-additions';
@@ -32,7 +34,7 @@ class LatestAdditionsWidget {
         `;
 
         const contentEl = container.querySelector('.sh-widget__items-container');
-        const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
+        const cardBuilder = svc.cardBuilder();
 
         if (cardBuilder) {
             contentEl.appendChild(cardBuilder.createSkeletonGrid(6, 'poster'));
@@ -46,7 +48,7 @@ class LatestAdditionsWidget {
         if (!contentEl) return;
 
         try {
-            const api = window.SpaceHub?.jellyfin?.api;
+            const api = svc.jellyfinApi();
             let items = [];
             if (api?.getLatestItems) {
                 try {
@@ -63,14 +65,14 @@ class LatestAdditionsWidget {
             }
 
             container.style.display = '';
-            const cardBuilder = window.SpaceHub?.ui?.components?.cardBuilder;
+            const cardBuilder = svc.cardBuilder();
             if (cardBuilder) {
                 cardBuilder.renderGrid(contentEl, items, {
                     type: 'poster',
                     getImageUrl: (item) => api?.getImageUrl?.(item.Id, 'Primary', { maxWidth: 400, maxHeight: 600 }) || '',
                     onClick: (item) => {
-                        if (window.SpaceHub?.ui?.modalSlideUpSheet) {
-                            window.SpaceHub.ui.modalSlideUpSheet.open(item);
+                        if (svc.slideUpSheet()) {
+                            svc.slideUpSheet().open(item);
                         } else if (window.Emby?.Page?.showItem) {
                             window.Emby.Page.showItem(item.Id);
                         } else {
