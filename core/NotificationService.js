@@ -8,11 +8,12 @@
 
 import Logger from './Logger.js';
 
+import * as svc from './services.js';
 export class NotificationService {
     constructor(eventBus = null, settings = null) {
         this._log = new Logger('NotificationService');
-        this._eventBus = eventBus || window.SpaceHub?.core?.eventBus;
-        this._settings = settings || window.SpaceHub?.core?.settings;
+        this._eventBus = eventBus || svc.eventBus();
+        this._settings = settings || svc.settings();
         this._initListeners();
     }
 
@@ -85,12 +86,12 @@ export class NotificationService {
      * @param {Object} [options]
      */
     async send(title, message, options = {}) {
-        const settings = this._settings || window.SpaceHub?.core?.settings;
+        const settings = this._settings || svc.settings();
         const isGlobalEnabled = settings?.get('notifications.enabled', true);
         if (!isGlobalEnabled) return;
 
         // 1. Toast In-App VisionOS
-        const toaster = window.SpaceHub?.ui?.components?.toaster;
+        const toaster = svc.toaster();
         if (toaster) {
             const toastType = options.type || 'info';
             if (toaster[toastType]) {
