@@ -17,15 +17,17 @@
 
 import Logger from '../../core/Logger.js';
 
+import './LibraryView.css';
+import * as svc from '../../core/services.js';
 class LibraryView {
     constructor() {
         // Confirmation du scope library dans le Focus Registry
-        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        const spatialNav = svc.nav() || svc.nav();
         if (spatialNav?.registerFocusables) {
             spatialNav.registerFocusables('library', (container) => {
                 const root = container || document.querySelector('.sh-library-view') || document;
                 return Array.from(root.querySelectorAll('.sh-lib-tab-btn, .sh-lib-genre-chip, .sh-lib-alpha-btn, .sh-lib-control-btn, .sh-card, [data-nav-focusable="true"], .sh-lib-manage-btn, .sh-lib-search-input, .sh-lib-search-clear'));
-            });
+            }, { force: true }); // re-registration volontaire — cf. plan A04
         }
         this._log = new Logger('LibraryView');
         this._libraries = [];
@@ -59,11 +61,11 @@ class LibraryView {
     }
 
     get _api() {
-        return window.SpaceHub?.jellyfin?.api;
+        return svc.jellyfinApi();
     }
 
     get _cardBuilder() {
-        return window.SpaceHub?.ui?.components?.cardBuilder;
+        return svc.cardBuilder();
     }
 
     _loadPreferences() {
@@ -116,6 +118,14 @@ class LibraryView {
      */
     async render(container, options = {}) {
         this._container = container;
+
+        // Un AbortController par cycle de rendu.
+        // Les ecouteurs poses sur des elements internes disparaissent avec le DOM,
+        // mais ceux poses sur `document` survivaient a chaque re-rendu : changer de
+        // bibliotheque en empilait un de plus a chaque fois, et les fermetures de
+        // menus se declenchaient autant de fois qu'il y avait eu de rendus.
+        this._renderAbort?.abort();
+        this._renderAbort = new AbortController();
         container.innerHTML = `
             <div class="sh-library-explorer">
                 <!-- Arrière-plan Ambiant Dynamique Monochrome (Apple TV Ambient Shadow) -->
@@ -131,8 +141,8 @@ class LibraryView {
                                     <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path>
                                     <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-3.05 11a22.35 22.35 0 0 1-3.95 2z"></path>
                                 </svg>
-                                <span style="font-size: 13px; font-weight: 750; color: #ffffff; letter-spacing: -0.02em;">SpaceHub</span>
-                                <span style="color: rgba(255, 255, 255, 0.35); font-size: 12px;">•</span>
+                                <span style="font-size: 13px; font-weight: 750; color: var(--sh-ink-solid, #ffffff); letter-spacing: -0.02em;">SpaceHub</span>
+                                <span style="color: rgba(var(--sh-ink, 255, 255, 255),  0.35); font-size: 12px;">•</span>
                                 <div class="sh-lib-badge-pill" id="sh-lib-badge-type">MÉDIATHÈQUE</div>
                             </div>
                             <h1 class="sh-lib-main-title" id="sh-lib-main-title">Mes Bibliothèques</h1>
@@ -419,7 +429,7 @@ class LibraryView {
         document.body.appendChild(modal);
         requestAnimationFrame(() => {
             modal.classList.add('open');
-            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            const spatialNav = svc.nav() || svc.nav();
             spatialNav?.onModalOpened?.(modal, modal.querySelector('#sh-lib-modal-close'));
         });
 
@@ -472,7 +482,7 @@ class LibraryView {
                         const visibleCount = this._allLibraries.filter(l => !this._hiddenLibraryIds.has(l.Id)).length;
                         if (visibleCount <= 1) {
                             input.checked = true;
-                            window.SpaceHub?.ui?.toaster?.warning?.('Au moins une bibliothèque doit rester visible.');
+                            svc.toaster()?.warning?.('Au moins une bibliothèque doit rester visible.');
                             return;
                         }
                         this._hiddenLibraryIds.add(libId);
@@ -574,7 +584,7 @@ class LibraryView {
 
         const closeModal = () => {
             modal.classList.remove('open');
-            const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+            const spatialNav = svc.nav() || svc.nav();
             spatialNav?.onModalClosed?.();
             setTimeout(() => modal.remove(), 240);
         };
@@ -590,7 +600,7 @@ class LibraryView {
             this._savePreferences();
             this._refreshVisibleLibraries();
             renderModalRows();
-            window.SpaceHub?.ui?.toaster?.success?.('Toutes les bibliothèques sont désormais affichées');
+            svc.toaster()?.success?.('Toutes les bibliothèques sont désormais affichées');
         });
     }
 
@@ -901,7 +911,7 @@ class LibraryView {
 
             card.innerHTML = `
                 <div class="sh-lib-backdrop-thumb-wrap">
-                    <img src="${bgUrl}" alt="${this._escape(item.Name)}" loading="lazy" />
+                    <img decoding="async" src="${bgUrl}" alt="${this._escape(item.Name)}" loading="lazy" />
                     <div class="sh-lib-backdrop-play-overlay">
                         <button class="sh-lib-quick-play-btn" title="▶ Lancer">▶</button>
                     </div>
@@ -979,7 +989,7 @@ class LibraryView {
 
             tr.innerHTML = `
                 <td class="sh-lib-td-thumb">
-                    <img src="${posterUrl}" alt="${this._escape(item.Name)}" loading="lazy" />
+                    <img decoding="async" src="${posterUrl}" alt="${this._escape(item.Name)}" loading="lazy" />
                 </td>
                 <td class="sh-lib-td-title">
                     <span class="sh-lib-table-item-name">${this._escape(item.Name)}</span>
@@ -1042,16 +1052,16 @@ class LibraryView {
     }
 
     _openItemDetails(item) {
-        if (window.SpaceHub?.ui?.modalSlideUpSheet) {
-            window.SpaceHub.ui.modalSlideUpSheet.open(item);
+        if (svc.slideUpSheet()) {
+            svc.slideUpSheet().open(item);
         } else if (item.Id) {
             window.location.hash = `#/details?id=${item.Id}`;
         }
     }
 
     _playItem(item) {
-        if (window.SpaceHub?.player?.play) {
-            window.SpaceHub.player.play(item);
+        if (svc.player()?.play) {
+            svc.player().play(item);
         } else if (window.Emby?.Page?.showItem) {
             window.Emby.Page.showItem(item.Id);
         }
@@ -1073,10 +1083,17 @@ class LibraryView {
 
         try {
             await this._api.setFavorite(item.Id, isFav);
-            window.SpaceHub?.ui?.toaster?.success?.(isFav ? 'Ajouté à vos favoris' : 'Retiré des favoris');
+            svc.toaster()?.success?.(isFav ? 'Ajouté à vos favoris' : 'Retiré des favoris');
         } catch (e) {
             this._log.warn('Erreur toggle favorite:', e);
         }
+    }
+
+    /** Libere tout ce qui survit au DOM de la vue. */
+    destroy() {
+        this._renderAbort?.abort();
+        this._renderAbort = null;
+        this._container = null;
     }
 
     _bindToolbarEvents() {
@@ -1169,7 +1186,7 @@ class LibraryView {
             if (!e.target.closest('.sh-lib-dropdown-wrap')) {
                 this._closeAllDropdowns();
             }
-        });
+        }, { signal: this._renderAbort.signal });
     }
 
     _bindDropdown(btnId, menuId, onSelect) {
@@ -1265,1232 +1282,9 @@ class LibraryView {
     }
 
     _injectStyles() {
-        if (document.getElementById('sh-library-explorer-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-library-explorer-styles';
-        style.textContent = `
-/* ══════════════════════════════════════════════════════════════════════════════
-   SpaceHub — Library View (Monochrome Apple TV+ & Pure Crystal Frosted Glass)
-   ══════════════════════════════════════════════════════════════════════════════ */
-
-.sh-library-explorer {
-    width: 100%;
-    min-height: 100vh;
-    padding: 100px 3.5vw 60px;
-    box-sizing: border-box;
-    position: relative;
-    color: #ffffff;
-    background-color: #000000;
-    font-family: var(--sh-font-family, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-}
-
-/* ── Lueur Ambiante Neutre Apple (Zéro violet) ── */
-.sh-lib-ambient-glow {
-    position: fixed;
-    top: 0;
-    left: 15%;
-    right: 15%;
-    height: 350px;
-    background: radial-gradient(ellipse at top, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 50%, transparent 80%);
-    pointer-events: none;
-    z-index: 0;
-    filter: blur(80px);
-}
-
-/* ── En-tête Principal ── */
-.sh-lib-hero-header {
-    position: relative;
-    z-index: 2;
-    margin-bottom: 24px;
-}
-
-.sh-lib-header-content {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.sh-lib-title-row {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.sh-lib-badge-pill {
-    display: inline-flex;
-    align-self: flex-start;
-    font-size: 11px;
-    font-weight: 750;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.85);
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    padding: 4px 12px;
-    border-radius: 9999px;
-    backdrop-filter: blur(16px);
-}
-
-.sh-lib-main-title {
-    font-size: 38px;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    color: #ffffff;
-    margin: 0;
-    line-height: 1.15;
-    text-shadow: 0 4px 24px rgba(0,0,0,0.6);
-}
-
-.sh-lib-stats-subtitle {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.60);
-    margin: 0;
-    font-weight: 450;
-    letter-spacing: -0.01em;
-}
-
-/* ── Sélecteur d'Onglets de Bibliothèques Flottant ── */
-.sh-lib-tabs-track-wrap {
-    overflow-x: auto;
-    padding: 6px 0;
-    scrollbar-width: none;
-}
-.sh-lib-tabs-track-wrap::-webkit-scrollbar {
-    display: none;
-}
-
-.sh-lib-tabs-track {
-    display: inline-flex;
-    align-items: center;
-    position: relative;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 9999px;
-    padding: 4px;
-    backdrop-filter: blur(32px) saturate(180%);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.50);
-}
-
-.sh-lib-tabs-pill {
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 0;
-    border-radius: 9999px;
-    background: #ffffff;
-    box-shadow: 0 4px 16px rgba(255, 255, 255, 0.35), 0 0 1px #ffffff;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.sh-lib-tab-btn {
-    position: relative;
-    z-index: 2;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: transparent;
-    border: none;
-    padding: 8px 18px;
-    border-radius: 9999px;
-    color: rgba(255, 255, 255, 0.72);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: color 180ms ease;
-}
-
-.sh-lib-tab-btn:hover {
-    color: #ffffff;
-}
-
-.sh-lib-tab-btn.active {
-    color: #000000;
-    font-weight: 750;
-}
-.sh-lib-tab-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: inherit;
-    transition: transform 180ms ease;
-}
-
-.sh-lib-tab-icon svg {
-    display: block;
-    stroke: currentColor;
-    stroke-width: 2.1;
-    transition: stroke 180ms ease;
-}
-
-.sh-lib-tab-btn:hover .sh-lib-tab-icon {
-    transform: scale(1.08);
-}
-
-.sh-lib-tab-btn.active .sh-lib-tab-icon svg {
-    stroke: #000000;
-}
-
-.sh-lib-tabs-loading, .sh-lib-tabs-empty {
-    padding: 8px 16px;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-/* ── Barre d'Outils Pure Glass Sticky ── */
-.sh-lib-toolbar-sticky {
-    position: sticky;
-    top: 76px;
-    z-index: 40;
-    background: rgba(14, 14, 18, 0.88);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 20px;
-    padding: 12px 18px;
-    backdrop-filter: blur(32px) saturate(180%);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75);
-    margin-bottom: 28px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.sh-lib-toolbar-primary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
-/* Champ de Recherche */
-.sh-lib-search-box {
-    position: relative;
-    display: flex;
-    align-items: center;
-    flex: 1;
-    min-width: 240px;
-    max-width: 380px;
-}
-
-.sh-lib-search-icon {
-    position: absolute;
-    left: 12px;
-    color: rgba(255, 255, 255, 0.45);
-    pointer-events: none;
-}
-
-.sh-lib-search-input {
-    width: 100%;
-    height: 38px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
-    padding: 0 34px 0 36px;
-    color: #ffffff;
-    font-size: 13px;
-    font-weight: 500;
-    outline: none;
-    transition: all 180ms ease;
-}
-
-.sh-lib-search-input:focus {
-    background: rgba(255, 255, 255, 0.10);
-    border-color: rgba(255, 255, 255, 0.40);
-    box-shadow: 0 0 16px rgba(255, 255, 255, 0.15);
-}
-
-.sh-lib-search-input::placeholder {
-    color: rgba(255, 255, 255, 0.40);
-}
-
-.sh-lib-search-clear {
-    position: absolute;
-    right: 10px;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.18);
-    border: none;
-    color: #fff;
-    font-size: 10px;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-}
-
-/* Actions & Menus Contrôles */
-.sh-lib-toolbar-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.sh-lib-dropdown-wrap {
-    position: relative;
-}
-
-.sh-lib-control-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    height: 38px;
-    padding: 0 14px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 180ms ease;
-}
-
-.sh-lib-control-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.28);
-    color: #ffffff;
-}
-
-.sh-lib-chevron {
-    font-size: 11px;
-    opacity: 0.6;
-}
-
-.sh-lib-dropdown-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    min-width: 200px;
-    background: rgba(18, 18, 24, 0.96);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 14px;
-    padding: 6px;
-    backdrop-filter: blur(32px);
-    -webkit-backdrop-filter: blur(32px);
-    box-shadow: 0 20px 48px rgba(0,0,0,0.88);
-    display: none;
-    flex-direction: column;
-    gap: 2px;
-    z-index: 50;
-    transform-origin: top right;
-    opacity: 0;
-    transform: scale(0.88) translateY(-8px);
-    filter: blur(8px);
-    pointer-events: none;
-    transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1), transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 200ms ease;
-}
-
-.sh-lib-dropdown-menu.open {
-    display: flex;
-    opacity: 1;
-    transform: scale(1) translateY(0);
-    filter: blur(0px);
-    pointer-events: auto;
-}
-
-.sh-lib-dropdown-menu.closing {
-    display: flex;
-    opacity: 0;
-    transform: scale(0.92) translateY(-6px);
-    filter: blur(6px);
-    pointer-events: none;
-    transition: opacity 160ms ease, transform 160ms ease, filter 160ms ease;
-}
-
-.sh-lib-dropdown-menu.open .sh-lib-dropdown-item {
-    animation: sh-menu-item-cascade 200ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
-    animation-delay: calc(var(--item-idx, 0) * 20ms + 30ms);
-}
-
-@keyframes sh-menu-fade-in {
-    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.sh-lib-dropdown-item {
-    padding: 8px 12px;
-    border-radius: 8px;
-    color: rgba(255, 255, 255, 0.75);
-    font-size: 13px;
-    font-weight: 550;
-    cursor: pointer;
-    transition: all 140ms ease;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.sh-lib-dropdown-item:hover {
-    background: rgba(255, 255, 255, 0.10);
-    color: #ffffff;
-}
-
-.sh-lib-dropdown-item.selected {
-    background: rgba(255, 255, 255, 0.16);
-    color: #ffffff;
-    font-weight: 750;
-}
-
-/* Commutateur de vue */
-.sh-lib-viewmode-group {
-    display: inline-flex;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 12px;
-    padding: 3px;
-    gap: 2px;
-}
-
-.sh-lib-viewmode-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.55);
-    cursor: pointer;
-    transition: all 180ms ease;
-}
-
-.sh-lib-viewmode-btn:hover {
-    color: #ffffff;
-}
-
-.sh-lib-viewmode-btn.active {
-    background: rgba(255, 255, 255, 0.20);
-    color: #ffffff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-}
-
-/* ── Carrousel des Genres ── */
-.sh-lib-genres-carousel {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-bottom: 2px;
-}
-.sh-lib-genres-carousel::-webkit-scrollbar {
-    display: none;
-}
-
-.sh-lib-genre-chip {
-    display: inline-flex;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    border-radius: 9999px;
-    padding: 5px 14px;
-    color: rgba(255, 255, 255, 0.65);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 180ms ease;
-}
-
-.sh-lib-genre-chip:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.25);
-    color: #ffffff;
-}
-
-.sh-lib-genre-chip.active {
-    background: #ffffff;
-    border-color: #ffffff;
-    color: #000000;
-    font-weight: 750;
-    box-shadow: 0 4px 14px rgba(255, 255, 255, 0.30);
-}
-
-/* ── Index Alphabétique Rapide ── */
-.sh-lib-alphabet-dock {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 4px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    overflow-x: auto;
-    scrollbar-width: none;
-}
-.sh-lib-alphabet-dock::-webkit-scrollbar {
-    display: none;
-}
-
-.sh-lib-alpha-btn {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 6px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 140ms ease;
-}
-
-.sh-lib-alpha-btn:hover {
-    color: #ffffff;
-    transform: scale(1.15);
-}
-
-.sh-lib-alpha-btn.active {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.22);
-}
-
-/* ── Grille des Médias ── */
-.sh-lib-content-wrap {
-    position: relative;
-    z-index: 1;
-}
-
-.sh-lib-grid--poster {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 22px 18px;
-}
-
-.sh-lib-grid--backdrop {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-    gap: 24px 20px;
-}
-
-/* Carte Backdrop 16:9 */
-.sh-lib-backdrop-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    overflow: hidden;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    transition: all 240ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sh-lib-backdrop-card:hover {
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(255, 255, 255, 0.25);
-    transform: translateY(-4px);
-    box-shadow: 0 16px 36px rgba(0,0,0,0.7);
-}
-
-.sh-lib-backdrop-thumb-wrap {
-    height: 160px;
-    position: relative;
-    background: #14141e;
-    overflow: hidden;
-}
-
-.sh-lib-backdrop-thumb-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 380ms ease;
-}
-
-.sh-lib-backdrop-card:hover .sh-lib-backdrop-thumb-wrap img {
-    transform: scale(1.05);
-}
-
-.sh-lib-backdrop-play-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.35);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 200ms ease;
-}
-
-.sh-lib-backdrop-card:hover .sh-lib-backdrop-play-overlay {
-    opacity: 1;
-}
-
-.sh-lib-quick-play-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.95);
-    border: none;
-    color: #000;
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-left: 3px;
-    cursor: pointer;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-    transform: scale(0.85);
-    transition: all 180ms ease;
-}
-
-.sh-lib-quick-play-btn:hover {
-    transform: scale(1);
-    background: #ffffff;
-}
-
-.sh-lib-card-fav-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 2;
-    transition: all 160ms ease;
-}
-
-.sh-lib-card-fav-btn:hover {
-    transform: scale(1.1);
-    background: rgba(0, 0, 0, 0.85);
-}
-
-.sh-lib-card-progress-bar {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: rgba(0, 0, 0, 0.5);
-}
-
-.sh-lib-card-progress-fill {
-    height: 100%;
-    background: rgba(255, 255, 255, 0.85);
-    border-radius: 0 2px 2px 0;
-}
-
-.sh-lib-backdrop-info {
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.sh-lib-backdrop-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: #ffffff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.sh-lib-backdrop-meta-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.55);
-}
-
-.sh-lib-meta-score {
-    color: #facc15;
-    font-weight: 700;
-}
-
-.sh-lib-meta-dot {
-    opacity: 0.4;
-}
-
-.sh-lib-meta-badge {
-    font-size: 10px;
-    padding: 1px 5px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-/* ── Vue Tableau Détaillé (List View) ── */
-.sh-lib-table-wrap {
-    background: rgba(255, 255, 255, 0.025);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 18px;
-    overflow: hidden;
-    backdrop-filter: blur(20px);
-}
-
-.sh-lib-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-}
-
-.sh-lib-table th {
-    padding: 14px 16px;
-    font-size: 11px;
-    font-weight: 750;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.45);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.sh-lib-table-row {
-    cursor: pointer;
-    transition: background 140ms ease;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.sh-lib-table-row:hover {
-    background: rgba(255, 255, 255, 0.06);
-}
-
-.sh-lib-table td {
-    padding: 10px 16px;
-    vertical-align: middle;
-    font-size: 13px;
-}
-
-.sh-lib-td-thumb img {
-    width: 36px;
-    height: 52px;
-    object-fit: cover;
-    border-radius: 6px;
-    display: block;
-}
-
-.sh-lib-td-title {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.sh-lib-table-item-name {
-    font-weight: 700;
-    color: #ffffff;
-}
-
-.sh-lib-table-item-sub {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.45);
-}
-
-.sh-lib-td-year, .sh-lib-td-genres {
-    color: rgba(255, 255, 255, 0.65);
-}
-
-.sh-lib-td-rating {
-    font-weight: 750;
-    color: #facc15;
-}
-
-.sh-lib-quality-badge {
-    font-size: 10px;
-    font-weight: 750;
-    color: rgba(255, 255, 255, 0.90);
-    background: rgba(255, 255, 255, 0.10);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    padding: 2px 7px;
-    border-radius: 5px;
-}
-
-.sh-lib-table-play, .sh-lib-table-fav {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    color: #fff;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    cursor: pointer;
-    margin-left: 4px;
-    transition: all 140ms ease;
-}
-
-.sh-lib-table-play:hover, .sh-lib-table-fav:hover {
-    background: rgba(255, 255, 255, 0.22);
-    transform: scale(1.08);
-}
-
-/* ── État Vide ── */
-.sh-lib-empty-card {
-    grid-column: 1 / -1;
-    padding: 60px 20px;
-    text-align: center;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px dashed rgba(255, 255, 255, 0.12);
-    border-radius: 20px;
-    margin: 20px 0;
-}
-
-.sh-lib-empty-icon {
-    font-size: 42px;
-    margin-bottom: 12px;
-}
-
-.sh-lib-empty-card h3 {
-    font-size: 18px;
-    font-weight: 700;
-    margin: 0 0 6px;
-}
-
-.sh-lib-empty-card p {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.55);
-    margin: 0 0 18px;
-}
-
-.sh-lib-reset-btn {
-    background: #ffffff;
-    border: none;
-    border-radius: 9999px;
-    color: #000000;
-    font-size: 13px;
-    font-weight: 750;
-    padding: 8px 22px;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(255, 255, 255, 0.35);
-    transition: all 180ms ease;
-}
-
-.sh-lib-reset-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.50);
-}
-
-/* ── Skeleton Loading ── */
-.sh-lib-skeleton-grid {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 22px 18px;
-    width: 100%;
-}
-
-.sh-lib-skeleton-card {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.sh-skeleton-thumb {
-    width: 100%;
-    aspect-ratio: 2 / 3;
-    border-radius: 16px;
-    background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
-    background-size: 200% 100%;
-    animation: sh-skeleton-wave 1.6s infinite ease-in-out;
-}
-
-.sh-skeleton-line {
-    height: 12px;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.05);
-}
-.sh-skeleton-line.short { width: 75%; }
-.sh-skeleton-line.tiny { width: 40%; }
-
-@keyframes sh-skeleton-wave {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-
-/* ── Sélecteur d'Onglets & Bouton Gérer ── */
-.sh-lib-tabs-container {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.sh-lib-manage-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 36px;
-    padding: 0 14px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 9999px;
-    color: rgba(255, 255, 255, 0.75);
-    font-size: 12px;
-    font-weight: 650;
-    cursor: pointer;
-    backdrop-filter: blur(20px);
-    transition: all 180ms ease;
-}
-
-.sh-lib-manage-btn:hover {
-    background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(255, 255, 255, 0.28);
-    color: #ffffff;
-    transform: scale(1.03);
-}
-
-/* ── Modal de Gestion des Sections (Frosted Glass VisionOS) ── */
-.sh-lib-modal-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(28px) saturate(180%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    box-sizing: border-box;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 220ms ease;
-}
-
-.sh-lib-modal-overlay.open {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.sh-lib-modal-card {
-    width: 100%;
-    max-width: 480px;
-    max-height: 85vh;
-    background: rgba(18, 18, 24, 0.94);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 24px;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transform: scale(0.92) translateY(12px);
-    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sh-lib-modal-overlay.open .sh-lib-modal-card {
-    transform: scale(1) translateY(0);
-}
-
-.sh-lib-modal-header {
-    padding: 22px 24px 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-}
-
-.sh-lib-modal-badge {
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.10em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.7);
-    margin-bottom: 4px;
-}
-
-.sh-lib-modal-title {
-    font-size: 20px;
-    font-weight: 750;
-    color: #ffffff;
-    margin: 0 0 4px;
-}
-
-.sh-lib-modal-subtitle {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.55);
-    margin: 0;
-    line-height: 1.4;
-}
-
-.sh-lib-modal-close {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 160ms ease;
-}
-
-.sh-lib-modal-close:hover {
-    background: rgba(255, 255, 255, 0.18);
-    transform: scale(1.08);
-}
-
-.sh-lib-modal-list {
-    padding: 12px 20px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-height: 50vh;
-}
-
-.sh-lib-manage-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 14px;
-    transition: background 160ms ease, border-color 160ms ease, transform 160ms ease, opacity 160ms ease;
-    cursor: default;
-}
-
-.sh-lib-manage-row:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.12);
-}
-
-.sh-drag-handle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    color: rgba(255, 255, 255, 0.35);
-    cursor: grab;
-    user-select: none;
-    margin-right: 8px;
-    padding: 4px;
-    border-radius: 4px;
-    transition: all 140ms ease;
-}
-
-.sh-drag-handle:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.sh-lib-manage-row:active .sh-drag-handle {
-    cursor: grabbing;
-}
-
-.sh-lib-manage-row.dragging {
-    opacity: 0.35;
-    transform: scale(0.98);
-    border: 1px dashed rgba(255, 255, 255, 0.45);
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.sh-lib-manage-row.drag-over-top {
-    border-top: 2px solid #ffffff !important;
-    box-shadow: 0 -4px 12px rgba(255, 255, 255, 0.35);
-}
-
-.sh-lib-manage-row.drag-over-bottom {
-    border-bottom: 2px solid #ffffff !important;
-    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.35);
-}
-
-.sh-lib-manage-reorder {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    margin-right: 12px;
-}
-
-.sh-lib-order-btn {
-    width: 22px;
-    height: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 4px;
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 8px;
-    cursor: pointer;
-    transition: all 140ms ease;
-    padding: 0;
-    line-height: 1;
-}
-
-.sh-lib-order-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.22);
-    color: #ffffff;
-    transform: scale(1.1);
-}
-
-.sh-lib-order-btn:disabled {
-    opacity: 0.20;
-    cursor: not-allowed;
-}
-
-.sh-lib-manage-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-}
-
-.sh-lib-manage-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(255, 255, 255, 0.85);
-}
-
-.sh-lib-manage-icon svg {
-    display: block;
-    stroke: currentColor;
-    stroke-width: 2;
-}
-
-.sh-lib-manage-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.sh-lib-manage-name {
-    font-size: 14px;
-    font-weight: 650;
-    color: #ffffff;
-}
-
-.sh-lib-manage-type {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.45);
-}
-
-/* ── Apple Switch Toggle (Pure Luxury) ── */
-.sh-apple-switch {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 26px;
-    flex-shrink: 0;
-}
-
-.sh-apple-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.sh-apple-switch-slider {
-    position: absolute;
-    cursor: pointer;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.16);
-    border: 1px solid rgba(255, 255, 255, 0.20);
-    transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
-    border-radius: 9999px;
-}
-
-.sh-apple-switch-slider:before {
-    position: absolute;
-    content: "";
-    height: 20px;
-    width: 20px;
-    left: 2px;
-    bottom: 2px;
-    background: #ffffff;
-    border-radius: 50%;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-    transition: all 260ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sh-apple-switch input:checked + .sh-apple-switch-slider {
-    background: #34c759;
-    border-color: #34c759;
-    box-shadow: 0 0 12px rgba(52, 199, 89, 0.45);
-}
-
-.sh-apple-switch input:checked + .sh-apple-switch-slider:before {
-    transform: translateX(18px);
-}
-
-.sh-lib-modal-footer {
-    padding: 16px 24px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-}
-
-.sh-lib-modal-btn-sec {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 9999px;
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 13px;
-    font-weight: 600;
-    padding: 8px 18px;
-    cursor: pointer;
-    transition: all 160ms ease;
-}
-
-.sh-lib-modal-btn-sec:hover {
-    background: rgba(255, 255, 255, 0.14);
-    color: #ffffff;
-}
-
-.sh-lib-modal-btn-pri {
-    background: #ffffff;
-    border: none;
-    border-radius: 9999px;
-    color: #000000;
-    font-size: 13px;
-    font-weight: 750;
-    padding: 8px 22px;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(255, 255, 255, 0.35);
-    transition: all 160ms ease;
-}
-
-.sh-lib-modal-btn-pri:hover {
-    transform: scale(1.03);
-    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.50);
-}
-
-/* Sentinelle infinie */
-.sh-lib-infinite-sentinel {
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 24px;
-}
-
-.sh-lib-infinite-spinner {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.sh-spinner-dots {
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-top-color: #ffffff;
-    border-radius: 50%;
-    animation: sh-spin 0.7s linear infinite;
-}
-
-@keyframes sh-spin {
-    to { transform: rotate(360deg); }
-}
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans LibraryView.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

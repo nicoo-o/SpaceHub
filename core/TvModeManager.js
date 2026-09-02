@@ -17,6 +17,7 @@
 
 import Logger from './Logger.js';
 
+import './TvModeManager.css';
 const CURSOR_REVEAL_DELAY = 2500;
 
 class TvModeManager {
@@ -54,9 +55,11 @@ class TvModeManager {
 
         this._offSettingsChanged = this._eventBus?.on('settings:changed', ({ key } = {}) => {
             if (key === 'ui.tvMode') this._applyMode();
+            if (key === 'ui.tvScale' || key === 'ui.tvSafeArea') this._applyTvVariables();
         });
 
         this._applyMode();
+        this._applyTvVariables();
         this._log.info(`TvMode initialisé (réglage: ${this._getMode()}, actif: ${this._active}).`);
     }
 
@@ -89,10 +92,39 @@ class TvModeManager {
         this._setActive(shouldBeActive);
     }
 
+    /**
+     * Applique l'échelle et la zone de sûreté choisies par l'utilisateur.
+     *
+     * Ces deux valeurs sont réglables parce qu'elles dépendent du matériel :
+     * la distance de vision varie d'un salon à l'autre, et le rognage des bords
+     * varie d'un téléviseur à l'autre. Une valeur unique en dur ne peut pas
+     * convenir partout — mais elle n'a aucun effet hors mode TV.
+     */
+    _applyTvVariables() {
+        const root = document.documentElement;
+        if (!this._active) {
+            root.style.removeProperty('--sh-tv-scale');
+            root.style.removeProperty('--sh-safe-top');
+            root.style.removeProperty('--sh-safe-right');
+            root.style.removeProperty('--sh-safe-bottom');
+            root.style.removeProperty('--sh-safe-left');
+            return;
+        }
+        const echelle = Number(this._settings?.get('ui.tvScale', 1.15)) || 1.15;
+        const marge   = Number(this._settings?.get('ui.tvSafeArea', 3.5));
+        const sur     = Number.isFinite(marge) ? Math.min(Math.max(marge, 0), 10) : 3.5;
+        root.style.setProperty('--sh-tv-scale', String(Math.min(Math.max(echelle, 1), 1.6)));
+        root.style.setProperty('--sh-safe-top', `${sur}vh`);
+        root.style.setProperty('--sh-safe-bottom', `${sur}vh`);
+        root.style.setProperty('--sh-safe-right', `${sur}vw`);
+        root.style.setProperty('--sh-safe-left', `${sur}vw`);
+    }
+
     _setActive(active) {
         if (this._active === active) return;
         this._active = active;
         document.documentElement.classList.toggle('sh-tv-mode', active);
+        this._applyTvVariables();
         if (!active && this._cursorRevealTimer) {
             clearTimeout(this._cursorRevealTimer);
             this._cursorRevealTimer = null;
@@ -128,16 +160,9 @@ class TvModeManager {
     isActive() { return this._active; }
 
     _injectStyles() {
-        if (document.getElementById('sh-tv-mode-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-tv-mode-styles';
-        style.textContent = `
-            /* Mode TV : le curseur souris est masqué partout */
-            .sh-tv-mode, .sh-tv-mode * { cursor: none !important; }
-            /* Révélation temporaire au mouvement de la souris */
-            .sh-tv-mode.sh-tv-cursor-reveal, .sh-tv-mode.sh-tv-cursor-reveal * { cursor: default !important; }
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans TvModeManager.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

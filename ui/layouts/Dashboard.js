@@ -50,6 +50,8 @@ import { ProwlarrStatusWidget } from '../../integrations/prowlarr/ProwlarrWidget
 import UnifiedCalendarWidget from '../widgets/UnifiedCalendarWidget.js';
 import MediaAnalyticsWidget from '../widgets/MediaAnalyticsWidget.js';
 
+import './Dashboard.css';
+import * as svc from '../../core/services.js';
 class Dashboard {
     /**
      * @param {{
@@ -60,16 +62,21 @@ class Dashboard {
      */
     constructor(options = {}) {
         // Confirmation du scope dashboard dans le Focus Registry
-        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        const spatialNav = svc.nav() || svc.nav();
         if (spatialNav?.registerFocusables) {
             spatialNav.registerFocusables('dashboard', (container) => {
                 const root = container || document.querySelector('.sh-dashboard') || document;
-                return Array.from(root.querySelectorAll('#sh-hero-play-btn, #sh-hero-info-btn, .sh-hero-edge-btn, .sh-dynamic-island .sh-nav-tab-btn, .sh-dynamic-island .sh-nav-action-btn, .sh-card, .sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, [data-nav-focusable="true"], .sh-dashboard, #sh-hero-btn-play, #sh-hero-btn-info'));
-            });
+                // NB : ne JAMAIS lister le conteneur .sh-dashboard lui-même — un élément
+                // de la taille de la page entière fausse l'algorithme géométrique
+                // (il est "le plus proche" dans toutes les directions et capture le focus).
+                // Les boutons du hero sont couverts par [data-nav-focusable="true"] ;
+                // les identifiants réels sont sh-hero-btn-play / -trailer / -details.
+                return Array.from(root.querySelectorAll('.sh-hero-edge-btn, #sh-hero-btn-play, #sh-hero-btn-trailer, #sh-hero-btn-details, .sh-dynamic-island .sh-nav-tab-btn, .sh-dynamic-island .sh-nav-action-btn, .sh-card, .sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, [data-nav-focusable="true"]'));
+            }, { force: true }); // re-registration volontaire — cf. plan A04
         }
         this.containerId = options.containerId || 'sh-dashboard';
-        this._settings   = options.settings || window.SpaceHub?.core?.settings || null;
-        this._eventBus   = options.eventBus || window.SpaceHub?.core?.eventBus || null;
+        this._settings   = options.settings || svc.settings() || null;
+        this._eventBus   = options.eventBus || svc.eventBus() || null;
         this._log        = new Logger('Dashboard');
 
         /** @type {Map<string, typeof Object>} Widget Class Registry */
@@ -193,30 +200,30 @@ class Dashboard {
 
             <div class="sh-dashboard-body">
                 <!-- Étagère Univers & Collections (Liquid Spring Morphing Track) -->
-                <div class="sh-genre-chips-container">
+                <div class="sh-genre-chips-container" tabindex="0" data-nav-focusable="true">
                     <div class="sh-genre-bar-track">
                         <div class="sh-genre-sliding-pill" id="sh-genre-sliding-pill"></div>
-                        <button class="sh-genre-chip active" data-genre="all">
+                        <button class="sh-genre-chip active" tabindex="0" data-nav-focusable="true" data-genre="all">
                             <svg class="sh-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg>
                             <span>Tous les Titres</span>
                         </button>
-                        <button class="sh-genre-chip" data-genre="scifi">
+                        <button class="sh-genre-chip" tabindex="0" data-nav-focusable="true" data-genre="scifi">
                             <svg class="sh-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"></circle><path d="M12 9v6M9 12h6"></path><path d="M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M19.07 4.93l-4.24 4.24M9.17 14.83l-4.24 4.24"></path></svg>
                             <span>Science-Fiction</span>
                         </button>
-                        <button class="sh-genre-chip" data-genre="action">
+                        <button class="sh-genre-chip" tabindex="0" data-nav-focusable="true" data-genre="action">
                             <svg class="sh-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
                             <span>Action & Aventure</span>
                         </button>
-                        <button class="sh-genre-chip" data-genre="4k">
+                        <button class="sh-genre-chip" tabindex="0" data-nav-focusable="true" data-genre="4k">
                             <svg class="sh-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m7 8 2 4-2 4"></path><path d="M13 8v8"></path><path d="m17 8-3 4 3 4"></path></svg>
                             <span>Master 4K UHD</span>
                         </button>
-                        <button class="sh-genre-chip" data-genre="series">
+                        <button class="sh-genre-chip" tabindex="0" data-nav-focusable="true" data-genre="series">
                             <svg class="sh-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
                             <span>Séries Événement</span>
                         </button>
-                        <button class="sh-genre-chip" data-genre="oscars">
+                        <button class="sh-genre-chip" tabindex="0" data-nav-focusable="true" data-genre="oscars">
                             <svg class="sh-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.45 1-1 1H7c-.55 0-1 .45-1 1v1h12v-1c0-.55-.45-1-1-1h-2c-.55 0-1-.45-1-1v-2.34"></path><path d="M6 4h12v7a6 6 0 0 1-12 0V4z"></path></svg>
                             <span>Primés aux Oscars</span>
                         </button>
@@ -296,7 +303,7 @@ class Dashboard {
                         card.style.transform = 'scale(1) translateY(0)';
                         card.style.pointerEvents = '';
                     } else {
-                        card.style.opacity = '0.18';
+                        card.style.opacity = '0';
                         card.style.transform = 'scale(0.95) translateY(4px)';
                         card.style.pointerEvents = 'none';
                     }
@@ -389,7 +396,7 @@ class Dashboard {
      */
     async _initResumeDock(renderToken = this._renderToken) {
         try {
-            const api = window.SpaceHub?.jellyfin?.api;
+            const api = svc.jellyfinApi();
             if (!api?.getResumeItems) return;
             const items = await api.getResumeItems(1);
             if (renderToken !== this._renderToken || !this._container || !items || items.length === 0) return;
@@ -413,7 +420,7 @@ class Dashboard {
             resumeDock.className = 'sh-resume-dock';
             resumeDock.innerHTML = `
                 <div class="sh-resume-dock__thumb-wrap">
-                    <img class="sh-resume-dock__thumb" src="${this._escape(thumbUrl)}" alt="${this._escape(resumeItem.Name)}" loading="lazy" onerror="this.style.display='none'" />
+                    <img decoding="async" class="sh-resume-dock__thumb" src="${this._escape(thumbUrl)}" alt="${this._escape(resumeItem.Name)}" loading="lazy" onerror="this.style.display='none'" />
                     <div class="sh-resume-dock__play-icon">▶</div>
                 </div>
                 <div class="sh-resume-dock__info">
@@ -438,8 +445,8 @@ class Dashboard {
                     resumeDock.dataset.dismissed = 'true';
                     return;
                 }
-                if (window.SpaceHub?.ui?.modalSlideUpSheet) {
-                    window.SpaceHub.ui.modalSlideUpSheet.open(resumeItem);
+                if (svc.slideUpSheet()) {
+                    svc.slideUpSheet().open(resumeItem);
                 }
             });
 
@@ -488,6 +495,8 @@ class Dashboard {
     }
 
     destroy() {
+        this._lazyObservers?.forEach(io => io.disconnect());
+        this._lazyObservers?.clear();
         this._cleanupRender();
         this._heroComponent?.destroy?.();
         this._sidebarDrawer?.destroy?.();
@@ -508,7 +517,7 @@ class Dashboard {
         // ── 1. Récupération des bibliothèques utilisateur Jellyfin ──
         let userViews = [];
         try {
-            const api = window.SpaceHub?.jellyfin?.api;
+            const api = svc.jellyfinApi();
             if (api?.getUserViews) {
                 userViews = await api.getUserViews();
             }
@@ -693,7 +702,12 @@ class Dashboard {
 
             // Monter les wrappers et lancer les requêtes en parallèle : un service
             // externe lent ne doit plus bloquer les rayons Jellyfin déjà disponibles.
-            mountTasks.push(this._mountWidget(WidgetClass, item, gridEl, mountedIndex, renderToken));
+            const task = this._mountWidget(WidgetClass, item, gridEl, mountedIndex, renderToken);
+            // Les widgets differes n'aboutissent qu'au defilement : les attendre
+            // bloquerait indefiniment la fin du rendu. On ne synchronise donc que
+            // ceux montes d'emblee.
+            if (mountedIndex < 3) mountTasks.push(task);
+            else task.catch(err => this._log.debug('Widget differe :', err));
             mountedIndex++;
         }
 
@@ -703,8 +717,50 @@ class Dashboard {
     /**
      * Instancie et monte un widget dans la grille.
      */
+    /**
+     * Monte un widget seulement quand il approche du viewport.
+     *
+     * Avant : TOUTES les rangees etaient construites et montees des le premier
+     * rendu, y compris celles situees plusieurs ecrans plus bas. Sur une
+     * bibliotheque fournie, cela representait des centaines de cartes creees
+     * pour rien, avec leurs images et leurs ecouteurs — c'est le poste de cout
+     * le plus lourd du premier rendu apres le flou d'arriere-plan.
+     *
+     * Les widgets situes au-dessus de la ligne de flottaison (index < EAGER)
+     * restent montes immediatement : differer ce qui est visible d'emblee
+     * ferait clignoter la page.
+     */
     async _mountWidget(WidgetClass, itemConfig, gridEl, index = 0, renderToken = this._renderToken) {
         if (renderToken !== this._renderToken) return;
+
+        const EAGER_COUNT = 3;
+        const supportsObserver = typeof IntersectionObserver === 'function';
+
+        if (supportsObserver && index >= EAGER_COUNT) {
+            const colSpanLazy = itemConfig.colSpan || 12;
+            const placeholder = document.createElement('div');
+            placeholder.className = `sh-dashboard__item sh-dashboard__item--col-${colSpanLazy} sh-dashboard__item--pending`;
+            placeholder.dataset.widgetType = itemConfig.widgetType;
+            // Hauteur reservee : evite que la page ne saute quand le widget arrive.
+            placeholder.style.minHeight = '260px';
+            gridEl.appendChild(placeholder);
+
+            await new Promise((resolve) => {
+                const io = new IntersectionObserver((entries) => {
+                    if (!entries.some(en => en.isIntersecting)) return;
+                    io.disconnect();
+                    this._lazyObservers?.delete(io);
+                    resolve();
+                }, { root: null, rootMargin: '600px 0px', threshold: 0 });
+                if (!this._lazyObservers) this._lazyObservers = new Set();
+                this._lazyObservers.add(io);
+                io.observe(placeholder);
+            });
+
+            if (renderToken !== this._renderToken) { placeholder.remove(); return; }
+            placeholder.remove();
+        }
+
         const widget = new WidgetClass();
         const instanceId = `sh-widget-${widget.id || itemConfig.widgetType}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
 
@@ -728,12 +784,21 @@ class Dashboard {
             }
             this._activeWidgets.set(instanceId, { widget, element: widgetWrapper, config: itemConfig });
         } catch (err) {
+            // Frontière locale : la panne reste dans le widget. L'ancien repli
+            // annonçait l'échec sans dire pourquoi ni offrir de reprise —
+            // l'utilisateur n'avait plus que le rechargement de la page.
             this._log.error(`Erreur lors du rendu du widget "${itemConfig.widgetType}":`, err);
-            widgetWrapper.innerHTML = `
-                <div class="sh-widget-error">
-                    <p>Erreur lors du chargement du widget : <strong>${itemConfig.widgetType}</strong></p>
-                </div>
-            `;
+            const frontiere = svc.errors();
+            if (frontiere) {
+                frontiere.mount(widgetWrapper, async () => {
+                    if (typeof widget.render === 'function') await widget.render(widgetWrapper);
+                    this._activeWidgets.set(instanceId, { widget, element: widgetWrapper, config: itemConfig });
+                }, { nom: widget.title || itemConfig.widgetType });
+                // mount() vient de rejouer le travail : s'il a réussi, rien à faire ;
+                // s'il a échoué, la carte de repli est déjà en place.
+            } else {
+                widgetWrapper.textContent = `Le widget « ${itemConfig.widgetType} » n'a pas pu s'afficher.`;
+            }
         }
     }
 
@@ -751,13 +816,13 @@ class Dashboard {
             }
         }
         await Promise.allSettled(promises);
-        window.SpaceHub?.ui?.components?.toaster?.success('Dashboard actualisé !');
+        svc.toaster()?.success('Dashboard actualisé !');
     }
 
     // ─── Modal de personnalisation ────────────────────────────────────────────
 
     _openCustomizeModal() {
-        const Modal = window.SpaceHub?.ui?.components?.Modal;
+        const Modal = svc.modalClass();
         if (!Modal) return;
 
         const available = this.getRegisteredWidgetTypes();
@@ -799,7 +864,7 @@ class Dashboard {
                     });
                     this._settings?.set('dashboard.layout', newLayout);
                     this._loadLayout();
-                    window.SpaceHub?.ui?.components?.toaster?.success('Agencement enregistré !');
+                    svc.toaster()?.success('Agencement enregistré !');
                     m.close();
                 });
             }
@@ -810,557 +875,9 @@ class Dashboard {
     // ─── Styles ───────────────────────────────────────────────────────────────
 
     _injectStyles() {
-        if (document.getElementById('sh-dashboard-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-dashboard-styles';
-        style.textContent = `
-.sh-dashboard {
-    width: 100%;
-    margin: 0;
-    padding: 0 0 64px 0;
-    box-sizing: border-box;
-    font-family: var(--sh-font-family, sans-serif);
-    color: #ffffff;
-    background-color: #000000;
-}
-
-.sh-dashboard__grid {
-    max-width: 1560px;
-    margin: 0 auto;
-    padding: 0 48px 60px;
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 36px;
-    position: relative;
-}
-
-/* Ambient Blur Floor Reflection (Sol en verre fumé) */
-.sh-dashboard__grid::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 48px;
-    right: 48px;
-    height: 30px;
-    background: radial-gradient(ellipse at 50% 100%, rgba(124, 106, 255, 0.05) 0%, transparent 70%);
-    filter: blur(14px);
-    pointer-events: none;
-}
-
-.sh-dashboard__item {
-    display: flex;
-    flex-direction: column;
-    grid-column: span 12;
-}
-
-@keyframes shSectionFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(16px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.sh-dashboard__item--col-12 { grid-column: span 12; }
-.sh-dashboard__item--col-6  { grid-column: span 6; }
-.sh-dashboard__item--col-4  { grid-column: span 4; }
-
-@media (max-width: 900px) {
-    .sh-dashboard__item--col-6,
-    .sh-dashboard__item--col-4 {
-        grid-column: span 12;
-    }
-}
-
-/* ── Responsive Mobile ───────────────────────────────────────── */
-@media (max-width: 768px) {
-    .sh-dashboard__grid {
-        padding: 0 16px 60px;
-        gap: 24px;
-    }
-    .sh-dashboard__grid::after {
-        left: 16px;
-        right: 16px;
-    }
-    .sh-genre-chips-container {
-        padding: 0 16px;
-        margin: 24px auto 20px;
-    }
-    .sh-widget__title {
-        font-size: 18px;
-    }
-}
-
-@media (max-width: 480px) {
-    .sh-dashboard__grid {
-        padding: 0 10px 48px;
-        gap: 20px;
-    }
-    .sh-genre-chips-container {
-        padding: 0 10px;
-    }
-}
-
-/* Base Widget Container */
-/* Zero-Container Apple TV Shelves */
-.sh-widget {
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    position: relative;
-    overflow: visible;
-}
-
-.sh-widget__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.sh-widget__refresh-btn {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 50% !important;
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    color: rgba(255, 255, 255, 0.65) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    cursor: pointer !important;
-    outline: none !important;
-    padding: 0 !important;
-    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
-}
-
-.sh-widget__refresh-btn:hover {
-    background: rgba(255, 255, 255, 0.14) !important;
-    border-color: rgba(255, 255, 255, 0.28) !important;
-    color: #ffffff !important;
-    transform: rotate(45deg) scale(1.08) !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
-}
-
-.sh-widget__refresh-btn:active {
-    transform: rotate(180deg) scale(0.92) !important;
-    background: rgba(255, 255, 255, 0.20) !important;
-}
-
-.sh-widget__refresh-btn svg {
-    width: 14px !important;
-    height: 14px !important;
-    stroke: currentColor !important;
-    stroke-width: 2.3 !important;
-    fill: none !important;
-    pointer-events: none !important;
-}
-
-.sh-widget__sync-btn {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 6px !important;
-    padding: 5px 12px !important;
-    border-radius: 9999px !important;
-    background: rgba(255, 255, 255, 0.06) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    color: rgba(255, 255, 255, 0.85) !important;
-    font-size: 11.5px !important;
-    font-weight: 650 !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    cursor: pointer !important;
-    outline: none !important;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.sh-widget__sync-btn:hover {
-    background: rgba(255, 255, 255, 0.15) !important;
-    border-color: rgba(255, 255, 255, 0.30) !important;
-    color: #ffffff !important;
-    transform: translateY(-1px) !important;
-}
-
-.sh-widget__sync-btn svg {
-    width: 13px !important;
-    height: 13px !important;
-    stroke: currentColor !important;
-    stroke-width: 2.3 !important;
-    fill: none !important;
-}
-
-.sh-widget__title {
-    margin: 0;
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.4px;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.sh-shelf-title-icon {
-    flex-shrink: 0;
-    stroke: rgba(255, 255, 255, 0.85);
-    stroke-width: 2.1;
-    transition: transform 180ms ease, stroke 180ms ease;
-}
-
-.sh-widget:hover .sh-shelf-title-icon {
-    stroke: #ffffff;
-    transform: scale(1.08);
-}
-
-.sh-widget__content {
-    flex: 1;
-}
-
-.sh-widget-error {
-    background: rgba(255, 92, 122, 0.1);
-    border: 1px solid var(--sh-color-danger, #ff5c7a);
-    border-radius: var(--sh-radius-md, 12px);
-    padding: var(--sh-space-4, 16px);
-    color: var(--sh-color-danger, #ff5c7a);
-}
-
-.sh-dashboard-config__list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sh-space-3, 12px);
-    margin-top: var(--sh-space-4, 16px);
-}
-
-.sh-dashboard-config__item {
-    display: flex;
-    align-items: center;
-    gap: var(--sh-space-3, 12px);
-    padding: var(--sh-space-3, 12px);
-    background: var(--sh-bg-surface-2, #22222e);
-    border-radius: var(--sh-radius-sm, 8px);
-    cursor: pointer;
-}
-
-/* ── Ambilight Dynamic Aura Full-Bleed (Sans boîte ni coupure) ─ */
-.sh-ambient-aura {
-    position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: 100vh;
-    background: radial-gradient(circle 800px at 50% 30%, rgba(124, 106, 255, 0.08) 0%, rgba(255, 107, 107, 0.03) 45%, transparent 70%);
-    filter: blur(160px);
-    pointer-events: none;
-    z-index: 0;
-    transition: background 1.2s ease, opacity 0.8s ease;
-}
-
-/* ── Segmented Control "Elastic Liquid Spring Pill" ────────── */
-.sh-genre-chips-container {
-    max-width: 1560px;
-    margin: 36px auto 28px;
-    padding: 0 48px;
-    display: flex;
-    align-items: center;
-    overflow-x: auto;
-    scrollbar-width: none;
-}
-.sh-genre-chips-container::-webkit-scrollbar { display: none; }
-
-/* Rail entièrement invisible — se fond dans le fond OLED */
-.sh-genre-bar-track {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    background: transparent;
-    border: none;
-    border-radius: 9999px;
-    padding: 4px;
-}
-
-/* Pilule glissante "Mercury Glass" — très subtile, zéro contraste brutal */
-.sh-genre-sliding-pill {
-    position: absolute;
-    top: 4px;
-    left: 0;
-    height: calc(100% - 8px);
-    background: rgba(255, 255, 255, 0.10);
-    backdrop-filter: blur(20px) saturate(200%);
-    -webkit-backdrop-filter: blur(20px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 9999px;
-    box-shadow:
-        0 2px 12px rgba(0, 0, 0, 0.35),
-        inset 0 1px 0 rgba(255, 255, 255, 0.18),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.12);
-    pointer-events: none;
-    z-index: 1;
-    will-change: transform, width;
-    transform-origin: center center;
-}
-
-.sh-genre-chip {
-    position: relative;
-    z-index: 2;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.50);
-    padding: 8px 16px;
-    border-radius: 9999px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: color 220ms ease;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-.sh-genre-chip:hover {
-    color: rgba(255, 255, 255, 0.85);
-}
-.sh-genre-chip.active {
-    color: #ffffff;
-    font-weight: 650;
-}
-
-/* Emoji Pulse au clic */
-.sh-chip-emoji {
-    display: inline-block;
-    transition: transform 200ms ease;
-}
-.sh-chip-emoji--pulse {
-    animation: sh-emoji-pulse 420ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-@keyframes sh-emoji-pulse {
-    0%   { transform: scale(1); }
-    45%  { transform: scale(1.30); }
-    100% { transform: scale(1); }
-}
-
-/* ── Card Display & Animations ──────────────────────────── */
-.sh-card {
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity 280ms ease, transform 300ms cubic-bezier(0.34, 1.20, 0.64, 1);
-}
-.sh-card--skeleton {
-    opacity: 1 !important;
-    transform: none !important;
-}
-
-/* ── Tactile Spring Press Physics (tout le monde) ───────────── */
-.sh-card:active,
-.sh-genre-chip:active,
-.sh-ctx-item:active,
-.sh-card__bookmark-btn:active {
-    transform: scale(0.97) !important;
-    transition: transform 80ms ease !important;
-}
-
-/* ── Ambient Chromatic Light Leak au survol ─────────────────── */
-.sh-card__image-wrap::after {
-    content: '';
-    position: absolute;
-    top: -30%;
-    right: -20%;
-    width: 60%;
-    height: 60%;
-    background: radial-gradient(circle, rgba(160, 140, 255, 0.18) 0%, transparent 70%);
-    border-radius: 50%;
-    opacity: 0;
-    pointer-events: none;
-    z-index: 5;
-    filter: blur(20px);
-    transition: opacity 500ms ease;
-}
-.sh-card:hover .sh-card__image-wrap::after {
-    opacity: 1;
-}
-
-/* ── Quick-Resume Floating Mini-Dock (Dynamic Island Capsule Styling) ── */
-.sh-resume-dock {
-    position: fixed;
-    bottom: 28px;
-    left: 50%;
-    transform: translateX(-50%) translateY(40px);
-    opacity: 0;
-    z-index: 9000;
-    background: rgba(12, 12, 16, 0.92);
-    backdrop-filter: blur(50px) saturate(220%);
-    -webkit-backdrop-filter: blur(50px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 9999px;
-    padding: 6px 14px 6px 8px;
-    display: none;
-    align-items: center;
-    gap: 12px;
-    box-shadow: 
-        0 20px 50px rgba(0, 0, 0, 0.90),
-        inset 0 1px 0 rgba(255, 255, 255, 0.25),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.05);
-    pointer-events: none;
-    cursor: pointer;
-    transition: opacity 300ms ease, transform 380ms cubic-bezier(0.34, 1.45, 0.45, 1), background 200ms ease, border-color 200ms ease;
-    user-select: none;
-    max-width: 480px;
-}
-
-.sh-resume-dock--visible {
-    display: flex !important;
-    opacity: 1;
-    pointer-events: auto !important;
-    transform: translateX(-50%) translateY(0);
-}
-
-.sh-resume-dock:hover {
-    background: rgba(18, 18, 24, 0.95);
-    border-color: rgba(255, 255, 255, 0.22);
-    box-shadow: 
-        0 26px 70px rgba(0, 0, 0, 0.95),
-        inset 0 1px 0 rgba(255, 255, 255, 0.35),
-        0 0 0 1px rgba(255, 255, 255, 0.08);
-    transform: translateX(-50%) translateY(-2px) scale(1.02);
-}
-
-.sh-resume-dock__thumb-wrap {
-    position: relative;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    overflow: hidden;
-    flex-shrink: 0;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.50);
-}
-
-.sh-resume-dock__thumb {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.sh-resume-dock__play-icon {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    font-size: 11px;
-    opacity: 0;
-    transition: opacity 180ms ease;
-}
-
-.sh-resume-dock:hover .sh-resume-dock__play-icon {
-    opacity: 1;
-}
-
-.sh-resume-dock__info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 150px;
-    max-width: 220px;
-}
-
-.sh-resume-dock__title {
-    font-size: 13px;
-    font-weight: 750;
-    color: #ffffff;
-    letter-spacing: -0.2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.sh-resume-dock__meta {
-    font-size: 11px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.60);
-    letter-spacing: -0.1px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.sh-resume-dock__progress-bar {
-    width: 100%;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.10);
-    border-radius: 9999px;
-    overflow: hidden;
-    margin-top: 3px;
-}
-
-.sh-resume-dock__progress-fill {
-    height: 100%;
-    background: rgba(255, 255, 255, 0.75);
-    border-radius: 9999px;
-    box-shadow: 0 0 6px rgba(255, 255, 255, 0.30);
-}
-
-.sh-resume-dock__btn-play {
-    background: #ffffff;
-    border: none;
-    border-radius: 9999px;
-    padding: 6px 14px 6px 12px;
-    color: #000000;
-    font-size: 12px;
-    font-weight: 750;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(255, 255, 255, 0.35);
-    transition: transform 160ms ease, box-shadow 160ms ease;
-    flex-shrink: 0;
-}
-
-.sh-resume-dock__btn-play:hover {
-    transform: scale(1.06);
-    box-shadow: 0 6px 18px rgba(255, 255, 255, 0.50);
-}
-
-.sh-resume-dock__btn-play:active {
-    transform: scale(0.95);
-}
-
-.sh-resume-dock__btn-dismiss {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.40);
-    font-size: 11px;
-    padding: 4px 6px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: color 150ms ease, background 150ms ease;
-    flex-shrink: 0;
-}
-
-.sh-resume-dock__btn-dismiss:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.12);
-}
-
-
-
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans Dashboard.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

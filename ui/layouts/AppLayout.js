@@ -15,7 +15,10 @@ import AppSidebarDrawer from '../components/AppSidebarDrawer.js';
 import AnalyticsModal from '../components/AnalyticsModal.js';
 import AdminDashboardView from '../views/AdminDashboardView.js';
 import SpatialNavigation  from '../../core/SpatialNavigation.js';
+import { FOCUSABLES } from '../../core/DomContracts.js';
 
+import './AppLayout.css';
+import * as svc from '../../core/services.js';
 class AppLayout {
     constructor() {
         this._log = new Logger('AppLayout');
@@ -31,20 +34,29 @@ class AppLayout {
         };
         this._sidebar = new AppSidebarDrawer();
         this._clockInterval = null;
-        this._spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation || null;
+        this._spatialNav = svc.nav() || svc.nav() || null;
         this._injectStyles();
 
-        this._spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        this._spatialNav = svc.nav() || svc.nav();
         if (this._spatialNav?.registerFocusables) {
             this._spatialNav.registerFocusables('dynamic-island', () => {
 
-                return Array.from(document.querySelectorAll('.sh-dynamic-island .sh-nav-tab-btn, .sh-dynamic-island .sh-nav-action-btn, #sh-user-menu-btn, .sh-user-avatar-btn, .sh-user-dropdown__item'));
-            });
+                const island = document.querySelector('.sh-dynamic-island, #sh-dynamic-island');
+                if (!island) return [];
+                // Le scope "dock" ne doit pas être un piège : on renvoie les éléments
+                // du dock PUIS ceux de la vue, pour qu'une descente puisse en sortir.
+                const inIsland = Array.from(island.querySelectorAll(FOCUSABLES.dynamicIsland));
+                const dropdown = Array.from(document.querySelectorAll('.sh-user-dropdown.open .sh-user-dropdown__item'));
+                const viewRoot = document.querySelector('.sh-dashboard, .sh-library-view, #app') || document;
+                const inView = Array.from(viewRoot.querySelectorAll('[data-nav-focusable="true"]'))
+                    .filter(el => !island.contains(el));
+                return [...inIsland, ...dropdown, ...inView];
+            }, { force: true }); // re-registration volontaire — cf. plan A04
         }
 
         // Asservissement de la sliding pill au focus
 
-        this._eventBusOff = window.SpaceHub?.core?.eventBus?.on('navigation:focusChanged', (evt) => {
+        this._eventBusOff = svc.eventBus()?.on('navigation:focusChanged', (evt) => {
             if (evt?.current?.classList?.contains('sh-nav-tab-btn')) {
                 const targetView = evt.current.dataset.view;
                 if (targetView && targetView !== this._currentView) {
@@ -63,7 +75,7 @@ class AppLayout {
     }
 
     get _auth() {
-        return window.SpaceHub?.auth;
+        return svc.auth();
     }
 
     _escape(value) {
@@ -151,7 +163,7 @@ class AppLayout {
                                             <strong>${safeUserName}</strong>
                                             <span class="sh-user-server sh-truncate">${safeServerUrl}</span>
                                         </div>
-                                        <hr style="border:none; border-top:1px solid rgba(255,255,255,0.08); margin:10px 0;"/>
+                                        <hr style="border:none; border-top:1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08); margin:10px 0;"/>
                                         <button tabindex="0" data-nav-focusable="true" class="sh-user-dropdown__item" id="sh-btn-switch-theme" style="--item-idx: 0;">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
@@ -217,7 +229,7 @@ class AppLayout {
         this._bindHeaderEvents(container);
         this._sidebar.render(document.body);
         this.navigate(this._currentView);
-        this._spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        this._spatialNav = svc.nav() || svc.nav();
         if (window.SpaceHub) {
             window.SpaceHub.spatialNav = this._spatialNav;
             if (!window.SpaceHub.core) window.SpaceHub.core = {};
@@ -262,6 +274,19 @@ class AppLayout {
 
         // Exposé au moteur TV : le header peut être déployé au focus, sans souris.
         this._setIslandState = setIslandState;
+
+        // Sans ceci, `setIslandState` n'était appelée QUE par mouseenter et click :
+        // à la télécommande le dock restait compact, son contenu en visibility:hidden,
+        // donc filtré comme invisible et définitivement inatteignable.
+        this._islandFocusOff = svc.eventBus()?.on('navigation:focusChanged', (evt) => {
+            const inIsland = Boolean(evt?.current?.closest?.('.sh-dynamic-island, #sh-dynamic-island'));
+            if (inIsland && island?.classList.contains('sh-island--compact')) {
+                setIslandState('expanded');
+            } else if (!inIsland && island?.classList.contains('sh-island--expanded')
+                       && !island.classList.contains('sh-island--search')) {
+                setIslandState('compact');
+            }
+        });
 
         // Initialisation immédiate en mode Compact permanent
         setIslandState('compact');
@@ -324,8 +349,13 @@ class AppLayout {
         const userBtn = container.querySelector('#sh-user-menu-btn');
         const dropdown = container.querySelector('#sh-user-dropdown');
 
-        window.SpaceHub = window.SpaceHub || {};
-        window.SpaceHub._toggleUserDropdown = (show) => toggleDropdown(show);
+        // Le menu utilisateur doit être ouvrable par le moteur de navigation
+        // spatiale. C'était fait en collant une fonction sur la variable globale
+        // (`window.SpaceHub._toggleUserDropdown`) : un pont invisible, que rien
+        // ne déclarait et que rien ne vérifiait. Il devient un service nommé.
+        svc.registry()?.register?.('ui.userDropdown', {
+            toggle: (montrer) => toggleDropdown(montrer),
+        }, { override: true });
         const toggleDropdown = (show) => {
             if (!dropdown) return;
             const isOpen = dropdown.classList.contains('sh-dropdown--open');
@@ -399,18 +429,18 @@ class AppLayout {
                 // Effet Ressort Élastique Apple (Squash & Stretch Spring Physics)
                 tabsPill.style.transition = 'transform 380ms cubic-bezier(0.16, 1, 0.3, 1), width 340ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms ease';
                 tabsPill.style.transform = `translateX(${left}px) scaleX(1.08) scaleY(0.94)`;
-                tabsPill.style.boxShadow = '0 6px 22px rgba(255, 255, 255, 0.60), 0 0 1px #ffffff';
+                tabsPill.style.boxShadow = '0 6px 22px rgba(var(--sh-ink, 255, 255, 255),  0.60), 0 0 1px #ffffff';
 
                 _pillSquashTimer = setTimeout(() => {
                     if (_activePillTarget === targetBtn) {
                         tabsPill.style.transform = `translateX(${left}px) scaleX(1) scaleY(1)`;
-                        tabsPill.style.boxShadow = '0 4px 14px rgba(255, 255, 255, 0.35)';
+                        tabsPill.style.boxShadow = '0 4px 14px rgba(var(--sh-ink, 255, 255, 255),  0.35)';
                     }
                 }, 160);
             } else if (!animate) {
                 tabsPill.style.transition = 'none';
                 tabsPill.style.transform = `translateX(${left}px) scaleX(1) scaleY(1)`;
-                tabsPill.style.boxShadow = '0 4px 14px rgba(255, 255, 255, 0.35)';
+                tabsPill.style.boxShadow = '0 4px 14px rgba(var(--sh-ink, 255, 255, 255),  0.35)';
             }
             tabsPill.style.width = `${width}px`;
             tabsPill.style.opacity = '1';
@@ -471,7 +501,7 @@ class AppLayout {
 
         // Recherche rapide Ctrl+K
         container.querySelector('#sh-btn-quick-search')?.addEventListener('click', () => {
-            window.SpaceHub?.jellyfin?.search?.open();
+            svc.search()?.open();
         });
 
         // Ouvrir / fermer dropdown utilisateur
@@ -494,27 +524,27 @@ class AppLayout {
 
         // Changer de thème depuis le menu utilisateur
         container.querySelector('#sh-btn-switch-theme')?.addEventListener('click', () => {
-            const themes = window.SpaceHub?.ui?.themes;
+            const themes = svc.themes();
             if (themes) {
                 themes.next();
                 const currentId = themes.getCurrent();
                 const available = themes.getAvailable();
                 const currentTheme = available.find(t => t.id === currentId);
-                window.SpaceHub?.ui?.components?.toaster?.info?.(`Thème actif : ${currentTheme?.name || currentId}`);
+                svc.toaster()?.info?.(`Thème actif : ${currentTheme?.name || currentId}`);
             }
             toggleDropdown(false);
         });
 
         // Personnaliser l'accueil depuis le menu utilisateur
         container.querySelector('#sh-btn-customize-dashboard')?.addEventListener('click', () => {
-            window.SpaceHub?.ui?.settingsPanel?.open?.('dashboard');
+            svc.settingsPanel()?.open?.('dashboard');
             toggleDropdown(false);
         });
 
         // Actualiser l'affichage depuis le menu utilisateur
         container.querySelector('#sh-btn-refresh-app')?.addEventListener('click', () => {
-            window.SpaceHub?.ui?.dashboard?.render?.();
-            window.SpaceHub?.ui?.components?.toaster?.success?.('Affichage et widgets actualisés !');
+            svc.dashboard()?.render?.();
+            svc.toaster()?.success?.('Affichage et widgets actualisés !');
             toggleDropdown(false);
         });
 
@@ -525,16 +555,23 @@ class AppLayout {
             toggleDropdown(false);
         });
 
-        // Ouvrir Administration Serveur depuis le menu utilisateur
-        container.querySelector('#sh-btn-open-admin')?.addEventListener('click', () => {
-            const adminView = window.SpaceHub?.ui?.adminDashboard || new AdminDashboardView();
-            adminView.open();
-            toggleDropdown(false);
-        });
+        // Ouvrir Administration Serveur depuis le menu utilisateur.
+        // Gelée par défaut : le bouton disparaît plutôt que d'ouvrir une vue
+        // qui n'existe pas — un bouton mort est pire qu'un bouton absent.
+        const boutonAdmin = container.querySelector('#sh-btn-open-admin');
+        if (svc.features()?.isEnabled?.('features.adminConsole') === false) {
+            boutonAdmin?.remove();
+        } else {
+            boutonAdmin?.addEventListener('click', () => {
+                const adminView = svc.adminDashboard() || new AdminDashboardView();
+                adminView.open();
+                toggleDropdown(false);
+            });
+        }
 
         // Réglages depuis le menu utilisateur
         container.querySelector('#sh-btn-open-settings')?.addEventListener('click', () => {
-            window.SpaceHub?.ui?.settingsPanel?.open();
+            svc.settingsPanel()?.open();
             toggleDropdown(false);
         });
 
@@ -560,7 +597,7 @@ class AppLayout {
             clearTimeout(this._pillSquashTimer);
             this._pillSquashTimer = null;
         }
-        window.SpaceHub && delete window.SpaceHub._toggleUserDropdown;
+        svc.registry()?.register?.('ui.userDropdown', null, { override: true });
         this._setIslandState = null;
     }
 
@@ -601,7 +638,7 @@ class AppLayout {
         if (previousView === 'dashboard' && normalizedView !== 'dashboard') {
             // Annuler proprement les requêtes/rendus du dashboard avant de
             // remplacer son conteneur par une autre vue.
-            window.SpaceHub?.ui?.dashboard?.destroy?.();
+            svc.dashboard()?.destroy?.();
         }
 
         this._currentView = normalizedView;
@@ -628,7 +665,7 @@ class AppLayout {
         container.innerHTML = '';
 
         if (normalizedView === 'dashboard') {
-            await window.SpaceHub?.ui?.dashboard?.render(container, params);
+            await svc.dashboard()?.render(container, params);
         } else if (normalizedView === 'library') {
             await this._views.library.render(container, params);
         } else if (normalizedView === 'flux' || normalizedView === 'downloads') {
@@ -640,811 +677,14 @@ class AppLayout {
             return;
         }
 
-        const spatialNav = this._spatialNav || window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        const spatialNav = this._spatialNav || svc.nav() || svc.nav();
         spatialNav?.focusFirst?.(normalizedView === 'flux' ? 'downloads' : normalizedView);
     }
 
     _injectStyles() {
-        if (document.getElementById('sh-layout-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-layout-styles';
-        style.textContent = `
-/* ── Universal Smooth Scroll Flow (Apple TV Zero-Constraint) ── */
-html, body {
-    width: 100%;
-    min-height: 100%;
-    margin: 0;
-    padding: 0;
-    background-color: #000000 !important;
-    overflow-x: hidden;
-    overflow-y: auto !important;
-    scrollbar-width: none;
-}
-html::-webkit-scrollbar, body::-webkit-scrollbar {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-}
-
-.sh-app-shell {
-    display: block;
-    width: 100%;
-    min-height: 100vh;
-    background-color: #000000;
-    overflow: visible;
-    position: relative;
-}
-
-.sh-app-main {
-    display: block;
-    width: 100%;
-    background-color: #000000;
-    overflow: visible;
-    position: relative;
-}
-
-
-
-/* ── Dynamic Island Liquid Glass (Apple Dynamic Island Spring Physics) */
-/* ── Dynamic Island Liquid Glass (Apple Dynamic Island Spring Physics) */
-.sh-island-nav-wrapper {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100vw;
-    height: 80px;
-    z-index: 10003;
-    pointer-events: none;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-}
-
-.sh-dynamic-island.sh-island--portal-active {
-    border-color: rgba(255, 255, 255, 0.35) !important;
-    box-shadow: 
-        0 0 35px rgba(255, 255, 255, 0.22),
-        0 20px 50px rgba(0, 0, 0, 0.95),
-        inset 0 1px 0 rgba(255, 255, 255, 0.60),
-        0 0 0 1px rgba(255, 255, 255, 0.15) !important;
-    transform: translateX(-50%) scale(1.02) !important;
-}
-
-/* Dynamic Island Ambient Glass Shadow (Monochrome & Épuré) */
-.sh-island-underglow {
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 44px;
-    height: 20px;
-    border-radius: 9999px;
-    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.10) 0%, transparent 80%);
-    filter: blur(16px);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 450ms ease, width 850ms cubic-bezier(0.34, 1.45, 0.45, 1), height 750ms cubic-bezier(0.34, 1.45, 0.45, 1);
-}
-.sh-island-underglow.sh-underglow--compact {
-    opacity: 0.40;
-    width: 204px;
-    height: 38px;
-}
-.sh-island-underglow.sh-underglow--expanded {
-    opacity: 0.65;
-    width: 535px;
-    height: 50px;
-}
-
-.sh-dynamic-island {
-    position: absolute;
-    top: 14px;
-    left: 50%;
-    transform: translateX(-50%);
-    pointer-events: auto;
-    background: rgba(12, 12, 16, 0.92);
-    backdrop-filter: blur(50px) saturate(220%);
-    -webkit-backdrop-filter: blur(50px) saturate(220%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 9999px;
-    box-shadow: 
-        0 20px 50px rgba(0, 0, 0, 0.90),
-        inset 0 1px 0 rgba(255, 255, 255, 0.25),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.05);
-    transition: 
-        width 440ms cubic-bezier(0.16, 1, 0.3, 1),
-        height 440ms cubic-bezier(0.16, 1, 0.3, 1),
-        border-radius 360ms cubic-bezier(0.16, 1, 0.3, 1),
-        background 400ms ease,
-        border-color 400ms ease,
-        box-shadow 440ms ease;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10002;
-}
-
-/* Liseré Spéculaire Fin au survol (100% Monochrome & Épuré) */
-.sh-dynamic-island:hover {
-    border-color: rgba(255, 255, 255, 0.22);
-    box-shadow: 
-        0 26px 70px rgba(0, 0, 0, 0.95),
-        inset 0 1px 0 rgba(255, 255, 255, 0.35),
-        0 0 0 1px rgba(255, 255, 255, 0.08);
-}
-
-/* ── Vue Micro Encoche (Phase 0) ────────────────────────────── */
-.sh-island-notch {
-    position: absolute;
-    width: 36px;
-    height: 5px;
-    border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.25);
-    opacity: 0;
-    transform: scale(0.6);
-    pointer-events: none;
-    visibility: hidden;
-    transition: opacity 300ms ease, transform 400ms cubic-bezier(0.16, 1, 0.3, 1), visibility 300ms;
-}
-
-/* ── Animations Élastiques & Ressort Souple (Soft Damped Spring) ── */
-@keyframes shIslandSquashBounce {
-    0% {
-        width: 535px;
-        height: 52px;
-    }
-    44% {
-        width: 156px; /* Compression prononcée bien visible (Squash profond) */
-        height: 35px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.60), 0 0 14px rgba(255, 255, 255, 0.20);
-    }
-    72% {
-        width: 216px; /* Rebond élastique bien visible */
-        height: 39px;
-    }
-    88% {
-        width: 202px; /* Micro oscillation d'amorti organique */
-        height: 37.8px;
-    }
-    100% {
-        width: 204px; /* Repos stabilisé parfait */
-        height: 38px;
-        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.26);
-    }
-}
-
-@keyframes shUnderglowSquashBounce {
-    0% {
-        width: 535px;
-        height: 50px;
-        opacity: 0.65;
-    }
-    44% {
-        width: 150px;
-        height: 32px;
-        opacity: 0.75;
-    }
-    72% {
-        width: 218px;
-        height: 40px;
-        opacity: 0.45;
-    }
-    88% {
-        width: 202px;
-        height: 37.5px;
-        opacity: 0.42;
-    }
-    100% {
-        width: 204px;
-        height: 38px;
-        opacity: 0.40;
-    }
-}
-
-.sh-dynamic-island.sh-island--collapsing {
-    animation: shIslandSquashBounce 600ms cubic-bezier(0.2, 0.85, 0.25, 1) forwards !important;
-}
-
-.sh-island-underglow.sh-underglow--collapsing {
-    animation: shUnderglowSquashBounce 600ms cubic-bezier(0.2, 0.85, 0.25, 1) forwards !important;
-}
-
-/* ── Vue Compacte (Phase 1 : 204px) ─────────────────────────── */
-.sh-island-compact-view {
-    position: absolute;
-    left: 18px;
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    white-space: nowrap;
-    opacity: 0;
-    transform: scale(0.65) translateY(-2px);
-    filter: blur(4px);
-    pointer-events: none;
-    visibility: hidden;
-    transition: opacity 200ms ease, transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 200ms ease, visibility 200ms;
-}
-
-/* ── Vue Déployée Complète (Phase 2 : 535px) ────────────────── */
-.sh-island-full-view {
-    position: absolute;
-    left: 18px;
-    right: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    white-space: nowrap;
-    pointer-events: none;
-    visibility: hidden;
-    transition: visibility 220ms;
-}
-
-/* ── ÉTAT 0 : Stealth (Micro encoche) ────────────────────────── */
-.sh-dynamic-island.sh-island--stealth {
-    width: 36px;
-    height: 5px;
-    padding: 0;
-    background: rgba(255, 255, 255, 0.22);
-    border-color: rgba(255, 255, 255, 0.12);
-    opacity: 0.35;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-.sh-dynamic-island.sh-island--stealth .sh-island-notch {
-    opacity: 1;
-    transform: scale(1);
-    visibility: visible;
-}
-
-/* ── ÉTAT 1 : Compact Island (204px) ─────────────────────────── */
-.sh-dynamic-island.sh-island--compact {
-    width: 204px;
-    height: 38px;
-    background: rgba(12, 12, 16, 0.94);
-    border-color: rgba(255, 255, 255, 0.18);
-    opacity: 1;
-    cursor: pointer;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.26);
-    transition: 
-        width 480ms cubic-bezier(0.2, 0.8, 0.2, 1),
-        height 400ms cubic-bezier(0.2, 0.8, 0.2, 1),
-        border-radius 340ms cubic-bezier(0.16, 1, 0.3, 1),
-        background 320ms ease,
-        border-color 320ms ease,
-        box-shadow 460ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.sh-dynamic-island.sh-island--compact .sh-island-compact-view {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-    filter: blur(0px);
-    pointer-events: auto;
-    visibility: visible;
-    transition: opacity 280ms cubic-bezier(0.16, 1, 0.3, 1) 180ms, transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1) 160ms, filter 260ms ease 180ms, visibility 280ms;
-}
-
-/* Liquid Pinch en mode compact : les éléments convergent au centre et sont masqués */
-.sh-dynamic-island.sh-island--compact .sh-nav-brand {
-    opacity: 0;
-    transform: translateX(65px) scale(0.60);
-    filter: blur(3px);
-    transition: opacity 120ms ease, transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 140ms ease;
-}
-
-.sh-dynamic-island.sh-island--compact .sh-nav-tabs {
-    opacity: 0;
-    transform: scale(0.55, 0.75);
-    filter: blur(3px);
-    transition: opacity 120ms ease, transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 140ms ease;
-}
-
-.sh-dynamic-island.sh-island--compact .sh-nav-actions {
-    opacity: 0;
-    transform: translateX(-65px) scale(0.60);
-    filter: blur(3px);
-    transition: opacity 120ms ease, transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 140ms ease;
-}
-
-/* ── ÉTAT 2 : Full Expanded (535px — Apple Spring Morphing) ─── */
-.sh-dynamic-island.sh-island--expanded,
-.sh-dynamic-island.sh-dropdown-active {
-    width: 535px;
-    height: 52px;
-    background: rgba(10, 10, 14, 0.96);
-    border-color: rgba(255, 255, 255, 0.22);
-    box-shadow: 
-        0 26px 70px rgba(0, 0, 0, 0.95),
-        inset 0 1px 0 rgba(255, 255, 255, 0.32);
-    opacity: 1;
-    overflow: visible !important;
-    transition: 
-        width 500ms cubic-bezier(0.34, 1.45, 0.45, 1),
-        height 420ms cubic-bezier(0.34, 1.45, 0.45, 1),
-        border-radius 360ms cubic-bezier(0.16, 1, 0.3, 1),
-        background 350ms ease,
-        border-color 350ms ease,
-        box-shadow 460ms cubic-bezier(0.34, 1.45, 0.45, 1);
-}
-.sh-dynamic-island.sh-island--expanded .sh-island-compact-view,
-.sh-dynamic-island.sh-dropdown-active .sh-island-compact-view {
-    opacity: 0;
-    transform: scale(0.65) translateY(-4px);
-    filter: blur(4px);
-    pointer-events: none;
-    visibility: hidden;
-    transition: opacity 160ms ease, transform 200ms ease, filter 160ms ease, visibility 160ms;
-}
-.sh-dynamic-island.sh-island--expanded .sh-island-full-view,
-.sh-dynamic-island.sh-dropdown-active .sh-island-full-view {
-    opacity: 1;
-    pointer-events: auto;
-    visibility: visible;
-    overflow: visible !important;
-}
-
-/* Apparition fluide et déploiement des éléments internes */
-.sh-dynamic-island.sh-island--expanded .sh-nav-brand {
-    opacity: 1;
-    transform: translateX(0) scale(1);
-    filter: blur(0px);
-    transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1) 120ms, transform 450ms cubic-bezier(0.34, 1.45, 0.45, 1) 100ms, filter 300ms ease 120ms;
-}
-
-.sh-dynamic-island.sh-island--expanded .sh-nav-tabs {
-    opacity: 1;
-    transform: scale(1);
-    filter: blur(0px);
-    transition: opacity 320ms cubic-bezier(0.16, 1, 0.3, 1) 150ms, transform 420ms cubic-bezier(0.34, 1.45, 0.45, 1) 130ms, filter 300ms ease 150ms;
-}
-
-.sh-dynamic-island.sh-island--expanded .sh-nav-actions {
-    opacity: 1;
-    transform: translateX(0) scale(1);
-    filter: blur(0px);
-    transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1) 180ms, transform 450ms cubic-bezier(0.34, 1.45, 0.45, 1) 160ms, filter 300ms ease 180ms;
-}
-
-/* ── ÉTAT 3 : Search Spotlight (Concept 3 : Framer FLIP Dynamic Morph) ─── */
-.sh-dynamic-island.sh-island--search {
-    top: 14px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: min(660px, 92vw) !important;
-    height: 500px !important;
-    max-height: 75vh !important;
-    border-radius: 24px !important;
-    background: rgba(12, 12, 16, 0.94) !important;
-    border: 1px solid rgba(255, 255, 255, 0.16) !important;
-    box-shadow: 
-        0 35px 95px rgba(0, 0, 0, 0.96),
-        inset 0 1px 0 rgba(255, 255, 255, 0.30),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(255, 255, 255, 0.08) !important;
-    z-index: 10002 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    justify-content: flex-start !important;
-    padding: 0 !important;
-    cursor: default !important;
-    overflow: hidden !important;
-    transition: none !important;
-}
-
-.sh-dynamic-island.sh-island--search .sh-island-notch,
-.sh-dynamic-island.sh-island--search .sh-island-compact-view,
-.sh-dynamic-island.sh-island--search .sh-island-full-view {
-    opacity: 0 !important;
-    transform: scale(0.90) translateY(-6px) !important;
-    filter: blur(6px) !important;
-    pointer-events: none !important;
-    visibility: hidden !important;
-    transition: opacity 120ms ease, transform 140ms ease, filter 120ms ease, visibility 120ms !important;
-}
-
-.sh-island-search-view {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    opacity: 0;
-    transform: scale(0.97) translateY(-6px);
-    filter: blur(4px);
-    pointer-events: none;
-    visibility: hidden;
-    overflow: hidden;
-    transition: opacity 220ms ease 80ms, transform 300ms cubic-bezier(0.16, 1, 0.3, 1) 80ms, filter 220ms ease 80ms, visibility 220ms 80ms;
-}
-
-.sh-dynamic-island.sh-island--search .sh-island-search-view {
-    opacity: 1 !important;
-    transform: scale(1) translateY(0) !important;
-    filter: blur(0px) !important;
-    pointer-events: auto !important;
-    visibility: visible !important;
-}
-
-/* ── Point Jaune / Orange Ambré iPhone (Indicateur Téléphone Apple) ── */
-.sh-luminous-dot {
-    position: relative;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #ff9f0a;
-    box-shadow: 0 0 5px #ff9f0a, 0 0 12px rgba(255, 159, 10, 0.85);
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 300ms ease;
-}
-
-.sh-dynamic-island:hover .sh-luminous-dot {
-    transform: scale(1.18);
-    box-shadow: 0 0 8px #ff9f0a, 0 0 16px rgba(255, 159, 10, 0.95);
-}
-
-.sh-dot-core {
-    position: absolute;
-    inset: 1px;
-    border-radius: 50%;
-    background: #ffb340;
-}
-
-/* 🕒 Micro-Badge Horloge Live (Mode Compact) */
-.sh-island-clock-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    padding: 2px 7px;
-    border-radius: 9999px;
-    font-size: 11px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.85);
-    letter-spacing: -0.2px;
-}
-
-.sh-clock-pulse-dot {
-    color: rgba(255, 255, 255, 0.90);
-    font-weight: 800;
-    animation: sh-clock-dot-blink 2.2s ease-in-out infinite;
-}
-
-@keyframes sh-clock-dot-blink {
-    0%, 100% { opacity: 0.90; transform: scale(1); }
-    50%      { opacity: 0.30; transform: scale(0.85); }
-}
-
-.sh-island-label {
-    font-size: 13px;
-    font-weight: 750;
-    color: #ffffff;
-    letter-spacing: -0.2px;
-    user-select: none !important;
-    -webkit-user-select: none !important;
-}
-
-.sh-island-rocket {
-    color: #ffffff;
-    transition: transform 260ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.sh-nav-brand {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #ffffff;
-    cursor: pointer !important;
-    user-select: none !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    -ms-user-select: none !important;
-    transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 180ms ease;
-}
-
-.sh-nav-brand:hover,
-.sh-island-compact-view:hover {
-    transform: scale(1.04);
-}
-
-.sh-nav-brand:active,
-.sh-island-compact-view:active {
-    transform: scale(0.94);
-}
-
-.sh-nav-brand-txt {
-    font-size: 15px;
-    font-weight: 800;
-    letter-spacing: -0.4px;
-    color: #ffffff;
-    user-select: none !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    -ms-user-select: none !important;
-}
-
-/* 🚀 Animation de Décollage / Propulsion au Clic sur le Logo */
-.sh-nav-brand.sh-logo-clicked,
-.sh-island-compact-view.sh-logo-clicked {
-    animation: shLogoClickBurst 500ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
-}
-
-.sh-nav-brand.sh-logo-clicked svg,
-.sh-island-compact-view.sh-logo-clicked svg {
-    animation: shRocketThrust 500ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
-}
-
-.sh-nav-brand.sh-logo-clicked .sh-dot-core,
-.sh-island-compact-view.sh-logo-clicked .sh-dot-core {
-    animation: shDotRippleShockwave 500ms ease-out forwards !important;
-}
-
-@keyframes shLogoClickBurst {
-    0% {
-        transform: scale(0.92);
-        filter: brightness(1);
-    }
-    40% {
-        transform: scale(1.10) translateY(-2px);
-        filter: brightness(1.4);
-    }
-    100% {
-        transform: scale(1) translateY(0);
-        filter: brightness(1);
-    }
-}
-
-@keyframes shRocketThrust {
-    0% {
-        transform: scale(0.9) rotate(0deg);
-    }
-    45% {
-        transform: scale(1.30) translateY(-3px) rotate(-14deg);
-        filter: drop-shadow(0 0 10px #64d2ff);
-    }
-    100% {
-        transform: scale(1) translateY(0) rotate(0deg);
-        filter: none;
-    }
-}
-
-@keyframes shDotRippleShockwave {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 4px #30d158;
-    }
-    50% {
-        transform: scale(1.6);
-        box-shadow: 0 0 16px #30d158, 0 0 26px rgba(48, 209, 88, 0.7);
-    }
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 6px #30d158;
-    }
-}
-
-.sh-nav-tabs {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    background: rgba(255, 255, 255, 0.08);
-    padding: 3px;
-    border-radius: 9999px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    margin-right: 8px;
-}
-
-.sh-nav-tabs-sliding-pill {
-    position: absolute;
-    top: 3px;
-    left: 0;
-    height: calc(100% - 6px);
-    background: #ffffff;
-    border-radius: 9999px;
-    box-shadow: 0 4px 14px rgba(255, 255, 255, 0.35);
-    pointer-events: none;
-    z-index: 1;
-    transform-origin: center center;
-    transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1), width 340ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms ease;
-    will-change: transform, width;
-}
-
-.sh-nav-tab-btn {
-    position: relative;
-    z-index: 2;
-    background: transparent !important;
-    border: none;
-    padding: 7px 18px;
-    border-radius: 9999px;
-    color: rgba(255, 255, 255, 0.65);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: color 200ms ease;
-}
-
-.sh-nav-tab-btn:hover {
-    color: #ffffff;
-}
-
-.sh-nav-tab-btn.active {
-    color: #000000 !important;
-    font-weight: 750;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-.sh-nav-actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-left: 8px;
-}
-
-.sh-nav-action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-    cursor: pointer;
-    backdrop-filter: blur(16px);
-    transition: all 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.sh-nav-action-btn:hover {
-    background: rgba(255, 255, 255, 0.22);
-    border-color: rgba(255, 255, 255, 0.28);
-    transform: scale(1.08);
-    box-shadow: 0 4px 14px rgba(255, 255, 255, 0.18);
-}
-
-.sh-user-menu-wrapper {
-    position: relative;
-    z-index: 20000;
-}
-
-.sh-user-avatar-btn {
-    background: transparent;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-}
-
-.sh-avatar-pill {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.18);
-    border: 1px solid rgba(255, 255, 255, 0.24);
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(20px);
-    transition: transform 150ms ease;
-}
-
-.sh-avatar-pill:hover {
-    transform: scale(1.05);
-    background: rgba(255, 255, 255, 0.28);
-}
-
-.sh-user-dropdown {
-    position: absolute;
-    top: calc(100% + 14px);
-    right: -6px;
-    width: 240px;
-    background: rgba(14, 14, 20, 0.96) !important;
-    backdrop-filter: blur(48px) saturate(200%) !important;
-    -webkit-backdrop-filter: blur(48px) saturate(200%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.16) !important;
-    border-radius: 18px !important;
-    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.95), 0 0 1px rgba(255, 255, 255, 0.4) !important;
-    padding: 14px !important;
-    z-index: 20005 !important;
-    transform-origin: top right;
-    pointer-events: none;
-    opacity: 0;
-    transform: scale(0.88) translateY(-10px);
-    filter: blur(10px);
-    transition: opacity 220ms cubic-bezier(0.16, 1, 0.3, 1), transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 220ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.sh-user-dropdown.sh-dropdown--open {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-    filter: blur(0px);
-    pointer-events: auto;
-}
-
-.sh-user-dropdown.sh-dropdown--closing {
-    opacity: 0;
-    transform: scale(0.92) translateY(-8px);
-    filter: blur(6px);
-    pointer-events: none;
-    transition: opacity 180ms ease, transform 180ms ease, filter 180ms ease;
-}
-
-.sh-user-dropdown.sh-dropdown--open .sh-user-dropdown__item {
-    animation: sh-menu-item-cascade 220ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
-    animation-delay: calc(var(--item-idx, 0) * 22ms + 40ms);
-}
-
-@keyframes sh-menu-item-cascade {
-    0% {
-        opacity: 0;
-        transform: translateY(8px) scale(0.96);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-.sh-user-dropdown__header strong {
-    display: block;
-    font-size: 14px;
-    color: #ffffff;
-}
-
-.sh-user-server {
-    display: block;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.45);
-    margin-top: 2px;
-}
-
-.sh-user-dropdown__item {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-align: left;
-    background: transparent;
-    border: none;
-    padding: 10px 12px;
-    border-radius: 10px;
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 13px;
-    font-weight: 500;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background 120ms ease;
-    margin-bottom: 2px;
-}
-
-.sh-user-dropdown__item:hover {
-    background: rgba(255, 255, 255, 0.10);
-    color: #ffffff;
-}
-
-.sh-user-dropdown__item.sh-danger {
-    color: #ff453a;
-}
-.sh-user-dropdown__item.sh-danger:hover {
-    background: rgba(255, 69, 58, 0.15);
-}
-
-.sh-app-main {
-    flex: 1;
-    background-color: #000000;
-}
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans AppLayout.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 }
 

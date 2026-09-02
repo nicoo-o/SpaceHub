@@ -15,6 +15,9 @@
 
 import Logger from './Logger.js';
 
+import './TrailerService.css';
+import { escapeHtml } from './utils/domUtils.js';
+import * as svc from './services.js';
 class TrailerService {
     constructor() {
         this._log = new Logger('TrailerService');
@@ -27,139 +30,13 @@ class TrailerService {
     }
 
     _injectStyles() {
-        if (document.getElementById('sh-trailer-service-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-trailer-service-styles';
-        style.textContent = `
-            .sh-trailer-menu {
-                position: fixed;
-                z-index: 9999998;
-                min-width: 230px;
-                background: rgba(18, 18, 22, 0.92);
-                backdrop-filter: blur(20px) saturate(160%);
-                -webkit-backdrop-filter: blur(20px) saturate(160%);
-                border: 1px solid rgba(255,255,255,0.12);
-                border-radius: 16px;
-                padding: 10px;
-                box-shadow: 0 18px 50px rgba(0,0,0,0.6);
-            }
-            .sh-trailer-menu__title {
-                font-size: 12px;
-                font-weight: 800;
-                letter-spacing: 0.06em;
-                text-transform: uppercase;
-                color: rgba(255,255,255,0.55);
-                padding: 4px 8px 8px;
-            }
-            .sh-trailer-menu__item {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                width: 100%;
-                background: transparent;
-                border: none;
-                border-radius: 10px;
-                color: #fff;
-                font-size: 14px;
-                font-weight: 600;
-                padding: 10px 12px;
-                cursor: pointer;
-                transition: background 150ms ease;
-            }
-            .sh-trailer-menu__item:hover, .sh-trailer-menu__item:focus-visible {
-                background: rgba(255,159,10,0.16);
-                outline: 2px solid rgba(255,159,10,0.55);
-                outline-offset: -2px;
-            }
-            .sh-trailer-menu__icon { font-size: 15px; }
-
-            .sh-trailer-window {
-                position: fixed;
-                inset: 0;
-                z-index: 9999999;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: rgba(4, 4, 8, 0.82);
-                backdrop-filter: blur(14px);
-                -webkit-backdrop-filter: blur(14px);
-                opacity: 0;
-                transition: opacity 220ms ease;
-            }
-            .sh-trailer-window--open { opacity: 1; }
-            .sh-trailer-window__box {
-                width: min(1100px, 92vw);
-                background: rgba(14, 14, 20, 0.94);
-                border: 1px solid rgba(255,255,255,0.12);
-                border-radius: 22px;
-                overflow: hidden;
-                box-shadow: 0 30px 90px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,159,10,0.08);
-                transform: translateY(24px) scale(0.98);
-                transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
-            }
-            .sh-trailer-window--open .sh-trailer-window__box { transform: translateY(0) scale(1); }
-            .sh-trailer-window__bar {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                padding: 12px 16px;
-                background: rgba(255,255,255,0.04);
-                border-bottom: 1px solid rgba(255,255,255,0.08);
-            }
-            .sh-trailer-window__badge {
-                font-size: 11px;
-                font-weight: 800;
-                letter-spacing: 0.05em;
-                text-transform: uppercase;
-                color: #ff9f0a;
-                background: rgba(255,159,10,0.14);
-                border: 1px solid rgba(255,159,10,0.35);
-                border-radius: 999px;
-                padding: 4px 10px;
-                white-space: nowrap;
-            }
-            .sh-trailer-window__title {
-                flex: 1;
-                font-size: 15px;
-                font-weight: 700;
-                color: #fff;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-            .sh-trailer-window__close {
-                background: rgba(255,255,255,0.08);
-                border: 1px solid rgba(255,255,255,0.14);
-                color: #fff;
-                width: 34px;
-                height: 34px;
-                border-radius: 12px;
-                font-size: 15px;
-                cursor: pointer;
-                transition: background 150ms ease, transform 150ms ease;
-            }
-            .sh-trailer-window__close:hover, .sh-trailer-window__close:focus-visible {
-                background: rgba(255, 69, 58, 0.35);
-                outline: 2px solid rgba(255,159,10,0.55);
-                outline-offset: -2px;
-                transform: scale(1.06);
-            }
-            .sh-trailer-window__stage {
-                aspect-ratio: 16 / 9;
-                background: #000;
-            }
-            .sh-trailer-window__stage iframe {
-                width: 100%;
-                height: 100%;
-                display: block;
-                border: 0;
-            }
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans TrailerService.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 
     _getAuth() {
-        const auth = window.SpaceHub?.auth;
+        const auth = svc.auth();
         return {
             base: (auth?.getServerUrl?.() || '').replace(/\/$/, ''),
             userId: auth?.getUserId?.() || '',
@@ -289,7 +166,7 @@ class TrailerService {
      * @param {HTMLElement} [anchorEl] — ancre d'affichage du menu (optionnel)
      */
     async open(item, anchorEl = null) {
-        const toaster = window.SpaceHub?.ui?.components?.toaster;
+        const toaster = svc.toaster();
         if (!item?.Id) {
             toaster?.error?.('Média inconnu — impossible de charger la bande-annonce.');
             return;
@@ -377,9 +254,9 @@ class TrailerService {
 
     _launch(source) {
         if (source.type === 'local' && source.trailerItem) {
-            const player = window.SpaceHub?.player;
+            const player = svc.player();
             if (!player?.play) {
-                window.SpaceHub?.ui?.components?.toaster?.error?.('Lecteur indisponible.');
+                svc.toaster()?.error?.('Lecteur indisponible.');
                 return;
             }
             this.close();
@@ -406,7 +283,7 @@ class TrailerService {
         win.innerHTML = `
             <div class="sh-trailer-window__box">
                 <div class="sh-trailer-window__bar">
-                    <span class="sh-trailer-window__badge">🎬 ${label}</span>
+                    <span class="sh-trailer-window__badge">🎬 ${escapeHtml(label)}</span>
                     <span class="sh-trailer-window__title">${safeTitle}</span>
                     <button class="sh-trailer-window__close" aria-label="Fermer la bande-annonce" tabindex="0" data-nav-focusable="true">✕</button>
                 </div>
@@ -433,7 +310,7 @@ class TrailerService {
         document.addEventListener('keydown', this._onKeydown);
 
         // Focus TV initial sur le bouton fermer
-        const spatialNav = window.SpaceHub?.spatialNav || window.SpaceHub?.core?.spatialNavigation;
+        const spatialNav = svc.nav() || svc.nav();
         const closeBtn = win.querySelector('.sh-trailer-window__close');
         setTimeout(() => {
             if (document.querySelector('.sh-trailer-window--open')) closeBtn?.focus?.();

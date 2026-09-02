@@ -16,6 +16,8 @@
 
 import Logger from './Logger.js';
 
+import './TouchEngine.css';
+import * as svc from './services.js';
 export class TouchEngine {
     constructor() {
         this._log = new Logger('TouchEngine');
@@ -38,111 +40,9 @@ export class TouchEngine {
     }
 
     _injectMobileStyles() {
-        if (document.getElementById('sh-touch-engine-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-touch-engine-styles';
-        style.textContent = `
-            /* ── SAFE AREAS & MOBILE ADAPTATION ── */
-            @supports (padding-top: env(safe-area-inset-top)) {
-                .sh-dynamic-island {
-                    top: max(16px, env(safe-area-inset-top) + 8px) !important;
-                }
-                .sh-slideup-sheet {
-                    padding-bottom: max(24px, env(safe-area-inset-bottom) + 12px) !important;
-                }
-            }
-
-            /* ── CIBLES TACTILES ÉTENDUES (MIN 48×48px SANS CHANGER LE DESIGN) ── */
-            @media (hover: none) and (pointer: coarse) {
-                .sh-genre-chip,
-                .sh-tab-btn,
-                .sh-season-pill-btn,
-                .sh-nav-tab-btn,
-                .sh-nav-action-btn,
-                .sh-admin-mini-action-btn,
-                .sh-lib-alpha-btn,
-                .sh-sync-btn,
-                .sh-chip-btn {
-                    position: relative;
-                    min-height: 38px;
-                    touch-action: manipulation;
-                }
-
-                .sh-genre-chip::before,
-                .sh-tab-btn::before,
-                .sh-season-pill-btn::before,
-                .sh-nav-tab-btn::before,
-                .sh-nav-action-btn::before,
-                .sh-lib-alpha-btn::before,
-                .sh-sync-btn::before {
-                    content: '';
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    min-width: 48px;
-                    min-height: 48px;
-                    width: 100%;
-                    height: 100%;
-                    pointer-events: auto;
-                    z-index: 1;
-                }
-
-                /* Scroll inertiel fluide sur iOS/Android */
-                .sh-cinema-body,
-                .sh-cinema-panels-wrapper,
-                .sh-series-episodes-container,
-                .sh-console-body,
-                .sh-admin-modal-card,
-                .sh-card-grid {
-                    -webkit-overflow-scrolling: touch !important;
-                    overscroll-behavior-y: contain;
-                }
-            }
-
-            /* ── INDICATEUR PULL-TO-REFRESH ── */
-            .sh-pull-refresh-indicator {
-                position: fixed;
-                top: 20px;
-                left: 50%;
-                transform: translateX(-50%) translateY(-60px);
-                z-index: 999999;
-                background: rgba(20, 20, 30, 0.95);
-                backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 159, 10, 0.4);
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 159, 10, 0.3);
-                border-radius: 9999px;
-                padding: 8px 18px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                color: #ffffff;
-                font-size: 12px;
-                font-weight: 700;
-                pointer-events: none;
-                transition: transform 180ms ease, opacity 180ms ease;
-                opacity: 0;
-            }
-
-            .sh-pull-refresh-indicator.visible {
-                opacity: 1;
-                transform: translateX(-50%) translateY(0);
-            }
-
-            .sh-pull-spinner {
-                width: 14px;
-                height: 14px;
-                border: 2px solid rgba(255, 255, 255, 0.2);
-                border-top-color: #ff9f0a;
-                border-radius: 50%;
-                animation: sh-pull-spin 0.7s linear infinite;
-            }
-
-            @keyframes sh-pull-spin {
-                to { transform: rotate(360deg); }
-            }
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans TouchEngine.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 
     _bindEvents() {
@@ -209,11 +109,11 @@ export class TouchEngine {
                 const bookmarkBtn = cardTarget.querySelector('.sh-card__bookmark-btn');
                 if (bookmarkBtn) {
                     bookmarkBtn.click(); // Déclenche la vraie persistance + animation
-                } else if (itemId && window.SpaceHub?.jellyfin?.api?.setFavorite) {
-                    window.SpaceHub.jellyfin.api.setFavorite(itemId, true).catch(() => {});
-                    window.SpaceHub?.ui?.components?.toaster?.info(`★ Ajouté aux Favoris : ${title}`);
+                } else if (itemId && svc.jellyfinApi()?.setFavorite) {
+                    svc.jellyfinApi().setFavorite(itemId, true).catch(() => {});
+                    svc.toaster()?.info(`★ Ajouté aux Favoris : ${title}`);
                 } else {
-                    window.SpaceHub?.ui?.components?.toaster?.info(`★ Ajouté aux Favoris : ${title}`);
+                    svc.toaster()?.info(`★ Ajouté aux Favoris : ${title}`);
                 }
                 this._lastTapTime = 0;
             } else {
@@ -265,13 +165,13 @@ export class TouchEngine {
                 this._activeSheetEl.style.transition = 'transform 240ms cubic-bezier(0.32, 1, 0.32, 1)';
                 this._activeSheetEl.style.transform = 'translateY(100%)';
                 setTimeout(() => {
-                    const slideUp = window.SpaceHub?.ui?.modalSlideUpSheet;
+                    const slideUp = svc.slideUpSheet();
                     if (slideUp && typeof slideUp.close === 'function') {
                         slideUp.close();
                     } else {
                         const openModal = document.querySelector('.sh-modal-overlay.open, .sh-console-modal-overlay.open, #sh-admin-dashboard-modal');
                         openModal?.classList.remove('open');
-                        window.SpaceHub?.spatialNav?.onModalClosed?.();
+                        svc.nav()?.onModalClosed?.();
                     }
                     this._activeSheetEl.style.transform = '';
                     this._activeSheetEl = null;
@@ -290,7 +190,7 @@ export class TouchEngine {
                 this._vibrate(25);
                 this._pullIndicatorEl.innerHTML = '<div class="sh-pull-spinner"></div><span>Actualisation de SpaceHub...</span>';
                 setTimeout(() => {
-                    window.SpaceHub?.ui?.dashboard?.render?.(document.getElementById('sh-main-view-container'));
+                    svc.dashboard()?.render?.(document.getElementById('sh-main-view-container'));
                     this._pullIndicatorEl.classList.remove('visible');
                     this._pullIndicatorEl.innerHTML = '<div class="sh-pull-spinner"></div><span>Tirer pour actualiser</span>';
                 }, 1000);
@@ -304,7 +204,7 @@ export class TouchEngine {
         const isModalOpen = document.querySelector('.sh-slideup-sheet--open, .sh-modal-overlay.open, .sh-console-modal-overlay.open');
         if (!isModalOpen && Math.abs(deltaX) > 90 && Math.abs(deltaX) > Math.abs(deltaY) * 2 && duration < 500) {
             const views = ['dashboard', 'library', 'downloads'];
-            const appLayout = window.SpaceHub?.appLayout || window.SpaceHub?.ui?.appLayout;
+            const appLayout = svc.appLayout();
             const currentView = appLayout?._currentView || 'dashboard';
             const curIdx = views.indexOf(currentView);
 

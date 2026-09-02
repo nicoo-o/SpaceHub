@@ -16,20 +16,24 @@
 import Logger from './Logger.js';
 import { NavAction } from './InputMapper.js';
 
+import './GamepadInput.css';
+import * as svc from './services.js';
 export class GamepadInput {
     /**
      * @param {Object} options
      * @param {(action: string) => void} options.onAction
      */
-    constructor({ onAction } = {}) {
+    constructor({ onAction, onDirectionStart, onDirectionEnd } = {}) {
         this._log = new Logger('GamepadInput');
         this._onAction = onAction || (() => {});
+        // La cadence de répétition directionnelle est déléguée à SpatialNavigation._startInputRepeat()
+        // (accélération progressive partagée avec le clavier) — cf. plan A06. GamepadInput ne fait
+        // plus que signaler le début/la fin d'une pression directionnelle.
+        this._onDirectionStart = onDirectionStart || (() => {});
+        this._onDirectionEnd = onDirectionEnd || (() => {});
         this._isEnabled = true;
         this._rafId = null;
         this._deadzone = 0.18;
-        this._initialDelay = 280;
-        this._repeatInterval = 100;
-        this._lastActionTime = 0;
         this._activeDirection = null;
         this._virtualMouseMode = false;
         this._virtualCursorX = window.innerWidth / 2;
@@ -46,29 +50,9 @@ export class GamepadInput {
     }
 
     _injectVirtualCursorStyles() {
-        if (document.getElementById('sh-virtual-cursor-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'sh-virtual-cursor-styles';
-        style.textContent = `
-            .sh-virtual-cursor {
-                position: fixed;
-                width: 22px;
-                height: 22px;
-                border: 2px solid #ff9f0a;
-                background: rgba(255, 159, 10, 0.4);
-                box-shadow: 0 0 15px #ff9f0a, 0 4px 12px rgba(0,0,0,0.8);
-                border-radius: 50%;
-                pointer-events: none;
-                z-index: 9999999;
-                transform: translate(-50%, -50%);
-                display: none;
-                transition: transform 60ms linear;
-            }
-            .sh-virtual-cursor.visible {
-                display: block;
-            }
-        `;
-        document.head.appendChild(style);
+        // Les styles de ce composant vivent désormais dans GamepadInput.css,
+        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
+        // conservée en no-op pour ne casser aucun appelant existant.
     }
 
     enable() {
@@ -87,6 +71,10 @@ export class GamepadInput {
         if (this._pollTimeoutId) {
             clearTimeout(this._pollTimeoutId);
             this._pollTimeoutId = null;
+        }
+        if (this._activeDirection) {
+            this._activeDirection = null;
+            this._onDirectionEnd();
         }
         if (this._cursorEl) {
             this._cursorEl.classList.remove('visible');
@@ -120,6 +108,12 @@ export class GamepadInput {
             this._processGamepad(gp);
             this._rafId = requestAnimationFrame(this._boundLoop);
         } else {
+            // Manette débranchée en cours de maintien : signaler la fin explicitement,
+            // sinon SpatialNavigation._startInputRepeat() continuerait indéfiniment (cf. plan A06).
+            if (this._activeDirection) {
+                this._activeDirection = null;
+                this._onDirectionEnd();
+            }
             // Aucune manette connectée : poll lent (1 fps) pour détecter la connexion
             this._rafId = null;
             this._pollTimeoutId = setTimeout(() => {
@@ -165,7 +159,7 @@ export class GamepadInput {
             this.vibrate(120, 0.8, 0.4);
             this._ensureCursor();
             this._cursorEl.classList.toggle('visible', this._virtualMouseMode);
-            window.SpaceHub?.ui?.components?.toaster?.info(
+            svc.toaster()?.info(
                 this._virtualMouseMode ? '🖱️ Souris Virtuelle Manette Activée' : '📺 Mode Navigation TV Restauré'
             );
         } else if (!btnR3) {
@@ -206,20 +200,16 @@ export class GamepadInput {
         else if (dpadLeft || stickLeftX < -this._deadzone) direction = NavAction.LEFT;
         else if (dpadRight || stickLeftX > this._deadzone) direction = NavAction.RIGHT;
 
-        const now = Date.now();
-
         if (direction) {
             if (this._activeDirection !== direction) {
                 this._activeDirection = direction;
-                this._lastActionTime = now;
                 this.vibrate(10);
-                this._onAction(direction);
-            } else if (now - this._lastActionTime > this._initialDelay) {
-                this._lastActionTime = now - (this._initialDelay - this._repeatInterval);
-                this._onAction(direction);
+                this._onDirectionStart(direction); // déclenche _startInputRepeat côté SpatialNavigation
             }
-        } else {
+            // Le tick/la cadence sont désormais entièrement gérés par SpatialNavigation._startInputRepeat()
+        } else if (this._activeDirection) {
             this._activeDirection = null;
+            this._onDirectionEnd(); // déclenche _stopInputRepeat()
         }
 
         // Actions bouton unique (A, B, X, Y, Start, Triggers)
