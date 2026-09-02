@@ -16,6 +16,12 @@ import Logger from './Logger.js';
 import { NavAction, mapKeyboardEvent, isDirectionAction } from './InputMapper.js';
 import GamepadInput from './GamepadInput.js';
 import { CarouselController } from './CarouselController.js';
+import { LAYERS, BACK_ORDER, FOCUSABLES, CAROUSELS, SCROLL_CONTAINERS } from './DomContracts.js';
+
+
+import * as svc from './services.js';
+// Les conteneurs de défilement viennent désormais de core/DomContracts.js
+const CAROUSEL_SELECTOR = CAROUSELS;
 
 export class SpatialNavigation {
     constructor({ root = document } = {}) {
@@ -55,9 +61,17 @@ export class SpatialNavigation {
         // 5. Mémorisation de Colonne X
         this._lastColumnX = null;
 
+        // 5bis. Répétition manette dédiée au scope Player (délégation directe, hors moteur générique)
+        this._gamepadPlayerRepeatTimer = null;
+
         // 6. Gamepad Unique
+        // La répétition directionnelle manette est désormais unifiée avec celle du clavier
+        // via _startInputRepeat()/_stopInputRepeat() (cf. plan A06) — GamepadInput ne fait plus
+        // que signaler le début/la fin d'une pression directionnelle.
         this._gamepad = new GamepadInput({
-            onAction: (action) => this.handleAction(action)
+            onAction: (action) => this.handleAction(action), // boutons non-directionnels (A/B/Start/Select/L2/R2)
+            onDirectionStart: (direction) => this._onGamepadDirectionStart(direction),
+            onDirectionEnd: () => this._onGamepadDirectionEnd()
         });
 
         // 7. Bindings d'événements
@@ -86,7 +100,7 @@ export class SpatialNavigation {
         // 2. Scope dashboard (Hero Play/Info + Flèches + Cartes Carrousels + Bento Jellyseerr)
         this.registerFocusables('dashboard', (root = document) => {
             return Array.from(root.querySelectorAll(
-                '#sh-hero-btn-play, #sh-hero-btn-info, .sh-hero-edge-btn, .sh-dashboard-body .sh-card, .sh-card, .sh-genre-chip, .sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, [data-nav-focusable="true"]'
+                '#sh-hero-btn-play, #sh-hero-btn-details, .sh-hero-edge-btn, .sh-dashboard-body .sh-card, .sh-card, .sh-genre-chip, .sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, [data-nav-focusable="true"]'
             ));
         });
 
@@ -114,20 +128,21 @@ export class SpatialNavigation {
             ));
         });
 
-        // 6. Scope sidebar (Items du menu latéral + Hub Tabs)
+        // 6. Scope sidebar (items du menu latéral + onglets de hub)
         this.registerFocusables('sidebar', (root = document) => {
-            const drawer = root.querySelector('.sh-sidebar-drawer, .sh-sidebar--open') || root;
-            return Array.from(drawer.querySelectorAll(
-                '.sh-sidebar-item, .sh-sidebar-btn, .sh-hub-tab-btn, [data-nav-focusable="true"]'
-            ));
+            const panel = root.querySelector(LAYERS.sidebar) || document.getElementById('sh-sidebar-panel');
+            if (!panel) return [];
+            return Array.from(panel.querySelectorAll(`${FOCUSABLES.sidebar}, .sh-hub-tab-btn`));
         });
 
         // 7. Scope modal (Strictement Confiné à la Modale Active Ouverte)
         this.registerFocusables('modal', (root = document) => {
-            const openModal = root.querySelector('.sh-modal--open, .sh-slideup-sheet--open, .sh-modal-overlay.open, .sh-console-modal-overlay.open, #sh-admin-dashboard-modal');
+            const openModal = root.querySelector(
+                `${LAYERS.genericModal}, ${LAYERS.slideUpSheet}, ${LAYERS.consoleModal}, ${LAYERS.adminModal}`
+            );
             if (!openModal) return [];
             return Array.from(openModal.querySelectorAll(
-                '.sh-modal__close, .sh-slideup-close-btn, .sh-slideup-action-btn, .sh-console-nav-tab, .sh-tab-btn, .sh-btn-primary, .sh-btn-secondary, button:not([disabled]), [data-nav-focusable="true"]'
+                '.sh-modal__close, .sh-slideup-close-btn, .sh-cinema-btn-play, .sh-cinema-btn-glass, .sh-season-pill-btn, .sh-console-nav-tab, .sh-tab-btn, .sh-btn--primary, .sh-btn--ghost, button:not([disabled]), [data-nav-focusable="true"]'
             ));
         });
 
@@ -143,7 +158,7 @@ export class SpatialNavigation {
         this.registerFocusables('settings', (root = document) => {
             const settingsEl = root.querySelector('#sh-modal-spacehub-settings, .sh-settings-modal') || root;
             return Array.from(settingsEl.querySelectorAll(
-                '.sh-settings-nav__item, .sh-settings-input, .sh-settings-toggle, .sh-btn, button:not([disabled]), [data-nav-focusable="true"]'
+                '.sh-settings-nav__item, .sh-input, .sh-settings-toggle, .sh-btn, button:not([disabled]), [data-nav-focusable="true"]'
             ));
         });
 
@@ -151,17 +166,39 @@ export class SpatialNavigation {
         this.registerFocusables('search', (root = document) => {
             const searchEl = root.querySelector('.sh-unified-search--open, .sh-spotlight-modal') || root;
             return Array.from(searchEl.querySelectorAll(
-                '#sh-spotlight-input, .sh-spotlight-tab-btn, .sh-spotlight-item, [data-nav-focusable="true"]'
+                '.sh-spotlight-input, .sh-spotlight-tab-btn, .sh-spotlight-item, [data-nav-focusable="true"]'
             ));
         });
     }
 
     // ─── FOCUS REGISTRY STRICT ────────────────────────────────────────────────
 
-    registerFocusables(scopeName, provider) {
+    registerFocusables(scopeName, provider, { force = false } = {}) {
         if (!scopeName) return;
+        if (this._focusRegistry.has(scopeName) && !force) {
+            this._log.warn(
+                `Focus Registry: le scope "${scopeName}" est déjà enregistré. ` +
+                `Réécriture ignorée (passez { force: true } si c'est intentionnel). ` +
+                `Utilisez extendFocusables() pour composer plusieurs sources sur un même scope.`
+            );
+            return;
+        }
         this._focusRegistry.set(scopeName, provider);
         this._log.debug(`Focus Registry: scope "${scopeName}" enregistré.`);
+    }
+
+    /**
+     * Ajoute une source supplémentaire d'éléments focusables à un scope existant
+     * sans écraser sa définition d'origine (compose au lieu de remplacer).
+     */
+    extendFocusables(scopeName, extraProvider) {
+        if (!scopeName || typeof extraProvider !== 'function') return;
+        const base = this._focusRegistry.get(scopeName);
+        this._focusRegistry.set(scopeName, (root) => {
+            const baseResult = typeof base === 'function' ? base(root) : (Array.isArray(base) ? base : []);
+            const extra = extraProvider(root) || [];
+            return [...new Set([...baseResult, ...extra])];
+        });
     }
 
     unregisterFocusables(scopeName) {
@@ -242,27 +279,70 @@ export class SpatialNavigation {
         element.focus({ preventScroll: true });
         element.classList.add('sh-focus-active', 'sh-tv-focused');
 
-        // Alignement colonne X mémorisé
+        // Alignement colonne X memorise.
+        // Il ne doit etre mis a jour que sur un mouvement HORIZONTAL : sinon la
+        // "memoire de colonne" est reecrite a chaque haut/bas et ne sert a rien.
+        // Il est aussi recalcule APRES defilement (voir plus bas), car l'ancienne
+        // version le figeait avant le scroll et visait ensuite une colonne
+        // decalee de plusieurs centaines de pixels.
         const rect = element.getBoundingClientRect();
-        this._lastColumnX = rect.left + rect.width / 2;
+        if (reason !== 'vertical-move') {
+            this._lastColumnX = rect.left + rect.width / 2;
+        }
 
         // Synchronisation du carrousel ou défilement avec Pivot Viewport (35%)
-        const carousel = element.closest('.sh-carousel-scroller, .sh-card-carousel, [data-carousel], .sh-carousel-container');
-        if (carousel && scroll) {
-            this._carouselController.scrollToCard(carousel, element, instantScroll ? 'auto' : 'smooth');
-        } else if (scroll) {
+        // Les deux axes sont complémentaires, pas redondants :
+        //  - scrollToCard        => défilement HORIZONTAL de la rangée
+        //  - _scrollIntoViewIfNeeded => défilement VERTICAL de la page
+        // Les traiter en if/else laissait l'élément focalisé hors écran verticalement
+        // dès qu'il appartenait à un carrousel (cas de toutes les cartes du Dashboard).
+        if (scroll) {
+            const carousel = element.closest(CAROUSEL_SELECTOR);
+            if (carousel) {
+                this._carouselController.scrollToCard(carousel, element, instantScroll ? 'auto' : 'smooth');
+            }
+            this._scrollIntoInnerContainer(element);
             this._scrollIntoViewIfNeeded(element);
+            // La position a change : on rafraichit la colonne memorisee pour que
+            // le prochain haut/bas vise la bonne verticale.
+            requestAnimationFrame(() => {
+                if (this._state.focusedElement !== element) return;
+                const r2 = element.getBoundingClientRect();
+                if (r2.width > 0) this._lastColumnX = r2.left + r2.width / 2;
+            });
         }
 
         // Événement global unifié
         if (!silent) {
-            window.SpaceHub?.core?.eventBus?.emit('navigation:focusChanged', {
+            svc.eventBus()?.emit('navigation:focusChanged', {
                 previous: prev,
                 current: element,
                 scope: this._state.scope,
                 reason,
                 instantScroll
             });
+        }
+    }
+
+    /**
+     * Fait defiler les conteneurs a defilement VERTICAL interne (listes a
+     * hauteur contrainte, popovers, cellules de calendrier). _scrollIntoViewIfNeeded
+     * ne pilote que `window` : sans ceci, un element focalise dans une de ces
+     * listes restait hors de vue meme si la page etait bien positionnee.
+     */
+    _scrollIntoInnerContainer(element) {
+        let parent = element.parentElement;
+        while (parent && parent !== document.body) {
+            const canScrollY = parent.scrollHeight > parent.clientHeight + 4;
+            if (canScrollY && parent.matches?.(SCROLL_CONTAINERS)) {
+                const pr = parent.getBoundingClientRect();
+                const er = element.getBoundingClientRect();
+                if (er.top < pr.top || er.bottom > pr.bottom) {
+                    element.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                }
+                return;
+            }
+            parent = parent.parentElement;
         }
     }
 
@@ -294,17 +374,21 @@ export class SpatialNavigation {
     // ─── DÉTECTION DU SCOPE COURANT ──────────────────────────────────────────
 
     _detectCurrentScope() {
-        if (document.querySelector('.sh-grand-cinema-player, #sh-grand-cinema-player')) return 'player';
-        if (document.querySelector('#sh-modal-spacehub-settings.sh-modal--open')) return 'settings';
-        if (document.querySelector('.sh-modal--open, .sh-slideup-sheet--open, .sh-modal-overlay.open, .sh-console-modal-overlay.open, #sh-admin-dashboard-modal')) return 'modal';
-        if (document.querySelector('.sh-sidebar--open, .sh-sidebar-drawer.open')) return 'sidebar';
-        if (document.querySelector('.sh-unified-search--open')) return 'search';
+        // Tous les sélecteurs proviennent de core/DomContracts.js : c'est ce qui
+        // garantit qu'ils correspondent au DOM réellement produit par les composants.
+        if (document.querySelector(LAYERS.player)) return 'player';
+        if (document.querySelector(LAYERS.settings)) return 'settings';
+        // La recherche passe AVANT les modales génériques : Spotlight est une couche
+        // à part entière avec ses propres focusables.
+        if (document.querySelector(LAYERS.search)) return 'search';
+        if (document.querySelector(LAYERS.sidebar)) return 'sidebar';
+        if (document.querySelector(`${LAYERS.slideUpSheet}, ${LAYERS.adminModal}, ${LAYERS.consoleModal}, ${LAYERS.genericModal}`)) return 'modal';
 
         const focused = this._state.focusedElement || document.activeElement;
         if (focused?.closest?.('.sh-dynamic-island, #sh-dynamic-island')) return 'dynamic-island';
         if (focused?.closest?.('.sh-jellyseerr-view, [data-nav-scope="jellyseerr"]')) return 'jellyseerr';
 
-        const appLayout = window.SpaceHub?.appLayout || window.SpaceHub?.ui?.appLayout;
+        const appLayout = svc.appLayout();
         return appLayout?._currentView || 'dashboard';
     }
 
@@ -319,7 +403,7 @@ export class SpatialNavigation {
         if (!current || !candidates.includes(current)) return candidates[0];
 
         // 1. Navigation Horizontale dans un Carrousel ➔ Délégation Pure au CarouselController
-        const currentCarousel = current.closest('.sh-carousel-scroller, .sh-card-carousel, [data-carousel], .sh-carousel-container');
+        const currentCarousel = current.closest(CAROUSEL_SELECTOR);
         if (currentCarousel && (direction === NavAction.LEFT || direction === NavAction.RIGHT)) {
             const targetCard = this._carouselController.navigate(currentCarousel, current, direction, this._repeatState.isFastScrolling);
             if (targetCard) return targetCard; // Retourne l'élément cible calculé
@@ -353,7 +437,7 @@ export class SpatialNavigation {
             const dist = Math.hypot(deltaX, deltaY);
             let score = 3000 - dist;
 
-            const candCarousel = cand.closest('.sh-carousel-scroller, .sh-card-carousel, [data-carousel], .sh-carousel-container');
+            const candCarousel = cand.closest(CAROUSEL_SELECTOR);
             const candWidget = cand.closest('.sh-widget-section, .sh-dashboard-section, .sh-jellyseerr-view, .sh-dynamic-island');
 
             // A. Priorité même carrousel horizontalement
@@ -424,12 +508,50 @@ export class SpatialNavigation {
         this._repeatState.isFastScrolling = false;
     }
 
+    /**
+     * Point d'entrée manette pour une pression directionnelle qui commence.
+     * Hors du player, délègue au moteur de répétition partagé avec le clavier
+     * (_startInputRepeat). Dans le player, VideoPlayer.handleNavAction() gère sa
+     * propre accélération interne (cf. A02) et doit être rappelée à intervalles
+     * réguliers — comme le ferait la répétition native du clavier (e.repeat) —
+     * plutôt que de passer par le moteur de navigation spatiale générique.
+     */
+    _onGamepadDirectionStart(direction) {
+        const scope = this._detectCurrentScope();
+        if (scope === 'player') {
+            const player = svc.player();
+            if (!player || typeof player.handleNavAction !== 'function') return;
+            player.handleNavAction(direction);
+            const tick = (delay) => {
+                this._gamepadPlayerRepeatTimer = setTimeout(() => {
+                    player.handleNavAction(direction);
+                    tick(100);
+                }, delay);
+            };
+            tick(280);
+            return;
+        }
+        this._startInputRepeat(direction);
+    }
+
+    /** Point d'entrée manette pour la fin d'une pression directionnelle. */
+    _onGamepadDirectionEnd() {
+        if (this._gamepadPlayerRepeatTimer) {
+            clearTimeout(this._gamepadPlayerRepeatTimer);
+            this._gamepadPlayerRepeatTimer = null;
+        }
+        this._stopInputRepeat();
+    }
+
     _executeNavStep(action, isFastScroll = false) {
         const target = this._findSpatialTarget(action);
         if (target) {
-            this.setFocus(target, { reason: 'repeat', instantScroll: isFastScroll });
+            this.setFocus(target, {
+                reason: (direction === 'up' || direction === 'down') ? 'vertical-move' : 'repeat',
+                instantScroll: isFastScroll,
+            });
             if (!isFastScroll) {
-                window.SpaceHub?.core?.audioFeedback?.playTick?.();
+                svc.audioFeedback()?.playTick?.();
             }
         }
     }
@@ -447,7 +569,7 @@ export class SpatialNavigation {
                 this._handleBack(null);
                 return;
             }
-            const player = window.SpaceHub?.player;
+            const player = svc.player();
             if (player && typeof player.handleNavAction === 'function') {
                 player.handleNavAction(action);
             }
@@ -459,7 +581,7 @@ export class SpatialNavigation {
             const target = this._findSpatialTarget(action);
             if (target) {
                 this.setFocus(target);
-                window.SpaceHub?.core?.audioFeedback?.playTick?.();
+                svc.audioFeedback()?.playTick?.();
             }
             return;
         }
@@ -488,12 +610,13 @@ export class SpatialNavigation {
         const el = this._getValidCurrentElement();
         if (!el) return;
 
-        window.SpaceHub?.core?.audioFeedback?.playSelect?.();
+        svc.audioFeedback()?.playSelect?.();
 
         // Dropdown utilisateur de la capsule
         if (el.id === 'sh-user-menu-btn' || el.classList.contains('sh-user-avatar-btn')) {
-            if (window.SpaceHub?._toggleUserDropdown) {
-                window.SpaceHub._toggleUserDropdown(true);
+            const menuUtilisateur = svc.userDropdown();
+            if (menuUtilisateur) {
+                menuUtilisateur.toggle(true);
                 setTimeout(() => {
                     const firstItem = document.querySelector('#sh-user-dropdown .sh-user-dropdown__item');
                     if (firstItem) this.setFocus(firstItem);
@@ -525,7 +648,7 @@ export class SpatialNavigation {
                 this._handleBack(e);
                 return;
             }
-            const player = window.SpaceHub?.player;
+            const player = svc.player();
             if (player && typeof player.handleNavAction === 'function') {
                 e.preventDefault();
                 player.handleNavAction(action);
@@ -573,77 +696,113 @@ export class SpatialNavigation {
         this._lastColumnX = null;
     }
 
+    /**
+     * Ferme la couche la plus superficielle. L'ordre vient de BACK_ORDER
+     * (core/DomContracts.js).
+     *
+     * Règle absolue : on ferme TOUJOURS par l'instance du composant.
+     * L'ancienne version retirait des classes CSS à la main
+     * (`classList.remove('open')`), ce qui laissait l'instance en état ouvert
+     * (modale plus jamais réouvrable), laissait `body.style.overflow = hidden`
+     * (plus aucun défilement de page) et, pour la modale d'administration,
+     * laissait un élément détecté comme « modale ouverte » à vie — navigation
+     * morte jusqu'au rechargement.
+     */
     _handleBack(e) {
-        // 1. Modale Réglages
-        const settingsModal = document.querySelector('#sh-modal-spacehub-settings.sh-modal--open');
-        if (settingsModal) {
+        for (const layer of BACK_ORDER) {
+            const el = document.querySelector(LAYERS[layer]);
+            if (!el) continue;
             e?.preventDefault?.();
-            const panel = window.SpaceHub?.ui?.settingsPanel || window.SpaceHub?.settingsPanel;
-            if (panel && typeof panel.close === "function") {
-                panel.close();
-            } else {
-                settingsModal.querySelector(".sh-modal__close")?.click();
-            }
-            this.onModalClosed();
-            return;
-        }
-
-        // 2. Fiche Média SlideUp
-        const slideUpModal = document.querySelector('.sh-slideup-sheet--open');
-        if (slideUpModal) {
-            e?.preventDefault?.();
-            const slideUpInstance = window.SpaceHub?.ui?.modalSlideUpSheet || window.SpaceHub?.modalSlideUpSheet;
-            if (slideUpInstance && typeof slideUpInstance.close === 'function') {
-                slideUpInstance.close();
-            } else {
-                slideUpModal.classList.remove('sh-slideup-sheet--open');
-                this.onModalClosed();
-            }
-            return;
-        }
-
-        // 3. Modales Générales
-        const openModal = document.querySelector('.sh-modal-overlay.open, .sh-console-modal-overlay.open, #sh-admin-dashboard-modal, .sh-modal--open');
-        if (openModal) {
-            e?.preventDefault?.();
-            openModal.classList.remove('open', 'sh-modal--open');
-            this.onModalClosed();
-            return;
-        }
-
-        // 4. Sidebar Drawer
-        const openDrawer = document.querySelector('.sh-sidebar--open, .sh-sidebar-drawer.open');
-        if (openDrawer) {
-            e?.preventDefault?.();
-            this._toggleSidebar();
-            return;
-        }
-
-        // 5. VideoPlayer
-        const playerEl = document.querySelector('#sh-grand-cinema-player');
-        if (playerEl) {
-            e?.preventDefault?.();
-            window.SpaceHub?.player?.close?.();
+            this._closeLayer(layer, el);
             return;
         }
     }
 
-    _toggleSidebar() {
-        const sidebar = window.SpaceHub?.ui?.sidebar 
-            || window.SpaceHub?.sidebar 
-            || window.SpaceHub?.ui?.appLayout?._sidebar
-            || window.SpaceHub?.appLayout?._sidebar;
+    /** Ferme une couche donnée en privilégiant toujours son API publique. */
+    _closeLayer(layer, el) {
+        const sh = window.SpaceHub;
+        const closers = {
+            settings:     () => sh?.ui?.settingsPanel || sh?.settingsPanel,
+            slideUpSheet: () => sh?.ui?.modalSlideUpSheet || sh?.modalSlideUpSheet,
+            search:       () => sh?.jellyfin?.search || sh?.ui?.search,
+            sidebar:      () => sh?.ui?.sidebarDrawer || sh?.ui?.sidebar || sh?.sidebar
+                                || sh?.ui?.appLayout?._sidebarDrawer || sh?.ui?.appLayout?._sidebar,
+            player:       () => sh?.player,
+        };
 
-        if (sidebar && typeof sidebar.toggle === 'function') {
-            sidebar.toggle();
-            const openDrawer = document.querySelector('.sh-sidebar--open, .sh-sidebar-drawer.open');
-            if (openDrawer) {
-                const firstItem = openDrawer.querySelector('.sh-sidebar-item, a, button');
-                if (firstItem) this.setFocus(firstItem);
-            } else {
-                this.restorePreviousFocus();
+        const instance = closers[layer]?.();
+        if (instance && typeof instance.close === 'function') {
+            instance.close();
+            if (layer !== 'player') this.onModalClosed();
+            return;
+        }
+
+        // Repli : bouton de fermeture déclaré par le composant lui-même.
+        const closeBtn = el.querySelector('.sh-modal__close, [data-modal-close], #sh-admin-modal-close, .sh-console-close-btn');
+        if (closeBtn) {
+            closeBtn.click();
+            this.onModalClosed();
+            return;
+        }
+
+        // Dernier repli, volontairement accompagné du nettoyage que le composant
+        // aurait dû faire : sans cette ligne, la page reste bloquée sans défilement.
+        el.classList.remove('open', 'sh-modal--open', 'sh-slideup-sheet--open');
+        document.body.style.overflow = '';
+        this._log?.warn?.(`Fermeture de repli sur la couche "${layer}" : aucune instance ni bouton de fermeture trouvé.`);
+        this.onModalClosed();
+    }
+
+    _toggleSidebar() {
+        const sidebar = svc.sidebar()
+            || svc.sidebar()
+            || svc.appLayout()?._sidebarDrawer
+            || svc.appLayout()?._sidebar;
+
+        if (!sidebar || typeof sidebar.toggle !== 'function') return;
+
+        const wasOpen = Boolean(document.querySelector(LAYERS.sidebar));
+        if (!wasOpen) this.pushFocus();
+        sidebar.toggle();
+
+        // Le drawer place lui-même le focus sur son premier élément à l'ouverture
+        // (AppSidebarDrawer.toggle). On ne restaure qu'à la fermeture.
+        if (wasOpen) this.popFocus();
+    }
+
+    /** Mémorise le point de retour avant d'entrer dans une couche. */
+    pushFocus() {
+        if (!this._focusStack) this._focusStack = [];
+        const cur = this._state.focusedElement;
+        if (cur && document.contains(cur)) this._focusStack.push(cur);
+    }
+
+    /**
+     * Revient au dernier point de retour encore valide.
+     * `_state.previousElement` ne convenait pas : il est écrasé à CHAQUE setFocus,
+     * donc après avoir navigué dans une modale il pointait un élément interne à
+     * cette modale — le focus était « restauré » dans une couche invisible.
+     */
+    popFocus() {
+        if (!this._focusStack) this._focusStack = [];
+        while (this._focusStack.length) {
+            const candidate = this._focusStack.pop();
+            if (candidate && document.contains(candidate) && this._isElementVisible?.(candidate) !== false) {
+                this.setFocus(candidate, { reason: 'restore' });
+                return true;
             }
         }
+        return this.focusFirst();
+    }
+
+    /** Place le focus sur le premier élément focalisable du scope courant. */
+    focusFirst() {
+        const focusables = this.getFocusables(this._detectCurrentScope());
+        if (focusables.length > 0) {
+            this.setFocus(focusables[0], { reason: 'focus-first' });
+            return true;
+        }
+        return false;
     }
 
     _handlePaging(direction) {
@@ -661,22 +820,23 @@ export class SpatialNavigation {
     }
 
     onModalOpened(container, defaultFocusEl = null) {
+        // On empile AVANT d'entrer dans la couche : c'est ce point-là qu'il
+        // faudra retrouver à la fermeture, pas le dernier élément visité dedans.
+        this.pushFocus();
         const target = defaultFocusEl || (container ? this.getFocusables(container)[0] : null);
         if (target) this.setFocus(target);
     }
 
     onModalClosed() {
-        this.restorePreviousFocus();
+        // Le DOM de la couche peut être retiré de façon asynchrone (animation de
+        // sortie) : on attend une frame pour que _detectCurrentScope voie le bon
+        // scope avant de choisir où revenir.
+        requestAnimationFrame(() => this.popFocus());
     }
 
+    /** @deprecated Conservé pour compatibilité — utiliser popFocus(). */
     restorePreviousFocus() {
-        if (this._state.previousElement && document.contains(this._state.previousElement)) {
-            this.setFocus(this._state.previousElement);
-        } else {
-            const scope = this._detectCurrentScope();
-            const focusables = this.getFocusables(scope);
-            if (focusables.length > 0) this.setFocus(focusables[0]);
-        }
+        return this.popFocus();
     }
 
     getGamepad() {
@@ -697,7 +857,7 @@ export class SpatialNavigation {
         window.removeEventListener('mousemove', this._boundMouseMove);
         window.removeEventListener('resize', this._boundResize);
         window.removeEventListener('orientationchange', this._boundResize);
-        this._stopInputRepeat();
+        this._onGamepadDirectionEnd(); // nettoie aussi le timer de répétition manette dédié au player
     }
 
     destroy() {

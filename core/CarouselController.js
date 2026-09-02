@@ -26,9 +26,9 @@ export class CarouselController {
             return null; // Frontière du carrousel atteinte
         }
 
-        const targetCard = cards[targetIdx];
-        this.scrollToCard(carousel, targetCard, isFastScroll ? 'auto' : 'smooth');
-        return targetCard;
+        // Le scroll est désormais entièrement délégué à SpatialNavigation.setFocus()
+        // (seul responsable du défilement, cf. audit §1.1 — évite le double scrollBy relatif).
+        return cards[targetIdx];
     }
 
     /**
