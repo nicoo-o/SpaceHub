@@ -134,7 +134,8 @@ class BaseApiClient {
 
                 if (!response.ok) {
                     const text = await response.text().catch(() => '');
-                    throw new ApiError(response.status, response.statusText, text, requestUrl);
+                    throw new ApiError(response.status, response.statusText, text, requestUrl,
+                        lireRetryAfter(response));
                 }
 
                 // Réponse vide (204 No Content)
@@ -162,13 +163,23 @@ class BaseApiClient {
                     continue;
                 }
 
-                if (err instanceof ApiError && err.status >= 500 && !isLast) {
+                if (err instanceof ApiError && (err.status >= 500 || err.status === 429) && !isLast) {
                     // Un 5xx provenant du serveur direct ou du proxy est retenté
                     // directement : ne pas transformer un endpoint Jellyfin lent en boucle
                     // de timeouts proxy.
+                    //
+                    // Le 429 arrive ici lui aussi. C'est le correctif d'un bogue
+                    // silencieux : la garde 4xx plus haut l'exemptait bien du rejet
+                    // immédiat (« sauf 429 »), mais il retombait ensuite sur
+                    // `if (err instanceof ApiError || isLast) throw err` et n'était
+                    // donc jamais retenté. L'intention était écrite, le code faisait
+                    // l'inverse — un test unitaire l'a révélé.
                     useProxy = false;
-                    this._log.warn(`[${method}] ${url} — serveur/proxy ${err.status}, nouvelle tentative directe...`);
-                    await sleep(500 * (attempt + 1));
+                    const attente = err.status === 429
+                        ? (err.retryApresMs ?? 1000 * (attempt + 1))
+                        : 500 * (attempt + 1);
+                    this._log.warn(`[${method}] ${url} — serveur/proxy ${err.status}, nouvelle tentative dans ${attente} ms...`);
+                    await sleep(attente);
                     continue;
                 }
 
@@ -342,19 +353,52 @@ class ApiClient {
 // ─── ApiError ────────────────────────────────────────────────────────────────
 
 class ApiError extends Error {
-    constructor(status, statusText, body, url) {
+    /**
+     * @param {number} status
+     * @param {string} statusText
+     * @param {*} body
+     * @param {string} url
+     * @param {number|null} [retryApresMs] délai demandé par le serveur (en-tête
+     *   `Retry-After`), quand il en fournit un. Utilisé pour les 429.
+     */
+    constructor(status, statusText, body, url, retryApresMs = null) {
         super(`HTTP ${status} ${statusText} — ${url}`);
         this.name       = 'ApiError';
         this.status     = status;
         this.statusText = statusText;
         this.body       = body;
         this.url        = url;
+        this.retryApresMs = retryApresMs;
     }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/**
+ * Délai demandé par le serveur via `Retry-After`, en millisecondes.
+ *
+ * L'en-tête accepte deux formes : un nombre de secondes, ou une date HTTP.
+ * Les deux sont lues. Le résultat est borné à 30 secondes : un serveur qui
+ * demande d'attendre dix minutes ne doit pas faire paraître l'application
+ * figée — mieux vaut échouer franchement et laisser l'utilisateur réessayer.
+ */
+function lireRetryAfter(response) {
+    const brut = response?.headers?.get?.('Retry-After');
+    if (!brut) return null;
+    const secondes = Number(brut);
+    let ms;
+    if (Number.isFinite(secondes)) {
+        ms = secondes * 1000;
+    } else {
+        const date = Date.parse(brut);
+        if (Number.isNaN(date)) return null;
+        ms = date - Date.now();
+    }
+    if (!(ms > 0)) return null;
+    return Math.min(ms, 30000);
+}
 
 // ─── Exports ─────────────────────────────────────────────────────────────────
 
