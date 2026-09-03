@@ -13,11 +13,12 @@
     "test:xss": "node scripts/xss-hygiene-check.mjs",
     "test:globals": "node scripts/globals-check.mjs",
     "test:e2e": "node scripts/e2e.mjs",
-    "test": "npm run lint && npm run test:unit && npm run test:smoke && npm run test:nav && npm run test:input && npm run test:css && npm run test:xss && npm run test:globals",
+    "test": "npm run lint && npm run test:unit && npm run test:smoke && npm run test:nav && npm run test:input && npm run test:focus && npm run test:css && npm run test:xss && npm run test:globals",
     "verify": "npm run test && npm run build && npm run test:e2e",
     "lint": "node scripts/syntax-check.mjs",
     "test:unit": "vitest run",
-    "test:input": "node scripts/input-pipeline-check.mjs"
+    "test:input": "node scripts/input-pipeline-check.mjs",
+    "test:focus": "node scripts/focus-containers-check.mjs"
   },
   "keywords": [
     "jellyfin",

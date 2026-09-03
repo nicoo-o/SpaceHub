@@ -401,6 +401,44 @@ await scenario('Un conteneur de défilement ne dessine pas d\'anneau de focus', 
     return { ok, detail: `conteneur: ${r.surBarre} · bouton: ${r.surBouton}` };
 });
 
+await scenario('À l\'arrivée, le focus va sur un contrôle — jamais sur un conteneur', async () => {
+    // Le symptôme signalé : un rectangle blanc sur toute la largeur de la
+    // barre de genres, présent DÈS l'arrivée et ne partant qu'à la première
+    // touche fléchée. Ce n'était pas l'anneau de repli mais le moteur
+    // lui-même : `.sh-genre-chips-container` se déclarait focalisable alors
+    // que chacune de ses puces l'était déjà, et focusFirst() prend le premier
+    // focalisable dans l'ordre du DOM — le conteneur précède ses enfants.
+    const r = await page.evaluate(async () => {
+        const nav = window.SpaceHub.core.spatialNavigation;
+
+        const hote = document.createElement('div');
+        hote.className = 'sh-dashboard-body';
+        hote.innerHTML = `
+            <div class="sh-genre-chips-container">
+                <button class="sh-genre-chip" id="puce-1" tabindex="0" data-nav-focusable="true">A</button>
+                <button class="sh-genre-chip" id="puce-2" tabindex="0" data-nav-focusable="true">B</button>
+            </div>`;
+        document.body.appendChild(hote);
+
+        nav.setFocus(document.body, { silent: true, scroll: false });
+        nav._state.focusedElement = null;
+        nav.focusFirst('dashboard');
+        const cible = nav._state.focusedElement;
+
+        const resultat = {
+            id: cible?.id ?? null,
+            classe: cible?.className ?? null,
+            estConteneur: !!cible?.classList?.contains('sh-genre-chips-container'),
+            anneau: cible ? getComputedStyle(cible).outlineWidth : null,
+        };
+        hote.remove();
+        return resultat;
+    });
+
+    const ok = !r.estConteneur && r.id !== null;
+    return { ok, detail: `focus sur « ${r.id} » (${r.classe}) · anneau ${r.anneau}` };
+});
+
 await scenario('Aucune fuite d\'écouteurs après 30 cycles d\'ouverture/fermeture', async () => {
     const p = await nouvellePage(navigateur, () => {
         window.__n = 0;

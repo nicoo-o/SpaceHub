@@ -200,7 +200,14 @@ class Dashboard {
 
             <div class="sh-dashboard-body">
                 <!-- Étagère Univers & Collections (Liquid Spring Morphing Track) -->
-                <div class="sh-genre-chips-container" tabindex="0" data-nav-focusable="true">
+                <!-- Conteneur de DÉFILEMENT, pas un contrôle. Il portait
+                     tabindex="0" et data-nav-focusable="true" alors que chacune
+                     de ses puces les porte déjà : le moteur focalisait donc la
+                     boîte au démarrage (focusFirst prend le premier focalisable
+                     dans l'ordre du DOM, et le conteneur précède ses enfants),
+                     ce qui dessinait un anneau blanc sur toute la largeur de la
+                     barre. Les puces sont les cibles ; la boîte les contient. -->
+                <div class="sh-genre-chips-container">
                     <div class="sh-genre-bar-track">
                         <div class="sh-genre-sliding-pill" id="sh-genre-sliding-pill"></div>
                         <button class="sh-genre-chip active" tabindex="0" data-nav-focusable="true" data-genre="all">
