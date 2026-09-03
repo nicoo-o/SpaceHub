@@ -903,7 +903,13 @@ export class SpatialNavigation {
         const target = this._findSpatialTarget(action);
         if (target) {
             this.setFocus(target, {
-                reason: (direction === 'up' || direction === 'down') ? 'vertical-move' : 'repeat',
+                // `action`, pas `direction` : le paramètre s'appelle `action`.
+                // La variable `direction` n'existait nulle part dans cette
+                // portée, et le fichier est en mode strict — chaque appui sur
+                // une flèche levait donc une ReferenceError avant même de
+                // déplacer le focus. Voir la note de test plus bas.
+                reason: (action === NavAction.UP || action === NavAction.DOWN)
+                    ? 'vertical-move' : 'repeat',
                 instantScroll: isFastScroll,
             });
             if (!isFastScroll) {

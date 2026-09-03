@@ -415,10 +415,39 @@ body::-webkit-scrollbar, #app::-webkit-scrollbar { display: none; width: 0; heig
    l'est pas au clavier, ni pour un lecteur d'ecran — et un focus invisible
    est exactement ce qu'une regle d'accessibilite interdit.
    Le :not(.sh-focus-active) evite tout double anneau : quand le moteur
-   focalise, c'est la regle precedente qui s'applique, celle-ci se retire. */
-:focus-visible:not(.sh-focus-active) {
+   focalise, c'est la regle precedente qui s'applique, celle-ci se retire.
+
+   ATTENTION a la portee. La premiere version de cette regle visait TOUS les
+   elements (":focus-visible"), et dessinait donc un anneau blanc de 3 px
+   autour de la barre de genres entiere : .sh-genre-chips-container porte
+   tabindex="0" pour etre atteignable a la telecommande, et Chrome rend en
+   outre les conteneurs defilables focalisables d'eux-memes. Un conteneur de
+   defilement n'est pas un controle — ce sont ses PUCES qui doivent montrer le
+   focus, pas la boite qui les contient. La regle ne vise donc plus que de
+   vrais controles, et exclut explicitement les conteneurs de defilement. */
+a:focus-visible:not(.sh-focus-active),
+button:focus-visible:not(.sh-focus-active),
+input:focus-visible:not(.sh-focus-active),
+select:focus-visible:not(.sh-focus-active),
+textarea:focus-visible:not(.sh-focus-active),
+[role="button"]:focus-visible:not(.sh-focus-active),
+[role="link"]:focus-visible:not(.sh-focus-active),
+.sh-card:focus-visible:not(.sh-focus-active) {
     outline: 3px solid var(--sh-focus-ring, rgba(255, 255, 255, 0.95)) !important;
     outline-offset: -3px !important;
+}
+
+/* Les conteneurs de defilement ne montrent jamais d'anneau : ils ne sont
+   focalisables que pour permettre a la telecommande de les traverser. */
+.sh-genre-chips-container:focus,
+.sh-genre-chips-container:focus-visible,
+.sh-lib-genres-carousel:focus,
+.sh-lib-genres-carousel:focus-visible,
+.sh-card-grid:focus,
+.sh-card-grid:focus-visible,
+.sh-gooey-carousel:focus,
+.sh-gooey-carousel:focus-visible {
+    outline: none !important;
 }
 
 /* Les affiches ont deja un effet de zoom/elevation au focus, mais un ecart de

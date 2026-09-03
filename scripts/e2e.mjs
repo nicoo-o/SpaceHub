@@ -328,6 +328,79 @@ await scenario('Bas atteint la bannière large juste dessous, pas la carte loint
     return { ok, detail: `recouvrante → ${r.choisi} · décalée → ${r.choisiDecale}` };
 });
 
+await scenario('Une vraie touche fléchée déplace le focus, sans erreur en console', async () => {
+    // Ce scénario manquait, et son absence a coûté cher : une ReferenceError
+    // dormait dans _executeNavStep, et AUCUN des douze scénarios précédents ne
+    // pressait de touche fléchée. Ils pressaient Échap, Ctrl+K, ou appelaient
+    // _findSpatialTarget directement — jamais le chemin complet.
+    const p = await nouvellePage(navigateur);
+    const r = await p.evaluate(async () => {
+        const nav = window.SpaceHub.core.spatialNavigation;
+        const hote = document.createElement('div');
+        hote.className = 'sh-dashboard-body';
+        hote.style.cssText = 'position:absolute;top:0;left:0;width:1900px;height:600px;';
+        for (let i = 0; i < 4; i++) {
+            const c = document.createElement('div');
+            c.id = `fl-${i}`;
+            c.className = 'sh-card';
+            c.tabIndex = 0;
+            c.style.cssText = `position:absolute;left:${i * 260}px;top:0;width:200px;height:200px;`;
+            hote.appendChild(c);
+        }
+        document.body.appendChild(hote);
+        nav.setFocus(document.getElementById('fl-0'), { silent: true, scroll: false });
+        const depart = nav._state.focusedElement?.id ?? null;
+
+        // La VRAIE touche, envoyée dans la fenêtre, qui traverse InputRouter
+        // puis _handleKeyDown puis _startInputRepeat puis _executeNavStep.
+        window.dispatchEvent(new KeyboardEvent('keydown',
+            { key: 'ArrowRight', bubbles: true, cancelable: true }));
+        await new Promise(r => setTimeout(r, 150));
+        const apres = nav._state.focusedElement?.id ?? null;
+        window.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight', bubbles: true }));
+
+        hote.remove();
+        return { depart, apres };
+    });
+    // InputRouter attrape les exceptions des gestionnaires : une erreur ne
+    // remonte donc PAS en pageerror. C'est le déplacement effectif du focus
+    // qui fait foi, pas l'absence d'erreur.
+    const erreurs = p.__erreurs.length;
+    await p.context().close();
+
+    const ok = r.depart === 'fl-0' && r.apres === 'fl-1' && erreurs === 0;
+    return { ok, detail: `${r.depart} → ${r.apres} · ${erreurs} erreur(s) de page` };
+});
+
+await scenario('Un conteneur de défilement ne dessine pas d\'anneau de focus', async () => {
+    // La barre de genres porte tabindex="0" pour être atteignable à la
+    // télécommande, et Chrome rend en outre les conteneurs défilables
+    // focalisables. Une règle :focus-visible trop large lui dessinait un
+    // anneau blanc de 3 px sur toute sa largeur.
+    const r = await page.evaluate(async () => {
+        const barre = document.createElement('div');
+        barre.className = 'sh-genre-chips-container';
+        barre.tabIndex = 0;
+        barre.style.cssText = 'position:absolute;top:0;left:0;width:900px;height:60px;';
+        const bouton = document.createElement('button');
+        bouton.className = 'sh-genre-chip';
+        barre.appendChild(bouton);
+        document.body.appendChild(barre);
+
+        barre.focus();
+        const surBarre = getComputedStyle(barre).outlineWidth;
+        bouton.focus();
+        const surBouton = getComputedStyle(bouton).outlineWidth;
+
+        barre.remove();
+        return { surBarre, surBouton };
+    });
+
+    const nul = (v) => v === '0px' || v === 'none' || v === '';
+    const ok = nul(r.surBarre) && !nul(r.surBouton);
+    return { ok, detail: `conteneur: ${r.surBarre} · bouton: ${r.surBouton}` };
+});
+
 await scenario('Aucune fuite d\'écouteurs après 30 cycles d\'ouverture/fermeture', async () => {
     const p = await nouvellePage(navigateur, () => {
         window.__n = 0;
