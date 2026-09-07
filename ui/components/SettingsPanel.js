@@ -17,11 +17,24 @@ class SettingsPanel {
     constructor() {
         // Confirmation du scope settings dans le Focus Registry
         const spatialNav = svc.nav() || svc.nav();
-        if (spatialNav?.registerFocusables) {
-            spatialNav.registerFocusables('settings', (container) => {
-                const root = container || document.querySelector('#sh-modal-spacehub-settings') || document;
+        // Ce fournisseur ÉCRASAIT le scope du moteur, et sa garde ne servait
+        // à rien : `getFocusables` appelle le fournisseur avec `this._root`,
+        // c'est-à-dire `document`. Or `document` est truthy, donc
+        // `container || document.querySelector(…)` s'arrêtait au premier
+        // terme et la racine confinée n'était JAMAIS évaluée. Le scope
+        // renvoyait tous les contrôles de la page entière : réglages ouverts,
+        // descendre dans la colonne de gauche faisait sortir le focus de la
+        // modale pour se poser sur une carte du tableau de bord, invisible
+        // sous l'overlay.
+        //
+        // On compose au lieu d'écraser, et on cherche la racine réelle sans
+        // dépendre de l'argument.
+        if (spatialNav?.extendFocusables) {
+            spatialNav.extendFocusables('settings', () => {
+                const root = document.querySelector('#sh-modal-spacehub-settings');
+                if (!root || root.closest('[inert]')) return [];
                 return Array.from(root.querySelectorAll('.sh-settings-nav__item, .sh-input, .sh-settings-toggle, .sh-btn--primary, [data-nav-focusable="true"]'));
-            }, { force: true }); // re-registration volontaire — cf. plan A04
+            }, { source: 'panneau-reglages' });
         }
         this._log = new Logger('SettingsPanel');
         this._modal = null;
@@ -355,7 +368,7 @@ class SettingsPanel {
                             </div>
                             <div class="sh-form-row">
                                 <input type="text" class="sh-input" id="cfg-sonarr-url" placeholder="http://localhost:8989" value="${s?.get('sonarr.url', 'http://localhost:8989') || ''}"/>
-                                <input type="password" class="sh-input" id="cfg-sonarr-key" placeholder="Clé API Sonarr" value="${s?.get('sonarr.apiKey', '') || ''}"/>
+                                <input type="password" class="sh-input" id="cfg-sonarr-key" autocomplete="off" placeholder="${s?.get('sonarr.apiKey', '') ? 'Clé API Sonarr enregistrée (••••) — saisir pour remplacer' : 'Clé API Sonarr'}"/>
                             </div>
                         </div>
 
@@ -367,7 +380,7 @@ class SettingsPanel {
                             </div>
                             <div class="sh-form-row">
                                 <input type="text" class="sh-input" id="cfg-radarr-url" placeholder="http://localhost:7878" value="${s?.get('radarr.url', 'http://localhost:7878') || ''}"/>
-                                <input type="password" class="sh-input" id="cfg-radarr-key" placeholder="Clé API Radarr" value="${s?.get('radarr.apiKey', '') || ''}"/>
+                                <input type="password" class="sh-input" id="cfg-radarr-key" autocomplete="off" placeholder="${s?.get('radarr.apiKey', '') ? 'Clé API Radarr enregistrée (••••) — saisir pour remplacer' : 'Clé API Radarr'}"/>
                             </div>
                         </div>
 
@@ -379,7 +392,7 @@ class SettingsPanel {
                             </div>
                             <div class="sh-form-row">
                                 <input type="text" class="sh-input" id="cfg-prowlarr-url" placeholder="http://localhost:9696" value="${s?.get('prowlarr.url', 'http://localhost:9696') || ''}"/>
-                                <input type="password" class="sh-input" id="cfg-prowlarr-key" placeholder="Clé API Prowlarr" value="${s?.get('prowlarr.apiKey', '') || ''}"/>
+                                <input type="password" class="sh-input" id="cfg-prowlarr-key" autocomplete="off" placeholder="${s?.get('prowlarr.apiKey', '') ? 'Clé API Prowlarr enregistrée (••••) — saisir pour remplacer' : 'Clé API Prowlarr'}"/>
                             </div>
                         </div>
 
@@ -391,7 +404,7 @@ class SettingsPanel {
                             </div>
                             <div class="sh-form-row">
                                 <input type="text" class="sh-input" id="cfg-bazarr-url" placeholder="http://localhost:6767" value="${s?.get('bazarr.url', 'http://localhost:6767') || ''}"/>
-                                <input type="password" class="sh-input" id="cfg-bazarr-key" placeholder="Clé API Bazarr" value="${s?.get('bazarr.apiKey', '') || ''}"/>
+                                <input type="password" class="sh-input" id="cfg-bazarr-key" autocomplete="off" placeholder="${s?.get('bazarr.apiKey', '') ? 'Clé API Bazarr enregistrée (••••) — saisir pour remplacer' : 'Clé API Bazarr'}"/>
                             </div>
                         </div>
 
@@ -403,7 +416,7 @@ class SettingsPanel {
                             </div>
                             <div class="sh-form-row">
                                 <input type="text" class="sh-input" id="cfg-jellyseerr-url" placeholder="http://localhost:5055" value="${s?.get('jellyseerr.url', 'http://localhost:5055') || ''}"/>
-                                <input type="password" class="sh-input" id="cfg-jellyseerr-key" placeholder="Clé API Jellyseerr" value="${s?.get('jellyseerr.apiKey', '') || ''}"/>
+                                <input type="password" class="sh-input" id="cfg-jellyseerr-key" autocomplete="off" placeholder="${s?.get('jellyseerr.apiKey', '') ? 'Clé API Jellyseerr enregistrée (••••) — saisir pour remplacer' : 'Clé API Jellyseerr'}"/>
                             </div>
                         </div>
 
@@ -416,7 +429,7 @@ class SettingsPanel {
                             <div class="sh-form-row">
                                 <input type="text" class="sh-input" id="cfg-qbit-url" placeholder="http://localhost:8080" value="${s?.get('qbittorrent.url', 'http://localhost:8080') || ''}"/>
                                 <input type="text" class="sh-input" id="cfg-qbit-user" placeholder="Nom d'utilisateur" value="${s?.get('qbittorrent.username', 'admin') || ''}"/>
-                                <input type="password" class="sh-input" id="cfg-qbit-pass" placeholder="Mot de passe" value="${s?.get('qbittorrent.password', '') || ''}"/>
+                                <input type="password" class="sh-input" id="cfg-qbit-pass" autocomplete="off" placeholder="${s?.get('qbittorrent.password', '') ? 'Mot de passe enregistrée (••••) — saisir pour remplacer' : 'Mot de passe'}"/>
                             </div>
                         </div>
                     </div>
@@ -606,7 +619,7 @@ class SettingsPanel {
             const password = el.querySelector('#cfg-qbit-pass')?.value ?? el.querySelector('#cfg-qbittorrent-pass')?.value;
             if (url) this._settings?.set('qbittorrent.url', url);
             if (username) this._settings?.set('qbittorrent.username', username);
-            if (password !== undefined) this._settings?.set('qbittorrent.password', password);
+            if (password) this._settings?.set('qbittorrent.password', password);
             svc.integration('qbittorrent')?.api?.updateConfig?.();
 
             e.target.textContent = 'Test...';
@@ -667,7 +680,13 @@ class SettingsPanel {
 
         // Export JSON
         el.querySelector('#btn-export-settings')?.addEventListener('click', () => {
-            const json = this._settings?.export() || '{}';
+            // `export()` sortait TOUT en clair : les cinq clés Servarr, le mot
+            // de passe qBittorrent, le webhook Discord, le jeton du bot
+            // Telegram — et `parental.pinHash` AVEC son sel, ce qui rend un
+            // code à quatre chiffres cassable hors ligne en quelques secondes.
+            // `exportSanitized()` existait déjà, masque tout ce qui ressemble à
+            // un secret… et n'était appelée nulle part.
+            const json = this._settings?.exportSanitized?.() || this._settings?.export() || '{}';
             navigator.clipboard.writeText(json);
             svc.toaster()?.success('Configuration copiée dans le presse-papier !');
         });
@@ -675,11 +694,22 @@ class SettingsPanel {
         // Import JSON
         el.querySelector('#btn-import-settings')?.addEventListener('click', () => {
             const text = el.querySelector('#txt-import-json')?.value?.trim();
-            if (text) {
-                this._settings?.import(text);
-                svc.toaster()?.success('Configuration restaurée !');
-                modal.close();
+            if (!text) return;
+            // `import()` renvoie désormais un compte rendu : annoncer « restauré »
+            // sans le lire mentait dès que le fichier était refusé en entier.
+            const bilan = this._settings?.import(text);
+            if (!bilan || bilan.ok === false) {
+                svc.toaster()?.error(bilan?.erreur || 'Configuration non importée.');
+                return;
             }
+            if (bilan.refusees?.length) {
+                svc.toaster()?.info(
+                    `${bilan.appliquees} réglage(s) importé(s), ${bilan.refusees.length} ignoré(s) `
+                    + '(clés protégées ou types incohérents — détail dans la console).');
+            } else {
+                svc.toaster()?.success(`Configuration restaurée (${bilan.appliquees} réglages).`);
+            }
+            modal.close();
         });
 
         // Reset
@@ -1378,23 +1408,32 @@ class SettingsPanel {
             s.set('ratings.display.providers', ratingProviders.length > 0 ? ratingProviders : ['jellyfin','rt','imdb']);
 
             s.set('sonarr.url', el.querySelector('#cfg-sonarr-url')?.value?.trim() || '');
-            s.set('sonarr.apiKey', el.querySelector('#cfg-sonarr-key')?.value?.trim() || '');
+            // Champ vide = « je n'y touche pas », et non « efface la clé ».
+            // Les champs de secret ne sont plus pré-remplis (leur valeur
+            // apparaissait en clair dans le DOM) : les enregistrer
+            // inconditionnellement effacerait donc la clé à chaque
+            // sauvegarde des réglages.
+            const majSecret = (sel, cle) => {
+                const saisi = el.querySelector(sel)?.value?.trim();
+                if (saisi) s.set(cle, saisi);
+            };
+            majSecret('#cfg-sonarr-key', 'sonarr.apiKey');
 
             s.set('radarr.url', el.querySelector('#cfg-radarr-url')?.value?.trim() || '');
-            s.set('radarr.apiKey', el.querySelector('#cfg-radarr-key')?.value?.trim() || '');
+            majSecret('#cfg-radarr-key', 'radarr.apiKey');
 
             s.set('prowlarr.url', el.querySelector('#cfg-prowlarr-url')?.value?.trim());
-            s.set('prowlarr.apiKey', el.querySelector('#cfg-prowlarr-key')?.value?.trim());
+            majSecret('#cfg-prowlarr-key', 'prowlarr.apiKey');
 
             s.set('bazarr.url', el.querySelector('#cfg-bazarr-url')?.value?.trim());
-            s.set('bazarr.apiKey', el.querySelector('#cfg-bazarr-key')?.value?.trim());
+            majSecret('#cfg-bazarr-key', 'bazarr.apiKey');
 
             s.set('jellyseerr.url', el.querySelector('#cfg-jellyseerr-url')?.value?.trim() || '');
-            s.set('jellyseerr.apiKey', el.querySelector('#cfg-jellyseerr-key')?.value?.trim() || '');
+            majSecret('#cfg-jellyseerr-key', 'jellyseerr.apiKey');
 
             s.set('qbittorrent.url', (el.querySelector('#cfg-qbit-url')?.value || el.querySelector('#cfg-qbittorrent-url')?.value)?.trim());
             s.set('qbittorrent.username', (el.querySelector('#cfg-qbit-user')?.value || el.querySelector('#cfg-qbittorrent-user')?.value)?.trim());
-            s.set('qbittorrent.password', el.querySelector('#cfg-qbit-pass')?.value ?? el.querySelector('#cfg-qbittorrent-pass')?.value);
+            majSecret('#cfg-qbit-pass', 'qbittorrent.password');
 
             s.set('notifications.enabled', el.querySelector('#cfg-notif-enabled')?.checked);
             s.set('notifications.browser', el.querySelector('#cfg-notif-browser')?.checked);

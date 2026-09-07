@@ -23,7 +23,7 @@
     border-radius: 50%;
     filter: blur(80px);
     opacity: 0;
-    animation: sh-login-orb-pulse var(--sh-dur-5) ease-in-out infinite;
+    animation: sh-login-orb-pulse var(--sh-loop-ambiant) ease-in-out infinite;
 }
 .sh-login-nebula__orb--1 {
     width: 500px; height: 500px;
@@ -65,10 +65,7 @@
     animation: sh-springIn var(--sh-dur-5) var(--sh-ease-out) both;
 }
 
-@keyframes sh-login-card-in {
-    from { opacity: 0; transform: scale(0.93) translateY(20px); }
-    to   { opacity: 1; transform: scale(1)    translateY(0); }
-}
+
 
 .sh-login-card--shake {
     animation: sh-login-shake var(--sh-dur-4) var(--sh-ease-shake) both;
@@ -106,7 +103,7 @@
     width: 4px; height: 4px;
     border-radius: 50%;
     background: var(--sh-ink-solid, #ffffff);
-    animation: sh-login-dot var(--sh-dur-5) ease-in-out infinite;
+    animation: sh-login-dot var(--sh-loop-pulse) ease-in-out infinite;
 }
 @keyframes sh-login-dot {
     0%, 100% { transform: scale(1); opacity: 1; }
@@ -195,6 +192,26 @@
     animation: sh-fadeInUp var(--sh-dur-3) ease both;
 }
 
+/* ── Avis de contexte ──────────────────────────────────────────
+   Distinct de `.sh-login-error` : ce n'est pas une faute de saisie mais
+   une information (« votre session a expiré »). Le rouge dirait à tort
+   à l'utilisateur qu'il s'est trompé. */
+.sh-login-notice {
+    /* rgba(var(--token-rgb), a) et non color-mix() : le plancher de
+       compatibilité est Chrome 69 (téléviseurs 2020), où color-mix()
+       n'existe pas et ferait tomber la règle entière en silence. */
+    background: rgba(var(--sh-focus-ring-rgb, 255, 159, 10), 0.16);
+    border: 1px solid rgba(var(--sh-focus-ring-rgb, 255, 159, 10), 0.34);
+    border-radius: 12px;
+    padding: 11px 14px;
+    margin-bottom: 16px;
+    color: var(--sh-text-primary, #ffffff);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.45;
+    animation: sh-fadeInUp var(--sh-dur-3) ease both;
+}
+
 /* ── Bouton Se Connecter ──────────────────────────────────────── */
 .sh-login-btn {
     position: relative;
@@ -242,7 +259,7 @@
 }
 
 .sh-login-spinner {
-    animation: sh-spin var(--sh-dur-5) linear infinite;
+    animation: sh-spin var(--sh-loop-spin) linear infinite;
     transform-origin: center;
 }
 

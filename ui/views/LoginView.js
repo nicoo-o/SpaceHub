@@ -12,8 +12,17 @@
 import './LoginView.css';
 import * as svc from '../../core/services.js';
 class LoginView {
-    constructor(onLoginSuccess) {
+    /**
+     * @param {Function} onLoginSuccess  Rappel exécuté après une connexion réussie.
+     * @param {Object}  [options]
+     * @param {string}  [options.avis]   Message affiché en haut de la carte,
+     *   par exemple « votre session a expiré ». Il explique POURQUOI on est
+     *   revenu ici : sans lui, une session révoquée côté serveur ramenait
+     *   l'utilisateur à l'écran de connexion sans un mot d'explication.
+     */
+    constructor(onLoginSuccess, options = {}) {
         this.onLoginSuccess = onLoginSuccess;
+        this._avis = typeof options.avis === 'string' ? options.avis : '';
         this._injectStyles();
     }
 
@@ -43,6 +52,9 @@ class LoginView {
                         </div>
                         <p class="sh-login-subtitle">Connectez-vous à votre serveur Jellyfin</p>
                     </div>
+
+                    <!-- Avis de contexte (session expirée, déconnexion forcée…). -->
+                    <div class="sh-login-notice" id="sh-login-notice" role="status" style="display:none;"></div>
 
                     <!-- Formulaire -->
                     <form class="sh-login-form" id="sh-login-form" novalidate>
@@ -113,12 +125,21 @@ class LoginView {
             </div>
         `;
 
+        // L'avis est injecté par `textContent` et jamais par `innerHTML` : son
+        // contenu peut provenir d'un message serveur.
+        const avisEl = container.querySelector('#sh-login-notice');
+        if (avisEl && this._avis) {
+            avisEl.textContent = this._avis;
+            avisEl.style.display = '';
+        }
+
         const form    = container.querySelector('#sh-login-form');
         const btn     = container.querySelector('#sh-login-btn');
         const errorEl = container.querySelector('#sh-login-error');
         const content = container.querySelector('#sh-login-btn-content');
         const loading = container.querySelector('#sh-login-btn-loading');
 
+        this._preremplirDepuisDerniereSession(container);
         this._brancherProfils(container);
 
         form.addEventListener('submit', async (e) => {
@@ -172,6 +193,38 @@ class LoginView {
      *     passe. Le compte sans mot de passe est connecté directement, ce que
      *     l'administrateur a explicitement autorisé côté serveur.
      */
+    /**
+     * Pré-remplit l'écran avec la dernière session connue.
+     *
+     * Depuis que le jeton ne survit plus à la fermeture du navigateur (voir
+     * la note dans `AuthManager._loadAuth`), l'utilisateur repasse par cet
+     * écran à chaque nouvelle session. Ce serait un net recul si tout était à
+     * ressaisir. `AuthManager.derniereSession()` conserve — dans localStorage,
+     * et sans aucun secret — l'adresse du serveur et le nom du compte : il ne
+     * reste donc que le mot de passe à taper, et le focus y est posé
+     * directement.
+     *
+     * @param {HTMLElement} container
+     */
+    _preremplirDepuisDerniereSession(container) {
+        const derniere = svc.auth()?.derniereSession?.();
+        if (!derniere) return;
+
+        const champServeur = container.querySelector('#server-url');
+        const champNom = container.querySelector('#username');
+        const champMdp = container.querySelector('#password');
+
+        if (champServeur && derniere.ServerUrl) champServeur.value = derniere.ServerUrl;
+        if (champNom && derniere.UserName) champNom.value = derniere.UserName;
+
+        // Le champ utile est celui qui reste vide.
+        if (champMdp && derniere.UserName) {
+            champMdp.setAttribute('autofocus', 'autofocus');
+            champNom?.removeAttribute('autofocus');
+            requestAnimationFrame(() => champMdp.focus());
+        }
+    }
+
     _brancherProfils(container) {
         const zone = container.querySelector('#sh-login-profiles');
         const grille = container.querySelector('#sh-login-profile-grid');

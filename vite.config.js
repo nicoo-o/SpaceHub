@@ -40,6 +40,53 @@ function isAllowedProxyTarget(urlStr) {
   }
 }
 
+/**
+ * AUDIT A9 — pourquoi ce contrôle d'origine existe.
+ *
+ * Le proxy filtrait déjà sa CIBLE (liste blanche anti-SSRF). Il ne filtrait
+ * pas son APPELANT, et répondait `access-control-allow-origin: *`. Or
+ * `server.host: true` publie le serveur de développement sur tout le réseau
+ * local. Conséquence : n'importe quelle page web ouverte dans le navigateur
+ * de l'utilisateur pouvait faire
+ *
+ *     fetch('http://192.168.1.20:3000/api-proxy?url=http://192.168.1.30:8989/api/v3/…')
+ *
+ * et LIRE la réponse — le `*` l'y autorisait explicitement. Le proxy devenait
+ * une fenêtre sur le réseau local de l'utilisateur, ouverte à tout site
+ * visité, aussi longtemps que `npm run dev` tournait.
+ *
+ * On n'autorise donc que les origines servies par ce même serveur (l'app
+ * elle-même) et les requêtes sans origine (curl, `<video>`, navigation directe).
+ *
+ * @param {import('node:http').IncomingMessage} req
+ * @returns {string|null} L'origine à renvoyer, ou `null` si elle est refusée.
+ */
+function origineAutorisee(req) {
+  const origine = req.headers['origin'];
+  if (!origine) return null;            // Pas de CORS demandé : rien à accorder.
+  try {
+    const u = new URL(origine);
+    // Même machine que le serveur de développement, quel que soit le port
+    // (l'app peut être servie sur 3000, un aperçu sur 4173…).
+    return isPrivateOrLocalHost(u.hostname) ? origine : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Applique les en-têtes CORS restreints, ou aucun si l'origine est refusée. */
+function poserEntetesCors(req, entetes) {
+  const origine = origineAutorisee(req);
+  if (!origine) return entetes;
+  entetes['access-control-allow-origin'] = origine;
+  // Dès qu'on renvoie une origine variable, `Vary` est obligatoire : sans lui,
+  // un cache intermédiaire servirait la réponse d'une origine à une autre.
+  entetes['vary'] = 'Origin';
+  entetes['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
+  entetes['access-control-allow-headers'] = 'authorization, content-type, x-api-key, x-emby-authorization, accept';
+  return entetes;
+}
+
 function dynamicCorsProxyPlugin() {
   // Le middleware est identique en dev et en preview : on le définit une seule
   // fois et on l'accroche aux deux serveurs. Sans configurePreviewServer, le
@@ -68,13 +115,7 @@ function dynamicCorsProxyPlugin() {
 
         // Handle preflight OPTIONS
         if (req.method === 'OPTIONS') {
-          res.writeHead(204, {
-            'access-control-allow-origin': '*',
-            'access-control-allow-methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-            'access-control-allow-headers': '*',
-            // 'access-control-allow-credentials' est incompatible avec origin: *
-            // (la spec CORS interdit cette combinaison — les navigateurs ignorent le header).
-          });
+          res.writeHead(204, poserEntetesCors(req, {}));
           res.end();
           return;
         }
@@ -125,12 +166,9 @@ function dynamicCorsProxyPlugin() {
             };
 
             const proxyReq = client.request(requestOptions, (proxyRes) => {
-              const responseHeaders = { ...proxyRes.headers };
-              responseHeaders['access-control-allow-origin'] = '*';
-              responseHeaders['access-control-allow-methods'] = 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
-              responseHeaders['access-control-allow-headers'] = '*';
-              // 'access-control-allow-credentials' est incompatible avec origin: *
-              // (la spec CORS interdit cette combinaison — les navigateurs ignorent le header).
+              const responseHeaders = poserEntetesCors(req, { ...proxyRes.headers });
+              // Incompatible avec une origine renvoyée sans authentification
+              // partagée ; on ne le propage jamais depuis la cible.
               delete responseHeaders['access-control-allow-credentials'];
 
               // Nettoyage des cookies de session pour compatibilité maximale
@@ -184,6 +222,42 @@ function dynamicCorsProxyPlugin() {
 
 export default defineConfig({
   plugins: [dynamicCorsProxyPlugin()],
+  resolve: {
+    // ══ hls.js : ESM (défaut) ou UMD/ES5 (SPACEHUB_HLS_UMD=1) ═══════════════
+    //
+    // LE PROBLÈME RAPPORTÉ. Un rapport hls.js (#7106) documente une
+    // dégradation PROGRESSIVE sur les téléviseurs Samsung Tizen en lecture
+    // longue — le flux part bien, puis se dégrade au fil des minutes. La
+    // cause n'a pas été trouvée dans la configuration de hls.js mais dans la
+    // combinaison « sortie ESM de Vite + anciens moteurs V8 », dont la gestion
+    // mémoire est sous-optimale. Le correctif retenu par les auteurs du
+    // rapport a été d'aliaser le build UMD/ES5. Notre couple Vite +
+    // Chrome 69 correspond exactement au cas décrit.
+    //
+    // LA MESURE, faite ici et non recopiée d'ailleurs :
+    //
+    //     ESM (dist/hls.mjs)  →  593 kB  (gzip 185 kB)   ← défaut
+    //     UMD (dist/hls.js)   →  625 kB  (gzip 194 kB)   ← +32 kB, +5,5 %
+    //
+    // Les 25 scénarios de bout en bout passent dans les deux cas.
+    //
+    // POURQUOI CE N'EST PAS LE DÉFAUT. Le coût est certain et mesuré : 9 kB
+    // de plus sur le fil, sur un appareil dont le Wi-Fi est justement le
+    // point faible. Le gain, lui, n'est PAS vérifié — il demande un vrai
+    // téléviseur Tizen et une lecture d'au moins vingt minutes. Échanger un
+    // coût certain contre un bénéfice supposé, sur la seule dépendance lourde
+    // de l'application et sur son chemin critique, serait un mauvais marché.
+    //
+    // POUR TESTER SUR UN VRAI TÉLÉVISEUR, une commande :
+    //
+    //     SPACEHUB_HLS_UMD=1 npm run build
+    //
+    // Si la dégradation disparaît, faire de cette valeur le défaut est un
+    // changement d'une ligne — et il sera alors adossé à une mesure.
+    alias: process.env.SPACEHUB_HLS_UMD === '1'
+      ? { 'hls.js': 'hls.js/dist/hls.js' }
+      : {},
+  },
   server: {
     port: 3000,
     open: true,
@@ -237,7 +311,14 @@ export default defineConfig({
     // couvertes par core/compat.js — esbuild ne traduit que la syntaxe.
     target: 'chrome69',
     outDir: 'dist',
-    sourcemap: true,
+    // AUDIT A15 — `sourcemap: true` publiait les `.map` à côté du bundle.
+    // Elles reconstituent le code source complet : noms de variables, logique,
+    // points d'entrée non documentés, et tout secret qui traînerait en dur.
+    // `'hidden'` les GÉNÈRE toujours (on peut donc les archiver ou les
+    // envoyer à un collecteur d'erreurs) mais n'écrit plus le commentaire
+    // `//# sourceMappingURL=` dans les fichiers servis : le navigateur d'un
+    // visiteur ne les demande plus.
+    sourcemap: 'hidden',
     // Un seul fichier CSS pour toute l'application.
     // Raison : depuis l'extraction du CSS hors des fichiers JS, l'ordre de la
     // cascade dépend de l'ordre d'émission des feuilles. Avec le découpage par

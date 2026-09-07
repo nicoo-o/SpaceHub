@@ -2,6 +2,58 @@
 <html lang="fr" data-sh-theme="spacehub-dark">
 <head>
     <meta charset="UTF-8" />
+
+    <!-- ══ AUDIT A8 / A10 — Politique de sécurité du contenu ═══════════════
+         Il n'y en avait AUCUNE, nulle part, alors que docs/XSS_EXCEPTIONS.md
+         affirmait le contraire. Or l'application construit énormément de
+         balisage par innerHTML à partir de données du serveur : sans CSP, la
+         moindre injection réussie disposait de la page entière.
+
+         Limites assumées de la forme <meta>, à connaître avant d'y toucher :
+           • `frame-ancestors`, `sandbox` et `report-uri` y sont INOPÉRANTS —
+             ils exigent un vrai en-tête HTTP. Le déploiement derrière un
+             reverse-proxy doit donc les ajouter (voir docs/DEPLOIEMENT.md).
+           • Pas de mode `Report-Only` en <meta>.
+           • La règle ne s'applique qu'à partir de son analyse : cette balise
+             doit rester la PREMIÈRE du <head> après <meta charset>.
+
+         Choix des directives :
+           • `script-src 'self'` — les scripts ne viennent que du bundle. Pas
+             de 'unsafe-inline' : c'est ce qui donne sa valeur à la politique.
+           • `style-src` accepte 'unsafe-inline' : l'application pose des
+             styles en ligne (positions calculées, variables de thème). Le
+             style en ligne ne permet pas d'exécuter du code.
+           • `img-src` et `media-src` acceptent http: et https: — le serveur
+             Jellyfin de l'utilisateur est sur son réseau local, en clair, à
+             une adresse qu'on ne connaît pas à l'avance.
+           • `frame-src` : uniquement le lecteur YouTube sans cookie.
+           • `object-src 'none'` et `base-uri 'none'` : deux vecteurs
+             classiques d'évasion de CSP, fermés sans coût pour nous.
+         ══════════════════════════════════════════════════════════════════ -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self';
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        font-src 'self' https://fonts.gstatic.com data:;
+        img-src 'self' data: blob: https: http:;
+        media-src 'self' blob: https: http:;
+        connect-src 'self' blob: https: http: ws: wss:;
+        frame-src https://www.youtube-nocookie.com https://www.youtube.com;
+        worker-src 'self' blob:;
+        object-src 'none';
+        base-uri 'none';
+        form-action 'self';
+        frame-ancestors 'self';
+    " />
+
+    <!-- AUDIT A10 — aucune politique de référent n'était déclarée. Le défaut
+         des navigateurs modernes (`strict-origin-when-cross-origin`) envoie
+         encore l'origine à chaque requête tierce ; on descend à `no-referrer`
+         parce qu'aucune ressource externe n'a besoin de savoir d'où l'on
+         vient, et parce que les URL de SpaceHub portent des identifiants
+         d'items Jellyfin. -->
+    <meta name="referrer" content="no-referrer" />
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#101014" />
     <meta name="description" content="SpaceHub — Client Web Unifié pour Jellyfin et la suite Servarr" />

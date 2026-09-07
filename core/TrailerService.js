@@ -24,9 +24,10 @@
 import Logger from './Logger.js';
 
 import './TrailerService.css';
-import { escapeHtml } from './utils/domUtils.js';
+import { escapeHtml , apresSortie } from './utils/domUtils.js';
 import * as svc from './services.js';
 import inputRouter, { PRIORITES } from './InputRouter.js';
+import { fetchAvecDelai } from './utils/reseau.js';
 class TrailerService {
     constructor() {
         this._log = new Logger('TrailerService');
@@ -78,7 +79,7 @@ class TrailerService {
         let full = item;
         if (!Array.isArray(item?.RemoteTrailers) && base && userId) {
             try {
-                const res = await fetch(`${base}/Users/${userId}/Items/${item.Id}?Fields=RemoteTrailers`, { headers });
+                const res = await fetchAvecDelai(`${base}/Users/${userId}/Items/${item.Id}?Fields=RemoteTrailers`, { headers });
                 if (res.ok) {
                     const data = await res.json();
                     if (Array.isArray(data?.RemoteTrailers)) full = { ...item, RemoteTrailers: data.RemoteTrailers };
@@ -91,7 +92,7 @@ class TrailerService {
         // 1. Trailers locaux du serveur Jellyfin (vrais items jouables, lus dans notre player)
         try {
             if (base && userId) {
-                const res = await fetch(`${base}/Users/${userId}/Items/${item.Id}/Trailers`, { headers });
+                const res = await fetchAvecDelai(`${base}/Users/${userId}/Items/${item.Id}/Trailers`, { headers });
                 if (res.ok) {
                     const data = await res.json();
                     const locals = Array.isArray(data?.Items) ? data.Items.filter(t => t?.Id) : [];
@@ -296,9 +297,22 @@ class TrailerService {
                     <button class="sh-trailer-window__close" aria-label="Fermer la bande-annonce" tabindex="0" data-nav-focusable="true">✕</button>
                 </div>
                 <div class="sh-trailer-window__stage">
+                    <!-- AUDIT A17 — le cadre était sans sandbox ni referrerpolicy.
+                         Sans sandbox, la page embarquée peut ouvrir des fenêtres,
+                         déclencher des téléchargements et naviguer la page hôte.
+                         Sans referrerpolicy, l'URL complète de SpaceHub — qui
+                         contient l'identifiant de l'item Jellyfin en cours —
+                         part chez Google à chaque bande-annonce.
+                         allow-scripts + allow-same-origin ensemble annulent
+                         l'isolation d'origine, mais l'origine ici est
+                         youtube-nocookie.com, distincte de la nôtre : le lecteur
+                         garde son propre bac à sable, pas le nôtre. -->
                     <iframe
-                        src="${videoId ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0` : `https://www.youtube-nocookie.com/embed?listType=search&list=${search}&autoplay=1`}"
+                        src="${videoId ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3` : `https://www.youtube-nocookie.com/embed?listType=search&list=${search}&autoplay=1&modestbranding=1&iv_load_policy=3`}"
+                        title="Bande-annonce"
                         frameborder="0"
+                        sandbox="allow-scripts allow-same-origin allow-presentation"
+                        referrerpolicy="strict-origin"
                         allow="autoplay; encrypted-media; picture-in-picture"
                         allowfullscreen></iframe>
                 </div>
@@ -348,7 +362,7 @@ class TrailerService {
         const iframe = win.querySelector('iframe');
         if (iframe) iframe.src = 'about:blank';
         if (immediat) win.remove();
-        else setTimeout(() => win.remove(), 220);
+        else apresSortie(() => win.remove());
     }
 }
 

@@ -279,7 +279,20 @@ try {
     try {
         const { default: AuthManager } = await import('../jellyfin/auth/AuthManager.js');
 
-        // 1. Connexion → session persistée dans localStorage
+        // ATTENTION — CE BLOC A CHANGÉ DE SENS.
+        //
+        // Il vérifiait que la session était persistée dans `localStorage`.
+        // C'est précisément ce qui a été corrigé : `localStorage` est lisible
+        // par tout script de la page, le jeton Jellyfin n'expire pas, et
+        // `localStorage` survit à la fermeture du navigateur — la fenêtre
+        // d'exposition d'un jeton exfiltré n'était donc pas la session mais
+        // « pour toujours ».
+        //
+        // Le jeton vit maintenant en mémoire, avec une copie `sessionStorage`
+        // pour survivre à un rechargement. Les assertions sont inversées : ce
+        // test garantit désormais que le jeton N'EST PAS sur le disque.
+
+        // 1. Connexion → jeton en session, jamais en localStorage
         globalThis.fetch = async () => ({
             ok: true,
             status: 200,
@@ -289,23 +302,36 @@ try {
         const loginRes = await auth.login('http://192.168.1.18:8096', 'nico', 'secret');
         assert.equal(loginRes.success, true);
         assert.equal(auth.isAuthenticated(), true);
-        assert.ok(globalThis.localStorage.getItem('SpaceHub_jellyfin_auth'), 'session persistée dans localStorage');
-        assert.equal(globalThis.sessionStorage.getItem('SpaceHub_jellyfin_auth'), null, 'plus de copie sessionStorage');
+        assert.equal(globalThis.localStorage.getItem('SpaceHub_jellyfin_auth'), null,
+            'le jeton ne doit PAS être dans localStorage');
+        assert.ok(globalThis.sessionStorage.getItem('SpaceHub_jellyfin_auth'),
+            'le jeton doit survivre à un rechargement d\'onglet');
+
+        // …et le jeton n'a fui dans aucune autre clé de localStorage.
+        const contenuDisque = Object.keys(globalThis.localStorage)
+            .map(k => String(globalThis.localStorage.getItem(k) || '')).join('|');
+        assert.ok(!contenuDisque.includes('tok-smoke'), 'le jeton a fui dans localStorage');
 
         // 2. Rechargement simulé : nouvelle instance → session restaurée
         const authReloaded = new AuthManager();
         assert.equal(authReloaded.isAuthenticated(), true);
         assert.equal(authReloaded.getUserId(), 'user-smoke');
 
-        // 3. Migration depuis l'ancienne copie sessionStorage (hardening v1)
-        globalThis.localStorage.removeItem('SpaceHub_jellyfin_auth');
-        globalThis.sessionStorage.setItem('SpaceHub_jellyfin_auth', JSON.stringify({
+        // 2b. La reprise garde de quoi pré-remplir l'écran de connexion, sans secret.
+        const reprise = authReloaded.derniereSession();
+        assert.equal(reprise?.ServerUrl, 'http://192.168.1.18:8096');
+        assert.equal(reprise?.AccessToken, undefined, 'la reprise ne doit contenir aucun secret');
+
+        // 3. Migration d'un jeton hérité de localStorage : repris ET effacé du disque
+        globalThis.sessionStorage.removeItem('SpaceHub_jellyfin_auth');
+        globalThis.localStorage.setItem('SpaceHub_jellyfin_auth', JSON.stringify({
             ServerUrl: 'http://192.168.1.18:8096', AccessToken: 'tok-legacy', User: { Id: 'user-legacy', Name: 'nico' }
         }));
         const authMigrated = new AuthManager();
-        assert.equal(authMigrated.getToken(), 'tok-legacy');
-        assert.ok(globalThis.localStorage.getItem('SpaceHub_jellyfin_auth'), 'migration vers localStorage');
-        assert.equal(globalThis.sessionStorage.getItem('SpaceHub_jellyfin_auth'), null, 'copie legacy nettoyée');
+        assert.equal(authMigrated.getToken(), 'tok-legacy', 'la session en cours ne doit pas être interrompue');
+        assert.equal(globalThis.localStorage.getItem('SpaceHub_jellyfin_auth'), null,
+            'la copie héritée doit être EFFACÉE du disque, pas seulement ignorée');
+        assert.ok(globalThis.sessionStorage.getItem('SpaceHub_jellyfin_auth'), 'jeton hérité repris en session');
 
         // 4. init() : erreur temporaire (504) → session préservée
         globalThis.fetch = async () => ({ ok: false, status: 504 });
@@ -316,7 +342,8 @@ try {
         globalThis.fetch = async () => ({ ok: false, status: 401 });
         assert.equal(await authMigrated.init(), false);
         assert.equal(authMigrated.isAuthenticated(), false);
-        assert.equal(globalThis.localStorage.getItem('SpaceHub_jellyfin_auth'), null, 'session effacée après 401');
+        assert.equal(globalThis.sessionStorage.getItem('SpaceHub_jellyfin_auth'), null, 'session effacée après 401');
+        assert.equal(globalThis.localStorage.getItem('SpaceHub_jellyfin_auth'), null, 'rien ne reste sur le disque');
     } finally {
         globalThis.fetch = originalAuthFetch;
         delete globalThis.localStorage;

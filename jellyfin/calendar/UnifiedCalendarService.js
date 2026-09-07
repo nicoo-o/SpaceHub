@@ -1,4 +1,20 @@
 /**
+ * NOTE DE SÉCURITÉ — pourquoi l'affiche peut manquer.
+ *
+ * Sonarr et Radarr renvoient deux formes d'image : `remoteUrl` (l'URL publique
+ * chez TheTVDB / TMDB) et `url` (un chemin RELATIF sur l'instance Servarr, qui
+ * exige la clé API). L'ancienne version construisait la seconde en collant
+ * `&apikey=<clé>` dans l'URL — laquelle finissait dans un attribut `src` du
+ * DOM, donc lisible par tout script de la page, présente dans les journaux
+ * d'accès de Servarr et dans l'onglet réseau.
+ *
+ * Or cette clé donne le contrôle TOTAL de Sonarr/Radarr. Une jaquette ne vaut
+ * pas ça : on n'utilise plus que `remoteUrl`, et à défaut on n'affiche pas
+ * d'image. Si l'on veut un jour les afficher malgré tout, il faut passer par
+ * un `fetch` avec l'en-tête `X-Api-Key` puis `URL.createObjectURL` — jamais
+ * par l'URL.
+ */
+/**
  * SpaceHub — UnifiedCalendarService
  * Agrégateur universel de sorties médias croisant Sonarr, Radarr et Jellyseerr.
  */
@@ -47,7 +63,7 @@ export class UnifiedCalendarService {
                             if (posterImg.remoteUrl) {
                                 poster = posterImg.remoteUrl;
                             } else if (posterImg.url) {
-                                poster = posterImg.url.startsWith('http') ? posterImg.url : `${sonarrApi.baseUrl}${posterImg.url}${posterImg.url.includes('?') ? '&' : '?'}apikey=${sonarrApi.apiKey}`;
+                                poster = posterImg.url.startsWith('http') ? posterImg.url : null;
                             }
                         }
 
@@ -56,7 +72,7 @@ export class UnifiedCalendarService {
                             if (fanartImg.remoteUrl) {
                                 fanart = fanartImg.remoteUrl;
                             } else if (fanartImg.url) {
-                                fanart = fanartImg.url.startsWith('http') ? fanartImg.url : `${sonarrApi.baseUrl}${fanartImg.url}${fanartImg.url.includes('?') ? '&' : '?'}apikey=${sonarrApi.apiKey}`;
+                                fanart = fanartImg.url.startsWith('http') ? fanartImg.url : null;
                             }
                         }
 
@@ -103,7 +119,7 @@ export class UnifiedCalendarService {
                             if (posterImg.remoteUrl) {
                                 poster = posterImg.remoteUrl;
                             } else if (posterImg.url) {
-                                poster = posterImg.url.startsWith('http') ? posterImg.url : `${radarrApi.baseUrl}${posterImg.url}${posterImg.url.includes('?') ? '&' : '?'}apikey=${radarrApi.apiKey}`;
+                                poster = posterImg.url.startsWith('http') ? posterImg.url : null;
                             }
                         }
 
@@ -112,7 +128,7 @@ export class UnifiedCalendarService {
                             if (fanartImg.remoteUrl) {
                                 fanart = fanartImg.remoteUrl;
                             } else if (fanartImg.url) {
-                                fanart = fanartImg.url.startsWith('http') ? fanartImg.url : `${radarrApi.baseUrl}${fanartImg.url}${fanartImg.url.includes('?') ? '&' : '?'}apikey=${radarrApi.apiKey}`;
+                                fanart = fanartImg.url.startsWith('http') ? fanartImg.url : null;
                             }
                         }
 
