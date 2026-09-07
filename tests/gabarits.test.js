@@ -23,7 +23,7 @@ import { gabaritFeuille } from '../ui/components/ModalSlideUpSheet.template.js';
 import { gabaritConsoleModules } from '../ui/views/JellyfinConsoleModal.template.js';
 
 describe('Gabarits extraits — le HTML n\'a pas bougé d\'un octet', () => {
-    it('VideoPlayer.template.js — identique, au bouton « suivante » et à la vignette près', () => {
+    it('VideoPlayer.template.js — identique, aux quatre ajouts nommés près', () => {
         // Une seule divergence voulue depuis l'empreinte : le bouton
         // « bande-annonce suivante », ajouté au dock en remplacement du menu de
         // choix flottant que TrailerService affichait avant la lecture.
@@ -81,9 +81,46 @@ describe('Gabarits extraits — le HTML n\'a pas bougé d\'un octet', () => {
         expect(apercu, 'la vignette ne doit pas être focalisable')
             .not.toContain('data-nav-focusable');
 
+        // QUATRIÈME divergence voulue : le bloc « Version » (sélecteur de
+        // versions du média) et le bouton « Statistiques de lecture », ajoutés
+        // au tiroir audio/sous-titres. Toujours la même méthode : on extrait du
+        // HTML produit ce qui a été inséré et on l'applique à la référence.
+        // Régénérer l'empreinte reviendrait à ne plus rien prouver.
+        const ANCRE_DIAG = '                                </div>\n'
+            + '                            </div>\n'
+            + '                        </div>\n\n'
+            + '                        <!-- Ancre Dépliante 3';
+        expect(attendu.html, 'l\'ancre du tiroir « Vitesse & Réglages » doit exister dans la référence')
+            .toContain(ANCRE_DIAG);
+
+        const MARQUE_DIAG = '\n                                    <!-- Versions du média.';
+        const debutDiag = html.indexOf(MARQUE_DIAG);
+        const finDiag = html.indexOf(ANCRE_DIAG, debutDiag);
+        expect(debutDiag, 'le bloc « Version » doit être présent').toBeGreaterThan(0);
+        expect(finDiag).toBeGreaterThan(debutDiag);
+        const diagnostic = html.slice(debutDiag, finDiag);
+
+        // CE QUE CETTE MÉTHODE NE COUVRE PLUS. Un bloc extrait du HTML produit
+        // puis appliqué à la référence est, par construction, égal à lui-même :
+        // l'empreinte ne protège plus son CONTENU, seulement le reste du
+        // gabarit. Chaque divergence nommée est donc un trou dans la preuve,
+        // et il faut le refermer à la main — d'où les vérifications explicites
+        // ci-dessous, qui épinglent ce qui compte dans le bloc inséré.
+        expect(diagnostic).toContain('<span class="sh-settings-label">Version</span>');
+        expect(diagnostic).toContain('<span class="sh-settings-label">Diagnostic</span>');
+        expect(diagnostic).toContain('id="sh-player-versions-chips"');
+        expect(diagnostic).toContain('>Statistiques de lecture</button>');
+        expect(diagnostic).toContain('id="sh-player-versions-section"');
+        expect(diagnostic, 'le sélecteur de versions est masqué tant qu\'il n\'y en a qu\'une')
+            .toContain('style="display:none;"');
+        expect(diagnostic).toContain('id="sh-btn-stats"');
+        expect(diagnostic, 'le bouton de statistiques doit être atteignable à la télécommande')
+            .toContain('data-nav-focusable="true"');
+
         const corrigee = attendu.html
             .replace(ANCRE, insere + ANCRE)
-            .replace(ANCRE_TOOLTIP, apercu + ANCRE_TOOLTIP);
+            .replace(ANCRE_TOOLTIP, apercu + ANCRE_TOOLTIP)
+            .replace(ANCRE_DIAG, diagnostic + ANCRE_DIAG);
         expect(html).toBe(corrigee);
     });
 

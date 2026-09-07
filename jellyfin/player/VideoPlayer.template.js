@@ -281,6 +281,25 @@ export function gabaritLecteur(ctx) {
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- Versions du média. Vide et masquée quand
+                                         il n'y en a qu'une, ce qui est le cas le
+                                         plus fréquent : proposer un « choix »
+                                         d'une seule option est du bruit. -->
+                                    <div class="sh-settings-section" id="sh-player-versions-section" style="display:none;">
+                                        <span class="sh-settings-label">Version</span>
+                                        <div class="sh-settings-chips" id="sh-player-versions-chips"></div>
+                                    </div>
+
+                                    <!-- Statistiques de lecture. Répond à la
+                                         question la plus posée de l'écosystème
+                                         Jellyfin : « pourquoi ça transcode ? » -->
+                                    <div class="sh-settings-section">
+                                        <span class="sh-settings-label">Diagnostic</span>
+                                        <div class="sh-settings-chips">
+                                            <button class="sh-chip-btn" tabindex="0" data-nav-focusable="true" id="sh-btn-stats">Statistiques de lecture</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -145,7 +145,7 @@ export function buildDeviceProfile(caps, maxBitrate = 0) {
 export async function negotiatePlayback({ serverUrl, token, userId, deviceId, itemId,
                                           startPositionTicks = 0, maxBitrate = 0,
                                           audioStreamIndex = null, subtitleStreamIndex = null,
-                                          videoEl = null }) {
+                                          videoEl = null, mediaSourceId: sourceVoulue = null }) {
     if (!serverUrl || !itemId) return null;
 
     const caps = probeCapabilities(videoEl);
@@ -183,7 +183,18 @@ export async function negotiatePlayback({ serverUrl, token, userId, deviceId, it
         return null;
     }
 
-    const source = data?.MediaSources?.[0];
+    // SÉLECTION DE LA VERSION.
+    //
+    // Quand le greffon « Merge Versions » est actif, un film a PLUSIEURS
+    // entrées dans MediaSources : un remux 4K de 40 Go et un 1080p de 6 Go,
+    // par exemple. Prendre systématiquement la première revient à choisir à la
+    // place de l'utilisateur — et le premier n'est pas forcément le plus léger,
+    // ce qui compte quand on lit depuis l'extérieur du réseau.
+    //
+    // L'appelant peut désigner la source voulue ; sinon on garde l'ancien
+    // comportement, qui reste le bon par défaut.
+    const sources = Array.isArray(data?.MediaSources) ? data.MediaSources : [];
+    const source = (sourceVoulue && sources.find(m => m.Id === sourceVoulue)) || sources[0];
     if (!source) {
         log.warn('Aucune MediaSource retournée par le serveur — repli.');
         return null;
@@ -203,6 +214,13 @@ export async function negotiatePlayback({ serverUrl, token, userId, deviceId, it
         log.info(`Lecture négociée : ${source.TranscodingSubProtocol === 'hls' ? 'HLS' : 'flux'} (${reasons.join(', ') || 'raison non précisée'})`);
         return {
             url, playMethod: 'Transcode', mediaSourceId, playSessionId,
+            versions: sources.map(m => ({
+                id: m.Id,
+                nom: m.Name || m.Path?.split(/[\\/]/).pop() || 'Version',
+                taille: Number(m.Size) || 0,
+                debit: Number(m.Bitrate) || 0,
+                conteneur: m.Container || '',
+            })),
             isHls: (source.TranscodingSubProtocol || 'hls') === 'hls',
             source, transcodeReasons: reasons,
         };
@@ -221,6 +239,14 @@ export async function negotiatePlayback({ serverUrl, token, userId, deviceId, it
         url: `${serverUrl}/Videos/${encodeURIComponent(itemId)}/stream?${params}`,
         playMethod: source.SupportsDirectPlay ? 'DirectPlay' : 'DirectStream',
         mediaSourceId, playSessionId, isHls: false, source, transcodeReasons: reasons,
+        // Toutes les versions, pour que le lecteur puisse proposer le choix.
+        versions: sources.map(m => ({
+            id: m.Id,
+            nom: m.Name || m.Path?.split(/[\\/]/).pop() || 'Version',
+            taille: Number(m.Size) || 0,
+            debit: Number(m.Bitrate) || 0,
+            conteneur: m.Container || '',
+        })),
     };
 }
 

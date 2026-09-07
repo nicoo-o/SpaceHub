@@ -25,6 +25,7 @@ import inputRouter, { PRIORITES } from '../../core/InputRouter.js';
 import { actionMedia, ActionMedia } from '../../core/TelecommandeTv.js';
 import Trickplay from './Trickplay.js';
 import VerrouEcran from '../../core/VerrouEcran.js';
+import SessionMedia from '../../core/SessionMedia.js';
 import { fetchAvecDelai } from '../../core/utils/reseau.js';
 class VideoPlayer {
     constructor() {
@@ -43,8 +44,16 @@ class VideoPlayer {
          */
         this._segmentsMedia = null;
         this._segmentsPourItem = null;
+        /** Versions disponibles du média en cours (greffon Merge Versions). */
+        this._versions = [];
+        this._transcodeReasons = [];
+        this._minuteurStats = null;
         /** Empêche la veille pendant la lecture (repris sur visibilitychange). */
         this._verrouEcran = new VerrouEcran();
+        /** Fiche système : notification Android, écran verrouillé iOS, casque. */
+        this._sessionMedia = new SessionMedia();
+        /** Dernière seconde publiée au système ; évite un appel par frame. */
+        this._secondePubliee = -1;
         /** Vignettes de prévisualisation de la barre de progression. */
         this._trickplay = new Trickplay({
             serveur: () => this._auth?.getServerUrl?.() || '',
@@ -218,6 +227,7 @@ class VideoPlayer {
         this._segmentCourant = null;
         this._trickplay.reinitialiser();
         this._chargerSegmentsMedia(item?.Id || item?.id);
+        this._brancherSessionMedia(item);
 
         // Recale la file sur ce qui est réellement lancé. Si l'élément vient
         // d'ailleurs (clic sur une affiche), la file devient hors sujet et
@@ -302,6 +312,8 @@ class VideoPlayer {
             audioStreamIndex: Number.isInteger(Number(audioIndex)) ? Number(audioIndex) : null,
             subtitleStreamIndex: Number.isInteger(Number(subtitleIndex)) ? Number(subtitleIndex) : null,
             videoEl: this._video,
+            // Version choisie par l'utilisateur, quand il en a choisi une.
+            mediaSourceId: this._playbackOptions?.mediaSourceId || null,
         }).catch(() => null);
 
         if (generation !== this._playGeneration) return; // lecture annulée entre-temps
@@ -316,6 +328,7 @@ class VideoPlayer {
                 this._log.info(`Transcodage demandé par le serveur : ${nego.transcodeReasons.join(', ')}`);
             }
             this._transcodeReasons = nego.transcodeReasons || [];
+            this._versions = nego.versions || [];
             // La source réellement lue est connue : les vignettes en dépendent.
             this._preparerVignettes(this._currentItem || item);
         } else {
@@ -768,9 +781,23 @@ class VideoPlayer {
         // Verrou d'écran : tenu tant que ça joue, relâché dès la pause. Le
         // demander seulement pendant la lecture évite de garder l'écran allumé
         // sur une vidéo en pause qu'on a oubliée.
-        video.addEventListener('play', () => this._verrouEcran.demander());
-        video.addEventListener('pause', () => this._verrouEcran.liberer());
-        video.addEventListener('ended', () => this._verrouEcran.liberer());
+        video.addEventListener('play', () => {
+            this._verrouEcran.demander();
+            this._sessionMedia.etat('playing');
+        });
+        video.addEventListener('pause', () => {
+            this._verrouEcran.liberer();
+            this._sessionMedia.etat('paused');
+        });
+        video.addEventListener('ended', () => {
+            this._verrouEcran.liberer();
+            this._sessionMedia.etat('none');
+        });
+        // La durée n'est connue qu'à ce moment : publier la position avant
+        // reviendrait à annoncer une durée nulle, que le système affiche.
+        video.addEventListener('loadedmetadata', () => this._publierPosition());
+        video.addEventListener('ratechange', () => this._publierPosition());
+        video.addEventListener('seeked', () => this._publierPosition());
 
         video.addEventListener('waiting', () => spinner?.classList.add('visible'));
         video.addEventListener('playing', () => spinner?.classList.remove('visible'));
@@ -1014,6 +1041,11 @@ class VideoPlayer {
             }
         });
 
+        el.querySelector('#sh-btn-stats')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._basculerStatistiques();
+        });
+
         el.querySelector('#sh-smart-skip-btn')?.addEventListener('click', () => {
             // `_segmentCourant` est posé par `_onTimeUpdate` : c'est ce que le
             // bouton affiche à cet instant. À défaut — bouton actionné par une
@@ -1057,6 +1089,7 @@ class VideoPlayer {
     _renderPopoversContent() {
         this._renderAudioSubsPopover();
         this._renderSettingsPopover();
+        this._renderVersionsPopover();
         this._renderEpisodesPopover();
     }
 
@@ -1187,6 +1220,109 @@ class VideoPlayer {
                 };
             });
         }
+    }
+
+    /**
+     * Propose les versions du média quand il y en a plusieurs.
+     *
+     * Avec le greffon « Merge Versions », un film peut exister en remux 4K de
+     * 40 Go et en 1080p de 6 Go. Le lecteur prenait toujours la première.
+     * Depuis l'extérieur du réseau, ce n'est pas le bon choix — et personne ne
+     * pouvait le corriger.
+     *
+     * La section reste masquée quand il n'y a qu'une version : proposer un
+     * « choix » d'une seule option est du bruit.
+     */
+    _renderVersionsPopover() {
+        const section = this._el?.querySelector('#sh-player-versions-section');
+        const chips = this._el?.querySelector('#sh-player-versions-chips');
+        if (!section || !chips) return;
+
+        const versions = this._versions || [];
+        if (versions.length < 2) { section.style.display = 'none'; return; }
+        section.style.display = '';
+
+        chips.innerHTML = versions.map(v => {
+            const actif = v.id === this._mediaSourceId ? 'active' : '';
+            // Taille et débit sont ce qui décide réellement du choix.
+            const details = [
+                v.taille ? `${(v.taille / 1073741824).toFixed(1)} Go` : '',
+                v.debit ? `${Math.round(v.debit / 1000000)} Mb/s` : '',
+            ].filter(Boolean).join(' · ');
+            return `<button class="sh-chip-btn ${actif}" tabindex="0" data-nav-focusable="true"
+                        data-version-id="${this._escape(v.id)}">${this._escape(v.nom)}${details ? ` — ${details}` : ''}</button>`;
+        }).join('');
+
+        chips.querySelectorAll('[data-version-id]').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                const id = btn.dataset.versionId;
+                if (id === this._mediaSourceId) return;
+                this._showFlashOSD('🎞️', 'Changement de version…');
+                // Relance la lecture à la même position, sur l'autre source.
+                this._reloadCurrentSourceWithOptions({ mediaSourceId: id });
+            };
+        });
+    }
+
+    /**
+     * Panneau de statistiques de lecture.
+     *
+     * Répond à la question la plus posée de l'écosystème Jellyfin :
+     * « pourquoi est-ce que ça transcode ? ». Le serveur le dit dans
+     * `TranscodeReasons`, que la négociation lisait déjà sans jamais
+     * l'afficher.
+     *
+     * C'est aussi le pendant, côté lecture, du HUD de navigation : sur un
+     * téléviseur sans console, c'est le seul moyen de diagnostiquer une
+     * lecture qui saccade.
+     */
+    _basculerStatistiques() {
+        const existant = this._el?.querySelector('.sh-player-stats');
+        if (existant) {
+            existant.remove();
+            if (this._minuteurStats) { clearInterval(this._minuteurStats); this._minuteurStats = null; }
+            return;
+        }
+        if (!this._el) return;
+
+        const panneau = document.createElement('div');
+        panneau.className = 'sh-player-stats';
+        // Un panneau de diagnostic ne doit jamais devenir une cible de
+        // navigation : il fausserait ce qu'il mesure.
+        panneau.setAttribute('inert', '');
+        panneau.setAttribute('aria-hidden', 'true');
+        this._el.appendChild(panneau);
+
+        const rafraichir = () => {
+            const v = this._video;
+            if (!v || !panneau.isConnected) return;
+            const q = v.getVideoPlaybackQuality?.() || {};
+            const niveau = this._hls?.levels?.[this._hls.currentLevel];
+            const tampon = v.buffered.length
+                ? Math.max(0, v.buffered.end(v.buffered.length - 1) - v.currentTime) : 0;
+
+            const lignes = [
+                '── Lecture ──',
+                `méthode     ${this._playMethod || '—'}`,
+                // LA ligne qui justifie tout ce panneau.
+                `transcodage ${this._transcodeReasons?.length ? this._transcodeReasons.join(', ') : 'aucun (lecture directe)'}`,
+                `source      ${this._mediaSourceId || '—'}`,
+                '',
+                '── Flux ──',
+                `résolution  ${v.videoWidth || '?'}×${v.videoHeight || '?'}`,
+                niveau ? `niveau HLS  ${Math.round((niveau.bitrate || 0) / 1000)} kb/s · ${niveau.width}×${niveau.height}` : 'niveau HLS  —',
+                `tampon      ${tampon.toFixed(1)} s`,
+                '',
+                '── Rendu ──',
+                `images      ${q.totalVideoFrames ?? '—'} affichées`,
+                `perdues     ${q.droppedVideoFrames ?? '—'}`,
+            ];
+            // textContent : ces valeurs viennent du serveur.
+            panneau.textContent = lignes.join('\n');
+        };
+        rafraichir();
+        this._minuteurStats = setInterval(rafraichir, 1000);
     }
 
     _renderEpisodesPopover() {
@@ -1543,6 +1679,15 @@ class VideoPlayer {
         if (elTotal) elTotal.textContent = this._formatTime(dur);
         if (elRemaining) elRemaining.textContent = `-${this._formatTime(rem)}`;
 
+        // Barre de progression système. `timeupdate` bat environ quatre fois
+        // par seconde : on ne republie qu'au changement de seconde entière,
+        // ce que le système affiche de toute façon.
+        const seconde = Math.floor(cur);
+        if (seconde !== this._secondePubliee) {
+            this._secondePubliee = seconde;
+            this._publierPosition();
+        }
+
         const pct = dur > 0 ? (cur / dur) * 100 : 0;
         const elPlayed = this._el?.querySelector('#sh-timeline-played');
         const elHandle = this._el?.querySelector('#sh-timeline-handle');
@@ -1830,6 +1975,75 @@ class VideoPlayer {
             el.style.backgroundImage = `url("${img.src}")`;
             el.style.backgroundPosition = `-${pos.colonne * dim.largeur}px -${pos.ligne * dim.hauteur}px`;
             el.classList.add('visible');
+        });
+    }
+
+    /**
+     * Publie la position courante auprès du système.
+     *
+     * Ne fait rien tant que la durée n'est pas connue : `SessionMedia` efface
+     * alors l'état plutôt que d'annoncer une durée nulle — un direct n'a pas de
+     * barre de progression, et en afficher une vide serait un mensonge.
+     */
+    _publierPosition() {
+        if (!this._video) return;
+        this._sessionMedia.position({
+            duree: this._video.duration,
+            position: this._video.currentTime,
+            vitesse: this._video.playbackRate,
+        });
+    }
+
+    /**
+     * Décrit le titre en cours au système et pose les boutons de la
+     * notification.
+     *
+     * Toutes les actions retombent sur `_executerActionMedia` : le casque
+     * Bluetooth et la télécommande du téléviseur empruntent le même chemin, il
+     * n'y a donc qu'un seul comportement à vérifier.
+     *
+     * @param {object} item  le média lancé.
+     */
+    _brancherSessionMedia(item) {
+        if (!this._sessionMedia.supporte) return;
+
+        const titre = item?.Name || item?.title || 'Lecture';
+        // Un épisode se lit « Série — S1E4 » : sur l'écran verrouillé, le seul
+        // nom d'épisode ne dit pas de quelle série il s'agit.
+        const saison = item?.ParentIndexNumber;
+        const episode = item?.IndexNumber;
+        let sousTitre = item?.SeriesName || '';
+        if (sousTitre && Number.isFinite(saison) && Number.isFinite(episode)) {
+            sousTitre += ` — S${saison}E${episode}`;
+        }
+        if (!sousTitre && item?.ProductionYear) sousTitre = String(item.ProductionYear);
+
+        const id = item?.SeriesId || item?.Id || item?.id;
+        const vignette = id ? (this._api?.getImageUrl?.(id, 'Primary') || '') : '';
+
+        this._sessionMedia.decrire({ titre, sousTitre, vignette });
+
+        this._sessionMedia.brancher({
+            play: () => this._executerActionMedia(ActionMedia.PLAY),
+            pause: () => this._executerActionMedia(ActionMedia.PAUSE),
+            stop: () => this._executerActionMedia(ActionMedia.STOP),
+            previoustrack: () => this._executerActionMedia(ActionMedia.PREVIOUS),
+            nexttrack: () => this._executerActionMedia(ActionMedia.NEXT),
+            // `seekOffset` est optionnel : sans lui, la convention du Web est
+            // dix secondes, pas les trente de la télécommande.
+            seekbackward: (d) => this._seekRelative(-(d?.seekOffset || 10)),
+            seekforward: (d) => this._seekRelative(d?.seekOffset || 10),
+            seekto: (d) => {
+                if (!this._video || !Number.isFinite(d?.seekTime)) return;
+                // `fastSeek` existe pour le glissement continu de la barre
+                // système : il évite un décodage complet à chaque position.
+                if (d.fastSeek && typeof this._video.fastSeek === 'function') {
+                    this._video.fastSeek(d.seekTime);
+                } else {
+                    this._video.currentTime = d.seekTime;
+                }
+                this._publierPosition();
+            },
         });
     }
 
@@ -2164,8 +2378,13 @@ handleNavAction(action) {
 
 
     close(exitFullscreen = true) {
-        // La lecture s'arrête : rendre la main au système.
+        // La lecture s'arrête : rendre la main au système. Sans cette
+        // libération, la notification survit au lecteur et ses boutons
+        // appellent un lecteur détruit.
         this._verrouEcran?.liberer();
+        this._sessionMedia?.liberer();
+        this._secondePubliee = -1;
+        if (this._minuteurStats) { clearInterval(this._minuteurStats); this._minuteurStats = null; }
         if (!this._el) return;
 
         this._navHoldAction = null;

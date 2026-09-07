@@ -63,6 +63,46 @@ class DownloadManager {
         this._file = [];
         this._encours = null;      // { id, titre, recus, total, controleur }
         this._traite = false;
+        /**
+         * Résultat de la demande de persistance : `null` tant qu'elle n'a pas
+         * été faite. Elle ne l'est qu'une fois par session — sur Firefox elle
+         * ouvre une invite système, qu'il serait inacceptable de rouvrir à
+         * chaque téléchargement.
+         * @type {boolean|null}
+         */
+        this._persistant = null;
+    }
+
+    /**
+     * Demande au navigateur de ne pas effacer les téléchargements sous pression
+     * disque, et dit franchement ce qu'on a obtenu.
+     *
+     * POURQUOI ICI ET PAS AU DÉMARRAGE. `navigator.storage.persist()` ouvre une
+     * invite sur Firefox et compte dans l'« engagement » du site sur Chrome. La
+     * demander au lancement, pour une personne qui ne téléchargera jamais rien,
+     * c'est réclamer un droit dont on ne se servira pas. On la demande au
+     * premier téléchargement : le moment où le stockage compte réellement.
+     *
+     * CE QUE ÇA VAUT. Un refus n'est pas une panne : le téléchargement marche,
+     * il est simplement « au mieux » — le navigateur peut l'effacer sans
+     * prévenir si le disque se remplit. On le dit, une seule fois, plutôt que
+     * de laisser croire à une garantie.
+     *
+     * @returns {Promise<boolean>}
+     */
+    async _assurerPersistance() {
+        if (this._persistant !== null) return this._persistant;
+        this._persistant = await this._store?.demanderPersistance?.() === true;
+        if (this._persistant) {
+            this._log.info('Stockage persistant accordé : les téléchargements survivront à la pression disque.');
+        } else {
+            this._log.warn('Stockage persistant refusé : les téléchargements peuvent être effacés par le navigateur.');
+            svc.toaster()?.show?.(
+                'Vos téléchargements sont enregistrés, mais le navigateur peut les effacer '
+                + "s'il manque de place. Installez SpaceHub sur l'appareil pour les conserver.",
+                'info');
+        }
+        return this._persistant;
     }
 
     /** État courant, pour l'interface. */
@@ -97,6 +137,11 @@ class DownloadManager {
         if (this._encours?.id === id || this._file.some(t => (t.item?.Id || t.item?.id) === id)) {
             return { ok: false, raison: 'Déjà en file d\'attente.' };
         }
+
+        // Avant de remplir le disque, obtenir — ou pas — le droit de le garder.
+        // On n'attend pas le résultat pour lancer : un refus ne doit pas
+        // empêcher le téléchargement, seulement le qualifier.
+        this._assurerPersistance().catch(() => {});
 
         const promesse = new Promise((resolve, reject) => {
             this._file.push({ item, resolve, reject });

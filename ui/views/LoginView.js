@@ -120,6 +120,33 @@ class LoginView {
                                 <span>Connexion...</span>
                             </span>
                         </button>
+
+                        <!-- Quick Connect. Masqué tant qu'on n'a pas vérifié que
+                             le serveur le propose : l'administrateur peut l'avoir
+                             désactivé, et un bouton qui ne marche pas est pire
+                             qu'un bouton absent. -->
+                        <button type="button" class="sh-login-btn sh-login-btn--secondaire"
+                                id="sh-btn-quick-connect" style="display:none;"
+                                tabindex="0" data-nav-focusable="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="5" y="2" width="14" height="20" rx="2"></rect>
+                                <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                            </svg>
+                            <span>Se connecter depuis mon téléphone</span>
+                        </button>
+
+                        <!-- Le code à recopier. Grand, très lisible : il est lu
+                             à trois mètres, sur un téléviseur. -->
+                        <div class="sh-quick-connect" id="sh-quick-connect" style="display:none;" role="status">
+                            <p class="sh-quick-connect__consigne">
+                                Ouvrez Jellyfin sur votre téléphone ou votre ordinateur,
+                                puis saisissez ce code dans <strong>Quick Connect</strong> :
+                            </p>
+                            <p class="sh-quick-connect__code" id="sh-quick-connect-code"></p>
+                            <p class="sh-quick-connect__etat" id="sh-quick-connect-etat">En attente d'autorisation…</p>
+                            <button type="button" class="sh-btn sh-btn--ghost" id="sh-quick-connect-annuler"
+                                    tabindex="0" data-nav-focusable="true">Annuler</button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -141,6 +168,7 @@ class LoginView {
 
         this._preremplirDepuisDerniereSession(container);
         this._brancherProfils(container);
+        this._brancherQuickConnect(container);
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -223,6 +251,100 @@ class LoginView {
             champNom?.removeAttribute('autofocus');
             requestAnimationFrame(() => champMdp.focus());
         }
+    }
+
+    /**
+     * Connexion par code, depuis un appareil qui a un clavier.
+     *
+     * Saisir un mot de passe complexe avec un pavé directionnel — quatre
+     * flèches et Entrée pour chaque caractère — est l'un des pires moments
+     * d'usage qui soient. Ici, le téléviseur affiche un code court,
+     * l'utilisateur l'autorise depuis son téléphone, et la session s'ouvre.
+     *
+     * Deux précautions qui comptent :
+     *   • le bouton reste MASQUÉ tant qu'on n'a pas vérifié que le serveur
+     *     propose Quick Connect — l'administrateur peut l'avoir désactivé ;
+     *   • le sondage s'arrête tout seul au bout de cinq minutes, sinon il
+     *     tournerait indéfiniment sur un écran que personne ne regarde.
+     *
+     * @param {HTMLElement} container
+     */
+    _brancherQuickConnect(container) {
+        const bouton = container.querySelector('#sh-btn-quick-connect');
+        const zone = container.querySelector('#sh-quick-connect');
+        const champCode = container.querySelector('#sh-quick-connect-code');
+        const champEtat = container.querySelector('#sh-quick-connect-etat');
+        const annuler = container.querySelector('#sh-quick-connect-annuler');
+        const champServeur = container.querySelector('#server-url');
+        if (!bouton || !zone || !champServeur) return;
+
+        const auth = svc.auth();
+        if (!auth?.quickConnectDemarrer) return;
+
+        let sondage = null;
+        let expiration = null;
+
+        const arreter = () => {
+            if (sondage) { clearInterval(sondage); sondage = null; }
+            if (expiration) { clearTimeout(expiration); expiration = null; }
+        };
+
+        const fermer = () => {
+            arreter();
+            zone.style.display = 'none';
+            bouton.style.display = '';
+            bouton.focus?.();
+        };
+
+        // Le bouton n'apparaît que si le serveur répond que c'est activé.
+        const verifierDisponibilite = async () => {
+            bouton.style.display = 'none';
+            const dispo = await auth.quickConnectDisponible?.(champServeur.value.trim());
+            if (dispo) bouton.style.display = '';
+        };
+        verifierDisponibilite();
+        champServeur.addEventListener('change', verifierDisponibilite);
+        champServeur.addEventListener('blur', verifierDisponibilite);
+
+        bouton.addEventListener('click', async () => {
+            const demande = await auth.quickConnectDemarrer(champServeur.value.trim());
+            if (!demande.ok) {
+                const erreur = container.querySelector('#sh-login-error');
+                if (erreur) {
+                    erreur.textContent = demande.erreur || 'Quick Connect indisponible.';
+                    erreur.style.display = 'block';
+                }
+                return;
+            }
+
+            // Le CODE s'affiche ; le SECRET ne quitte jamais cette variable.
+            champCode.textContent = demande.code;
+            champEtat.textContent = 'En attente d\'autorisation…';
+            bouton.style.display = 'none';
+            zone.style.display = '';
+            annuler?.focus?.();
+
+            sondage = setInterval(async () => {
+                if (!(await auth.quickConnectAutorise(demande.secret))) return;
+                arreter();
+                champEtat.textContent = 'Autorisé — connexion en cours…';
+                const res = await auth.quickConnectTerminer(demande.secret);
+                if (res.success) {
+                    this.onLoginSuccess?.(res.user);
+                } else {
+                    champEtat.textContent = res.error || 'Connexion refusée.';
+                }
+            }, 2000);
+
+            // Cinq minutes : au-delà, la demande a expiré côté serveur de
+            // toute façon, et rien ne sert de continuer à l'interroger.
+            expiration = setTimeout(() => {
+                arreter();
+                champEtat.textContent = 'Code expiré. Réessayez.';
+            }, 5 * 60 * 1000);
+        });
+
+        annuler?.addEventListener('click', fermer);
     }
 
     _brancherProfils(container) {

@@ -378,6 +378,147 @@ class AuthManager {
         }
     }
 
+    // ─── Quick Connect ───────────────────────────────────────────────────────
+    //
+    // POURQUOI CELA EXISTE. Saisir un mot de passe complexe avec un pavé
+    // directionnel — quatre flèches et une touche Entrée pour choisir chaque
+    // caractère dans une grille — est l'un des pires moments d'usage qui
+    // soient. Jellyfin le reconnaît et propose Quick Connect : le téléviseur
+    // affiche un code court, l'utilisateur l'autorise depuis un appareil où il
+    // a un vrai clavier, et le téléviseur récupère un jeton.
+    //
+    // Le flux compte trois temps :
+    //   1. `/QuickConnect/Initiate` → { Code, Secret }. Le CODE s'affiche, le
+    //      SECRET ne quitte jamais l'appareil.
+    //   2. On interroge `/QuickConnect/Connect?secret=…` jusqu'à ce que
+    //      `Authenticated` passe à vrai.
+    //   3. `/Users/AuthenticateWithQuickConnect` échange le secret contre un
+    //      jeton, exactement comme une connexion par mot de passe.
+    //
+    // Le secret est un identifiant de session en devenir : il ne doit jamais
+    // être affiché, journalisé, ni écrit sur le disque.
+
+    /**
+     * Le serveur propose-t-il Quick Connect ?
+     *
+     * L'administrateur peut l'avoir désactivé — c'est le cas par défaut sur
+     * certaines installations. On demande avant de proposer un bouton qui ne
+     * marcherait pas.
+     *
+     * @param {string} serverUrl
+     * @returns {Promise<boolean>}
+     */
+    async quickConnectDisponible(serverUrl) {
+        const normalise = this._normaliserUrlServeur(serverUrl);
+        if (!normalise.ok || !normalise.url) return false;
+        try {
+            const res = await fetchAvecDelai(`${normalise.url}/QuickConnect/Enabled`,
+                { headers: { Accept: 'application/json' } }, 6000);
+            if (!res.ok) return false;
+            // Le serveur répond littéralement `true` ou `false`.
+            return (await res.json()) === true;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Démarre une demande Quick Connect.
+     *
+     * @param {string} serverUrl
+     * @returns {Promise<{ ok: boolean, code?: string, secret?: string, erreur?: string }>}
+     */
+    async quickConnectDemarrer(serverUrl) {
+        const normalise = this._normaliserUrlServeur(serverUrl);
+        if (!normalise.ok || !normalise.url) {
+            return { ok: false, erreur: normalise.erreur || 'Adresse de serveur manquante.' };
+        }
+        try {
+            const res = await fetchAvecDelai(`${normalise.url}/QuickConnect/Initiate`, {
+                method: 'POST',
+                // L'en-tête d'autorisation est requis même sans jeton : le
+                // serveur y lit le DeviceId, qui identifie la demande.
+                headers: this.getAuthHeaders(),
+            }, 10000);
+            if (!res.ok) {
+                return { ok: false, erreur: res.status === 401
+                    ? 'Quick Connect est désactivé sur ce serveur.'
+                    : `Le serveur a répondu ${res.status}.` };
+            }
+            const data = await res.json();
+            if (!data?.Code || !data?.Secret) {
+                return { ok: false, erreur: 'Réponse Quick Connect incomplète.' };
+            }
+            this._quickConnectUrl = normalise.url;
+            return { ok: true, code: String(data.Code), secret: String(data.Secret) };
+        } catch (err) {
+            return { ok: false, erreur: err?.message || 'Serveur injoignable.' };
+        }
+    }
+
+    /**
+     * Une demande a-t-elle été autorisée ?
+     *
+     * Appelée en boucle par l'écran de connexion. Renvoie `false` tant que
+     * personne n'a validé — ce n'est pas une erreur, c'est l'état normal.
+     *
+     * @param {string} secret
+     * @returns {Promise<boolean>}
+     */
+    async quickConnectAutorise(secret) {
+        const base = this._quickConnectUrl;
+        if (!base || !secret) return false;
+        try {
+            const res = await fetchAvecDelai(
+                `${base}/QuickConnect/Connect?secret=${encodeURIComponent(secret)}`,
+                { headers: { Accept: 'application/json' } }, 8000);
+            if (!res.ok) return false;
+            const data = await res.json();
+            return data?.Authenticated === true;
+        } catch {
+            // Un relevé manqué n'annule pas la demande : on réessaiera.
+            return false;
+        }
+    }
+
+    /**
+     * Échange un secret autorisé contre un jeton, et ouvre la session.
+     *
+     * @param {string} secret
+     * @returns {Promise<{ success: boolean, user?: Object, error?: string }>}
+     */
+    async quickConnectTerminer(secret) {
+        const base = this._quickConnectUrl;
+        if (!base || !secret) return { success: false, error: 'Aucune demande en cours.' };
+        try {
+            const res = await fetchAvecDelai(`${base}/Users/AuthenticateWithQuickConnect`, {
+                method: 'POST',
+                headers: this.getAuthHeaders(),
+                body: JSON.stringify({ Secret: secret }),
+            }, 10000);
+            if (!res.ok) {
+                return { success: false, error: `Autorisation refusée par le serveur (${res.status}).` };
+            }
+            const data = await res.json();
+            if (!data?.AccessToken || !data?.User) {
+                return { success: false, error: 'Réponse d\'authentification incomplète.' };
+            }
+
+            this._saveAuth({
+                ServerUrl: base,
+                AccessToken: data.AccessToken,
+                User: data.User,
+                SessionInfo: data.SessionInfo,
+            });
+            this._syncGlobalClient(base, data.AccessToken);
+            this._quickConnectUrl = null;
+            this._log.info(`✅ Connecté par Quick Connect en tant que ${data.User.Name}.`);
+            return { success: true, user: data.User };
+        } catch (err) {
+            return { success: false, error: err?.message || 'Serveur injoignable.' };
+        }
+    }
+
     /**
      * Déconnecte l'utilisateur et nettoie la session.
      *
