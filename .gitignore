@@ -25,3 +25,5 @@ build/
 
 # Dossier tampon de suppression (fichiers en attente de retrait manuel)
 _to_delete/
+message-commit.txt 
+msg2.txt 
