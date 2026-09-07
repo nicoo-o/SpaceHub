@@ -15,13 +15,14 @@
 
 import Hls from 'hls.js';
 import { gabaritLecteur } from './VideoPlayer.template.js';
-import { contexteGabarit } from '../../core/utils/domUtils.js';
+import { contexteGabarit, comportementDefilement } from '../../core/utils/domUtils.js';
 import { negotiatePlayback } from './DeviceProfile.js';
 import Logger from '../../core/Logger.js';
 
 import './VideoPlayer.css';
 import * as svc from '../../core/services.js';
 import inputRouter, { PRIORITES } from '../../core/InputRouter.js';
+import { fetchAvecDelai } from '../../core/utils/reseau.js';
 class VideoPlayer {
     constructor() {
         this._log = new Logger('VideoPlayer');
@@ -30,6 +31,19 @@ class VideoPlayer {
         this._hls = null;
         this._currentItem = null;
         this._sourceMediaItem = null;
+        /**
+         * Segments médias typés du titre en cours (Jellyfin 10.10+).
+         * `null` tant qu'on n'a pas interrogé le serveur, tableau ensuite —
+         * éventuellement vide. La distinction compte : elle évite de
+         * réinterroger un serveur qui a déjà répondu « aucun segment ».
+         * @type {Array<{type: string, debut: number, fin: number}>|null}
+         */
+        this._segmentsMedia = null;
+        this._segmentsPourItem = null;
+        /** Intervalle d'introduction résolu une fois, relu à chaque `timeupdate`. */
+        this._intervalleIntro = undefined;
+        /** Segment sous le curseur de lecture, posé par `_onTimeUpdate`. */
+        this._segmentCourant = null;
         this._mediaObjectUrl = null;
         this._closeTimer = null;
         this._playGeneration = 0;
@@ -184,6 +198,15 @@ class VideoPlayer {
         this._currentItem = item;
         this._nextEpCancelled = false;
         this._sourceMediaItem = item;
+        // Le titre change : tout ce qui était résolu pour le précédent est faux.
+        this._segmentsMedia = null;
+        this._segmentsPourItem = null;
+        this._intervalleIntro = undefined;
+        // Sans cette remise à zéro, le bouton du titre précédent resterait
+        // actionnable au début du suivant, et sauterait à une position qui
+        // n'a plus de sens.
+        this._segmentCourant = null;
+        this._chargerSegmentsMedia(item?.Id || item?.id);
 
         // Recale la file sur ce qui est réellement lancé. Si l'élément vient
         // d'ailleurs (clic sur une affiche), la file devient hors sujet et
@@ -546,8 +569,18 @@ class VideoPlayer {
         this._el = document.createElement('div');
         this._el.id = 'sh-grand-cinema-player';
         this._el.className = 'sh-grand-cinema-player sh-player--entering';
+        // Confinement RÉEL du focus.
+        //
+        // Le moteur sait piéger le focus dans un sous-arbre depuis la vague A
+        // (`data-nav-container="strict"` : on cherche dedans, on ne sort
+        // jamais), et cet attribut n'était posé NULLE PART — quatre-vingts
+        // lignes de moteur qui ne s'exécutaient jamais. Chaque couche rusait
+        // donc à sa façon, et aucune ne confinait vraiment : c'est la deuxième
+        // des classes de bogues de focus décrites par Netflix, « quelque chose
+        // derrière la vue du dessus vole le focus ».
+        this._el.dataset.navContainer = 'strict';
 
-        this._el.innerHTML = gabaritLecteur(contexteGabarit(this, { isEpisode, seriesName, episodeNumber, episodeTitle }));
+        this._el.innerHTML = gabaritLecteur(contexteGabarit(this, { isEpisode, seriesName, episodeNumber, episodeTitle, title, year }));
 
         document.body.appendChild(this._el);
         this._video = this._el.querySelector('.sh-cinema-video');
@@ -574,6 +607,91 @@ class VideoPlayer {
         if (this._el.requestFullscreen) {
             this._el.requestFullscreen().catch(() => {});
         }
+    }
+
+    /**
+     * Traduit un `MediaError` en phrase utile. Les quatre codes sont ceux de
+     * la spécification HTML ; le libellé dit ce qu'il faut FAIRE, pas
+     * seulement ce qui a échoué.
+     * @param {MediaError|null} err
+     * @returns {string}
+     */
+    _messageErreurMedia(err) {
+        switch (err?.code) {
+            case 1: // MEDIA_ERR_ABORTED
+                return 'La lecture a été interrompue avant de commencer.';
+            case 2: // MEDIA_ERR_NETWORK
+                return 'La connexion au serveur a été perdue pendant la lecture. '
+                     + 'Vérifiez que le serveur Jellyfin est toujours accessible.';
+            case 3: // MEDIA_ERR_DECODE
+                return 'Le flux est arrivé mais l\'appareil n\'a pas pu le décoder. '
+                     + 'Le fichier est peut-être endommagé, ou le transcodage a échoué côté serveur.';
+            case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+                return 'Cet appareil ne sait pas lire ce format, et le serveur n\'a pas fourni '
+                     + 'de version convertie. Activez le transcodage dans Jellyfin pour ce profil, '
+                     + 'ou vérifiez que votre session est toujours valide.';
+            default:
+                return err?.message || 'La lecture a échoué pour une raison inconnue.';
+        }
+    }
+
+    /** Retire le panneau d'échec s'il est affiché. */
+    _masquerEchecLecture() {
+        this._el?.querySelector('.sh-player-failure')?.remove();
+    }
+
+    /**
+     * Panneau d'échec de lecture : dit ce qui s'est passé et laisse deux
+     * issues — réessayer le même titre, ou revenir en arrière. C'est le
+     * minimum pour ne pas laisser l'utilisateur devant un écran noir.
+     * @param {string} message
+     */
+    _afficherEchecLecture(message) {
+        if (!this._el || this._el.querySelector('.sh-player-failure')) return;
+        this._log.error('Échec de lecture :', message);
+
+        const panneau = document.createElement('div');
+        panneau.className = 'sh-player-failure';
+        panneau.setAttribute('role', 'alert');
+
+        const titre = document.createElement('p');
+        titre.className = 'sh-player-failure__title';
+        titre.textContent = 'Lecture impossible';
+
+        const detail = document.createElement('p');
+        detail.className = 'sh-player-failure__detail';
+        // textContent : le message peut contenir du texte venu du serveur.
+        detail.textContent = message;
+
+        const actions = document.createElement('div');
+        actions.className = 'sh-player-failure__actions';
+
+        const reessayer = document.createElement('button');
+        reessayer.type = 'button';
+        reessayer.className = 'sh-btn sh-player-failure__btn';
+        reessayer.textContent = 'Réessayer';
+        reessayer.setAttribute('data-nav-focusable', 'true');
+        reessayer.addEventListener('click', () => {
+            const item = this._currentItem;
+            const reprise = Math.round((this._video?.currentTime || 0) * 10000000);
+            this._masquerEchecLecture();
+            if (item) this.play(item, reprise, this._playbackOptions || {});
+        });
+
+        const fermer = document.createElement('button');
+        fermer.type = 'button';
+        fermer.className = 'sh-btn sh-btn--ghost sh-player-failure__btn';
+        fermer.textContent = 'Fermer le lecteur';
+        fermer.setAttribute('data-nav-focusable', 'true');
+        fermer.addEventListener('click', () => this.close());
+
+        actions.append(reessayer, fermer);
+        panneau.append(titre, detail, actions);
+        this._el.appendChild(panneau);
+
+        // Le focus part sur « Réessayer » : sur téléviseur, un panneau qui
+        // n'attrape pas le focus est un panneau qu'on ne peut pas actionner.
+        requestAnimationFrame(() => reessayer.focus());
     }
 
     _bindEvents() {
@@ -606,6 +724,25 @@ class VideoPlayer {
         video.addEventListener('waiting', () => spinner?.classList.add('visible'));
         video.addEventListener('playing', () => spinner?.classList.remove('visible'));
         video.addEventListener('canplay', () => spinner?.classList.remove('visible'));
+
+        // AUDIT B4 — l'élément <video> n'avait aucun écouteur `error`.
+        //
+        // Un jeton expiré (401), un fichier absent (404), un codec que
+        // l'appareil ne sait pas décoder : dans tous ces cas le navigateur
+        // arrête le chargement en silence. Le spinner mis en place par
+        // `_setupVideoSource` restait alors à tourner sur un écran noir,
+        // indéfiniment — l'utilisateur n'avait ni cause, ni recours, et sur
+        // téléviseur pas même de touche « Échap » évidente.
+        video.addEventListener('error', () => {
+            // Un `src` vidé à la fermeture déclenche aussi cet événement :
+            // ce n'est pas une panne de lecture.
+            if (!video.src && !video.currentSrc) return;
+            spinner?.classList.remove('visible');
+            this._afficherEchecLecture(this._messageErreurMedia(video.error));
+        });
+        // Une source retrouvée efface le panneau : le repli HLS → flux direct
+        // peut réussir après un premier échec.
+        video.addEventListener('loadeddata', () => this._masquerEchecLecture());
         video.addEventListener('playing', () => {
             el.querySelector('.sh-icon-play').style.display = 'none';
             el.querySelector('.sh-icon-pause').style.display = 'block';
@@ -826,7 +963,11 @@ class VideoPlayer {
         });
 
         el.querySelector('#sh-smart-skip-btn')?.addEventListener('click', () => {
-            this._performSkipIntro();
+            // `_segmentCourant` est posé par `_onTimeUpdate` : c'est ce que le
+            // bouton affiche à cet instant. À défaut — bouton actionné par une
+            // touche avant le premier `timeupdate` — on retombe sur l'intro.
+            if (this._segmentCourant) this._passerSegment(this._segmentCourant);
+            else this._performSkipIntro();
         });
 
         el.querySelector('#sh-next-ep-play-now')?.addEventListener('click', () => {
@@ -1038,6 +1179,23 @@ class VideoPlayer {
         });
     }
 
+    /**
+     * Avance ou recule de N secondes.
+     *
+     * Cette méthode était appelée à CINQ endroits — les raccourcis clavier
+     * ←/→, J/L, et la délégation manette du scope lecteur — et n'était définie
+     * NULLE PART. Chaque appui levait donc une TypeError : sauter dans une
+     * vidéo à la télécommande n'a jamais fonctionné. Le nom réel de
+     * l'implémentation est `_triggerRippleSkip` ; le renommage n'avait été fait
+     * qu'à moitié.
+     *
+     * On garde les deux noms plutôt que de réécrire les cinq sites : celui-ci
+     * dit l'intention, l'autre dit ce qu'il fait à l'écran.
+     */
+    _seekRelative(deltaSeconds) {
+        this._triggerRippleSkip(deltaSeconds);
+    }
+
     _triggerRippleSkip(deltaSeconds) {
         if (!this._video) return;
         this._video.currentTime = Math.max(0, Math.min(this._video.duration || 0, this._video.currentTime + deltaSeconds));
@@ -1108,7 +1266,7 @@ class VideoPlayer {
             resultsEl.innerHTML = '<p style="color:var(--sh-text-muted); font-size:13px;">Recherche en cours...</p>';
             try {
                 const serverUrl = this._auth?.getServerUrl();
-                const res = await fetch(`${serverUrl}/Items/${itemId}/RemoteSearch/Subtitles/${lang}`, {
+                const res = await fetchAvecDelai(`${serverUrl}/Items/${itemId}/RemoteSearch/Subtitles/${lang}`, {
                     headers: this._auth?.getAuthHeaders()
                 });
                 const subs = await res.json();
@@ -1131,7 +1289,7 @@ class VideoPlayer {
                         btn.disabled = true;
                         btn.textContent = 'Ajout...';
                         try {
-                            await fetch(`${serverUrl}/Items/${itemId}/RemoteSearch/Subtitles/${btn.dataset.subId}`, {
+                            await fetchAvecDelai(`${serverUrl}/Items/${itemId}/RemoteSearch/Subtitles/${btn.dataset.subId}`, {
                                 method: 'POST',
                                 headers: this._auth?.getAuthHeaders()
                             });
@@ -1149,11 +1307,146 @@ class VideoPlayer {
     }
 
         /**
+     * Charge les SEGMENTS MÉDIAS du titre (Jellyfin 10.10 et suivants).
+     *
+     * Pourquoi c'est mieux que les chapitres. La détection d'introduction
+     * reposait entièrement sur le NOM des chapitres — « intro », « opening »,
+     * « générique ». Or presque aucun fichier n'a de chapitre nommé ainsi :
+     * les chapitres viennent du conteneur vidéo et sont le plus souvent
+     * « Chapter 1 », « Chapter 2 »… La fonctionnalité « Passer l'intro »
+     * existait donc dans le code sans jamais s'afficher en pratique.
+     *
+     * Depuis 10.10, le serveur expose `/MediaSegments/{id}` : des plages
+     * TYPÉES (Intro, Outro, Commercial, Preview, Recap), produites par les
+     * greffons de détection. C'est une donnée, plus une devinette sur une
+     * chaîne de caractères.
+     *
+     * Le serveur décide, le client agit : Jellyfin laisse explicitement le
+     * comportement au client. On s'en sert pour proposer — jamais pour sauter
+     * d'autorité.
+     *
+     * L'absence de segments n'est pas une erreur : un serveur 10.9, ou sans
+     * greffon de détection, répond 404. On retombe alors sur les chapitres.
+     *
+     * @param {string} itemId
+     * @returns {Promise<void>}
+     */
+    async _chargerSegmentsMedia(itemId) {
+        if (!itemId) return;
+        const generation = this._playGeneration;
+        const base = this._auth?.getServerUrl?.() || '';
+        if (!base) return;
+        try {
+            const res = await fetchAvecDelai(
+                `${base}/MediaSegments/${encodeURIComponent(itemId)}`,
+                { headers: this._auth?.getAuthHeaders?.() || {} },
+                6000);
+            if (generation !== this._playGeneration) return;   // titre changé entre-temps
+            if (!res.ok) { this._segmentsMedia = []; this._segmentsPourItem = itemId; return; }
+            const data = await res.json();
+            const bruts = Array.isArray(data?.Items) ? data.Items : (Array.isArray(data) ? data : []);
+            this._segmentsMedia = bruts
+                .map(seg => ({
+                    type: String(seg.Type || seg.type || '').toLowerCase(),
+                    debut: Number(seg.StartTicks ?? seg.startTicks ?? 0) / 10000000,
+                    fin: Number(seg.EndTicks ?? seg.endTicks ?? 0) / 10000000,
+                }))
+                .filter(seg => seg.fin > seg.debut);
+            this._segmentsPourItem = itemId;
+            this._intervalleIntro = undefined;               // à recalculer avec la nouvelle source
+            if (this._segmentsMedia.length) {
+                this._log.info(`${this._segmentsMedia.length} segment(s) média fourni(s) par le serveur : `
+                    + this._segmentsMedia.map(s2 => s2.type).join(', '));
+            }
+        } catch (err) {
+            // 404 sur un serveur ancien, réseau coupé, greffon absent : aucun
+            // de ces cas n'est une panne. On repasse aux chapitres.
+            this._segmentsMedia = [];
+            this._segmentsPourItem = itemId;
+            this._log.debug('Segments médias indisponibles :', err?.message || err);
+        }
+    }
+
+    /**
+     * Types de segments sur lesquels on propose une action, et le libellé du
+     * bouton correspondant.
+     *
+     * L'ordre compte : si deux segments se chevauchent (un résumé à
+     * l'intérieur d'une introduction, cela arrive), c'est le premier de cette
+     * liste qui gagne — le plus spécifique d'abord.
+     *
+     * `commercial` est volontairement ABSENT : le contenu d'un serveur
+     * Jellyfin personnel n'a pas de coupures publicitaires, et proposer de
+     * « passer la publicité » sur un enregistrement télé reviendrait à
+     * décider à la place de l'utilisateur ce qui est du contenu.
+     */
+    static get SEGMENTS_ACTIONNABLES() {
+        return [
+            { type: 'recap', libelle: 'Passer le résumé' },
+            { type: 'intro', libelle: 'Passer l\'intro' },
+            { type: 'preview', libelle: 'Passer l\'aperçu' },
+        ];
+    }
+
+    /**
+     * Le segment actionnable qui couvre l'instant donné, s'il y en a un.
+     *
+     * Jusqu'ici seule l'introduction était exploitée, alors que le serveur
+     * fournit aussi le résumé (« Précédemment dans… »), l'aperçu du prochain
+     * épisode et le générique de fin. Un résumé de quatre-vingt-dix secondes
+     * qu'on a déjà vu la veille est exactement ce qu'on veut passer.
+     *
+     * @param {number} temps  Position de lecture, en secondes.
+     * @returns {{ start: number, end: number, libelle: string }|null}
+     */
+    _segmentActionnableA(temps) {
+        for (const { type, libelle } of VideoPlayer.SEGMENTS_ACTIONNABLES) {
+            // L'introduction garde son chemin dédié : elle sait retomber sur
+            // les chapitres quand le serveur ne fournit pas de segments.
+            const plage = type === 'intro'
+                ? (this._intervalleIntro ?? null)
+                : this._segment(type);
+            if (plage && temps >= plage.start && temps < plage.end) {
+                return { ...plage, libelle };
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Fait sauter la lecture à la fin du segment en cours.
+     * @param {{ end: number, libelle: string }} segment
+     */
+    _passerSegment(segment) {
+        if (!segment || !this._video) return;
+        this._video.currentTime = Math.min(this._video.duration || segment.end, segment.end);
+        this._showFlashOSD('⏭️', segment.libelle.replace(/^Passer /, 'Passé : '));
+        this._el?.querySelector('#sh-smart-skip-btn')?.classList.remove('visible');
+    }
+
+    /**
+     * Premier segment d'un type donné, s'il existe.
+     * @param {...string} types
+     * @returns {{ start: number, end: number }|null}
+     */
+    _segment(...types) {
+        const voulus = new Set(types.map(t => t.toLowerCase()));
+        const seg = (this._segmentsMedia || []).find(s2 => voulus.has(s2.type));
+        return seg ? { start: seg.debut, end: seg.fin } : null;
+    }
+
+    /**
      * Détecte l'intervalle réel de l'introduction via les chapitres Jellyfin.
      * @param {Object} item
      * @returns {{ start: number, end: number } | null}
      */
     _getIntroInterval(item) {
+        // Source de vérité n°1 : les segments typés du serveur.
+        const parSegment = this._segment('intro');
+        if (parSegment) return parSegment;
+
+        // Repli : les chapitres, avec leur heuristique sur le nom. Conservé
+        // pour les serveurs antérieurs à 10.10 et ceux sans greffon.
         const chapters = item?.Chapters || [];
         for (let i = 0; i < chapters.length; i++) {
             const ch = chapters[i];
@@ -1204,18 +1497,47 @@ class VideoPlayer {
         if (elPlayed) elPlayed.style.width = `${pct}%`;
         if (elHandle) elHandle.style.left = `${pct}%`;
 
-        // 1. Bouton Passer l'introduction basé sur les chapitres réels
-        const introInterval = this._getIntroInterval(this._currentItem);
+        // 1. Bouton « Passer l'introduction ».
+        //    L'intervalle était recalculé à CHAQUE `timeupdate` — soit quatre
+        //    balayages du tableau des chapitres par seconde, pendant tout le
+        //    film. On le résout une fois par titre ; `undefined` signifie
+        //    « pas encore calculé », `null` « aucune introduction ».
+        if (this._intervalleIntro === undefined) {
+            this._intervalleIntro = this._getIntroInterval(this._currentItem);
+        }
+        // Le bouton ne sert plus qu'à l'introduction : il suit aussi le résumé
+        // et l'aperçu, et change de libellé en conséquence.
+        const segment = this._segmentActionnableA(cur);
         const skipBtn = this._el?.querySelector('#sh-smart-skip-btn');
-        if (introInterval && cur >= introInterval.start && cur < introInterval.end) {
-            skipBtn?.classList.add('visible');
-        } else {
-            skipBtn?.classList.remove('visible');
+        if (skipBtn) {
+            if (segment) {
+                const etiquette = skipBtn.querySelector('span');
+                if (etiquette && etiquette.textContent !== segment.libelle) {
+                    etiquette.textContent = segment.libelle;
+                }
+                this._segmentCourant = segment;
+                skipBtn.classList.add('visible');
+            } else {
+                this._segmentCourant = null;
+                skipBtn.classList.remove('visible');
+            }
         }
 
-        // 2. Carte & Countdown du prochain épisode
-        if (dur > 45 && rem <= 30 && this._nextEpisode) {
+        // 2. Carte du prochain épisode.
+        //
+        //    Le déclencheur était « il reste 30 secondes ». C'est une
+        //    approximation qui se trompe dans les deux sens : un film avec
+        //    quatre minutes de générique laisse l'utilisateur attendre, et un
+        //    épisode sans générique voit la carte recouvrir la dernière scène.
+        //
+        //    Quand le serveur fournit un segment `outro`, il sait EXACTEMENT
+        //    où commence le générique de fin. On s'en sert, et on ne retombe
+        //    sur les 30 secondes que sans cette information.
+        const outro = this._segment('outro');
+        const momentVenu = outro ? cur >= outro.start : (dur > 45 && rem <= 30);
+        if (momentVenu && this._nextEpisode) {
             this._showNextEpCard();
+            // Le décompte reste calé sur la fin réelle du média.
             if (rem <= 8 && !this._nextEpCancelled && !this._nextEpCountdownInterval) {
                 this._startNextEpCountdown();
             }
@@ -1455,7 +1777,7 @@ class VideoPlayer {
         const serverUrl = this._auth?.getServerUrl();
         if (!serverUrl || !itemId) return;
 
-        fetch(`${serverUrl}/Sessions/Playing`, {
+        fetchAvecDelai(`${serverUrl}/Sessions/Playing`, {
             method: 'POST',
             headers: this._auth?.getAuthHeaders(),
             body: JSON.stringify({
@@ -1477,7 +1799,7 @@ class VideoPlayer {
             if (!serverUrl || !itemId) return;
 
             const ticks = Math.round((this._video.currentTime || 0) * 10000000);
-            fetch(`${serverUrl}/Sessions/Playing/Progress`, {
+            fetchAvecDelai(`${serverUrl}/Sessions/Playing/Progress`, {
                 method: 'POST',
                 headers: this._auth?.getAuthHeaders(),
                 body: JSON.stringify({
@@ -1498,7 +1820,7 @@ class VideoPlayer {
         if (!serverUrl || !itemId || !this._video) return;
 
         const ticks = Math.round((this._video.currentTime || 0) * 10000000);
-        fetch(`${serverUrl}/Sessions/Playing/Stopped`, {
+        fetchAvecDelai(`${serverUrl}/Sessions/Playing/Stopped`, {
             method: 'POST',
             headers: this._auth?.getAuthHeaders(),
             body: JSON.stringify({
@@ -1630,13 +1952,13 @@ handleNavAction(action) {
         if (action === 'down') {
             const next = (curIdx === -1 || curIdx + 1 >= items.length) ? items[0] : items[curIdx + 1];
             next?.focus();
-            next?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            next?.scrollIntoView({ behavior: comportementDefilement(), block: 'nearest' });
             return;
         }
         if (action === 'up') {
             const prev = curIdx <= 0 ? items[items.length - 1] : items[curIdx - 1];
             prev?.focus();
-            prev?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            prev?.scrollIntoView({ behavior: comportementDefilement(), block: 'nearest' });
             return;
         }
         if (action === 'left' || action === 'right') {
@@ -1646,11 +1968,11 @@ handleNavAction(action) {
                 if (action === 'right' && audioCol.contains(focused)) {
                     const target = subsCol.querySelector('.sh-popover-item.selected, .sh-popover-item, .sh-sync-btn');
                     target?.focus();
-                    target?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    target?.scrollIntoView({ behavior: comportementDefilement(), block: 'nearest' });
                 } else if (action === 'left' && subsCol.contains(focused)) {
                     const target = audioCol.querySelector('.sh-popover-item.selected, .sh-popover-item');
                     target?.focus();
-                    target?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    target?.scrollIntoView({ behavior: comportementDefilement(), block: 'nearest' });
                 }
             }
             return;
@@ -1698,6 +2020,16 @@ handleNavAction(action) {
         this._playGeneration += 1;
         const sourceItem = this._sourceMediaItem || this._currentItem;
         elToClose.classList.add('sh-player--exiting');
+
+        // Le nœud reste dans le document pendant l'animation de sortie
+        // (320 ms). Il faut donc lever le confinement et le rendre INERTE tout
+        // de suite : sans cela, `LAYERS.player` continuait de matcher, le
+        // scope courant restait « player », `handleNavAction` sortait aussitôt
+        // sur `if (!this._el) return`, et pendant un tiers de seconde plus
+        // aucune flèche ne faisait quoi que ce soit. Sur un téléviseur lent le
+        // délai est bien plus long, et l'utilisateur martèle la touche.
+        delete elToClose.dataset.navContainer;
+        elToClose.setAttribute('inert', '');
 
         this._hls = null;
         this._mediaObjectUrl = null;

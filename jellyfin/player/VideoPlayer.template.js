@@ -21,7 +21,14 @@
  * @returns {string} HTML
  */
 export function gabaritLecteur(ctx) {
-    const { isEpisode, seriesName, episodeNumber, episodeTitle } = ctx;
+    // `title` et `year` manquaient à cette liste alors que le corps du gabarit
+    // les lit : sortis du composant, ils étaient devenus des identifiants LIBRES
+    // et `gabaritLecteur()` levait « ReferenceError: title is not defined ».
+    // Le lecteur vidéo ne s'ouvrait donc jamais — l'exception partait avant
+    // le moindre appel réseau. Le test d'empreinte ne le voyait pas : il
+    // fabriquait un contexte contenant title et year, que l'appelant réel ne
+    // transmettait pas. Contrat associé : scripts/gabarits-identifiants-check.mjs.
+    const { isEpisode, seriesName, episodeNumber, episodeTitle, title, year } = ctx;
     return `
             <!-- Aura Cinématique Luminescente -->
             <div class="sh-ambient-halo"></div>
