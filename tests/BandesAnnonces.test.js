@@ -169,3 +169,56 @@ describe('Rien ne flotte plus en coordonnées de page', () => {
         expect(service.closeMenu).toBeUndefined();
     });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Minuteurs annulés à la fermeture', () => {
+    /**
+     * CE QUI A RÉVÉLÉ CE DÉFAUT. La suite de tests remontait deux erreurs non
+     * rattrapées — « ReferenceError: document is not defined » — levées APRÈS
+     * la fin du test, donc par du code qui tournait encore une fois
+     * l'environnement démonté. Autrement dit : un minuteur survivant.
+     *
+     * En production, ce minuteur pose le focus 80 ms après l'ouverture. S'il
+     * survit à `close()` et qu'une AUTRE bande-annonce s'est ouverte
+     * entre-temps, il donne le focus au bouton de l'ancienne fenêtre, désormais
+     * détachée. Donner le focus à un élément détaché ne le déplace pas : il
+     * part sur <body>. Sur téléviseur, la télécommande n'a alors plus de point
+     * de départ.
+     */
+    it('annule le minuteur de focus quand on ferme aussitôt', () => {
+        vi.useFakeTimers();
+        try {
+            const service = new TrailerService();
+            service.openYoutubeWindow({ url: 'https://youtu.be/abc12345678' }, 'Test');
+            expect(service._window, 'la fenêtre ne s\'est pas ouverte').toBeTruthy();
+
+            expect(service._minuteurFocus, 'aucun minuteur de focus posé').not.toBeNull();
+            service.close({ immediat: true });
+            expect(service._minuteurFocus, 'le minuteur a survécu à close()').toBeNull();
+
+            // Rien ne doit se produire quand le temps passe.
+            expect(() => vi.advanceTimersByTime(500)).not.toThrow();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('annule aussi le retrait différé du nœud', () => {
+        vi.useFakeTimers();
+        try {
+            const service = new TrailerService();
+            service.openYoutubeWindow({ url: 'https://youtu.be/abc12345678' }, 'Test');
+            expect(service._window).toBeTruthy();
+
+            service.close();                            // fermeture animée : retrait différé
+            expect(service._minuteurSortie).not.toBeNull();
+
+            // Une réouverture immédiate ne doit pas voir l'ancien retrait
+            // s'exécuter pendant qu'elle s'installe.
+            service.close({ immediat: true });
+            expect(service._minuteurSortie).toBeNull();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+});

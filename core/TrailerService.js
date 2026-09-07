@@ -35,6 +35,13 @@ class TrailerService {
         /** Toutes les sources du média en cours, et celle qui joue. */
         this._sources = [];
         this._sourceIndex = 0;
+        /**
+         * Minuteurs à annuler impérativement à la fermeture : l'un pose le
+         * focus, l'autre retire le nœud. Survivant à `close()`, ils agissaient
+         * sur une fenêtre disparue — ou pire, sur la suivante.
+         */
+        this._minuteurFocus = null;
+        this._minuteurSortie = null;
         this._injectStyles();
         this._onKeydown = (e) => {
             if (e.key === 'Escape') this.close();
@@ -336,13 +343,28 @@ class TrailerService {
         this._retirerClavier = inputRouter.inscrire('trailer', this._onKeydown,
             { priorite: PRIORITES.trailer });
 
-        // Focus TV initial sur le bouton fermer
-        const spatialNav = svc.nav() || svc.nav();
+        // Focus TV initial sur le bouton fermer.
+        //
+        // CE MINUTEUR N'ÉTAIT PAS ANNULÉ À LA FERMETURE. Conséquence sur
+        // téléviseur : on ouvre une bande-annonce, on appuie sur Retour dans
+        // les 80 ms qui suivent (c'est court, mais un appui de télécommande
+        // l'est aussi), et le minuteur se déclenche sur une fenêtre déjà
+        // fermée. Le garde `document.querySelector` empêche le pire, mais pas
+        // le cas qui compte : si une AUTRE bande-annonce s'est ouverte
+        // entre-temps, le sélecteur trouve la nouvelle fenêtre et `closeBtn`
+        // pointe encore sur le bouton de l'ANCIENNE, désormais détachée du
+        // document. Donner le focus à un élément détaché ne le déplace pas :
+        // il part sur <body>. La télécommande n'a alors plus de point de
+        // départ — la quatrième classe de bogue de focus décrite par Netflix.
+        //
+        // Le symptôme s'est révélé en test : « ReferenceError: document is not
+        // defined », levé APRÈS la fin du test, par ce minuteur survivant.
         const closeBtn = win.querySelector('.sh-trailer-window__close');
-        setTimeout(() => {
-            if (document.querySelector('.sh-trailer-window--open')) closeBtn?.focus?.();
+        this._minuteurFocus = setTimeout(() => {
+            this._minuteurFocus = null;
+            // On vérifie que c'est bien NOTRE fenêtre qui est encore ouverte.
+            if (this._window === win && win.isConnected) closeBtn?.focus?.();
         }, 80);
-        void spatialNav;
     }
 
     /**
@@ -352,17 +374,43 @@ class TrailerService {
      *   quand une autre fenêtre prend sa place dans la foulée.
      */
     close({ immediat = false } = {}) {
+        // L'ANNULATION PRÉCÈDE LE RETOUR ANTICIPÉ, et c'est tout l'intérêt.
+        //
+        // Placée après `if (!this._window) return;`, elle ne s'exécutait pas
+        // sur un second appel — or c'est exactement ce qui arrive :
+        // `openYoutubeWindow` commence par `close({ immediat: true })`. Si
+        // l'utilisateur avait déjà fermé la fenêtre (fermeture animée, donc
+        // retrait différé encore en attente), ce second appel sortait
+        // immédiatement et laissait le minuteur courir pendant l'installation
+        // de la nouvelle fenêtre.
+        //
+        // Ici, l'invariant est simple et vrai quel que soit le chemin : après
+        // un `close()`, aucun minuteur de ce service n'est en attente.
+        if (this._minuteurFocus) { clearTimeout(this._minuteurFocus); this._minuteurFocus = null; }
+        if (this._minuteurSortie) { clearTimeout(this._minuteurSortie); this._minuteurSortie = null; }
+
         if (!this._window) return;
         const win = this._window;
         this._window = null;
+
         this._retirerClavier?.();
         this._retirerClavier = null;
         document.body.style.overflow = '';
         win.classList.remove('sh-trailer-window--open');
         const iframe = win.querySelector('iframe');
         if (iframe) iframe.src = 'about:blank';
-        if (immediat) win.remove();
-        else apresSortie(() => win.remove());
+        if (immediat) {
+            win.remove();
+        } else {
+            // `apresSortie` renvoie un identifiant de minuteur : il n'était pas
+            // conservé, donc impossible à annuler. Une fermeture suivie d'une
+            // réouverture immédiate laissait ce retrait différé s'exécuter
+            // pendant que la nouvelle fenêtre s'installait.
+            this._minuteurSortie = apresSortie(() => {
+                this._minuteurSortie = null;
+                win.remove();
+            });
+        }
     }
 }
 
