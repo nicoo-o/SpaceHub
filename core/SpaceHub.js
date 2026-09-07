@@ -21,6 +21,11 @@ import EventBus        from './EventBus.js';
 import ModuleManager   from './ModuleManager.js';
 import PluginManager    from './PluginManager.js';
 import Router           from './Router.js';
+import SocketJellyfin   from '../jellyfin/temps-reel/SocketJellyfin.js';
+import CibleDistante    from '../jellyfin/temps-reel/CibleDistante.js';
+import Paroles          from '../jellyfin/musique/Paroles.js';
+import RadioArtiste     from '../jellyfin/musique/RadioArtiste.js';
+import EcranMusique     from '../ui/views/EcranMusique.js';
 import SettingsManager from './SettingsManager.js';
 import CacheManager    from './CacheManager.js';
 import { ApiClient, JellyfinClient } from './ApiClient.js';
@@ -514,6 +519,65 @@ async function init() {
         // Aucun flux ne passe par ce navigateur, c'est le serveur qui relaie.
         SpaceHub.jellyfin.remote = new RemoteControlService({ api, auth, eventBus });
         services.register('jellyfin.remote', SpaceHub.jellyfin.remote);
+
+        // Mode musique. C'est le plus gros angle mort de l'écosystème : les
+        // autres clients de téléviseur annoncent explicitement ne pas gérer la
+        // musique. Trois pièces, du plus au moins rentable : la radio d'artiste
+        // (le serveur compose, on lit), l'écran plein cadre, et les paroles
+        // synchronisées au mot quand le fichier en porte.
+        SpaceHub.musique = {
+            paroles: new Paroles({ api }),
+            radio: new RadioArtiste({ api, auth }),
+        };
+        SpaceHub.musique.ecran = new EcranMusique({
+            paroles: SpaceHub.musique.paroles,
+            api,
+            // Le lecteur peut ne pas être ouvert : la fonction renvoie alors
+            // null, et la boucle d'animation ne fait rien plutôt que de jeter.
+            media: () => SpaceHub.player?._video || null,
+        });
+        services.register('musique.paroles', SpaceHub.musique.paroles);
+        services.register('musique.radio', SpaceHub.musique.radio);
+        services.register('musique.ecran', SpaceHub.musique.ecran);
+
+        // Canal temps réel + réception d'ordres (« cast »).
+        //
+        // C'est le pendant de RemoteControlService : celui-ci ENVOIE des ordres
+        // à d'autres appareils, celui-là en REÇOIT. Les deux conditions pour
+        // apparaître dans la liste des cibles d'un téléphone sont réunies ici et
+        // seulement ici : la déclaration de capacités, et un WebSocket ouvert.
+        //
+        // Rien de tout cela ne démarre sans session : un socket ouvert avec un
+        // jeton vide serait refusé huit fois puis abandonné, pour rien.
+        if (auth.isAuthenticated()) {
+            const socket = new SocketJellyfin({
+                serveur: () => auth.getServerUrl(),
+                jeton: () => auth.getToken(),
+                deviceId: () => auth.getDeviceId(),
+                eventBus,
+            });
+            SpaceHub.jellyfin.socket = socket;
+            services.register('jellyfin.socket', socket);
+            socket.connecter();
+
+            const cible = new CibleDistante({
+                socket,
+                api,
+                // Accès PARESSEUX au lecteur : il est remplacé lors d'un
+                // rechargement de source, et une référence figée pointerait
+                // alors sur l'instance précédente — les ordres partiraient dans
+                // le vide sans la moindre erreur.
+                lecteur: () => SpaceHub.player,
+                file: () => SpaceHub.player?.queue,
+                routeur: SpaceHub.router,
+                toaster: SpaceHub.ui?.components?.toaster,
+            });
+            SpaceHub.jellyfin.cibleDistante = cible;
+            services.register('jellyfin.cible-distante', cible);
+            // La déclaration part en arrière-plan : un serveur qui la refuse ne
+            // doit pas retarder l'affichage de la page d'accueil.
+            cible.activer().catch(err => log.warn('Cible de lecture à distance :', err));
+        }
 
         // Hors-ligne : le stockage et le gestionnaire de téléchargement.
         // Le navigateur peut ne pas savoir faire (navigation privée, IndexedDB

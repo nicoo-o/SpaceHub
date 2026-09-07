@@ -141,6 +141,16 @@ export const remote        = definir('jellyfin.remote', 'jellyfin', 'remote');
 export const player        = definir('player', 'player');
 export const queue         = definir('player.queue', 'player', 'queue');
 
+// ─── Temps réel et musique ───────────────────────────────────────────────────
+// Ces services n'existent QUE si une session est ouverte : sans jeton, ouvrir
+// un WebSocket ou composer une radio n'a pas de sens. L'accesseur renvoie donc
+// null en mode non connecté, ce qui est un état normal et non une panne.
+export const socket        = definir('jellyfin.socket', 'jellyfin', 'socket');
+export const cibleDistante = definir('jellyfin.cible-distante', 'jellyfin', 'cibleDistante');
+export const paroles       = definir('musique.paroles', 'musique', 'paroles');
+export const radioMusique  = definir('musique.radio', 'musique', 'radio');
+export const ecranMusique  = definir('musique.ecran', 'musique', 'ecran');
+
 // ─── Hors-ligne ──────────────────────────────────────────────────────────────
 export const offlineStore  = definir('offline.store', 'offline', 'store');
 export const downloads     = definir('offline.downloads', 'offline', 'downloads');
@@ -178,4 +188,5 @@ export default {
     jellyfinConsole, trailers, auth, jellyfinApi, jellyfinPlugins, metadata,
     search, collections, remote, player, queue, integration, client, manquants,
     modalClass, config, plugins, userDropdown, registry, offlineStore, downloads,
+    socket, cibleDistante, paroles, radioMusique, ecranMusique,
 };

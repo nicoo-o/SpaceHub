@@ -273,18 +273,45 @@ si elle démarre sur la cible.
 
 ## Récapitulatif
 
-| # | Amélioration | Valeur | Effort | Vague |
-|---|---|---|---|---|
-| 1 | Plafonner le tampon HLS | Très haute | Trivial | 1 |
-| 2 | Touches de télécommande (Tizen, Fire TV) | Très haute | Faible | 1 |
-| 3 | Trickplay | Très haute | Faible | 1 |
-| 4 | Logos Fanart | Moyenne | Trivial | 1 |
-| 5 | Screen Wake Lock | Moyenne | Trivial | 1 |
-| 6 | Sous-scores parentaux 10.11 | *anti-régression* | Faible | 1 |
-| 7 | Quick Connect | Haute | Faible | 2 |
-| 8 | Sélecteur de version | Moyenne | Faible | 2 |
-| 9 | Overlay de statistiques | Moyenne | Faible | 2 |
-| 10 | Media Session (PC/mobile) | Moyenne | Faible | 2 |
-| 11 | `storage.persist()` | Moyenne | Trivial | 2 |
-| 12 | Cible de cast + WebSocket | Très haute | Moyen | 3 |
-| 13 | Mode musique (radio, veille, paroles) | Haute | Moyen | 3 |
+| # | Amélioration | Valeur | Effort | Vague | État |
+|---|---|---|---|---|---|
+| 1 | Plafonner le tampon HLS | Très haute | Trivial | 1 | fait |
+| 2 | Touches de télécommande (Tizen, Fire TV) | Très haute | Faible | 1 | fait |
+| 3 | Trickplay | Très haute | Faible | 1 | fait |
+| 4 | Logos Fanart | Moyenne | Trivial | 1 | fait (accueil) |
+| 5 | Screen Wake Lock | Moyenne | Trivial | 1 | fait |
+| 6 | Sous-scores parentaux 10.11 | *anti-régression* | Faible | 1 | fait |
+| 7 | Quick Connect | Haute | Faible | 2 | fait |
+| 8 | Sélecteur de version | Moyenne | Faible | 2 | fait |
+| 9 | Overlay de statistiques | Moyenne | Faible | 2 | fait |
+| 10 | Media Session (PC/mobile) | Moyenne | Faible | 2 | fait |
+| 11 | `storage.persist()` | Moyenne | Trivial | 2 | fait |
+| 12 | Cible de cast + WebSocket | Très haute | Moyen | 3 | fait |
+| 13 | Mode musique (radio, veille, paroles) | Haute | Moyen | 3 | fait (moteur) |
+
+### Ce que « fait » ne veut pas dire
+
+**#4, « fait (accueil) »** — le logo remplace le titre sur le carrousel
+d'accueil, là où il change réellement l'allure de l'application. Il n'a PAS été
+posé dans la barre supérieure du lecteur : à la taille où ce titre s'affiche
+pendant la lecture, une image de logo serait moins lisible que du texte. C'est
+un choix, pas un oubli.
+
+**#13, « fait (moteur) »** — les trois pièces existent et sont testées : la
+composition de radio (`RadioArtiste`), l'écran plein cadre avec pochette, fond
+flouté et paroles au mot (`EcranMusique`), et la résolution ligne/mot
+(`Paroles`). Ce qui reste à faire est de l'assemblage d'interface : un bouton
+« radio » sur les fiches d'album et d'artiste, et l'ouverture automatique de
+l'écran quand la lecture porte sur de l'audio. Le moteur ne se voit pas encore
+tant que ces deux points d'entrée ne sont pas posés.
+
+### Ce qui ne peut pas être vérifié d'ici
+
+Trois choses demandent le matériel réel, et aucun test ne les remplace :
+
+- la **recette sur téléviseur** — les touches média Tizen et Fire TV, la
+  fluidité de l'écran de paroles à 60 images par seconde sur un modèle 2020 ;
+- la **mesure mémoire** du plafonnement HLS avec `SPACEHUB_HLS_UMD=1` ;
+- le **cast réel** depuis l'application Jellyfin d'un téléphone : la déclaration
+  de capacités et l'écoute WebSocket sont testées séparément, mais le trajet
+  complet passe par un serveur que je n'ai pas.
