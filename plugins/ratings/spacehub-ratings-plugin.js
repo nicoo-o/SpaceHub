@@ -7,9 +7,10 @@
  * La note étoile (CommunityRating) vient de Jellyfin nativement.
  *
  * Permissions requises : network.external.read, jellyfin.metadata.read
- * Contributions : metadataProvider
+ * Contributions SDK : aucune (les fournisseurs sont posés sur RatingCacheService).
  *
- * Configuration admin : clés API OMDb et TMDB via PluginManager.getPluginStorage()
+ * Configuration : clés API OMDb et TMDB via PluginManager.getPluginStorage().
+ * Accessible à tout compte — ces permissions n'agissent pas sur le serveur.
  */
 'use strict';
 
@@ -25,7 +26,14 @@ const manifest = {
     icon: '🍅',
     isDefault: true,
     permissions: ['network.external.read', 'jellyfin.metadata.read'],
-    contributions: ['metadataProvider'],
+    // `contributions: ['metadataProvider']` figurait ici et n'était JAMAIS
+    // enregistré : ce plugin n'est pas un fournisseur de métadonnées au sens
+    // du SDK, il alimente `RatingCacheService` par ses trois `setProvider`.
+    // Déclarer une contribution qu'on ne fournit pas trompe la console des
+    // plugins et tout code qui s'y fierait. Ajouter un enregistrement factice
+    // pour « faire coller » le manifeste aurait été pire — on retire la
+    // déclaration, le nettoyage réel se fait dans `onDisable`/`onUnload`.
+    contributions: [],
 
     healthCheck: async (ctx) => {
         const key = ctx.settings.get('omdbApiKey', null);

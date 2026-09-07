@@ -59,12 +59,42 @@ export class PluginPermissions {
         return Array.isArray(configured) ? configured : [];
     }
 
+    /**
+     * Approuve un jeu de permissions pour un plugin.
+     *
+     * CE QUI ÉTAIT TROP LARGE. Toute approbation était réservée aux
+     * administrateurs Jellyfin. C'est juste pour ce qui touche au SERVEUR —
+     * installer un greffon, écrire des métadonnées, relancer une analyse de
+     * médiathèque : ces actes engagent tout le monde, et `ADMIN_ONLY` les
+     * énumère précisément pour cette raison.
+     *
+     * Mais la règle s'appliquait aussi aux permissions purement locales.
+     * Conséquence concrète : le plugin de notes ne demande que
+     * `network.external.read` et `jellyfin.metadata.read` — ni l'une ni
+     * l'autre dans `ADMIN_ONLY` — et restait pourtant inactif sur tout compte
+     * non-administrateur. L'écran de réglages proposait à ces utilisateurs de
+     * saisir leur clé API OMDb, dans un champ dont la valeur n'aurait jamais
+     * pu servir. On leur demandait un secret pour rien.
+     *
+     * La règle devient donc : l'approbation exige un administrateur
+     * uniquement si le lot contient une permission `ADMIN_ONLY`. Le reste ne
+     * concerne que ce navigateur et son propriétaire — les approbations sont
+     * stockées dans ses réglages locaux, elles n'engagent personne d'autre.
+     *
+     * @param {string} pluginId
+     * @param {string[]} permissions
+     * @returns {string[]} Les permissions retenues.
+     */
     setApproved(pluginId, permissions) {
-        if (!this.isAdministrator()) {
-            throw new PluginPermissionError(pluginId, 'plugin.permissions.approve', 'Approbation réservée aux administrateurs Jellyfin');
-        }
         const result = this.validate(permissions);
         if (!result.valid) throw new PluginPermissionError(pluginId, result.unknown[0], 'Permission inconnue');
+
+        const sensibles = result.permissions.filter(p => ADMIN_ONLY.has(p));
+        if (sensibles.length > 0 && !this.isAdministrator()) {
+            throw new PluginPermissionError(
+                pluginId, sensibles[0],
+                `Approbation réservée aux administrateurs Jellyfin : « ${sensibles[0]} » agit sur le serveur`);
+        }
         this._settings?.set(`plugins.${pluginId}.approvedPermissions`, result.permissions);
         this._eventBus?.emit('plugin:permissions-changed', { pluginId, permissions: result.permissions });
         return result.permissions;

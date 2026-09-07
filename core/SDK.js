@@ -87,19 +87,69 @@ class SpaceHubSDK {
         return manager.register(theme);
     }
 
+    /**
+     * Applique un thème.
+     *
+     * Le `|| false` rapportait un ÉCHEC quand `apply()` réussissait sans rien
+     * renvoyer : toute valeur non vériteuse — `undefined`, `null`, `0` —
+     * devenait `false`. C'est l'inverse d'un mensonge, mais c'est faux
+     * pareil : un plugin qui teste ce retour affiche une erreur alors que le
+     * thème est appliqué à l'écran. On distingue « le gestionnaire est
+     * absent » de « le gestionnaire n'a rien dit ».
+     *
+     * @param {string} themeId
+     * @returns {boolean} vrai si le thème a été appliqué.
+     */
     applyTheme(themeId) {
-        return svc.themes()?.apply?.(themeId) || false;
+        const manager = svc.themes();
+        if (typeof manager?.apply !== 'function') return false;
+        const resultat = manager.apply(themeId);
+        // `apply()` renvoie `false` quand le thème est introuvable, et `true`
+        // en cas de succès. Une version qui ne renverrait rien est traitée
+        // comme un succès : elle n'a pas signalé d'échec.
+        return resultat !== false;
     }
 
+    /**
+     * Enregistre un module auprès du ModuleManager.
+     *
+     * Cette fonction renvoyait `true` sans jamais consulter le retour de
+     * `register()`. Or celui-ci refuse deux cas — identifiant manquant,
+     * module déjà enregistré — en sortant silencieusement. Le plugin
+     * recevait donc une confirmation pour un enregistrement qui n'avait pas
+     * eu lieu, et découvrait le problème beaucoup plus tard, ailleurs.
+     *
+     * @param {Object} moduleConfig
+     * @returns {boolean} le résultat réel de l'enregistrement.
+     */
     registerModule(moduleConfig) {
         const manager = svc.moduleManager();
         if (!manager || typeof manager.register !== 'function') return false;
-        manager.register(moduleConfig);
-        return true;
+        return manager.register(moduleConfig) === true;
     }
 
+    /**
+     * Enregistre un fournisseur de métadonnées.
+     *
+     * Le `|| (() => {})` rendait une fonction de désabonnement vide quand le
+     * service de métadonnées était absent. Du point de vue du plugin, tout
+     * s'était bien passé : il avait « un désabonnement », donc son
+     * enregistrement avait « réussi ». Il découvrait le contraire plus tard,
+     * en constatant que ses métadonnées n'apparaissaient jamais — sans aucun
+     * moyen de relier les deux.
+     *
+     * @param {Object} provider
+     * @returns {(() => void)|null} Le désabonnement, ou `null` si
+     *   l'enregistrement n'a PAS eu lieu.
+     */
     registerMetadataProvider(provider) {
-        return svc.metadata()?.registerProvider?.(provider) || (() => {});
+        const metadata = svc.metadata();
+        if (typeof metadata?.registerProvider !== 'function') {
+            this._log?.warn?.('Service de métadonnées indisponible : fournisseur NON enregistré.');
+            return null;
+        }
+        const desabonner = metadata.registerProvider(provider);
+        return typeof desabonner === 'function' ? desabonner : null;
     }
 
     getMetadata(itemId, options = {}) { return svc.metadata()?.get?.(itemId, options); }
@@ -130,8 +180,27 @@ class SpaceHubSDK {
     getSetting(key, fallback = null) { return svc.settings()?.get?.(key, fallback); }
     setSetting(key, value) { return svc.settings()?.set?.(key, value); }
 
+    /**
+     * Espace de configuration d'un plugin.
+     *
+     * `PluginManager.getPluginStorage` LÈVE quand le plugin n'est pas
+     * enregistré (`_get` lance « Plugin introuvable »). Le chaînage optionnel
+     * ne protège pas d'une exception levée À L'INTÉRIEUR de la fonction : il
+     * ne couvre que son absence. Or cet accesseur est appelé depuis un
+     * littéral de gabarit du panneau de réglages — une exception y interrompt
+     * la construction de la chaîne HTML, et c'est tout l'écran des réglages
+     * qui disparaît parce qu'un plugin n'est pas chargé.
+     *
+     * @param {string} [pluginId]
+     * @returns {Object|null} L'espace de stockage, ou `null` s'il n'existe pas.
+     */
     getPluginStorage(pluginId) {
-        return this._getPluginManager()?.getPluginStorage?.(this._getPluginId(pluginId)) || null;
+        try {
+            return this._getPluginManager()?.getPluginStorage?.(this._getPluginId(pluginId)) || null;
+        } catch (err) {
+            this._log?.debug?.(`Stockage indisponible pour « ${pluginId} » : ${err?.message || err}`);
+            return null;
+        }
     }
 
     getCatalog({ approvedOnly = false } = {}) {
