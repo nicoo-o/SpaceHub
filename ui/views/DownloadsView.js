@@ -12,11 +12,22 @@
 'use strict';
 
 import Logger from '../../core/Logger.js';
+import { escapeHtml } from '../../core/utils/domUtils.js';
 import UnifiedCalendarService from '../../jellyfin/calendar/UnifiedCalendarService.js';
 
 import './DownloadsView.css';
 import * as svc from '../../core/services.js';
 class DownloadsView {
+
+    /**
+     * Échappement HTML.
+     *
+     * Six gabarits de cette vue appelaient `this._escape(…)` — messages
+     * d'erreur, titres de résultats Jellyseerr — et la méthode n'existait pas.
+     * Afficher une erreur de chargement ou une recherche Jellyseerr levait donc
+     * une TypeError, et la vue restait vide au lieu de dire ce qui n'allait pas.
+     */
+    _escape(v) { return escapeHtml(v); }
     constructor() {
         this._log = new Logger('DownloadsView');
         this._activeTab = 'qbit';
@@ -59,7 +70,7 @@ class DownloadsView {
                             </div>
                             <div class="sh-metric-card__data">
                                 <span class="sh-metric-card__label">RÉCEPTION</span>
-                                <span class="sh-metric-card__val" id="sh-metric-dl-val">0 B/s</span>
+                                <span class="sh-metric-card__val" id="sh-metric-dl-val">—</span>
                             </div>
                         </div>
 
@@ -69,7 +80,7 @@ class DownloadsView {
                             </div>
                             <div class="sh-metric-card__data">
                                 <span class="sh-metric-card__label">ÉMISSION</span>
-                                <span class="sh-metric-card__val" id="sh-metric-up-val">0 B/s</span>
+                                <span class="sh-metric-card__val" id="sh-metric-up-val">—</span>
                             </div>
                         </div>
 
@@ -79,7 +90,7 @@ class DownloadsView {
                             </div>
                             <div class="sh-metric-card__data">
                                 <span class="sh-metric-card__label">TORRENTS ACTIFS</span>
-                                <span class="sh-metric-card__val" id="sh-metric-torrents-val">0</span>
+                                <span class="sh-metric-card__val" id="sh-metric-torrents-val">—</span>
                             </div>
                         </div>
 
@@ -89,7 +100,7 @@ class DownloadsView {
                             </div>
                             <div class="sh-metric-card__data">
                                 <span class="sh-metric-card__label">DEMANDES JELLYSEERR</span>
-                                <span class="sh-metric-card__val" id="sh-metric-requests-val">0</span>
+                                <span class="sh-metric-card__val" id="sh-metric-requests-val">—</span>
                             </div>
                         </div>
                     </div>
@@ -186,12 +197,40 @@ class DownloadsView {
         });
     }
 
+    /**
+     * Squelette de chargement d'un panneau d'intégration.
+     *
+     * Trois cartouches de statistiques puis une liste : c'est la forme
+     * commune à tous les onglets (qBittorrent, Sonarr, Radarr, Prowlarr,
+     * Bazarr, Jellyseerr), donc la bonne approximation de l'espace à
+     * réserver. Marqué `aria-hidden` : il n'y a rien à lire dedans, et
+     * `aria-busy` sur le conteneur dit déjà l'essentiel aux lecteurs d'écran.
+     *
+     * @returns {string}
+     */
+    _squelettePanneau() {
+        const cartouche = '<div class="sh-dl-skel__stat sh-skeleton-block"></div>';
+        const ligne = '<div class="sh-dl-skel__row sh-skeleton-block"></div>';
+        return `
+            <div class="sh-dl-skel" aria-hidden="true">
+                <div class="sh-dl-skel__stats">${cartouche.repeat(3)}</div>
+                <div class="sh-dl-skel__list">${ligne.repeat(5)}</div>
+            </div>
+            <p class="sh-dl-skel__label" role="status">Chargement des données…</p>
+        `;
+    }
+
     async _renderActiveTab() {
         const slotMain = this._container?.querySelector('#sh-dl-slot-main');
         const slotSub = this._container?.querySelector('#sh-dl-slot-sub');
         if (!slotMain || !slotSub) return;
 
-        slotMain.innerHTML = '<div class="sh-dl-loading"><div class="sh-dl-spinner"></div><p>Chargement des données...</p></div>';
+        // AUDIT B8 — un compteur qui tourne au centre d'une zone vide ne dit
+        // pas ce qui arrive, et surtout n'occupe pas la place que le contenu
+        // prendra : à l'arrivée des données, tout saute (décalage de mise en
+        // page, l'un des trois indicateurs Core Web Vitals). Le squelette
+        // réserve la forme réelle du panneau ; l'écran ne bouge plus.
+        slotMain.innerHTML = this._squelettePanneau();
         slotSub.innerHTML = '';
 
         const dashboard = svc.dashboard();
@@ -891,29 +930,50 @@ class DownloadsView {
         // inventaire réel des médias n'a pas été demandé au serveur Jellyfin.
         const qualityDesc = slotMain.querySelector('#sh-health-quality-desc');
         if (qualityDesc) qualityDesc.textContent = 'Qualité : non analysée (aucune valeur déduite ou simulée).';
-        try {
-            const bazarr = svc.integration('bazarr');
-            const summary = await bazarr?.getWantedSummary?.();
-            const descEl = slotMain.querySelector('#sh-health-subtitles-desc');
-            if (descEl) {
-                const total = summary?.totalWanted ?? summary?.total ?? 0;
-                descEl.textContent = total > 0
-                    ? `⚠️ ${total} sous-titres français manquants détectés.`
-                    : `🟢 Tous les sous-titres français sont à jour !`;
+        // Le `?? 0` puis le `catch` silencieux faisaient afficher
+        // « 🟢 Tous les sous-titres français sont à jour ! » aussi bien quand
+        // tout allait bien que quand Bazarr était éteint, mal configuré, ou
+        // absent. Les trois cas se distinguent désormais.
+        const descEl = slotMain.querySelector('#sh-health-subtitles-desc');
+        const bazarr = svc.integration('bazarr');
+        if (!bazarr?.getWantedSummary) {
+            if (descEl) descEl.textContent = '⚪ Bazarr n\'est pas configuré — sous-titres non surveillés.';
+        } else {
+            try {
+                const summary = await bazarr.getWantedSummary();
+                if (descEl) {
+                    if (!summary?.mesure) {
+                        descEl.textContent = `⚪ ${summary?.erreur || 'Bazarr n\'a pas répondu — état inconnu.'}`;
+                    } else if (summary.totalWanted > 0) {
+                        descEl.textContent = `⚠️ ${summary.totalWanted} sous-titres français manquants détectés.`;
+                    } else {
+                        descEl.textContent = '🟢 Aucun sous-titre français manquant.';
+                    }
+                }
+            } catch (err) {
+                if (descEl) descEl.textContent = `⚪ État des sous-titres indisponible : ${err?.message || 'erreur'}.`;
             }
-        } catch (e) {
-            // Silencieux
         }
 
         slotMain.querySelector('#sh-health-btn-subtitles')?.addEventListener('click', async () => {
-            await svc.integration('bazarr')?.sync?.();
-            svc.toaster()?.success?.('Recherche automatique de sous-titres lancée !');
+            // Le chaînage optionnel faisait que SANS Bazarr configuré,
+            // l'expression valait `undefined`, aucun appel réseau n'avait
+            // lieu, et le toast vert s'affichait quand même.
+            const service = svc.integration('bazarr');
+            if (typeof service?.sync !== 'function') {
+                svc.toaster()?.error?.('Bazarr n\'est pas configuré.');
+                return;
+            }
+            const bilan = await service.sync();
+            if (bilan?.success) svc.toaster()?.success?.('Recherche de sous-titres lancée.');
         });
 
         slotMain.querySelector('#sh-health-btn-rescan')?.addEventListener('click', async () => {
-            svc.toaster()?.info?.('Scan de santé en cours...');
+            // « Scan » est un mot qui promet une analyse. Il n'y en a pas :
+            // ce bouton relit les mêmes sources. On le dit.
+            svc.toaster()?.info?.('Actualisation…');
             await this._renderHealthTab(slotMain, slotSub);
-            svc.toaster()?.success?.('Scan de santé terminé.');
+            svc.toaster()?.success?.('État actualisé.');
         });
     }
 
@@ -923,33 +983,66 @@ class DownloadsView {
         this._statsInterval = setInterval(() => this._updateMetrics(), 6000);
     }
 
+    /**
+     * Rafraîchit les quatre compteurs « en direct ».
+     *
+     * CE QUI CLOCHAIT. L'en-tête annonce « CENTRE DE CONTRÔLE & FLUX EN
+     * DIRECT », pastille pulsante comprise, et les quatre valeurs étaient
+     * écrites en dur à « 0 B/s » / « 0 » dans le HTML. Si qBittorrent ou
+     * Jellyseerr n'étaient pas configurés, aucune branche ne s'exécutait ;
+     * si un relevé échouait, le `catch` était silencieux. Dans les deux cas
+     * ces zéros restaient à l'écran, rafraîchis toutes les six secondes,
+     * indiscernables d'une mesure réelle. « 0 B/s » veut dire « rien ne
+     * transite » ; ici cela voulait dire « je n'ai pas regardé ».
+     *
+     * Les valeurs partent maintenant de « — » et n'affichent un chiffre que
+     * si un appel a effectivement abouti.
+     */
     async _updateMetrics() {
         if (!this._container) return;
+        const poser = (sel, valeur) => {
+            const el = this._container?.querySelector(sel);
+            if (el) el.textContent = valeur;
+        };
+        const INCONNU = '—';
 
-        try {
-            const qbit = svc.integration('qbittorrent');
-            if (qbit?.getTransferStats) {
+        const qbit = svc.integration('qbittorrent');
+        if (!qbit?.getTransferStats) {
+            poser('#sh-metric-dl-val', INCONNU);
+            poser('#sh-metric-up-val', INCONNU);
+        } else {
+            try {
                 const info = await qbit.getTransferStats();
-                const dlEl = this._container.querySelector('#sh-metric-dl-val');
-                const upEl = this._container.querySelector('#sh-metric-up-val');
-                if (dlEl) dlEl.textContent = this._formatSpeed(info.dl_info_speed || 0);
-                if (upEl) upEl.textContent = this._formatSpeed(info.up_info_speed || 0);
+                poser('#sh-metric-dl-val', this._formatSpeed(info?.dl_info_speed || 0));
+                poser('#sh-metric-up-val', this._formatSpeed(info?.up_info_speed || 0));
+            } catch (err) {
+                poser('#sh-metric-dl-val', INCONNU);
+                poser('#sh-metric-up-val', INCONNU);
+                this._log?.debug?.('Débits qBittorrent indisponibles :', err?.message || err);
             }
+        }
 
-            if (qbit?.getTorrents) {
+        if (!qbit?.getTorrents) {
+            poser('#sh-metric-torrents-val', INCONNU);
+        } else {
+            try {
                 const torrents = await qbit.getTorrents('active');
-                const torEl = this._container.querySelector('#sh-metric-torrents-val');
-                if (torEl && Array.isArray(torrents)) torEl.textContent = String(torrents.length);
+                poser('#sh-metric-torrents-val', Array.isArray(torrents) ? String(torrents.length) : INCONNU);
+            } catch {
+                poser('#sh-metric-torrents-val', INCONNU);
             }
+        }
 
-            const jellyseerr = svc.integration('jellyseerr');
-            if (jellyseerr?.getPendingRequests) {
+        const jellyseerr = svc.integration('jellyseerr');
+        if (!jellyseerr?.getPendingRequests) {
+            poser('#sh-metric-requests-val', INCONNU);
+        } else {
+            try {
                 const requests = await jellyseerr.getPendingRequests();
-                const reqEl = this._container.querySelector('#sh-metric-requests-val');
-                if (reqEl && Array.isArray(requests)) reqEl.textContent = String(requests.length);
+                poser('#sh-metric-requests-val', Array.isArray(requests) ? String(requests.length) : INCONNU);
+            } catch {
+                poser('#sh-metric-requests-val', INCONNU);
             }
-        } catch (err) {
-            // Silencieux
         }
     }
 

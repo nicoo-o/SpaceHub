@@ -7,6 +7,7 @@
 
 import MediaAnalyticsService from '../../jellyfin/analytics/MediaAnalyticsService.js';
 import AnalyticsModal from '../components/AnalyticsModal.js';
+import { escapeHtml } from '../../core/utils/domUtils.js';
 
 export class MediaAnalyticsWidget {
     static get id() { return 'media-analytics'; }
@@ -55,13 +56,22 @@ export class MediaAnalyticsWidget {
         try {
             const stats = await this._service.getStats();
 
+            // Le service ne relançait pas : ce `catch` plus bas n'était jamais
+            // atteint, et un échec s'affichait comme « 0 h · 0 films ·
+            // 0 épisodes · 0 % 4K ». Il faut le tester explicitement.
+            if (stats?.mesure === false) {
+                bodyEl.innerHTML = `<p style="color:rgba(var(--sh-ink, 255, 255, 255), 0.42); padding:16px; font-size:13px;">`
+                    + `Métriques indisponibles : ${escapeHtml(stats.erreur || 'le serveur n\'a pas répondu')}.</p>`;
+                return;
+            }
+
             bodyEl.innerHTML = `
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
                     <div style="background: rgba(var(--sh-ink, 255, 255, 255), 0.04); border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 14px;">
                         <span style="font-size: 24px;">⏱️</span>
                         <div>
                             <strong style="font-size: 20px; color: var(--sh-ink-solid, #ffffff); display: block;">${stats.totalWatchTimeHours} h</strong>
-                            <small style="font-size: 11px; color: rgba(var(--sh-ink, 255, 255, 255), 0.5);">Temps total regardé</small>
+                            <small style="font-size: 11px; color: rgba(var(--sh-ink, 255, 255, 255), 0.5);">Durée cumulée des titres vus</small>
                         </div>
                     </div>
 

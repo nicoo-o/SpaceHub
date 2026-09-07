@@ -17,15 +17,33 @@ import Logger from '../../core/Logger.js';
 import './UnifiedSearch.css';
 import * as svc from '../../core/services.js';
 import inputRouter, { PRIORITES } from '../../core/InputRouter.js';
+import { comportementDefilement } from '../../core/utils/domUtils.js';
 class UnifiedSearch {
     constructor() {
         // Confirmation du scope search dans le Focus Registry
         const spatialNav = svc.nav() || svc.nav();
-        if (spatialNav?.registerFocusables) {
-            spatialNav.registerFocusables('search', (container) => {
-                const root = container || document.querySelector('.sh-unified-search--open') || document;
+        // Ce fournisseur ÉCRASAIT le scope du moteur, et sa garde ne servait
+        // à rien : `getFocusables` appelle le fournisseur avec `this._root`,
+        // c'est-à-dire `document`. Or `document` est truthy, donc
+        // `container || document.querySelector(…)` s'arrêtait au premier
+        // terme et la racine confinée n'était JAMAIS évaluée. Le scope
+        // renvoyait tous les contrôles de la page entière : réglages ouverts,
+        // descendre dans la colonne de gauche faisait sortir le focus de la
+        // modale pour se poser sur une carte du tableau de bord, invisible
+        // sous l'overlay.
+        //
+        // On compose au lieu d'écraser, et on cherche la racine réelle sans
+        // dépendre de l'argument.
+        //
+        // Aggravation propre à la recherche : la racine cherchée était
+        // `.sh-unified-search--open`, une classe qui n'est émise NULLE PART.
+        // La vraie est `.sh-spotlight-overlay.open` (cf. DomContracts.LAYERS).
+        if (spatialNav?.extendFocusables) {
+            spatialNav.extendFocusables('search', () => {
+                const root = document.querySelector('.sh-spotlight-overlay.open');
+                if (!root || root.closest('[inert]')) return [];
                 return Array.from(root.querySelectorAll('.sh-spotlight-input, .sh-spotlight-tab-btn, .sh-spotlight-item, [data-nav-focusable="true"]'));
-            }, { force: true }); // re-registration volontaire — cf. plan A04
+            }, { source: 'spotlight' });
         }
         this._log = new Logger('UnifiedSearch');
         this._overlay = null;
@@ -167,11 +185,28 @@ class UnifiedSearch {
                 sub: 'Basculer les ambiances visuelles',
                 action: () => {
                     this._navigateAndDismiss(() => {
-                        const themes = ['space-dark', 'cyberpunk', 'oled-black', 'aurora'];
-                        const current = svc.settings()?.get('ui.theme', 'space-dark') || 'space-dark';
-                        const next = themes[(themes.indexOf(current) + 1) % themes.length];
-                        svc.themes()?.applyTheme(next);
-                        svc.toaster()?.success(`Thème : ${next}`);
+                        // Cette commande était cassée deux fois.
+                        //
+                        // 1. Elle faisait tourner une liste écrite en dur —
+                        //    'space-dark', 'cyberpunk', 'oled-black', 'aurora' —
+                        //    dont AUCUN identifiant n'existe : les thèmes réels
+                        //    sont 'spacehub-dark' et 'spacehub-light'.
+                        // 2. Elle appelait `applyTheme()` sur le ThemeManager,
+                        //    qui n'expose que `apply()` ; `applyTheme` est une
+                        //    méthode du SDK. L'appel levait donc un TypeError
+                        //    avant même d'atteindre le thème inexistant.
+                        //
+                        // `next()` fait exactement ce travail, sur la liste
+                        // réellement disponible (presets + thèmes personnalisés).
+                        const themes = svc.themes();
+                        if (!themes?.next) {
+                            svc.toaster()?.error('Gestionnaire de thèmes indisponible.');
+                            return;
+                        }
+                        themes.next();
+                        const actif = themes.getAvailable?.()
+                            ?.find(t => t.id === themes.getCurrent?.());
+                        svc.toaster()?.success(`Thème : ${actif?.name || themes.getCurrent?.() || 'changé'}`);
                     });
                 }
             },
@@ -183,13 +218,38 @@ class UnifiedSearch {
                 icon: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"></path></svg>`,
                 sub: 'Lancer un média au hasard',
                 action: () => {
-                    this._navigateAndDismiss(() => {
-                        svc.toaster()?.info('Sélection d\'un média aléatoire...');
-                        const sampleItems = this._getDefaultCatalog();
-                        const pick = sampleItems[Math.floor(Math.random() * sampleItems.length)];
-                        setTimeout(() => {
-                            svc.slideUpSheet()?.open(pick);
-                        }, 80);
+                    // « Surprenez-moi ! » appelait `this._getDefaultCatalog()`,
+                    // une méthode qui n'existe NULLE PART dans le dépôt : la
+                    // commande levait une TypeError à chaque fois, et n'avait
+                    // donc jamais rien lancé. Le tirage se fait maintenant
+                    // côté serveur (`SortBy=Random`), sur la vraie
+                    // bibliothèque — un « au hasard » sur un catalogue écrit en
+                    // dur n'aurait de toute façon aucun sens.
+                    this._navigateAndDismiss(async () => {
+                        const toaster = svc.toaster();
+                        const api = svc.jellyfinApi();
+                        if (!api?.getItems) {
+                            toaster?.error?.('Serveur indisponible.');
+                            return;
+                        }
+                        toaster?.info?.('Sélection d\'un média au hasard…');
+                        try {
+                            const items = await api.getItems(null, {
+                                includeItemTypes: 'Movie,Series',
+                                recursive: true,
+                                sortBy: 'Random',
+                                limit: 1,
+                            });
+                            const choisi = Array.isArray(items) ? items[0] : null;
+                            if (!choisi) {
+                                toaster?.info?.('Aucun titre à proposer.');
+                                return;
+                            }
+                            svc.slideUpSheet()?.open(choisi);
+                        } catch (err) {
+                            this._log?.warn?.('Tirage aléatoire impossible :', err);
+                            toaster?.error?.('Impossible de joindre le serveur.');
+                        }
                     });
                 }
             },
@@ -288,6 +348,15 @@ class UnifiedSearch {
         // les réglages, un appui sur Échap fermait les RÉGLAGES en dessous et
         // laissait la recherche à l'écran.
         svc.nav()?.pushLayer?.('search');
+        // `pushLayer` n'empile que le NOM de la couche, pas le focus. La
+        // recherche n'enregistrait donc aucun point de retour : à la
+        // fermeture, l'élément focalisé (le champ de saisie) était retiré du
+        // DOM, `_state.focusedElement` pointait un nœud détaché, et la flèche
+        // suivante déclenchait le rattrapage — qui reprend le PREMIER candidat
+        // et fait remonter toute la page. On descendait jusqu'à la sixième
+        // rangée, on ouvrait la recherche, on la fermait, et on se retrouvait
+        // en haut du tableau de bord.
+        svc.nav()?.pushFocus?.();
 
         const island = document.getElementById('sh-dynamic-island');
         const underglow = document.getElementById('sh-island-underglow');
@@ -584,6 +653,9 @@ class UnifiedSearch {
 
         requestAnimationFrame(() => {
             this._overlay.classList.add('open');
+            // Confine le focus dans la recherche tant qu'elle est ouverte
+            // (cf. ModalSlideUpSheet pour l'explication complète).
+            this._overlay.dataset.navContainer = 'strict';
         });
 
         // 5. Lancement de la véritable animation Effet Génie Canvas
@@ -617,11 +689,13 @@ class UnifiedSearch {
         // Retire la couche de la pile : fermée par un clic ou par la croix, elle
         // ne doit plus être la cible du prochain « Retour ».
         svc.nav()?.onLayerClosed?.('search');
+        svc.nav()?.onModalClosed?.();     // dépile le point de retour (absorbé si doublon)
 
         const island = document.getElementById('sh-dynamic-island');
         const underglow = document.getElementById('sh-island-underglow');
 
         this._overlay?.classList.remove('open');
+        if (this._overlay) delete this._overlay.dataset.navContainer;
 
         // Cacher le DOM live pour laisser place à la déformation Génie Canvas
         if (this._modal) {
@@ -1237,7 +1311,7 @@ class UnifiedSearch {
         items.forEach((el, i) => {
             if (i === this._selectedIndex) {
                 el.classList.add('active');
-                el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                el.scrollIntoView({ block: 'nearest', behavior: comportementDefilement() });
             } else {
                 el.classList.remove('active');
             }

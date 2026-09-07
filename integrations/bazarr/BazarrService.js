@@ -87,18 +87,55 @@ class BazarrService {
             if (cached) return cached;
         }
 
+        // AUDIT — « zéro manquant » et « je n'ai pas pu demander » ne sont
+        // PAS la même chose, et cette fonction les confondait.
+        //
+        // Les deux appels étaient suivis de `.catch(() => ({ data: [] }))`.
+        // Serveur Bazarr éteint, clé API fausse, 401 : l'erreur disparaissait,
+        // `totalWanted` valait 0, et TROIS écrans en tiraient une affirmation
+        // positive — « Tous les sous-titres français sont synchronisés ! »,
+        // « Tous vos films et séries ont leurs sous-titres au complet ! »,
+        // « 🟢 Tous les sous-titres français sont à jour ! ». L'utilisateur
+        // recevait une garantie produite par l'absence totale de mesure.
+        //
+        // On distingue désormais les deux, et on le dit à l'appelant.
         const [moviesRes, episodesRes] = await Promise.all([
-            this.api.getWantedMovies(0, 15).catch(() => ({ data: [] })),
-            this.api.getWantedEpisodes(0, 15).catch(() => ({ data: [] }))
+            this.api.getWantedMovies(0, 200).catch(err => ({ __echec: err })),
+            this.api.getWantedEpisodes(0, 200).catch(err => ({ __echec: err }))
         ]);
 
-        const movies = moviesRes?.data || [];
-        const episodes = episodesRes?.data || [];
-        const totalWanted = (moviesRes?.total || movies.length) + (episodesRes?.total || episodes.length);
+        const echecs = [];
+        if (moviesRes?.__echec) echecs.push(`films (${moviesRes.__echec.message || 'erreur'})`);
+        if (episodesRes?.__echec) echecs.push(`épisodes (${episodesRes.__echec.message || 'erreur'})`);
 
-        const summary = { movies, episodes, totalWanted };
+        const movies = moviesRes?.__echec ? [] : (moviesRes?.data || []);
+        const episodes = episodesRes?.__echec ? [] : (episodesRes?.data || []);
 
-        if (this._cache) {
+        // `total` est le compte réel côté Bazarr ; `length` est plafonné par la
+        // pagination demandée. Retomber sur `length` faisait passer « 500
+        // manquants » pour « 30 manquants ». On préfère ne pas savoir.
+        const compte = (res, liste) => {
+            if (res?.__echec) return null;
+            const t = Number(res?.total);
+            return Number.isFinite(t) ? t : liste.length;
+        };
+        const nFilms = compte(moviesRes, movies);
+        const nEpisodes = compte(episodesRes, episodes);
+        const mesure = nFilms !== null && nEpisodes !== null;
+
+        const summary = {
+            movies,
+            episodes,
+            /** `null` si la mesure a échoué — surtout pas 0. */
+            totalWanted: mesure ? nFilms + nEpisodes : null,
+            /** Vrai seulement si les DEUX appels ont abouti. */
+            mesure,
+            erreur: echecs.length ? `Bazarr injoignable pour : ${echecs.join(', ')}.` : null,
+        };
+
+        if (this._cache && mesure) {
+            // Un échec ne se met pas en cache : il faut réessayer au prochain
+            // affichage, pas figer trois minutes d'ignorance.
             await this._cache.set('bazarr', cacheKey, summary, 180); // 3 min TTL
         }
 
@@ -114,7 +151,10 @@ class BazarrService {
         return providers.map(p => ({
             name: p.name || p.id,
             enabled: p.enabled !== false,
-            authenticated: p.authenticated ?? true
+            // `?? true` affirmait l'authentification quand Bazarr ne disait
+            // rien. Sur une question de sécurité, l'absence de réponse n'est
+            // pas un oui : `null` se lit « inconnu » et s'affiche comme tel.
+            authenticated: typeof p.authenticated === 'boolean' ? p.authenticated : null
         }));
     }
 
@@ -165,13 +205,20 @@ class BazarrService {
     async triggerSync() {
         this._log.info('Déclenchement de la synchronisation Bazarr...');
         try {
-            const result = await this.api.syncLibraries();
-            if (result?.success === false || result?.status === 'unsupported') {
-                svc.toaster()?.warning?.('Bazarr ne propose pas cette tâche de synchronisation via son API.');
-                return { success: false, status: result?.status || 'unsupported' };
+            const resultat = await this.api.syncLibraries();
+            if (resultat?.success) {
+                svc.toaster()?.success?.('Synchronisation Bazarr lancée.');
+                return resultat;
             }
-            svc.toaster()?.success?.('Synchronisation Bazarr lancée avec succès !');
-            return result || { success: true };
+            // Chaque échec a maintenant un nom, et l'utilisateur voit lequel.
+            const messages = {
+                unreachable: 'Bazarr est injoignable — vérifiez l\'URL et la clé API.',
+                unsupported: 'Cette version de Bazarr n\'expose pas de tâche de synchronisation.',
+                failed: 'Bazarr a refusé de lancer la tâche de synchronisation.',
+            };
+            svc.toaster()?.warning?.(messages[resultat?.status] || 'Synchronisation Bazarr impossible.');
+            this._log.warn('Synchronisation Bazarr refusée :', resultat);
+            return resultat || { success: false, status: 'unknown' };
         } catch (err) {
             this._log.warn('Synchronisation Bazarr échouée:', err.message);
             svc.toaster()?.error?.('Échec de la synchronisation Bazarr.');

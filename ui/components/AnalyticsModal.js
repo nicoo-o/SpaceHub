@@ -118,13 +118,24 @@ export class AnalyticsModal {
         try {
             const stats = await this._service.getStats();
 
+            // Un échec de mesure ne s'affiche plus comme une mesure à zéro.
+            if (stats?.mesure === false) {
+                contentEl.innerHTML = `
+                    <div class="sh-analytics-indisponible" role="alert">
+                        <p class="sh-analytics-indisponible__titre">Statistiques indisponibles</p>
+                        <p class="sh-analytics-indisponible__detail">${escapeHtml(stats.erreur || 'Le serveur n\'a pas répondu.')}</p>
+                    </div>
+                `;
+                return;
+            }
+
             contentEl.innerHTML = `
                 <!-- 1. Grands Compteurs Lumineux -->
                 <div class="sh-analytics-counters-grid">
                     <div class="sh-stat-card primary">
                         <span class="sh-stat-card-icon">⏱️</span>
                         <div class="sh-stat-card-val">${escapeHtml(stats.totalWatchTimeHours)} h</div>
-                        <div class="sh-stat-card-label">Temps Total Regardé (${escapeHtml(stats.totalWatchTimeDays)} jours)</div>
+                        <div class="sh-stat-card-label" title="Somme des durées des titres marqués « lus », multipliée par leur nombre de lectures. Jellyfin n'expose pas le temps de visionnage réel sans le greffon Playback Reporting.">Durée cumulée des titres vus (${escapeHtml(stats.totalWatchTimeDays)} jours)</div>
                     </div>
                     <div class="sh-stat-card">
                         <span class="sh-stat-card-icon">🎬</span>
@@ -141,7 +152,7 @@ export class AnalyticsModal {
                 <div class="sh-analytics-bento-row">
                     <!-- 2. Top Genres Préférés -->
                     <div class="sh-analytics-bento-box">
-                        <h3 class="sh-analytics-box-title">🎭 Top Genres Favoris</h3>
+                        <h3 class="sh-analytics-box-title">🎭 Genres les plus regardés</h3>
                         <div class="sh-genres-bars-list">
                             ${stats.topGenres.length > 0 ? stats.topGenres.map(g => `
                                 <div class="sh-genre-bar-item">

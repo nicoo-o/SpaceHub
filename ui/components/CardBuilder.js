@@ -17,7 +17,40 @@ import Logger from '../../core/Logger.js';
 
 import './CardBuilder.css';
 import * as svc from '../../core/services.js';
+import { VirtualisationRangee, SEUIL_VIRTUALISATION } from './VirtualisationRangee.js';
 /** @typedef {'poster'|'backdrop'|'thumb'} CardType */
+
+/**
+ * Temps restant réel d'un média, en minutes.
+ *
+ * CE QUI ÉTAIT ÉCRIT ICI :
+ *
+ *     Math.round((100 - item.UserData.PlayedPercentage) * 1.2)
+ *
+ * Ce calcul suppose que TOUT média dure exactement 120 minutes. Un épisode de
+ * 22 minutes vu à la moitié affichait « 60 min » ; un film de trois heures vu
+ * à la moitié affichait « 60 min » lui aussi. Le chiffre avait l'apparence
+ * d'une mesure, il n'en était pas une — et il était faux pour à peu près tout
+ * le catalogue, les séries en premier.
+ *
+ * Jellyfin fournit ce qu'il faut : `RunTimeTicks` (durée totale) et
+ * `UserData.PlaybackPositionTicks` (position réelle), en unités de 100 ns.
+ * Le bon calcul existait déjà dans ce dépôt, à `ui/layouts/Dashboard.js` —
+ * il n'avait simplement pas été repris ici.
+ *
+ * Sans ces deux valeurs, on ne renvoie rien : la carte n'affiche alors pas de
+ * durée, ce qui est préférable à un nombre inventé.
+ *
+ * @param {Object} item  BaseItemDto Jellyfin.
+ * @returns {number|undefined} Minutes restantes, ou `undefined` si inconnu.
+ */
+function tempsRestantMinutes(item) {
+    const total = Number(item?.RunTimeTicks) || 0;
+    const position = Number(item?.UserData?.PlaybackPositionTicks) || 0;
+    if (total <= 0 || position <= 0 || position >= total) return undefined;
+    // 600 000 000 ticks = 1 minute (10 000 000 ticks par seconde).
+    return Math.max(1, Math.round((total - position) / 600000000));
+}
 
 class CardBuilder {
     constructor() {
@@ -539,122 +572,21 @@ class CardBuilder {
      */
     getCriticData() {
         return null;
-        /*
-        let title = '';
-        let genres = [];
-        let year = '';
-        let id = '';
-
-        if (typeof itemOrTitle === 'object' && itemOrTitle !== null) {
-            title = itemOrTitle.Name || itemOrTitle.title || itemOrTitle.customTitle || '';
-            genres = Array.isArray(itemOrTitle.Genres) ? itemOrTitle.Genres : (itemOrTitle.genres || []);
-            year = itemOrTitle.ProductionYear || itemOrTitle.year || '';
-            id = itemOrTitle.Id || itemOrTitle.id || '';
-            if (itemOrTitle.CriticRating !== undefined && itemOrTitle.CriticRating !== null) {
-                rtScore = Math.round(itemOrTitle.CriticRating);
-            }
-            if (itemOrTitle.CommunityRating) {
-                imdb = Number(itemOrTitle.CommunityRating).toFixed(1);
-            }
-        } else {
-            title = String(itemOrTitle || '');
-            if (Array.isArray(genresInput)) genres = genresInput;
-            else if (typeof genresInput === 'string') genres = genresInput.split(/[,•/]/).map(s => s.trim());
-            year = yearInput || '';
-        }
-
-        const numImdb = parseFloat(imdb) || 8.2;
-        const numRt = Math.min(100, Math.max(40, parseInt(rtScore, 10) || 85));
-
-        // Détection fine du registre de genre
-        const genresStr = (genres.join(' ') + ' ' + title).toLowerCase();
-        const isAnime = genresStr.includes('anime') || genresStr.includes('animé') || genresStr.includes('animation') || genresStr.includes('manga');
-        const isSciFi = genresStr.includes('sci-fi') || genresStr.includes('science-fiction') || genresStr.includes('futur') || genresStr.includes('espace') || genresStr.includes('cyber');
-        const isAction = genresStr.includes('action') || genresStr.includes('aventure') || genresStr.includes('super-héros') || genresStr.includes('hero');
-        const isMusic = genresStr.includes('music') || genresStr.includes('musique') || genresStr.includes('biograph') || genresStr.includes('drama') && (title.toLowerCase().includes('michael') || genresStr.includes('pop'));
-        const isThriller = genresStr.includes('thriller') || genresStr.includes('policier') || genresStr.includes('crime') || genresStr.includes('mystère') || genresStr.includes('horror') || genresStr.includes('horreur');
-        const isComedy = genresStr.includes('comédie') || genresStr.includes('comedy') || genresStr.includes('humour');
-
-        // Hash déterministe basé sur l'œuvre
-        const seedStr = (title + id + year).toLowerCase();
-        let hash = 0;
-        for (let i = 0; i < seedStr.length; i++) {
-            hash = ((hash << 5) - hash) + seedStr.charCodeAt(i);
-            hash |= 0;
-        }
-        const positiveHash = Math.abs(hash);
-
-        // Banques de revues de presse par genre
-        const criticCorpus = {
-            anime: [
-                { consensus: "Une prouesse d'animation magistrale, portée par une direction artistique renversante et une écriture d'une grande intensité émotionnelle.", quote: "« Une fresque visuelle étourdissante qui redéfinit les standards de l'animation moderne. »", outlet: "Anime News Network • Kim Morrissy" },
-                { consensus: "Une épopée captivante dont le dynamisme des combats et la profondeur des personnages créent une immersion totale.", quote: "« Une inventivité graphique stupéfiante doublée d'un récit d'une rare puissance. »", outlet: "IGN Japan • Hiroshi Suzuki" },
-                { consensus: "Un voyage initiatique envoûtant, magnifié par une bande originale grandiose et une narration sans temps mort.", quote: "« Un chef-d'œuvre vibrant d'énergie et de sensibilité. »", outlet: "Les Cahiers du Cinéma • Stéphane Delorme" },
-                { consensus: "Une œuvre monumentale qui transcende son genre pour offrir un spectacle émotionnel universel.", quote: "« Une claque esthétique incontournable de bout en bout. »", outlet: "Première • Sylvestre Picard" }
-            ],
-            scifi: [
-                { consensus: "Une œuvre d'anticipation visionnaire et vertigineuse, explorant avec brio les dilemmes existentiels au cœur d'un univers fascinant.", quote: "« Une immersion cinématographique monumentale qui marquera durablement la science-fiction. »", outlet: "Le Monde • Thomas Sotinel" },
-                { consensus: "Une mise en scène grandiose et une atmosphère pesante qui tiennent le spectateur en haleine du premier au dernier plan.", quote: "« Un spectacle immersif total, d'une intelligence rare et d'une beauté hypnotique. »", outlet: "The Hollywood Reporter • David Rooney" },
-                { consensus: "Un récit ambitieux servi par une esthétique soignée et des performances d'acteurs de premier ordre.", quote: "« Une tension psychologique magistralement orchestrée au sein d'un univers impitoyable. »", outlet: "Télérama • Jérémie Couston" },
-                { consensus: "Une fresque futuriste audacieuse qui allie réflexions philosophiques et séquences spectaculaires mémorables.", quote: "« Un tour de force visuel et narratif d'une rare envergure. »", outlet: "Empire • Nick de Semlyen" }
-            ],
-            music: [
-                { consensus: "Une immersion électrique et poignante au cœur d'un destin hors du commun, portée par une interprétation habitée et phénoménale.", quote: "« Une célébration vibrante d'un génie artistique absolu, grandiose et bouleversante. »", outlet: "Rolling Stone • David Fear" },
-                { consensus: "Un biopic incandescent qui transcende le spectacle scénique pour révéler les failles et le triomphe d'une légende mondiale.", quote: "« Une performance d'acteur prodigieuse qui subjugue par son authenticité viscérale. »", outlet: "Variety • Owen Gleiberman" },
-                { consensus: "Un hommage flamboyant servi par une mise en scène virtuose et des reconstitutions musicales sensationnelles.", quote: "« Un voyage musical d'une énergie foudroyante qui donne des frissons à chaque instant. »", outlet: "Première • Éric Libiot" },
-                { consensus: "Une fresque intime et spectaculaire qui explore avec justesse la ferveur et la complexité d'une icône planétaire.", quote: "« Magistral, émouvant et rythmé avec une précision chirurgicale. »", outlet: "Le Figaro • Nathalie Simon" }
-            ],
-            thriller: [
-                { consensus: "Un thriller psychologique suffocant à la mécanique implacable, distillant une tension d'une redoutable efficacité.", quote: "« Un exercice de style vertigineux où chaque regard et chaque silence pèsent lourdement. »", outlet: "Libération • Didier Péron" },
-                { consensus: "Une intrigue palpitante semée de faux-semblants, portée par une mise en scène ciselée et un suspense haletant.", quote: "« Un récit sombre et captivant qui ne relâche jamais son étreinte. »", outlet: "The Guardian • Peter Bradshaw" },
-                { consensus: "Un face-à-face captivant et nerveux, ponctué de révélations surprenantes et d'une maîtrise formelle irréprochable.", quote: "« Une tension millimétrée au service d'un divertissement de haute volée. »", outlet: "Les Inrockuptibles • Jean-Baptiste Morain" },
-                { consensus: "Un labyrinthe narratif d'une noirceur fascinante qui tient le spectateur captif jusqu'à son dénouement.", quote: "« Une maîtrise du tempo et du mystère qui force l'admiration. »", outlet: "Screen Daily • Fionnuala Halligan" }
-            ],
-            action: [
-                { consensus: "Un grand spectacle dynamique et généreux, alliant cascades impressionnantes, rythme effréné et direction artistique soignée.", quote: "« Une déflagration d'action pure et inventive qui procure un plaisir immédiat. »", outlet: "Total Film • Matt Maytum" },
-                { consensus: "Une aventure palpitante menée tambour battant, sublimée par des décors spectaculaires et un sens du divertissement jubilatoire.", quote: "« Tout ce qu'on attend d'un grand blockbuster : de l'énergie, de l'émotion et du panache. »", outlet: "IndieWire • David Ehrlich" },
-                { consensus: "Un rythme percutant et une réalisation énergique qui font de chaque séquence d'action un moment fort.", quote: "« Un grand huit cinématographique généreux et diablement efficace. »", outlet: "L'Obs • Nicolas Schaller" }
-            ],
-            general: [
-                { consensus: "Une œuvre d'une grande maîtrise narrative, portée par un casting impérial et une réalisation d'une remarquable élégance.", quote: "« Une proposition cinématographique forte, touchante et universelle. »", outlet: "Le Monde • Jacques Mandelbaum" },
-                { consensus: "Un récit subtil et captivant qui explore les passions humaines avec une délicatesse et une acuité impressionnantes.", quote: "« Un moment de cinéma d'une rare plénitude et d'une émotion constante. »", outlet: "Télérama • Cécile Mury" },
-                { consensus: "Une partition d'une justesse éclatante, mise en valeur par une photographie somptueuse et un rythme maîtrisé.", quote: "« Brillant, profond et d'une élégance formelle constante. »", outlet: "Première • Thierry Chèze" },
-                { consensus: "Une œuvre habitée qui marque les esprits par sa sincérité et sa force d'évocation poétique.", quote: "« Une réalisation inspirée qui touche au cœur avec brio. »", outlet: "Les Cahiers du Cinéma • Marcos Uzal" }
-            ]
-        };
-
-        // Sélection du pool de critiques le plus adapté
-        let pool = criticCorpus.general;
-        if (isAnime) pool = criticCorpus.anime;
-        else if (isSciFi) pool = criticCorpus.scifi;
-        else if (isMusic) pool = criticCorpus.music;
-        else if (isThriller) pool = criticCorpus.thriller;
-        else if (isAction) pool = criticCorpus.action;
-
-        const selectedIndex = positiveHash % pool.length;
-        const chosen = pool[selectedIndex];
-
-        // Variation dynamique des statistiques du public
-        const audience = Math.min(99, Math.max(68, Math.round(numRt * 0.95 + ((positiveHash % 7) - 3))));
-        const metacritic = Math.min(98, Math.max(58, Math.round(numRt * 0.90 + ((positiveHash % 5) - 2))));
-        const positiveVotes = Math.min(97, Math.max(72, Math.round(numImdb * 10 + (positiveHash % 4))));
-        const neutralVotes = Math.min(20, Math.max(2, Math.round((100 - positiveVotes) * 0.70)));
-        const negativeVotes = Math.max(1, 100 - positiveVotes - neutralVotes);
-
-        return {
-            title,
-            rtScore: numRt,
-            imdb: numImdb.toFixed(1),
-            audience,
-            metacritic,
-            consensus: chosen.consensus,
-            quote: chosen.quote,
-            outlet: chosen.outlet,
-            positiveVotes,
-            neutralVotes,
-            negativeVotes
-        };
-        */
+        // LE BLOC DE 115 LIGNES QUI SE TROUVAIT ICI A ÉTÉ SUPPRIMÉ.
+        //
+        // Il contenait un corpus de fausses critiques de presse : des citations
+        // inventées de toutes pièces, ATTRIBUÉES NOMMÉMENT à des journalistes
+        // réels de Télérama, du Monde, de Libération et du Guardian, ainsi que
+        // des notes « audience » et « Metacritic » dérivées d'un hachage du
+        // titre du film. Le tout était neutralisé par le `return null;`
+        // ci-dessus — mais conservé intact, à une paire de caractères de
+        // remise en service.
+        //
+        // Mettre en commentaire du contenu diffamatoire n'est pas le
+        // supprimer : la prochaine personne qui lit ce fichier peut décommenter
+        // sans mesurer ce qu'elle publie. Les vraies critiques existent et
+        // arrivent déjà par TMDB, avec leur auteur et leur URL d'origine
+        // (`_renderTmdbReviews`) — c'est la seule source légitime.
     }
 
     _injectPopovers() {
@@ -823,6 +755,26 @@ class CardBuilder {
         container.innerHTML = '';
         container.className = `sh-card-grid sh-card-grid--${type}`;
 
+        // Une virtualisation en cours sur ce conteneur doit être arrêtée : ses
+        // écouteurs pointent sur des cartes qu'on vient d'effacer.
+        container._shVirtualisation?.detruire?.();
+        container._shVirtualisation = null;
+
+        /** Fabrique la carte n°i. Partagée par les deux chemins de rendu. */
+        const fabriquer = (i) => this._carteDepuisItem(items[i], { type, getImageUrl, onClick, options });
+
+        // Au-delà du seuil, on ne rend que la fenêtre visible : sur un
+        // téléviseur d'entrée de gamme, quelques centaines de cartes dans le
+        // DOM saturent la mémoire, même hors écran.
+        if (items.length > SEUIL_VIRTUALISATION) {
+            const virtuel = new VirtualisationRangee(container, items.length, fabriquer);
+            if (virtuel.demarrer()) {
+                container._shVirtualisation = virtuel;
+                setTimeout(() => svc.gooeyScroller()?.attach?.(container), 60);
+                return;
+            }
+        }
+
         items.forEach(item => {
             const isFolder = item.Type === 'CollectionFolder' || item.Type === 'UserView' || item.Type === 'Folder' || item.Type === 'Playlist' || item.CollectionType !== undefined || options.isFolder;
             
@@ -858,7 +810,7 @@ class CardBuilder {
                             ? (1 - (item.UserData.UnplayedItemCount / (item.ChildCount || item.RecursiveItemCount)))
                             : (item.UserData?.Played ? 1 : undefined))),
                 isFavorite: Boolean(item.UserData?.IsFavorite),
-                remainingMin: item.remainingMin || (item.UserData?.PlayedPercentage ? Math.round((100 - item.UserData.PlayedPercentage) * 1.2) : undefined),
+                remainingMin: item.remainingMin ?? tempsRestantMinutes(item),
                 onClick: onClick ? (e) => onClick(item, e) : undefined,
             });
             container.appendChild(card);
@@ -869,6 +821,56 @@ class CardBuilder {
                 svc.gooeyScroller().attach(container);
             }
         }, 60);
+    }
+
+    /**
+     * Construit une carte à partir d'un élément Jellyfin.
+     *
+     * Extrait de `renderGrid` pour que le rendu complet et le rendu virtualisé
+     * produisent EXACTEMENT la même carte — s'ils divergeaient, les rangées
+     * longues finiraient par ne plus ressembler aux courtes, et le défaut
+     * serait invisible tant qu'on ne teste pas au-delà du seuil.
+     *
+     * @param {Object} item
+     * @param {{ type: string, getImageUrl?: Function, onClick?: Function, options: Object }} ctx
+     * @returns {HTMLElement}
+     */
+    _carteDepuisItem(item, { type, getImageUrl, onClick, options }) {
+        const isFolder = item.Type === 'CollectionFolder' || item.Type === 'UserView' || item.Type === 'Folder' || item.Type === 'Playlist' || item.CollectionType !== undefined || options.isFolder;
+
+        const genresArr = Array.isArray(item.Genres) ? item.Genres : (typeof item.Genres === 'string' ? item.Genres.split(/[,•/]/).map(s => s.trim()) : []);
+        const genresText = genresArr.slice(0, 2).join(' • ');
+
+        const rating = !isFolder && item.CommunityRating !== undefined && item.CommunityRating !== null
+            ? item.CommunityRating
+            : null;
+        const rottenScore = !isFolder && Number(item.CriticRating) > 0 ? Number(item.CriticRating) : null;
+
+        const subtitleText = item.customSubtitle || (isFolder ? (item.CollectionType || 'Dossier racine') : (item.subtitle || (item.ProductionYear ? `${item.ProductionYear}${genresText ? ' • ' + genresText : ''}` : (genresText || item.Type || ''))));
+
+        return this.createCard({
+            rawItem:  item,
+            id:       item.Id,
+            title:    item.customTitle || item.Name || 'Inconnu',
+            subtitle: subtitleText,
+            imageUrl: item.customImage || (getImageUrl?.(item) ?? ''),
+            type,
+            itemType: item.Type,
+            isFolder,
+            rottenScore,
+            rating,
+            codec: item.codec || (isFolder ? (item.CollectionType || 'DOSSIER') : ''),
+            progress: item.UserData?.PlayedPercentage
+                ? item.UserData.PlayedPercentage / 100
+                : (item.UserData?.PlaybackPositionTicks
+                    ? item.UserData.PlaybackPositionTicks / (item.RunTimeTicks || 1)
+                    : (item.UserData?.UnplayedItemCount !== undefined && (item.ChildCount || item.RecursiveItemCount) && item.UserData.UnplayedItemCount < (item.ChildCount || item.RecursiveItemCount)
+                        ? (1 - (item.UserData.UnplayedItemCount / (item.ChildCount || item.RecursiveItemCount)))
+                        : (item.UserData?.Played ? 1 : undefined))),
+            isFavorite: Boolean(item.UserData?.IsFavorite),
+            remainingMin: item.remainingMin ?? tempsRestantMinutes(item),
+            onClick: onClick ? (e) => onClick(item, e) : undefined,
+        });
     }
 
     _injectContextMenu() {
@@ -1020,6 +1022,20 @@ class CardBuilder {
         menu.style.top = `${Math.max(12, top)}px`;
         menu.style.left = `${Math.max(12, left)}px`;
         menu.classList.remove('sh-context-menu--closing');
+
+        // Le déroulé en cascade des entrées est piloté par `--idx`
+        // (CardBuilder.css : `animation-delay: calc(var(--idx, 0) * 28ms …)`).
+        // Cette variable n'était posée nulle part : les neuf entrées
+        // apparaissaient donc toutes ensemble, et la cascade décrite dans la
+        // feuille n'a jamais existé. On ne compte que les entrées RÉELLEMENT
+        // affichées — « Télécharger » et « Diffuser » sont masquées selon le
+        // contexte, et les inclure creusait des trous dans le rythme.
+        let rang = 0;
+        for (const entree of menu.querySelectorAll('.sh-ctx-item')) {
+            if (entree.style.display === 'none') continue;
+            entree.style.setProperty('--idx', String(rang++));
+        }
+
         menu.classList.add('sh-context-menu--open');
 
         menu.querySelector('#sh-ctx-play').onclick = () => {

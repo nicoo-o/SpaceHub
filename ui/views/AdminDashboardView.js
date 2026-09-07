@@ -140,7 +140,13 @@ export class AdminDashboardView {
                                     <strong>Contrôle Qualité & Résolutions</strong>
                                     <span id="sh-admin-quality-health-text">Analyse des fichiers 1080p/4K...</span>
                                 </div>
-                                <button class="sh-admin-health-btn" id="sh-admin-btn-inspect-quality">Inspecter</button>
+                                <!-- Le bouton « Inspecter » qui se trouvait ici n'avait
+                                     AUCUN écouteur : une recherche sur son identifiant
+                                     dans tout le dépôt ne renvoyait que cette ligne. Il
+                                     invitait l'administrateur à cliquer sur rien. Un
+                                     bouton mort est pire qu'un bouton absent : il fait
+                                     douter l'utilisateur de lui-même. Retiré jusqu'à ce
+                                     que l'analyse de qualité existe réellement. -->
                             </div>
                         </div>
                     </div>
@@ -239,11 +245,18 @@ export class AdminDashboardView {
         modal.querySelector('#sh-admin-btn-sync-bazarr')?.addEventListener('click', async () => {
             const bazarr = svc.integration('bazarr');
             try {
-                if (typeof bazarr?.sync === 'function') {
-                    await bazarr.sync();
-                    svc.toaster()?.success?.('Synchronisation Bazarr effectuée !');
+                if (typeof bazarr?.sync !== 'function') {
+                    svc.toaster()?.error?.('Bazarr n\'est pas configuré.');
                 } else {
-                    svc.toaster()?.info?.('Bazarr non configuré ou inactif.');
+                    // `triggerSync()` ne lève pas : elle renvoie
+                    // { success, status } et émet déjà son propre message.
+                    // Le toast vert inconditionnel qui suivait s'affichait EN
+                    // MÊME TEMPS que l'avertissement honnête du service —
+                    // deux messages contradictoires côte à côte. Et
+                    // « effectuée » promettait plus que la réalité : au mieux,
+                    // la tâche est LANCÉE.
+                    const bilan = await bazarr.sync();
+                    if (bilan?.success) svc.toaster()?.success?.('Synchronisation Bazarr lancée.');
                 }
             } catch (err) {
                 console.error('[AdminDashboardView] Erreur sync Bazarr:', err);
@@ -397,8 +410,13 @@ export class AdminDashboardView {
                 btn.addEventListener('click', async (e) => {
                     const sId = e.currentTarget.dataset.sessionId;
                     if (confirm('Voulez-vous vraiment stopper cette lecture à distance ?')) {
-                        await jfApi?.stopSession?.(sId);
-                        svc.toaster()?.success?.('Session de lecture interrompue.');
+                        // `stopSession()` renvoie un booléen et NE LÈVE PAS
+                        // (elle rattrape et journalise). Annoncer le succès
+                        // sans lire ce retour faisait croire à l'administrateur
+                        // qu'il avait coupé un flux qui continuait de tourner.
+                        const arretee = await jfApi?.stopSession?.(sId);
+                        if (arretee) svc.toaster()?.success?.('Session de lecture interrompue.');
+                        else svc.toaster()?.error?.('Le serveur a refusé d\'interrompre cette session.');
                         this._loadSessions(modal);
                     }
                 });
@@ -409,8 +427,9 @@ export class AdminDashboardView {
                     const sId = e.currentTarget.dataset.sessionId;
                     const msg = prompt('Entrez le message à afficher sur l\'écran de l\'utilisateur :');
                     if (msg && msg.trim()) {
-                        await jfApi?.sendMessageToSession?.(sId, msg.trim());
-                        svc.toaster()?.success?.('Message envoyé à l\'utilisateur !');
+                        const envoye = await jfApi?.sendMessageToSession?.(sId, msg.trim());
+                        if (envoye) svc.toaster()?.success?.('Message envoyé à l\'utilisateur !');
+                        else svc.toaster()?.error?.('Le message n\'a pas pu être remis à cette session.');
                     }
                 });
             });
@@ -455,17 +474,33 @@ export class AdminDashboardView {
         const badge = modal.querySelector('#sh-admin-health-badge');
 
         try {
+            // AUDIT — trois affirmations sans fondement ont été retirées ici.
+            //
+            // 1. La branche `else` disait « Bazarr connecté et prêt à
+            //    synchroniser » précisément quand `svc.integration('bazarr')`
+            //    renvoyait `null`, c'est-à-dire quand Bazarr n'était PAS
+            //    configuré : une affirmation de connectivité produite par
+            //    l'absence totale de connectivité.
+            // 2. `totalWanted || 0` transformait un échec de mesure en zéro,
+            //    donc en « Tous les sous-titres français sont synchronisés ! ».
+            // 3. Rien ne distinguait « rien à récupérer » de « je n'ai pas pu
+            //    demander ».
             const bazarr = svc.integration('bazarr');
-            if (bazarr?.getWantedSummary) {
+            if (!bazarr?.getWantedSummary) {
+                if (bazarrText) bazarrText.textContent =
+                    'Bazarr n\'est pas configuré — renseignez son URL et sa clé API dans les réglages.';
+            } else {
                 const summary = await bazarr.getWantedSummary();
-                const missing = Number(summary?.totalWanted || 0);
                 if (bazarrText) {
-                    bazarrText.textContent = missing > 0
-                        ? `${missing} sous-titres français manquants à récupérer`
-                        : 'Tous les sous-titres français sont synchronisés !';
+                    if (!summary?.mesure) {
+                        bazarrText.textContent = summary?.erreur
+                            || 'État des sous-titres indisponible : Bazarr n\'a pas répondu.';
+                    } else if (summary.totalWanted > 0) {
+                        bazarrText.textContent = `${summary.totalWanted} sous-titres français manquants à récupérer`;
+                    } else {
+                        bazarrText.textContent = 'Aucun sous-titre français manquant.';
+                    }
                 }
-            } else if (bazarrText) {
-                bazarrText.textContent = 'Bazarr connecté et prêt à synchroniser';
             }
 
             if (qualityText) {

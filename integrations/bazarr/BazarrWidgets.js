@@ -71,13 +71,27 @@ class BazarrWantedWidget {
 
             const summary = await bazarr.getWantedSummary();
 
+            // La mesure a-t-elle seulement eu lieu ? Sans ce test, un serveur
+            // Bazarr éteint produisait le message « tout est au complet ».
+            if (!summary?.mesure) {
+                contentEl.innerHTML = `
+                    <div class="sh-widget-empty">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <p>${escapeHtml(summary?.erreur || 'Bazarr n\'a pas répondu — état des sous-titres inconnu.')}</p>
+                    </div>
+                `;
+                return;
+            }
+
             if (summary.totalWanted === 0 && summary.movies.length === 0 && summary.episodes.length === 0) {
                 contentEl.innerHTML = `
                     <div class="sh-widget-empty">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                         </svg>
-                        <p>Tous vos films et séries ont leurs sous-titres au complet !</p>
+                        <p>Aucun sous-titre manquant sur les films et séries suivis par Bazarr.</p>
                     </div>
                 `;
                 return;

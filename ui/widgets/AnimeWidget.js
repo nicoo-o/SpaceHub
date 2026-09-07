@@ -141,25 +141,30 @@ class AnimeWidget {
                 }
             }
 
-            // 4. Dernier fallback : si rien avec le genre Animation, afficher les séries récentes pour ne jamais laisser vide
-            if (!items || items.length === 0) {
-                if (api?.getSeries) {
-                    try {
-                        const allSeries = await api.getSeries({ limit: 24 });
-                        // Filtrer celles avec mot-clé anime ou japon ou studio
-                        items = allSeries.filter(s => {
-                            const str = ((s.Name || '') + ' ' + (s.Genres || []).join(' ')).toLowerCase();
-                            return str.includes('re:zero') || str.includes('anime') || str.includes('anim') || str.includes('japon') || str.includes('hero') || str.includes('demon');
-                        });
-                        if (!items || items.length === 0) {
-                            items = allSeries.slice(0, 12);
-                        }
-                    } catch (e) {}
-                }
-            }
+            // 4. Plus de repli — et c'est le correctif.
+            //
+            // CE QUI ÉTAIT FAIT ICI. Quand aucune série du genre « Animation »
+            // n'était trouvée, le widget récupérait les 24 séries les plus
+            // récentes et les filtrait sur des mots écrits en dur, dont un
+            // TITRE PRÉCIS (« re:zero ») gravé dans le moteur, et des fragments
+            // qui attrapent n'importe quoi : « anim » retient « Animals »,
+            // « hero » retient « Heroes », « demon » retient tout titre
+            // contenant ce mot. Puis, si même cela ne donnait rien :
+            //
+            //     items = allSeries.slice(0, 12);
+            //
+            // c'est-à-dire douze séries quelconques, prises par date d'ajout,
+            // présentées sous l'en-tête « Animés ». Le message honnête
+            // « Aucun animé trouvé » n'était atteignable que si la médiathèque
+            // était entièrement vide.
+            //
+            // Une rangée vide qui dit pourquoi vaut mieux qu'une rangée pleine
+            // qui ment. Si l'utilisateur n'a pas d'animés, ou si sa médiathèque
+            // ne les étiquette pas, c'est une information — pas un trou à
+            // combler avec autre chose.
 
             if (!items || items.length === 0) {
-                contentEl.innerHTML = '<div style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); padding:20px; font-size:13px;">Aucun animé trouvé dans la médiathèque.</div>';
+                contentEl.innerHTML = '<div style="color:rgba(var(--sh-ink, 255, 255, 255), 0.4); padding:20px; font-size:13px;">Aucun animé trouvé. Vérifiez qu\'une médiathèque porte le genre « Animation » ou « Anime » dans Jellyfin.</div>';
                 return;
             }
 

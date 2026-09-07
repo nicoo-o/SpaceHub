@@ -82,8 +82,8 @@ class ProwlarrStatusWidget {
                         <span class="sh-prowlarr-stat-label">Total</span>
                     </div>
                     <div class="sh-prowlarr-stat-box">
-                        <span class="sh-prowlarr-stat-number" style="color:#32d74b;">${summary.healthy}</span>
-                        <span class="sh-prowlarr-stat-label">En ligne</span>
+                        <span class="sh-prowlarr-stat-number" style="color:${summary.statutsFiables ? '#32d74b' : 'rgba(var(--sh-ink, 255, 255, 255), 0.4)'};">${summary.statutsFiables ? summary.healthy : '—'}</span>
+                        <span class="sh-prowlarr-stat-label">${summary.statutsFiables ? 'En ligne' : 'État inconnu'}</span>
                     </div>
                     <div class="sh-prowlarr-stat-box">
                         <span class="sh-prowlarr-stat-number" style="color:${summary.degraded > 0 ? '#ff453a' : 'rgba(var(--sh-ink, 255, 255, 255), 0.4)'};">${summary.degraded}</span>
@@ -96,10 +96,15 @@ class ProwlarrStatusWidget {
                         <div class="sh-prowlarr-indexer-item">
                             <span class="sh-prowlarr-badge sh-prowlarr-badge--${idx.protocol}">${idx.protocol === 'torrent' ? 'Torrent' : 'Usenet'}</span>
                             <span class="sh-prowlarr-indexer-name sh-truncate">${escapeHtml(idx.name)}</span>
-                            <span class="sh-prowlarr-status-dot ${idx.status === 'Ok' ? 'online' : 'degraded'}" title="${idx.status}"></span>
+                            <span class="sh-prowlarr-status-dot ${idx.status === 'Ok' ? 'online' : (idx.status === 'Inconnu' ? 'unknown' : 'degraded')}" title="${idx.status}"></span>
                         </div>
                     `).join('')}
                 </div>
+                ${summary.statutsFiables ? '' : `
+                    <p class="sh-prowlarr-avertissement">
+                        L'état des indexeurs n'a pas pu être lu — les pastilles ci-dessus
+                        ne reflètent pas leur santé réelle.
+                    </p>`}
             `;
         } catch (err) {
             contentEl.innerHTML = `

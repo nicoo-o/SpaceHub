@@ -100,9 +100,18 @@ class ProwlarrService {
      * @returns {Promise<{ total: number, enabled: number, healthy: number, degraded: number, indexers: Array<Object> }>}
      */
     async getHealthSummary() {
+        // AUDIT — l'absence de données comptait comme « tout va bien ».
+        //
+        // `getIndexerStatuses()` ne liste, en fonctionnement normal, que les
+        // indexeurs EN DÉFAUT : en déduire que les absents sont sains est
+        // légitime. Mais `.catch(() => [])` rendait un tableau vide aussi
+        // quand l'appel ÉCHOUAIT — un 403, un timeout — et l'écran certifiait
+        // alors que 100 % des indexeurs étaient en ligne, pastille verte
+        // comprise, sans avoir rien pu vérifier.
+        let statutsFiables = true;
         const [indexers, statuses] = await Promise.all([
             this.getAllIndexers(),
-            this.api.getIndexerStatuses().catch(() => [])
+            this.api.getIndexerStatuses().catch(() => { statutsFiables = false; return []; })
         ]);
 
         const statusMap = new Map();
@@ -117,7 +126,8 @@ class ProwlarrService {
             const isEnabled = idx.enable === true;
             if (isEnabled) enabled++;
 
-            const isHealthy = !status || status.status === 'Ok';
+            // Sans statuts fiables, on ne prononce pas « sain ».
+            const isHealthy = statutsFiables && (!status || status.status === 'Ok');
             if (isEnabled) {
                 if (isHealthy) healthy++;
                 else degraded++;
@@ -128,7 +138,7 @@ class ProwlarrService {
                 name: idx.name,
                 protocol: idx.protocol, // 'torrent' | 'usenet'
                 enabled: isEnabled,
-                status: status?.status || 'Ok',
+                status: status?.status || (statutsFiables ? 'Ok' : 'Inconnu'),
                 disabledTill: status?.disabledTill || null,
                 lastExecutionTime: status?.lastExecutionTime || null
             };
@@ -139,6 +149,9 @@ class ProwlarrService {
             enabled,
             healthy,
             degraded,
+            /** Faux si l'état des indexeurs n'a pas pu être lu : l'affichage
+             *  doit alors dire « état inconnu », pas « tout en ligne ». */
+            statutsFiables,
             indexers: detailed
         };
     }

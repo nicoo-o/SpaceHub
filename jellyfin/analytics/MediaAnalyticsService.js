@@ -39,7 +39,23 @@ export class MediaAnalyticsService {
             resolutionPercentages: { uhd4k: 0, fhd1080p: 0, other: 0 }
         };
 
-        if (!jfApi) return stats;
+        // AUDIT — un échec ne doit pas ressembler à un résultat.
+        //
+        // `stats` est un objet plein de zéros. Le renvoyer quand l'API est
+        // absente ou qu'un appel échoue faisait afficher « 0 h · 0 films ·
+        // 0 épisodes · 0 % 4K » comme s'il s'agissait de mesures. L'écran de
+        // statistiques ne pouvait pas distinguer « médiathèque vide » de
+        // « je n'ai rien pu lire », et le `catch` de l'appelant n'était jamais
+        // atteint puisque le service ne relançait rien.
+        //
+        // `mesure` porte cette distinction jusqu'à l'affichage.
+        stats.mesure = false;
+        stats.erreur = null;
+
+        if (!jfApi) {
+            stats.erreur = 'API Jellyfin indisponible.';
+            return stats;
+        }
 
         try {
             // Récupérer tous les éléments de la médiathèque pour calculer les métriques
@@ -54,6 +70,7 @@ export class MediaAnalyticsService {
                 let moviesCount = 0;
                 let episodesCount = 0;
                 const genreCounts = {};
+                let totalOccurrencesGenres = 0;
                 let count4k = 0;
                 let count1080 = 0;
                 let countOther = 0;
@@ -69,12 +86,19 @@ export class MediaAnalyticsService {
 
                         if (item.Type === 'Movie') moviesCount++;
                         if (item.Type === 'Episode') episodesCount++;
-                    }
 
-                    // Comptage des genres
-                    (item.Genres || []).forEach(genre => {
-                        genreCounts[genre] = (genreCounts[genre] || 0) + 1;
-                    });
+                        // Le comptage des genres était HORS de ce bloc : il
+                        // portait sur toute la médiathèque, vue ou non. Ce
+                        // n'était donc pas « vos genres favoris » mais la
+                        // composition du catalogue de l'administrateur — et
+                        // l'état vide invoquait pourtant des « données de
+                        // visionnage » qui n'entraient pour rien dans le
+                        // calcul. Un genre se compte parmi ce qu'on a REGARDÉ.
+                        (item.Genres || []).forEach(genre => {
+                            genreCounts[genre] = (genreCounts[genre] || 0) + 1;
+                            totalOccurrencesGenres += 1;
+                        });
+                    }
 
                     // Détection de la résolution et HDR
                     const stream = (item.MediaStreams || []).find(s => s.Type === 'Video') || {};
@@ -111,11 +135,16 @@ export class MediaAnalyticsService {
                     .sort((a, b) => b.count - a.count)
                     .slice(0, 5);
 
-                const totalGenreOccurrences = sortedGenres.reduce((acc, g) => acc + g.count, 0) || 1;
+                // Le dénominateur était la somme des CINQ PREMIERS genres :
+                // les cinq barres totalisaient donc toujours ~100 %, et un
+                // genre représentant 8 % des visionnages pouvait s'afficher
+                // « 34 % ». Le chiffre avait l'allure d'une part, il n'en
+                // était pas une. On divise par le total réel des occurrences.
+                const denominateur = totalOccurrencesGenres || 1;
                 stats.topGenres = sortedGenres.map(g => ({
                     name: g.name,
                     count: g.count,
-                    percentage: Math.round((g.count / totalGenreOccurrences) * 100)
+                    percentage: Math.round((g.count / denominateur) * 100)
                 }));
 
                 // Répartition des résolutions
@@ -134,11 +163,17 @@ export class MediaAnalyticsService {
                 };
             }
 
+            // La mesure a abouti : c'est la seule branche qui l'affirme.
+            stats.mesure = true;
             this._cachedStats = stats;
             this._lastCalculated = Date.now();
             return stats;
         } catch (err) {
             this._log.warn('Erreur calcul statistiques:', err);
+            stats.mesure = false;
+            stats.erreur = err?.message || 'Le serveur n\'a pas répondu.';
+            // Un échec ne se met PAS en cache : il faut réessayer au prochain
+            // affichage, pas figer l'ignorance pour la durée du cache.
             return stats;
         }
     }

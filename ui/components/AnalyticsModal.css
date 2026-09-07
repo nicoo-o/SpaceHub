@@ -92,7 +92,7 @@
     justify-content: center;
     cursor: pointer;
     font-size: 15px;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
 }
 
 .sh-analytics-close-btn:hover {
@@ -279,10 +279,33 @@
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
 }
 
 .sh-analytics-done-btn:hover {
     transform: scale(1.04);
     box-shadow: 0 6px 20px rgba(var(--sh-ink, 255, 255, 255),  0.35);
+}
+
+/* ── Statistiques indisponibles ────────────────────────────────────────────
+   Le service renvoyait un objet plein de zéros quand il n'avait rien pu
+   mesurer : l'écran affichait « 0 h · 0 films · 0 épisodes » comme un
+   résultat. Ce bloc dit ce qui s'est passé, au lieu de compter jusqu'à zéro. */
+.sh-analytics-indisponible {
+    padding: 40px 28px;
+    text-align: center;
+}
+
+.sh-analytics-indisponible__titre {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--sh-text-primary, #fff);
+}
+
+.sh-analytics-indisponible__detail {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.55);
 }
