@@ -173,6 +173,11 @@ export function gabaritLecteur(ctx) {
                             <div class="sh-ribbon-timeline-thumb" id="sh-timeline-handle"></div>
                             
                             <div class="sh-timeline-tooltip" id="sh-timeline-tooltip">
+                                <!-- Vignette de prévisualisation. Vide et masquée
+                                     tant que le serveur n'a pas généré de planches
+                                     pour ce titre : l'infobulle horaire reste alors
+                                     seule, exactement comme avant. -->
+                                <div class="sh-timeline-apercu" id="sh-timeline-apercu" aria-hidden="true"></div>
                                 <span id="sh-tooltip-time">00:00:00</span>
                             </div>
                         </div>

@@ -23,7 +23,7 @@ import { gabaritFeuille } from '../ui/components/ModalSlideUpSheet.template.js';
 import { gabaritConsoleModules } from '../ui/views/JellyfinConsoleModal.template.js';
 
 describe('Gabarits extraits — le HTML n\'a pas bougé d\'un octet', () => {
-    it('VideoPlayer.template.js — identique, au bouton « suivante » près', () => {
+    it('VideoPlayer.template.js — identique, au bouton « suivante » et à la vignette près', () => {
         // Une seule divergence voulue depuis l'empreinte : le bouton
         // « bande-annonce suivante », ajouté au dock en remplacement du menu de
         // choix flottant que TrailerService affichait avant la lecture.
@@ -59,7 +59,31 @@ describe('Gabarits extraits — le HTML n\'a pas bougé d\'un octet', () => {
         expect(insere).toContain('style="display:none;"');        // caché par défaut
         expect(insere).toContain('data-nav-focusable="true"');    // atteignable à la télécommande
 
-        const corrigee = attendu.html.replace(ANCRE, insere + ANCRE);
+        // TROISIÈME divergence voulue : la vignette de prévisualisation
+        // (trickplay) ajoutée dans l'infobulle de la barre de progression.
+        // Même méthode — on l'extrait du HTML produit et on l'applique à la
+        // référence, plutôt que de régénérer celle-ci : toute AUTRE différence
+        // doit continuer de faire tomber ce test.
+        const ANCRE_TOOLTIP = '<span id="sh-tooltip-time">';
+        expect(attendu.html, 'l\'infobulle horaire doit exister dans la référence')
+            .toContain(ANCRE_TOOLTIP);
+
+        const MARQUE_APERCU = '<!-- Vignette de prévisualisation.';
+        const debutApercu = html.indexOf(MARQUE_APERCU);
+        const finApercu = html.indexOf(ANCRE_TOOLTIP, debutApercu);
+        expect(debutApercu, 'la vignette de prévisualisation doit être présente').toBeGreaterThan(0);
+        expect(finApercu).toBeGreaterThan(debutApercu);
+        const apercu = html.slice(debutApercu, finApercu);
+
+        // Ce que l'insertion doit garantir :
+        expect(apercu).toContain('id="sh-timeline-apercu"');
+        expect(apercu).toContain('aria-hidden="true"');            // décorative
+        expect(apercu, 'la vignette ne doit pas être focalisable')
+            .not.toContain('data-nav-focusable');
+
+        const corrigee = attendu.html
+            .replace(ANCRE, insere + ANCRE)
+            .replace(ANCRE_TOOLTIP, apercu + ANCRE_TOOLTIP);
         expect(html).toBe(corrigee);
     });
 

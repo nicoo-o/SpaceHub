@@ -1137,3 +1137,28 @@ body.sh-cinema-active .dialogBackdrop {
     padding: 12px 24px;
     font-size: 15px;
 }
+
+/* ── Vignette de prévisualisation (trickplay) ──────────────────────────────
+   Jellyfin 10.9+ génère des planches de vignettes ; ce bloc en affiche une
+   seule, découpée par `background-position`. Masqué par défaut : si le serveur
+   n'a rien généré pour ce titre, l'infobulle horaire reste seule et rien ne
+   change par rapport à avant. */
+.sh-timeline-apercu {
+    display: none;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.18);
+    background-repeat: no-repeat;
+    background-color: rgba(0, 0, 0, 0.6);
+    box-shadow: 0 10px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.7);
+    /* Une vignette ne doit jamais intercepter le pointeur : elle flotte au
+       milieu de la zone de glissement de la barre de progression. */
+    pointer-events: none;
+}
+
+/* `disponible` = le serveur a des planches. `visible` = une image est chargée.
+   Les deux sont nécessaires : sans la seconde, un rectangle vide apparaîtrait
+   pendant le chargement de la première planche. */
+.sh-timeline-apercu.disponible.visible {
+    display: block;
+}

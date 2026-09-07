@@ -22,6 +22,9 @@ import Logger from '../../core/Logger.js';
 import './VideoPlayer.css';
 import * as svc from '../../core/services.js';
 import inputRouter, { PRIORITES } from '../../core/InputRouter.js';
+import { actionMedia, ActionMedia } from '../../core/TelecommandeTv.js';
+import Trickplay from './Trickplay.js';
+import VerrouEcran from '../../core/VerrouEcran.js';
 import { fetchAvecDelai } from '../../core/utils/reseau.js';
 class VideoPlayer {
     constructor() {
@@ -40,6 +43,13 @@ class VideoPlayer {
          */
         this._segmentsMedia = null;
         this._segmentsPourItem = null;
+        /** Empêche la veille pendant la lecture (repris sur visibilitychange). */
+        this._verrouEcran = new VerrouEcran();
+        /** Vignettes de prévisualisation de la barre de progression. */
+        this._trickplay = new Trickplay({
+            serveur: () => this._auth?.getServerUrl?.() || '',
+            jeton: () => this._auth?.getToken?.() || '',
+        });
         /** Intervalle d'introduction résolu une fois, relu à chaque `timeupdate`. */
         this._intervalleIntro = undefined;
         /** Segment sous le curseur de lecture, posé par `_onTimeUpdate`. */
@@ -206,6 +216,7 @@ class VideoPlayer {
         // actionnable au début du suivant, et sauterait à une position qui
         // n'a plus de sens.
         this._segmentCourant = null;
+        this._trickplay.reinitialiser();
         this._chargerSegmentsMedia(item?.Id || item?.id);
 
         // Recale la file sur ce qui est réellement lancé. Si l'élément vient
@@ -304,6 +315,9 @@ class VideoPlayer {
             if (nego.transcodeReasons?.length) {
                 this._log.info(`Transcodage demandé par le serveur : ${nego.transcodeReasons.join(', ')}`);
             }
+            this._transcodeReasons = nego.transcodeReasons || [];
+            // La source réellement lue est connue : les vignettes en dépendent.
+            this._preparerVignettes(this._currentItem || item);
         } else {
             // Repli : ancien comportement, si le serveur ne répond pas à PlaybackInfo.
             const fallbackParams = new URLSearchParams({
@@ -402,6 +416,36 @@ class VideoPlayer {
             this._hls = new Hls({
                 capLevelToPlayerSize: true,
                 autoStartLoad: true,
+
+                // ── PLAFONNEMENT DU TAMPON ───────────────────────────────
+                //
+                // `backBufferLength` vaut `Infinity` par défaut : hls.js garde
+                // en mémoire TOUT ce qui a déjà été lu, du début du film à la
+                // position courante. Sur un PC avec 16 Go, cela ne se voit
+                // pas. Sur un téléviseur de 2020 — dont le système entier
+                // dispose d'environ 500 Mo — c'est la première cause de
+                // plantage en lecture longue.
+                //
+                // Le symptôme est caractéristique et correspond exactement à
+                // ce qui est rapporté sur Tizen : le flux démarre bien, puis
+                // se dégrade progressivement au fil des minutes, jusqu'à
+                // saccader ou s'arrêter. Ce n'est pas le réseau, c'est la
+                // mémoire qui se remplit.
+                //
+                // 30 secondes derrière la position suffisent largement à un
+                // retour arrière court sans re-téléchargement. Au-delà, on
+                // paie de la mémoire pour un confort que personne n'utilise.
+                backBufferLength: 30,
+                // Devant : 30 s de marge, 60 s au maximum quand le réseau est
+                // bon. Le défaut (30/600) autorise dix minutes d'avance, ce
+                // qui est absurde sur un appareil contraint.
+                maxBufferLength: 30,
+                maxMaxBufferLength: 60,
+                // Plafond dur en octets — le seul qui protège vraiment quand
+                // le débit est élevé (un flux 4K remplit 60 s bien plus vite
+                // qu'un 1080p).
+                maxBufferSize: 60 * 1000 * 1000,
+
                 xhrSetup: (xhr) => {
                     if (token) xhr.setRequestHeader('Authorization', `MediaBrowser Token="${token}"`);
                 }
@@ -721,6 +765,13 @@ class VideoPlayer {
             if (e.target === video) togglePlay();
         });
 
+        // Verrou d'écran : tenu tant que ça joue, relâché dès la pause. Le
+        // demander seulement pendant la lecture évite de garder l'écran allumé
+        // sur une vidéo en pause qu'on a oubliée.
+        video.addEventListener('play', () => this._verrouEcran.demander());
+        video.addEventListener('pause', () => this._verrouEcran.liberer());
+        video.addEventListener('ended', () => this._verrouEcran.liberer());
+
         video.addEventListener('waiting', () => spinner?.classList.add('visible'));
         video.addEventListener('playing', () => spinner?.classList.remove('visible'));
         video.addEventListener('canplay', () => spinner?.classList.remove('visible'));
@@ -864,6 +915,7 @@ class VideoPlayer {
 
             tooltip.style.left = `${pos * 100}%`;
             tooltipTime.textContent = this._formatTime(targetTime);
+            this._afficherVignette(targetTime);
 
             if (this._isScrubbing) {
                 video.currentTime = targetTime;
@@ -1668,6 +1720,24 @@ class VideoPlayer {
 
     _onDirectShortcutKeyDown(e) {
         if (!this._el || e.target.tagName === 'INPUT') return;
+
+        // ── TOUCHES MÉDIA DE LA TÉLÉCOMMANDE ────────────────────────────
+        //
+        // Elles passent AVANT le garde `_isControlsVisible` : appuyer sur ⏯
+        // quand les contrôles sont masqués doit mettre en pause, pas réveiller
+        // le HUD. C'est le geste que fait tout le monde.
+        //
+        // Elles n'arrivent pas comme `e.key` : les télécommandes envoient des
+        // `keyCode` numériques, propres à chaque plateforme. Voir
+        // core/TelecommandeTv.js — et sur Samsung, elles n'arrivent même pas
+        // du tout sans un `registerKeyBatch()` au démarrage.
+        const media = actionMedia(e);
+        if (media) {
+            e.preventDefault();
+            this._executerActionMedia(media);
+            return;
+        }
+
         if (!this._isControlsVisible) return; // le réveil du HUD reste géré par handleNavAction
 
         switch (e.key) {
@@ -1705,6 +1775,116 @@ class VideoPlayer {
                 break;
             // Toute touche de navigation (flèches, Entrée, Espace, Échap, Retour)
             // est désormais gérée EXCLUSIVEMENT par SpatialNavigation → handleNavAction().
+        }
+    }
+
+    /**
+     * Prépare les vignettes du titre courant.
+     *
+     * Appelée après la négociation, quand on connaît la source média réellement
+     * lue : l'API indexe les planches par `mediaSourceId`, et se tromper de
+     * source donne un 404.
+     *
+     * @param {Object} item
+     */
+    _preparerVignettes(item) {
+        try {
+            const dispo = this._trickplay.preparer(item, this._mediaSourceId);
+            this._el?.querySelector('#sh-timeline-apercu')?.classList.toggle('disponible', dispo);
+        } catch (err) {
+            this._log.debug('Vignettes indisponibles :', err?.message || err);
+        }
+    }
+
+    /**
+     * Affiche la vignette correspondant à un instant.
+     *
+     * Volontairement tolérante : si le serveur n'a pas généré de planches, ou
+     * si celle-ci n'est pas encore chargée, l'aperçu reste vide et l'infobulle
+     * horaire suffit. Une prévisualisation absente ne doit jamais gêner le
+     * déplacement du curseur.
+     *
+     * @param {number} secondes
+     */
+    _afficherVignette(secondes) {
+        const apercu = this._el?.querySelector('#sh-timeline-apercu');
+        if (!apercu || !this._trickplay.disponible) return;
+
+        const pos = this._trickplay.positionner(secondes);
+        const dim = this._trickplay.dimensions;
+        if (!pos || !dim) return;
+
+        // Le chargement est asynchrone ; le curseur, lui, continue de bouger.
+        // On note quelle vignette est demandée pour ignorer une planche qui
+        // arriverait après que l'utilisateur a déjà bougé ailleurs — sinon
+        // l'aperçu clignote en affichant des images périmées.
+        const demande = `${pos.tuile}:${pos.colonne}:${pos.ligne}`;
+        this._vignetteDemandee = demande;
+
+        this._trickplay.planche(pos.tuile).then((img) => {
+            if (!img || this._vignetteDemandee !== demande) return;
+            const el = this._el?.querySelector('#sh-timeline-apercu');
+            if (!el) return;
+            el.style.width = `${dim.largeur}px`;
+            el.style.height = `${dim.hauteur}px`;
+            el.style.backgroundImage = `url("${img.src}")`;
+            el.style.backgroundPosition = `-${pos.colonne * dim.largeur}px -${pos.ligne * dim.hauteur}px`;
+            el.classList.add('visible');
+        });
+    }
+
+    /**
+     * Exécute une action média venue de la télécommande.
+     *
+     * Chaque action fait ce que l'utilisateur attend, et affiche un retour
+     * visuel : sur un téléviseur, sans confirmation à l'écran, on ne sait pas
+     * si l'appui a été pris en compte.
+     *
+     * @param {string} action  Une valeur de `ActionMedia`.
+     */
+    _executerActionMedia(action) {
+        if (!this._video) return;
+        switch (action) {
+            case ActionMedia.PLAY_PAUSE:
+                this._togglePlayPause();
+                this._showFlashOSD(this._video.paused ? '⏸' : '▶', this._video.paused ? 'Pause' : 'Lecture');
+                break;
+            case ActionMedia.PLAY:
+                this._video.play().catch(() => {});
+                this._showFlashOSD('▶', 'Lecture');
+                break;
+            case ActionMedia.PAUSE:
+                this._video.pause();
+                this._showFlashOSD('⏸', 'Pause');
+                break;
+            case ActionMedia.STOP:
+                this.close();
+                break;
+            case ActionMedia.REWIND:
+                this._seekRelative(-30);
+                this._showFlashOSD('⏪', '−30 s');
+                break;
+            case ActionMedia.FAST_FORWARD:
+                this._seekRelative(+30);
+                this._showFlashOSD('⏩', '+30 s');
+                break;
+            case ActionMedia.NEXT:
+                if (this._nextEpisode) this.play(this._nextEpisode);
+                else this._showFlashOSD('⏭', 'Aucun épisode suivant');
+                break;
+            case ActionMedia.PREVIOUS:
+                // Convention universelle des lecteurs : au-delà de trois
+                // secondes, « précédent » revient au début du titre courant
+                // plutôt que de passer au précédent.
+                if ((this._video.currentTime || 0) > 3) {
+                    this._video.currentTime = 0;
+                    this._showFlashOSD('⏮', 'Retour au début');
+                } else {
+                    const precedent = this._queue?.previous?.();
+                    if (precedent) this.play(precedent);
+                    else { this._video.currentTime = 0; this._showFlashOSD('⏮', 'Retour au début'); }
+                }
+                break;
         }
     }
 
@@ -1984,6 +2164,8 @@ handleNavAction(action) {
 
 
     close(exitFullscreen = true) {
+        // La lecture s'arrête : rendre la main au système.
+        this._verrouEcran?.liberer();
         if (!this._el) return;
 
         this._navHoldAction = null;

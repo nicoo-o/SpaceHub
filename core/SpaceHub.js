@@ -97,6 +97,7 @@ import { JellyseerrRequestsWidget, JellyseerrTrendingWidget } from '../integrati
 
 import QBittorrentService from '../integrations/qbittorrent/QBittorrentService.js';
 import { QBittorrentSpeedWidget, QBittorrentActiveWidget } from '../integrations/qbittorrent/QBittorrentWidgets.js';
+import { enregistrerTouches } from './TelecommandeTv.js';
 
 // ─── Namespace global ────────────────────────────────────────────────────────
 
@@ -223,6 +224,15 @@ async function init() {
     SpaceHub.services = services;
     services.register('logger', log);
     if (typeof window !== 'undefined') services.bindGlobalFacade(window);
+
+    // Touches média de la télécommande. Doit se faire TÔT : sur Samsung,
+    // `registerKeyBatch` est ce qui décide si l'application recevra un jour ces
+    // événements. Sans cet appel, ⏯ ⏪ ⏩ n'atteignent jamais le code, quoi
+    // qu'on écoute ensuite.
+    const tv = enregistrerTouches();
+    if (tv.plateforme !== 'navigateur') {
+        log.info(`Plateforme détectée : ${tv.plateforme}.`);
+    }
 
     const touchEngine = new TouchEngine();
     const audioFeedback = new AudioFeedback();

@@ -400,3 +400,35 @@
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(3px); }
 }
+
+/* ── Logo du titre à la place du texte ─────────────────────────────────────
+   Quand le serveur fournit une image de logo (greffon Fanart, métadonnées
+   TMDB), on l'affiche plutôt que le titre en police système. Le <h1> reste
+   dans le DOM pour les lecteurs d'écran ; c'est son texte qu'on masque, pas
+   lui. Si l'image échoue à charger, un `onerror` retire la classe et le texte
+   réapparaît — un titre absent serait pire qu'un titre sans style. */
+.sh-hero-title--logo .sh-hero-title-repli {
+    /* Masqué visuellement, lisible par les technologies d'assistance. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.sh-hero-logo {
+    display: block;
+    max-width: min(560px, 52vw);
+    /* Les logos ont des proportions très variables : on borne la hauteur pour
+       qu'un logo large et plat n'occupe pas la même place qu'un logo carré. */
+    max-height: clamp(72px, 11vh, 148px);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    object-position: left center;
+    /* Beaucoup de logos sont blancs sur fond transparent : sans ombre, ils
+       disparaissent sur une image de fond claire. */
+    filter: drop-shadow(0 4px 18px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.75));
+}

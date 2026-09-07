@@ -108,11 +108,72 @@ class ParentalControl {
      */
     isAllowed(item) {
         if (!this.isEnabled()) return true;
+
+        // JELLYFIN 10.11 — LE CHAMP NUMÉRIQUE A CHANGÉ DE FORME.
+        //
+        // La refonte des classifications (PR #12615) remplace l'entier simple
+        // par un couple `RatingScore { Score, SubScore }`, et ajoute
+        // `InheritedParentalRatingSubValue` sur les items. Un serveur récent
+        // peut donc renvoyer une valeur numérique fiable là où l'ancien code
+        // ne savait lire que la CHAÎNE `OfficialRating` (« PG-13 », « TV-MA »,
+        // « FR-12 »…) et devait la deviner par expression régulière.
+        //
+        // On préfère le champ numérique quand il existe : c'est le serveur qui
+        // a fait la conversion, avec sa table de correspondance par pays. La
+        // devinette sur la chaîne reste le repli pour les serveurs antérieurs
+        // — sans quoi le contrôle parental régresserait à la mise à jour du
+        // serveur, ce qui est le pire moment pour qu'un verrou lâche.
+        const numerique = this._valeurHeritee(item);
+        if (numerique !== null) {
+            return numerique <= this.valeurMaximale();
+        }
+
         const rang = this.rankOf(item?.OfficialRating);
         if (rang === null) {
             return this._settings?.get('parental.allowUnrated', false) === true;
         }
         return rang <= this.maxRank();
+    }
+
+    /**
+     * Valeur numérique de classification héritée, telle que le serveur la
+     * calcule — `null` si le serveur ne la fournit pas.
+     *
+     * Jellyfin expose `InheritedParentalRatingValue` (le score principal, une
+     * échelle d'âge) et, depuis 10.11, `InheritedParentalRatingSubValue` (un
+     * sous-score qui départage deux classifications de même âge : « PG-13 »
+     * et « TV-14 » partagent un âge mais pas une sévérité).
+     *
+     * @param {Object} item
+     * @returns {number|null}
+     */
+    _valeurHeritee(item) {
+        const principale = Number(item?.InheritedParentalRatingValue);
+        if (!Number.isFinite(principale)) return null;
+        const sous = Number(item?.InheritedParentalRatingSubValue);
+        // Le sous-score raffine le principal sans jamais le franchir : on le
+        // ramène à une fraction, de sorte que 13.5 reste sous 14 mais au-dessus
+        // de 13. Sur un serveur antérieur à 10.11, il est absent et la valeur
+        // principale suffit — c'est exactement le comportement d'avant.
+        return Number.isFinite(sous) ? principale + Math.min(0.99, sous / 100) : principale;
+    }
+
+    /**
+     * Limite d'âge numérique correspondant au rang choisi par l'utilisateur.
+     *
+     * Le réglage reste exprimé en rangs (0 à 4), parce que c'est ce que
+     * l'interface montre et ce qui est déjà stocké chez les utilisateurs. On
+     * traduit ici vers l'échelle d'âge du serveur.
+     *
+     * @returns {number}
+     */
+    valeurMaximale() {
+        const AGES_PAR_RANG = [3, 7, 13, 16, 18];
+        const rang = Math.max(0, Math.min(AGES_PAR_RANG.length - 1, this.maxRank()));
+        // `+0.99` : un titre classé exactement à la limite d'âge est autorisé,
+        // sous-score compris. Sans cela, « 13 » avec un sous-score de 40
+        // (soit 13.4) serait refusé par une limite à 13.
+        return AGES_PAR_RANG[rang] + 0.99;
     }
 
     /** Filtre une liste — utilisé par les widgets et la bibliothèque. */
@@ -127,10 +188,19 @@ class ParentalControl {
      */
     reason(item) {
         if (this.isAllowed(item)) return null;
-        const rang = this.rankOf(item?.OfficialRating);
-        if (rang === null) return 'Ce titre n\'a pas de classification.';
         const limite = NIVEAUX.find(n => n.valeur === this.maxRank());
-        return `Classé « ${item.OfficialRating} » — au-delà de la limite « ${limite?.libelle || ''} ».`;
+
+        // La classification affichée reste la CHAÎNE (« PG-13 »), même quand la
+        // décision a été prise sur le champ numérique : c'est ce que
+        // l'utilisateur reconnaît sur une jaquette.
+        if (item?.OfficialRating) {
+            return `Classé « ${item.OfficialRating} » — au-delà de la limite « ${limite?.libelle || ''} ».`;
+        }
+        const numerique = this._valeurHeritee(item);
+        if (numerique !== null) {
+            return `Classification ${Math.floor(numerique)}+ — au-delà de la limite « ${limite?.libelle || ''} ».`;
+        }
+        return 'Ce titre n\'a pas de classification.';
     }
 
     // ─── Code de sortie ──────────────────────────────────────────────────────

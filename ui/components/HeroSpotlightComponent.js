@@ -72,6 +72,14 @@ class HeroSpotlightComponent {
                             : null,
                         backdropUrl: api.getImageUrl(item.Id, 'Backdrop', { maxWidth: 1920, maxHeight: 1080, quality: 90 }) || api.getImageUrl(item.Id, 'Primary', { maxWidth: 1920, maxHeight: 1080, quality: 90 }),
                         posterUrl: api.getImageUrl(item.Id, 'Primary', { maxWidth: 600, maxHeight: 900, quality: 90 }),
+                        // Logo du titre, quand le serveur en a un (greffon
+                        // Fanart, ou métadonnées TMDB). C'est la différence
+                        // visuelle la plus perceptible entre un client fait
+                        // maison et un client soigné : le titre dessiné par le
+                        // studio au lieu d'une police système.
+                        logoUrl: item.ImageTags?.Logo
+                            ? api.getImageUrl(item.Id, 'Logo', { maxWidth: 640, quality: 90 })
+                            : null,
                         rawItem: item
                     }));
                 }
@@ -199,7 +207,17 @@ class HeroSpotlightComponent {
                 <div class="sh-hero-content">
                     <div class="sh-hero-info sh-hero-info--active">
                         <div class="sh-hero-series-tag">${this._escape(item.tagline || item.categoryTag)}</div>
-                        <h1 class="sh-hero-title sh-hero-title--kinetic">${kineticTitle}</h1>
+                        ${item.logoUrl ? `
+                        <!-- Logo du studio. Le <h1> reste présent pour les
+                             lecteurs d'écran et le référencement : c'est
+                             l'image qui est décorative, pas le titre. -->
+                        <h1 class="sh-hero-title sh-hero-title--logo">
+                            <img class="sh-hero-logo" src="${this._escape(item.logoUrl)}"
+                                 alt="${this._escape(item.Name || '')}" loading="eager"
+                                 onerror="this.parentElement.classList.remove('sh-hero-title--logo'); this.remove();" />
+                            <span class="sh-hero-title-repli">${kineticTitle}</span>
+                        </h1>` : `
+                        <h1 class="sh-hero-title sh-hero-title--kinetic">${kineticTitle}</h1>`}
                         <div class="sh-hero-meta">
                             ${Number.isFinite(Number(item.CriticRating)) && Number(item.CriticRating) > 0 ? `<span class="sh-hero-badge sh-hero-badge--critic sh-score-btn sh-score-rt" title="Note presse Jellyfin"><span aria-hidden="true">🍅</span><span>${Math.round(Number(item.CriticRating))}%</span></span>` : ''}
                             ${Number.isFinite(Number(item.CommunityRating)) ? `<span class="sh-hero-badge sh-hero-badge--community" title="Note utilisateurs Jellyfin"><span>★ ${this._escape(Number(item.CommunityRating).toFixed(1))}/10</span></span>` : ''}
