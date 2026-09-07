@@ -1048,6 +1048,66 @@ await scenario('Une rangée de 400 cartes reste navigable à la flèche', async 
     };
 });
 
+await scenario('Le HUD de diagnostic dit ce que le moteur a vraiment décidé', async () => {
+    // Les tests unitaires du HUD utilisent un faux moteur : ils prouvent qu'il
+    // affiche bien ce qu'on lui donne, pas qu'il est branché sur le vrai. Ce
+    // scénario fait une navigation réelle et vérifie que le HUD en rend compte.
+    const p = await nouvellePage(navigateur);
+    const r = await p.evaluate(async () => {
+        const hud = window.SpaceHub?.dev?.hud;
+        const nav = window.SpaceHub?.core?.spatialNavigation;
+        if (!hud || !nav) return { erreur: 'HUD ou moteur absent' };
+
+        if (!hud.allumer()) return { erreur: 'le HUD a refusé de s\'allumer' };
+
+        // Deux cibles réelles, côte à côte, dans le DOM de l'application.
+        const hote = document.createElement('div');
+        hote.style.cssText = 'position:fixed;top:300px;left:40px;display:flex;gap:20px;z-index:3;';
+        hote.innerHTML = '<button id="hud-a" data-nav-focusable="true" style="width:150px;height:80px">A</button>'
+                       + '<button id="hud-b" data-nav-focusable="true" style="width:150px;height:80px">B</button>';
+        document.body.appendChild(hote);
+
+        nav.setFocus(document.getElementById('hud-a'), { reason: 'test' });
+        // Vraie recherche de cible par le moteur, pas une simulation.
+        // `NavAction.RIGHT` vaut 'right' en minuscules : passer 'RIGHT' donne
+        // une direction que le moteur ne reconnaît pas — et il a raison de ne
+        // rien trouver. Première version de ce scénario prise en défaut par
+        // ce détail, ce qui prouve au moins qu'il ne valide pas à l'aveugle.
+        const cible = nav._findSpatialTarget('right');
+        const diag = nav.dernierDiagnostic();
+
+        await new Promise(r2 => setTimeout(r2, 250));   // laisser le HUD peindre
+        const panneau = document.getElementById('sh-debug-hud');
+        const texte = panneau?.textContent || '';
+
+        const resultat = {
+            panneau: !!panneau,
+            inerte: panneau?.hasAttribute('inert') === true,
+            cible: cible?.id || null,
+            voie: diag?.voie || null,
+            candidats: diag?.candidats ?? null,
+            latenceMesuree: typeof diag?.latence === 'number' && diag.latence >= 0,
+            afficheLaVoie: !!diag?.voie && texte.includes(diag.voie),
+            afficheLesCandidats: texte.includes(String(diag?.candidats)),
+        };
+        hud.eteindre();
+        resultat.eteintProprement = !document.getElementById('sh-debug-hud')
+            && nav.dernierDiagnostic() === null;
+        return resultat;
+    });
+    await p.context().close();
+    if (r.erreur) return { ok: false, detail: r.erreur };
+
+    return {
+        ok: r.panneau && r.inerte && r.cible === 'hud-b' && !!r.voie
+            && r.latenceMesuree && r.afficheLaVoie && r.afficheLesCandidats
+            && r.eteintProprement,
+        detail: `cible réelle « ${r.cible} » par la voie « ${r.voie} » · `
+            + `${r.candidats} candidats · latence mesurée ${r.latenceMesuree} · `
+            + `inerte ${r.inerte} · extinction propre ${r.eteintProprement}`,
+    };
+});
+
 await page.context().close();
 await navigateur.close();
 serveur.close();
