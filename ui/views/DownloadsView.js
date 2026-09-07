@@ -146,15 +146,18 @@ class DownloadsView {
 
         this._bindEvents();
 
-        // Enregistrement formel du scope downloads
+        // Les contrôles propres à cette vue s'AJOUTENT au scope du moteur.
+        // Écraser le scope en enracinant la requête sur `.sh-downloads-view`
+        // faisait disparaître le dock supérieur, qui est un frère de la vue.
         const spatialNav = svc.nav() || svc.nav();
-        if (spatialNav?.registerFocusables) {
-            spatialNav.registerFocusables('downloads', (container) => {
-                const root = container || document.querySelector('.sh-downloads-view') || document;
+        if (spatialNav?.extendFocusables) {
+            spatialNav.extendFocusables('downloads', () => {
+                const root = document.querySelector('.sh-downloads-view');
+                if (!root) return [];
                 return Array.from(root.querySelectorAll(
-                    '.sh-dl-tab-btn, .sh-dl-action-btn, .sh-card, [data-nav-focusable="true"], .sh-jellyseerr-query-input, .sh-jellyseerr-clear-btn, .sh-jellyseerr-req-btn'
+                    '.sh-jellyseerr-query-input, .sh-jellyseerr-clear-btn, .sh-jellyseerr-req-btn'
                 ));
-            }, { force: true }); // re-registration volontaire — cf. plan A04
+            });
         }
 
         await this._renderActiveTab();

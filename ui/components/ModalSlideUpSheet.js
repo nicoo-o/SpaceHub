@@ -18,6 +18,7 @@
 
 import './ModalSlideUpSheet.css';
 import { gabaritFeuille } from './ModalSlideUpSheet.template.js';
+import { contexteGabarit } from '../../core/utils/domUtils.js';
 import * as svc from '../../core/services.js';
 import inputRouter, { PRIORITES } from '../../core/InputRouter.js';
 class ModalSlideUpSheet {
@@ -444,7 +445,7 @@ class ModalSlideUpSheet {
         const safePosterUrl = this._escapeUrl(posterUrl);
         const safeBackdropUrl = this._escapeUrl(images.backdropUrl || posterUrl);
 
-        this._sheet.innerHTML = gabaritFeuille({ ...this, item, title, year, rating, overview, genres, duration, backBtnLabel, cardBuilder, rtScore, imdbScore, has4K, hasAtmos, hasDolbyVision, isEpisode, isSeries, isMusic, isCollection, isCalendarOrServarr, safeBackdropUrl, safePosterUrl });
+        this._sheet.innerHTML = gabaritFeuille(contexteGabarit(this, { item, title, year, rating, overview, genres, duration, backBtnLabel, cardBuilder, rtScore, imdbScore, has4K, hasAtmos, hasDolbyVision, isEpisode, isSeries, isMusic, isCollection, isCalendarOrServarr, safeBackdropUrl, safePosterUrl }));
 
         this._bindSheetEvents(item);
     }

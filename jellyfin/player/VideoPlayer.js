@@ -15,6 +15,7 @@
 
 import Hls from 'hls.js';
 import { gabaritLecteur } from './VideoPlayer.template.js';
+import { contexteGabarit } from '../../core/utils/domUtils.js';
 import { negotiatePlayback } from './DeviceProfile.js';
 import Logger from '../../core/Logger.js';
 
@@ -206,6 +207,10 @@ class VideoPlayer {
             this._createPlayerDOM(item);
             this._initMediaStreams(item);
         }
+
+        // Le DOM du lecteur existe à partir d'ici : c'est le premier moment où
+        // le bouton « bande-annonce suivante » peut être montré ou caché.
+        this._updateTrailerNavButton();
 
         const serverUrl = this._auth?.getServerUrl() || '';
         const token = this._auth?.getToken() || '';
@@ -466,7 +471,24 @@ class VideoPlayer {
         }
     }
 
+    /**
+     * Montre « bande-annonce suivante » quand il y a réellement une suite.
+     *
+     * Deux conditions, et les deux comptent : le lecteur joue une
+     * bande-annonce (`isTrailer`, posé par TrailerService), et le service en a
+     * résolu plusieurs. Un bouton « suivante » qui rejoue la même chose est
+     * pire que pas de bouton du tout.
+     */
+    _updateTrailerNavButton() {
+        const btn = this._el?.querySelector('#sh-btn-next-trailer');
+        if (!btn) return;
+        const trailers = svc.trailers();
+        const visible = Boolean(this._playbackOptions?.isTrailer) && (trailers?.nombreDeSources || 0) > 1;
+        btn.style.display = visible ? 'inline-flex' : 'none';
+    }
+
     _updateEpisodeNavButtons() {
+        this._updateTrailerNavButton();
         const prevBtn = this._el?.querySelector('#sh-btn-prev-ep');
         const nextBtn = this._el?.querySelector('#sh-btn-next-ep');
         const drawerEpBtn = this._el?.querySelector('#sh-btn-open-episodes');
@@ -525,7 +547,7 @@ class VideoPlayer {
         this._el.id = 'sh-grand-cinema-player';
         this._el.className = 'sh-grand-cinema-player sh-player--entering';
 
-        this._el.innerHTML = gabaritLecteur({ ...this, isEpisode, seriesName, episodeNumber, episodeTitle });
+        this._el.innerHTML = gabaritLecteur(contexteGabarit(this, { isEpisode, seriesName, episodeNumber, episodeTitle }));
 
         document.body.appendChild(this._el);
         this._video = this._el.querySelector('.sh-cinema-video');
@@ -542,7 +564,7 @@ class VideoPlayer {
             spatialNav.registerFocusables('player', (container) => {
                 const root = this._el || container;
                 return Array.from(root.querySelectorAll(
-                    '#sh-btn-back, #sh-player-timeline-focus, #sh-btn-prev-ep, #sh-btn-skip-back, #sh-btn-play-pause, #sh-btn-skip-fwd, #sh-btn-next-ep, #sh-btn-volume, #sh-btn-open-audio-subs, #sh-btn-open-settings, #sh-btn-open-episodes, #sh-btn-fullscreen, .sh-popover-item'
+                    '#sh-btn-back, #sh-player-timeline-focus, #sh-btn-prev-ep, #sh-btn-skip-back, #sh-btn-play-pause, #sh-btn-skip-fwd, #sh-btn-next-ep, #sh-btn-next-trailer, #sh-btn-volume, #sh-btn-open-audio-subs, #sh-btn-open-settings, #sh-btn-open-episodes, #sh-btn-fullscreen, .sh-popover-item'
                 ));
             }, { force: true }); // re-registration volontaire (scope plus précis que le défaut de boot) — cf. plan A04
         }
@@ -671,6 +693,9 @@ class VideoPlayer {
             const file = this._queue || svc.queue();
             const avant = file?.previous?.();
             if (avant) this.play(avant);
+        });
+        el.querySelector('#sh-btn-next-trailer')?.addEventListener('click', () => {
+            svc.trailers()?.suivante?.();
         });
         el.querySelector('#sh-btn-next-ep')?.addEventListener('click', () => {
             const file = this._queue || svc.queue();
@@ -1560,7 +1585,7 @@ handleNavAction(action) {
 
         // 3. Boutons du dock
         const dockButtons = Array.from(this._el.querySelectorAll(
-            '#sh-btn-prev-ep, #sh-btn-skip-back, #sh-btn-play-pause, #sh-btn-skip-fwd, #sh-btn-next-ep, #sh-btn-volume, #sh-btn-open-audio-subs, #sh-btn-open-settings, #sh-btn-open-episodes, #sh-btn-fullscreen'
+            '#sh-btn-prev-ep, #sh-btn-skip-back, #sh-btn-play-pause, #sh-btn-skip-fwd, #sh-btn-next-ep, #sh-btn-next-trailer, #sh-btn-volume, #sh-btn-open-audio-subs, #sh-btn-open-settings, #sh-btn-open-episodes, #sh-btn-fullscreen'
         )).filter(el => el.offsetParent !== null && window.getComputedStyle(el).display !== 'none');
         const curIdx = dockButtons.indexOf(active);
         if (curIdx !== -1) {

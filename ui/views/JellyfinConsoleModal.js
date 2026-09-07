@@ -16,6 +16,7 @@
 
 import Logger from '../../core/Logger.js';
 import { gabaritConsoleModules } from './JellyfinConsoleModal.template.js';
+import { contexteGabarit } from '../../core/utils/domUtils.js';
 
 import './JellyfinConsoleModal.css';
 import * as svc from '../../core/services.js';
@@ -853,7 +854,7 @@ export class JellyfinConsoleModal {
         const sdkPlugins = svc.sdk()?.getPlugins?.() || [];
         const settings = svc.settings();
 
-        container.innerHTML = gabaritConsoleModules({ ...this, sdkPlugins, servarrIntegrations, serverPlugins, settings, svc });
+        container.innerHTML = gabaritConsoleModules(contexteGabarit(this, { sdkPlugins, servarrIntegrations, serverPlugins, settings, svc }));
 
         // Écouteurs pour les toggles Servarr
         container.querySelectorAll('.sh-servarr-toggle').forEach(chk => {

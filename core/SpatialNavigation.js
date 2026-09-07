@@ -16,7 +16,7 @@ import Logger from './Logger.js';
 import { NavAction, mapKeyboardEvent, isDirectionAction } from './InputMapper.js';
 import GamepadInput from './GamepadInput.js';
 import { CarouselController } from './CarouselController.js';
-import { LAYERS, BACK_ORDER, FOCUSABLES, CAROUSELS, SCROLL_CONTAINERS } from './DomContracts.js';
+import { LAYERS, BACK_ORDER, FOCUSABLES, CHROME_PERSISTANT, CAROUSELS, SCROLL_CONTAINERS } from './DomContracts.js';
 
 
 import * as svc from './services.js';
@@ -104,6 +104,10 @@ export class SpatialNavigation {
         // 5. Mémorisation de Colonne X
         this._lastColumnX = null;
 
+        // 5quater. Sources ajoutées par extendFocusables, rangées par scope
+        // puis par nom de source (et non empilées : cf. extendFocusables).
+        this._focusExtensions = new Map();
+
         // 5ter. Caches de mesure. `_rectsCourants` ne vit que le temps d'une
         // recherche ; `_cacheVisibilite` le temps d'une salve de répétition.
         this._rectsCourants = null;
@@ -137,43 +141,72 @@ export class SpatialNavigation {
 
     // ─── INITIALISATION DES 10 SCOPES DU REGISTRY ─────────────────────────────
 
+    /**
+     * Les contrôles de la barre permanente, toujours interrogés depuis le
+     * DOCUMENT.
+     *
+     * Le dock est un frère de la vue, pas un descendant : une requête enracinée
+     * sur `.sh-library-view` ne le trouvera jamais. Chaque scope de VUE ajoute
+     * donc ce résultat au sien — c'est ce qui rend le menu atteignable au
+     * clavier depuis n'importe quelle vue.
+     *
+     * Les couches confinées (modale, réglages, lecteur, panneau latéral,
+     * recherche) ne l'appellent PAS, et c'est voulu : une modale ouverte doit
+     * piéger le focus, pas laisser filer vers le menu derrière elle.
+     */
+    _focusablesDuChrome() {
+        return Array.from(document.querySelectorAll(CHROME_PERSISTANT));
+    }
+
     _initializeDefaultScopes() {
-        // 1. Scope dynamic-island
-        this.registerFocusables('dynamic-island', (root = document) => {
-            return Array.from(root.querySelectorAll(
-                '.sh-dynamic-island .sh-nav-tab-btn, .sh-dynamic-island .sh-nav-action-btn, #sh-user-menu-btn, .sh-user-avatar-btn, [data-nav-scope="dynamic-island"]'
-            ));
-        });
+        // 1. Scope dynamic-island — conservé pour un appel explicite
+        //    (`getFocusables('dynamic-island')`), mais ce n'est plus un scope
+        //    COURANT : `_detectCurrentScope()` ne le renvoie jamais. Le dock
+        //    appartient au plan de la vue affichée, sinon il devient un piège
+        //    dont une descente ne peut pas sortir.
+        this.registerFocusables('dynamic-island', () => this._focusablesDuChrome());
 
         // 2. Scope dashboard (Hero Play/Info + Flèches + Cartes Carrousels + Bento Jellyseerr)
         this.registerFocusables('dashboard', (root = document) => {
-            return Array.from(root.querySelectorAll(
-                '#sh-hero-btn-play, #sh-hero-btn-details, .sh-hero-edge-btn, .sh-dashboard-body .sh-card, .sh-card, .sh-genre-chip, .sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, [data-nav-focusable="true"]'
-            ));
+            return [...new Set([
+                ...root.querySelectorAll(
+                    '#sh-hero-btn-play, #sh-hero-btn-trailer, #sh-hero-btn-details, .sh-hero-edge-btn, .sh-dashboard-body .sh-card, .sh-card, .sh-genre-chip, .sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, [data-nav-focusable="true"]'
+                ),
+                ...this._focusablesDuChrome(),
+            ])];
         });
 
         // 3. Scope library (Onglets + Filtres Genres + Barre A-Z + Cartes Médias)
         this.registerFocusables('library', (root = document) => {
             const scopeRoot = root.querySelector('.sh-library-explorer, .sh-library-view') || root;
-            return Array.from(scopeRoot.querySelectorAll(
-                '.sh-lib-tab-btn, .sh-lib-genre-chip, .sh-lib-alpha-btn, .sh-lib-control-btn, .sh-card, [data-nav-focusable="true"]'
-            ));
+            return [...new Set([
+                ...scopeRoot.querySelectorAll(
+                    '.sh-lib-tab-btn, .sh-lib-genre-chip, .sh-lib-alpha-btn, .sh-lib-control-btn, .sh-card, [data-nav-focusable="true"]'
+                ),
+                ...this._focusablesDuChrome(),
+            ])];
         });
 
         // 4. Scope downloads (Onglets + Actions qBittorrent + Cartes Torrents)
         this.registerFocusables('downloads', (root = document) => {
             const scopeRoot = root.querySelector('.sh-downloads-view') || root;
-            return Array.from(scopeRoot.querySelectorAll(
-                '.sh-dl-tab-btn, .sh-dl-action-btn, .sh-card, .sh-metric-card, [data-nav-focusable="true"]'
-            ));
+            return [...new Set([
+                ...scopeRoot.querySelectorAll(
+                    '.sh-dl-tab-btn, .sh-dl-action-btn, .sh-card, .sh-metric-card, [data-nav-focusable="true"]'
+                ),
+                ...this._focusablesDuChrome(),
+            ])];
         });
 
         // 5. Scope jellyseerr (Cartes Bento + Boutons Demande)
         this.registerFocusables('jellyseerr', (root = document) => {
             const scopeRoot = root.querySelector('.sh-jellyseerr-view') || root;
-            return Array.from(scopeRoot.querySelectorAll(
-                '.sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, .sh-card, [data-nav-scope="jellyseerr"]'
-            ));
+            return [...new Set([
+                ...scopeRoot.querySelectorAll(
+                    '.sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, .sh-card, [data-nav-scope="jellyseerr"]'
+                ),
+                ...this._focusablesDuChrome(),
+            ])];
         });
 
         // 6. Scope sidebar (items du menu latéral + onglets de hub)
@@ -238,15 +271,29 @@ export class SpatialNavigation {
     /**
      * Ajoute une source supplémentaire d'éléments focusables à un scope existant
      * sans écraser sa définition d'origine (compose au lieu de remplacer).
+     *
+     * Les sources sont rangées par NOM, pas empilées. La version précédente
+     * enveloppait le fournisseur courant dans un nouveau : appelée depuis une
+     * méthode de rendu — ce que fait DownloadsView à chaque affichage — elle
+     * empilait une fermeture de plus à chaque passage, et la chaîne
+     * s'allongeait sans fin. Une table indexée par source rend l'opération
+     * idempotente : réenregistrer la même source la remplace.
+     *
+     * @param {string} scopeName
+     * @param {(root: Document|HTMLElement) => HTMLElement[]} extraProvider
+     * @param {{ source?: string }} [options] nom de la source ; par défaut le
+     *   nom de la fonction fournie, sinon 'default'.
      */
-    extendFocusables(scopeName, extraProvider) {
+    extendFocusables(scopeName, extraProvider, { source } = {}) {
         if (!scopeName || typeof extraProvider !== 'function') return;
-        const base = this._focusRegistry.get(scopeName);
-        this._focusRegistry.set(scopeName, (root) => {
-            const baseResult = typeof base === 'function' ? base(root) : (Array.isArray(base) ? base : []);
-            const extra = extraProvider(root) || [];
-            return [...new Set([...baseResult, ...extra])];
-        });
+        const cle = source || extraProvider.name || 'default';
+        if (!this._focusExtensions.has(scopeName)) this._focusExtensions.set(scopeName, new Map());
+        this._focusExtensions.get(scopeName).set(cle, extraProvider);
+    }
+
+    /** Retire une source ajoutée par `extendFocusables`. */
+    unextendFocusables(scopeName, source) {
+        this._focusExtensions.get(scopeName)?.delete(source);
     }
 
     unregisterFocusables(scopeName) {
@@ -264,6 +311,14 @@ export class SpatialNavigation {
                 rawElements = provider;
             } else if (typeof provider === 'string') {
                 rawElements = Array.from(this._root.querySelectorAll(provider));
+            }
+            const extensions = this._focusExtensions.get(scopeOrContainer);
+            if (extensions?.size) {
+                const ajouts = [];
+                for (const extra of extensions.values()) {
+                    try { ajouts.push(...(extra(this._root) || [])); } catch { /* une source fautive n'en prive pas les autres */ }
+                }
+                if (ajouts.length) rawElements = [...new Set([...rawElements, ...ajouts])];
             }
         } else if (scopeOrContainer instanceof HTMLElement) {
             rawElements = Array.from(scopeOrContainer.querySelectorAll('[data-nav-focusable="true"], .sh-card, button:not([disabled])'));
@@ -438,13 +493,37 @@ export class SpatialNavigation {
         }
     }
 
+    /**
+     * Pose le focus initial d'un scope.
+     *
+     * Deux règles, toutes deux apprises d'un défaut réel :
+     *
+     *   - l'ordre du DOM décide, mais la BARRE PERMANENTE est écartée. Le dock
+     *     précède la vue dans l'arbre : sans cette règle, ouvrir l'application
+     *     posait le focus sur le menu, qui se dépliait aussitôt, au lieu de le
+     *     poser sur le contenu que l'utilisateur regarde ;
+     *   - un conteneur de défilement n'est jamais un candidat (cf.
+     *     `scripts/focus-containers-check.mjs`) : ce sont ses enfants.
+     *
+     * Le chrome reste un repli : si une vue n'a vraiment rien d'autre à
+     * focaliser, mieux vaut le menu que rien du tout.
+     *
+     * NB : cette classe déclarait DEUX `focusFirst`. La seconde, plus bas,
+     * écrasait silencieusement la première — c'est celle-ci qui s'exécutait, et
+     * toute correction apportée à l'autre n'avait aucun effet. Un seul
+     * `focusFirst` désormais ; il renvoie un booléen, ce dont `popFocus()`
+     * dépend.
+     *
+     * @returns {boolean} vrai si un élément a été focalisé.
+     */
     focusFirst(scopeName = null) {
         const scope = scopeName || this._detectCurrentScope();
         this._state.scope = scope;
         const candidates = this.getFocusables(scope);
-        if (candidates.length > 0) {
-            this.setFocus(candidates[0]);
-        }
+        if (candidates.length === 0) return false;
+        const contenu = candidates.filter(el => !el.closest?.(LAYERS.dynamicIsland));
+        this.setFocus((contenu.length ? contenu : candidates)[0], { reason: 'focus-first' });
+        return true;
     }
 
     clearFocus() {
@@ -468,7 +547,11 @@ export class SpatialNavigation {
         if (document.querySelector(`${LAYERS.slideUpSheet}, ${LAYERS.adminModal}, ${LAYERS.consoleModal}, ${LAYERS.genericModal}`)) return 'modal';
 
         const focused = this._state.focusedElement || document.activeElement;
-        if (focused?.closest?.('.sh-dynamic-island, #sh-dynamic-island')) return 'dynamic-island';
+        // Le dock n'est délibérément PAS un scope courant. Le renvoyer quand le
+        // focus s'y trouve enfermait l'utilisateur : le scope « dynamic-island »
+        // ne contient que le dock, donc une descente ne trouvait rien et le
+        // focus ne pouvait plus redescendre dans la page. Le dock appartient au
+        // plan de la vue affichée, qui l'inclut via `_focusablesDuChrome()`.
         if (focused?.closest?.('.sh-jellyseerr-view, [data-nav-scope="jellyseerr"]')) return 'jellyseerr';
 
         const appLayout = svc.appLayout();
@@ -1255,16 +1338,6 @@ export class SpatialNavigation {
             }
         }
         return this.focusFirst();
-    }
-
-    /** Place le focus sur le premier élément focalisable du scope courant. */
-    focusFirst() {
-        const focusables = this.getFocusables(this._detectCurrentScope());
-        if (focusables.length > 0) {
-            this.setFocus(focusables[0], { reason: 'focus-first' });
-            return true;
-        }
-        return false;
     }
 
     _handlePaging(direction) {

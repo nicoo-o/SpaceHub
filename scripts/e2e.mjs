@@ -439,6 +439,220 @@ await scenario('À l\'arrivée, le focus va sur un contrôle — jamais sur un c
     return { ok, detail: `focus sur « ${r.id} » (${r.classe}) · anneau ${r.anneau}` };
 });
 
+await scenario('L\'indicateur de position est orange, dans les deux thèmes', async () => {
+    // Le symptôme signalé : « pas de halo orange comme indicateur de position,
+    // juste gris ». L'anneau était tiré de `--sh-ink`, l'encre de l'interface :
+    // blanc sur fond sombre, noir sur fond clair. Il ne se distinguait donc de
+    // rien — c'est exactement ce qu'un indicateur de position ne doit pas être.
+    //
+    // On lit la couleur RÉELLEMENT calculée par le navigateur, thème par thème.
+    // Une couleur écrite dans une feuille ne prouve rien : c'est la cascade qui
+    // tranche, et plusieurs composants posent « outline: none !important ».
+    const r = await page.evaluate(async () => {
+        const nav = window.SpaceHub.core.spatialNavigation;
+        const themes = window.SpaceHub.ui.themes;
+
+        const hote = document.createElement('div');
+        hote.className = 'sh-dashboard-body';
+        hote.innerHTML = '<button id="e2e-orange" tabindex="0" data-nav-focusable="true"'
+            + ' style="position:absolute;left:60px;top:300px;width:160px;height:44px;">Cible</button>';
+        document.body.appendChild(hote);
+
+        /** Renvoie les composantes de l'anneau tel qu'il est peint. */
+        const mesurer = () => {
+            const el = document.getElementById('e2e-orange');
+            nav.setFocus(el, { silent: true, scroll: false });
+            const st = getComputedStyle(el);
+            const m = st.outlineColor.match(/\d+/g)?.map(Number) || [0, 0, 0];
+            return { rgb: m.slice(0, 3), largeur: st.outlineWidth, couleur: st.outlineColor };
+        };
+
+        await themes.apply('spacehub-dark');  await new Promise(r => setTimeout(r, 300));
+        const sombre = mesurer();
+        await themes.apply('spacehub-light'); await new Promise(r => setTimeout(r, 300));
+        const clair = mesurer();
+        await themes.apply('spacehub-dark');  await new Promise(r => setTimeout(r, 200));
+        hote.remove();
+        return { sombre, clair };
+    });
+
+    // « Orange » se vérifie, il ne se déclare pas : rouge nettement au-dessus du
+    // vert, vert nettement au-dessus du bleu, et pas de gris (R ≈ V ≈ B).
+    const estOrange = (c) => c && c.rgb[0] > 150 && c.rgb[0] > c.rgb[1] + 40 && c.rgb[1] > c.rgb[2] + 30;
+    const ok = estOrange(r.sombre) && estOrange(r.clair);
+    return { ok, detail: `sombre ${r.sombre.couleur} (${r.sombre.largeur}) · clair ${r.clair.couleur}` };
+});
+
+await scenario('Le hero suit le thème et reste lisible', async () => {
+    // Le symptôme signalé : « en mode clair le hero n'est pas en raccord avec
+    // le reste de l'UI ». Deux causes distinctes :
+    //
+    //   - le texte du hero était figé en blanc (`--sh-on-media-*`, « sur
+    //     média »), alors que toute l'interface passait au noir ;
+    //   - le fondu du bas finissait en #000000 codé en dur : une bande noire
+    //     butait contre un fond gris très clair, couture visible.
+    //
+    // On vérifie ce qui compte réellement : le texte contraste avec le voile
+    // qui est derrière lui, et le bas du hero se termine dans la couleur du
+    // fond de page. Une couleur écrite dans une feuille ne prouve ni l'un ni
+    // l'autre — c'est la cascade, et le thème, qui tranchent.
+    const r = await page.evaluate(async () => {
+        const themes = window.SpaceHub.ui.themes;
+
+        const hote = document.createElement('div');
+        hote.className = 'sh-hero-container';
+        hote.innerHTML = `
+            <div class="sh-hero-gradient-overlay"></div>
+            <div class="sh-hero-content"><div class="sh-hero-info">
+                <h1 class="sh-hero-title" id="e2e-hero-titre">Un titre</h1>
+            </div></div>`;
+        document.body.appendChild(hote);
+
+        const composantes = (c) => (c.match(/[\d.]+/g) || []).map(Number);
+        /** Luminance relative WCAG. */
+        const lum = ([r, g, b]) => {
+            const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+            return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+        };
+        const contraste = (a, b) => {
+            const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+            return (x + 0.05) / (y + 0.05);
+        };
+
+        const mesurer = () => {
+            const titre = document.getElementById('e2e-hero-titre');
+            const voile = document.querySelector('.sh-hero-gradient-overlay');
+            const fondPage = composantes(getComputedStyle(document.body).backgroundColor).slice(0, 3);
+            const texte = composantes(getComputedStyle(titre).color).slice(0, 3);
+
+            // Le voile latéral, à gauche, est ce que le texte a derrière lui.
+            const img = getComputedStyle(voile).backgroundImage;
+            const premiereCouleur = img.match(/rgba?\([^)]*\)/)?.[0] || 'rgb(0,0,0)';
+            const v = composantes(premiereCouleur);
+            const alpha = v.length > 3 ? v[3] : 1;
+            // Composition du voile sur le fond de page (le pire cas réaliste :
+            // une affiche sombre en thème clair passe par la même formule).
+            const derriere = [0, 1, 2].map(i => v[i] * alpha + fondPage[i] * (1 - alpha));
+
+            // Dernier arrêt du fondu vertical : il doit être le fond de page.
+            const arrets = img.match(/rgba?\([^)]*\)/g) || [];
+            const basDuHero = composantes(arrets[arrets.length - 1] || 'rgb(0,0,0)').slice(0, 3);
+
+            return {
+                texte, derriere: derriere.map(Math.round), fondPage,
+                contraste: Number(contraste(texte, derriere).toFixed(2)),
+            };
+        };
+
+        await themes.apply('spacehub-dark');  await new Promise(r => setTimeout(r, 300));
+        const sombre = mesurer();
+        await themes.apply('spacehub-light'); await new Promise(r => setTimeout(r, 300));
+        const clair = mesurer();
+
+        // Raccord : la couleur pleine du fondu du bas doit être celle de la page.
+        const voile = document.querySelector('.sh-hero-gradient-overlay');
+        const img = getComputedStyle(voile).backgroundImage;
+        const raccord = img.includes(getComputedStyle(document.body).backgroundColor.replace(/\s/g, ''))
+            || img.replace(/\s/g, '').includes(getComputedStyle(document.body).backgroundColor.replace(/\s/g, ''));
+
+        await themes.apply('spacehub-dark');  await new Promise(r => setTimeout(r, 200));
+        hote.remove();
+        return { sombre, clair, raccord };
+    });
+
+    // 4,5:1 est le seuil WCAG AA pour du texte normal ; un titre de hero est
+    // grand, mais il est posé sur une photo — on ne se donne pas de mou.
+    const ok = r.sombre.contraste >= 4.5 && r.clair.contraste >= 4.5 && r.raccord;
+    return {
+        ok,
+        detail: `contraste sombre ${r.sombre.contraste}:1 · clair ${r.clair.contraste}:1`
+            + ` · fondu raccordé au fond de page ${r.raccord}`,
+    };
+});
+
+await scenario('Le dock supérieur s\'atteint au clavier depuis la vue', async () => {
+    // Le symptôme signalé : « dock supérieur pas accessible en navigation
+    // clavier ». La cause était structurelle et invisible à tout test de
+    // sélecteur : le dock est un FRÈRE de la vue dans l'arbre, et sept
+    // composants réenregistraient leur scope en enracinant la requête sur leur
+    // propre sous-arbre. Les sélecteurs du dock étaient listés, et ne
+    // correspondaient à rien.
+    //
+    // Ce scénario monte l'agencement réel — dock frère de la vue — avec les
+    // VRAIES feuilles de style, donc avec la règle qui masque la vue déployée
+    // en mode compact. C'est elle qui refermait le piège : replié, le dock
+    // n'offre aucune cible visible.
+    const r = await page.evaluate(async () => {
+        const nav = window.SpaceHub.core.spatialNavigation;
+
+        const shell = document.createElement('div');
+        shell.className = 'sh-app-shell';
+        shell.innerHTML = `
+          <div class="sh-island-nav-wrapper">
+            <nav class="sh-dynamic-island sh-island--compact" id="e2e-island">
+                <div class="sh-island-compact-view" role="button" tabindex="0"
+                     data-nav-focusable="true" aria-label="Ouvrir le menu">
+                    <span class="sh-island-label">SpaceHub</span>
+                    <div class="sh-island-clock-badge"><span>12</span><span>30</span></div>
+                </div>
+                <div class="sh-island-full-view">
+                    <div class="sh-nav-tabs">
+                        <button class="sh-nav-tab-btn" id="e2e-tab-1" tabindex="0" data-nav-focusable="true">Accueil</button>
+                        <button class="sh-nav-tab-btn" id="e2e-tab-2" tabindex="0" data-nav-focusable="true">Bibliothèques</button>
+                    </div>
+                </div>
+            </nav>
+          </div>
+            <div class="sh-dashboard">
+                <div class="sh-dashboard-body">
+                    <button id="e2e-hero" tabindex="0" data-nav-focusable="true"
+                            style="position:absolute;left:120px;top:400px;width:150px;height:48px;">Regarder</button>
+                </div>
+            </div>`;
+        document.body.appendChild(shell);
+        await new Promise(r => requestAnimationFrame(r));
+
+        const candidats = nav.getFocusables('dashboard');
+        const pastille = shell.querySelector('.sh-island-compact-view');
+        const pastilleCandidate = candidats.includes(pastille);
+
+        // Replié, les onglets sont réellement en visibility:hidden : ils ne
+        // doivent PAS être proposés, sinon le focus se pose sur l'invisible.
+        const ongletsMasques = !candidats.includes(shell.querySelector('#e2e-tab-1'));
+
+        // Monter depuis la vue doit entrer dans le dock.
+        nav.setFocus(shell.querySelector('#e2e-hero'), { silent: true, scroll: false });
+        nav._executeNavStep('up', false);
+        const apresMontee = nav._state.focusedElement;
+        const entreDansLeDock = Boolean(apresMontee?.closest('#e2e-island'));
+
+        // Une fois déployé, on doit pouvoir redescendre : un dock qui piège le
+        // focus est pire que pas de dock du tout.
+        shell.querySelector('#e2e-island').className = 'sh-dynamic-island sh-island--expanded';
+        // Le déploiement est une transition : les onglets montent de opacity 0
+        // à 1. Interroger la frame suivante les verrait encore invisibles — on
+        // laisse l'animation se terminer, comme le fait un utilisateur.
+        await new Promise(r => setTimeout(r, 700));
+        nav.setFocus(shell.querySelector('#e2e-tab-1'), { silent: true, scroll: false });
+        nav._executeNavStep('down', false);
+        const sortDuDock = !nav._state.focusedElement?.closest('#e2e-island');
+
+        // Et le focus d'arrivée ne doit jamais se poser sur la barre permanente.
+        nav._state.focusedElement = null;
+        nav.focusFirst('dashboard');
+        const departHorsDock = !nav._state.focusedElement?.closest('#e2e-island');
+
+        shell.remove();
+        return { pastilleCandidate, ongletsMasques, entreDansLeDock, sortDuDock, departHorsDock,
+            atteint: apresMontee?.className || apresMontee?.id || 'rien' };
+    });
+
+    const ok = r.pastilleCandidate && r.ongletsMasques && r.entreDansLeDock
+        && r.sortDuDock && r.departHorsDock;
+    return { ok, detail: `pastille proposée ${r.pastilleCandidate} · onglets repliés écartés ${r.ongletsMasques}`
+        + ` · monte vers « ${r.atteint} » · ressort ${r.sortDuDock} · départ hors dock ${r.departHorsDock}` };
+});
+
 await scenario('Aucune fuite d\'écouteurs après 30 cycles d\'ouverture/fermeture', async () => {
     const p = await nouvellePage(navigateur, () => {
         window.__n = 0;

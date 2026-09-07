@@ -194,6 +194,15 @@ export function gabaritLecteur(ctx) {
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
                         </button>
 
+                        <!-- Bande-annonce suivante. Visible uniquement quand le
+                             lecteur joue une bande-annonce ET qu'il en existe
+                             plusieurs : c'est le choix qu'offrait l'ancien menu
+                             flottant, rendu ici, pendant la lecture, là où on
+                             peut juger si celle-ci convient. -->
+                        <button class="sh-micro-btn" id="sh-btn-next-trailer" tabindex="0" data-nav-focusable="true" title="Bande-annonce suivante" style="display:none;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/><circle cx="12" cy="12" r="11" opacity="0.25"/></svg>
+                        </button>
+
                         <!-- Ancre Dépliante 1 : Épisodes (Séries) -->
                         <div class="sh-dock-popover-anchor" id="sh-anchor-episodes" style="display:none;">
                             <button tabindex="0" data-nav-focusable="true" class="sh-dock-pill-btn" id="sh-btn-open-episodes" title="Liste des épisodes">

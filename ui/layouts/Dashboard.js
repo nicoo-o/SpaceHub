@@ -61,19 +61,18 @@ class Dashboard {
      * }} [options]
      */
     constructor(options = {}) {
-        // Confirmation du scope dashboard dans le Focus Registry
-        const spatialNav = svc.nav() || svc.nav();
-        if (spatialNav?.registerFocusables) {
-            spatialNav.registerFocusables('dashboard', (container) => {
-                const root = container || document.querySelector('.sh-dashboard') || document;
-                // NB : ne JAMAIS lister le conteneur .sh-dashboard lui-même — un élément
-                // de la taille de la page entière fausse l'algorithme géométrique
-                // (il est "le plus proche" dans toutes les directions et capture le focus).
-                // Les boutons du hero sont couverts par [data-nav-focusable="true"] ;
-                // les identifiants réels sont sh-hero-btn-play / -trailer / -details.
-                return Array.from(root.querySelectorAll('.sh-hero-edge-btn, #sh-hero-btn-play, #sh-hero-btn-trailer, #sh-hero-btn-details, .sh-dynamic-island .sh-nav-tab-btn, .sh-dynamic-island .sh-nav-action-btn, .sh-card, .sh-jellyseerr-bento-card, .sh-jellyseerr-req-action-btn, [data-nav-focusable="true"]'));
-            }, { force: true }); // re-registration volontaire — cf. plan A04
-        }
+        // Le scope « dashboard » appartient au moteur (core/SpatialNavigation.js).
+        //
+        // Il était réenregistré ici avec { force: true }, en enracinant la
+        // requête sur `.sh-dashboard`. Cette racine EXCLUT le dock supérieur,
+        // qui est un frère de la vue et non un descendant : les sélecteurs
+        // `.sh-dynamic-island .sh-nav-tab-btn` étaient bien listés, et ne
+        // pouvaient correspondre à rien. Le menu du haut est resté
+        // inatteignable au clavier tant que cette réécriture a existé.
+        //
+        // Le scope du moteur couvre déjà tout ce que celui-ci listait, y
+        // compris #sh-hero-btn-trailer. Ne pas le réécrire : pour AJOUTER une
+        // source, utiliser extendFocusables(), qui compose au lieu d'écraser.
         this.containerId = options.containerId || 'sh-dashboard';
         this._settings   = options.settings || svc.settings() || null;
         this._eventBus   = options.eventBus || svc.eventBus() || null;

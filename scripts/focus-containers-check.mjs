@@ -97,5 +97,73 @@ if (fautifs.length) {
     process.exit(1);
 }
 
+// ─── Second contrat : le contexte passé aux gabarits ────────────────────────
+//
+// `{ ...this }` ne copie que les propriétés PROPRES : les MÉTHODES du
+// composant, portées par son prototype, disparaissent. Les gabarits extraits
+// appellent `ctx._escape(…)` — une méthode. Trois sites d'appel décomposaient
+// ainsi, et ouvrir une fiche média plantait sur « _escape is not a function ».
+//
+// `contexteGabarit(this, {…})` (core/utils/domUtils.js) fabrique un objet dont
+// le prototype EST l'instance : les méthodes restent résolubles.
+const decompositions = [];
+for (const f of ROOTS.flatMap(r => walk(r))) {
+    const rel = f.split(path.sep).join('/');
+    if (rel.endsWith('.template.js')) continue;
+    const src = fs.readFileSync(f, 'utf8');
+    for (const m of src.matchAll(/(gabarit\w*)\s*\(\s*\{\s*\.\.\.this\b/g)) {
+        decompositions.push({ rel, ligne: src.slice(0, m.index).split('\n').length, fn: m[1] });
+    }
+}
+
+if (decompositions.length) {
+    console.error(`Contexte des gabarits : ${decompositions.length} appel(s) qui décomposent \`this\`.\n`);
+    for (const d of decompositions) {
+        console.error(`  x ${d.rel}:${d.ligne} — ${d.fn}({ ...this, … })`);
+    }
+    console.error('\n`{ ...this }` ne copie pas les méthodes du prototype : le gabarit perdra');
+    console.error('`_escape` et plantera au premier appel. Utilisez contexteGabarit(this, { … }).');
+    process.exit(1);
+}
+
+// ─── Troisième contrat : qui a le droit de réécrire un scope de vue ─────────
+//
+// Le dock supérieur est un FRÈRE de la vue dans l'arbre, jamais un descendant.
+// Sept composants réenregistraient « leur » scope avec `{ force: true }` en
+// enracinant la requête sur leur propre sous-arbre — `.sh-dashboard`,
+// `.sh-library-view`, `.sh-downloads-view`. La racine excluait donc le dock :
+// ses sélecteurs étaient listés et ne correspondaient à rien, et le menu du
+// haut est resté inatteignable au clavier.
+//
+// Les scopes de VUE appartiennent au moteur, qui leur ajoute la barre
+// permanente. Un composant qui veut ajouter ses propres contrôles utilise
+// `extendFocusables`, qui compose. Les couches CONFINÉES (modale, réglages,
+// panneau latéral, lecteur, recherche) gardent le droit de réécrire : piéger
+// le focus est précisément leur rôle.
+const SCOPES_DE_VUE = ['dashboard', 'library', 'downloads', 'jellyseerr', 'dynamic-island'];
+const reecritures = [];
+for (const f of ROOTS.flatMap(r => walk(r))) {
+    const rel = f.split(path.sep).join('/');
+    if (rel === 'core/SpatialNavigation.js') continue; // le moteur les déclare
+    const src = fs.readFileSync(f, 'utf8');
+    for (const m of src.matchAll(/registerFocusables\s*\(\s*['"]([\w-]+)['"]/g)) {
+        if (!SCOPES_DE_VUE.includes(m[1])) continue;
+        reecritures.push({ rel, ligne: src.slice(0, m.index).split('\n').length, scope: m[1] });
+    }
+}
+
+if (reecritures.length) {
+    console.error(`Scopes de vue : ${reecritures.length} réécriture(s) hors du moteur.\n`);
+    for (const r of reecritures) {
+        console.error(`  x ${r.rel}:${r.ligne} — registerFocusables('${r.scope}', …)`);
+    }
+    console.error('\nRéécrire un scope de vue depuis un composant enracine la requête sur le');
+    console.error('sous-arbre de ce composant, ce qui fait disparaître le dock supérieur — il');
+    console.error('est un FRÈRE de la vue, pas un descendant. Utilisez extendFocusables().');
+    process.exit(1);
+}
+
 console.log(`Conteneurs focalisables : ${balises} balise(s) de conteneur vérifiée(s) sur ${CONTENEURS.length} classes déclarées.`);
 console.log('Aucun conteneur de défilement ne se déclare cible de focus.');
+console.log('Contexte des gabarits : aucun appel ne décompose `this`.');
+console.log('Scopes de vue : aucun composant ne réécrit un scope du moteur.');

@@ -96,8 +96,25 @@
 
     --sh-blur-chrome:            blur(20px) saturate(160%);
 
-    /* Anneau de focus TV/clavier — volontairement très contrasté */
-    --sh-focus-ring:             rgba(var(--sh-ink, 255, 255, 255), 0.95);
+    /* ── Anneau de focus TV/clavier ───────────────────────────
+       ORANGE, et non l'encre de l'interface.
+
+       L'anneau était tiré de `--sh-ink` : blanc sur fond sombre, noir sur fond
+       clair. Il se confondait donc avec tout le reste — texte, bordures,
+       reflets des affiches — et se lisait comme un simple gris. Un indicateur
+       de position doit être la SEULE chose de cette couleur à l'écran ; c'est
+       la règle que suivent les interfaces de télévision, où l'utilisateur est
+       à trois mètres et cherche « où je suis » d'un coup d'œil.
+
+       L'orange est déjà la teinte d'accentuation de l'application (flèches du
+       hero) et ne sert à rien d'autre. En thème clair il est assombri : le
+       #ff9f0a d'Apple sur blanc n'atteint pas 3:1, le seuil de lisibilité
+       d'un contour. */
+    --sh-focus-ring-rgb:         255, 159, 10;
+    --sh-focus-ring:             rgb(var(--sh-focus-ring-rgb));
+    --sh-focus-glow:             rgba(var(--sh-focus-ring-rgb), 0.38);
+    /* Épaisseur : le mode TV l'augmente (cf. core/TvModeManager.css). */
+    --sh-focus-ring-width:       3px;
 
     /* ─── Couleurs de base — Monochrome Apple TV ─────────────── */
     --sh-color-primary:          #ffffff;   /* Blanc pur (actions principales) */
@@ -116,6 +133,9 @@
 
     /* ─── Surfaces & fonds — OLED & Frosted Glass ───────────── */
     --sh-bg-base:                #000000;   /* Noir OLED absolu */
+    /* Même couleur, en composantes : le hero en a besoin pour construire un
+       dégradé qui se termine EXACTEMENT dans le fond de la page. */
+    --sh-bg-base-rgb:            0, 0, 0;
     --sh-bg-surface:             #111111;   /* Surface relevée */
     --sh-bg-surface-2:           #1a1a1a;   /* Nested surfaces */
     --sh-bg-surface-3:           #242424;   /* Hover states */
@@ -400,9 +420,9 @@ body::-webkit-scrollbar, #app::-webkit-scrollbar { display: none; width: 0; heig
        !important : plusieurs composants posent "outline: none !important"
        (boutons de widgets du Dashboard, console Jellyfin...) et neutralisaient
        sinon completement l'indicateur de focus. */
-    outline: 3px solid var(--sh-focus-ring, rgba(255, 255, 255, 0.95)) !important;
-    outline-offset: -3px !important;
-    box-shadow: 0 0 0 4px rgba(var(--sh-ink, 255, 255, 255), 0.22) !important;
+    outline: var(--sh-focus-ring-width, 3px) solid var(--sh-focus-ring, #ff9f0a) !important;
+    outline-offset: calc(-1 * var(--sh-focus-ring-width, 3px)) !important;
+    box-shadow: 0 0 0 4px var(--sh-focus-glow, rgba(255, 159, 10, 0.38)) !important;
 }
 
 /* Filet du filet : le focus qui arrive SANS passer par le moteur.
@@ -433,8 +453,8 @@ textarea:focus-visible:not(.sh-focus-active),
 [role="button"]:focus-visible:not(.sh-focus-active),
 [role="link"]:focus-visible:not(.sh-focus-active),
 .sh-card:focus-visible:not(.sh-focus-active) {
-    outline: 3px solid var(--sh-focus-ring, rgba(255, 255, 255, 0.95)) !important;
-    outline-offset: -3px !important;
+    outline: var(--sh-focus-ring-width, 3px) solid var(--sh-focus-ring, #ff9f0a) !important;
+    outline-offset: calc(-1 * var(--sh-focus-ring-width, 3px)) !important;
 }
 
 /* Les conteneurs de defilement ne montrent jamais d'anneau : ils ne sont
@@ -456,9 +476,9 @@ textarea:focus-visible:not(.sh-focus-active),
    Anneau interieur : jamais rogne par le overflow:hidden de .sh-card__image-wrap. */
 .sh-card.sh-focus-active .sh-card__image-wrap,
 .sh-hero-edge-btn.sh-focus-active {
-    outline: 3px solid var(--sh-on-media-solid, #ffffff) !important;
-    outline-offset: -3px !important;
-    box-shadow: 0 0 0 3px rgba(var(--sh-ink, 255, 255, 255), 0.35),
+    outline: var(--sh-focus-ring-width, 3px) solid var(--sh-focus-ring, #ff9f0a) !important;
+    outline-offset: calc(-1 * var(--sh-focus-ring-width, 3px)) !important;
+    box-shadow: 0 0 0 3px var(--sh-focus-glow, rgba(255, 159, 10, 0.38)),
                 0 28px 65px rgba(0, 0, 0, 0.55) !important;
 }
 

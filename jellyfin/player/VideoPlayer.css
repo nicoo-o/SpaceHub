@@ -1064,10 +1064,15 @@ body.sh-cinema-active .dialogBackdrop {
 .sh-next-ep-close-btn.sh-focus-active,
 .sh-pearl-play-btn.sh-focus-active,
 #sh-player-timeline-focus.sh-focus-active {
-    outline: 2px solid rgba(var(--sh-on-media, 255, 255, 255), 0.95) !important;
+    /* Orange, comme partout ailleurs : sur une image vidéo, un trait blanc se
+       perd dans les hautes lumières et un trait noir dans les ombres. L'orange
+       n'a ni l'un ni l'autre de ces défauts, et c'est la teinte qui signale la
+       position dans toute l'application. */
+    outline: 2px solid var(--sh-focus-ring, #ff9f0a) !important;
     outline-offset: 2px !important;
-    /* Halo doux : sur une image vidéo claire, un simple trait blanc disparaît. */
-    box-shadow: 0 0 0 5px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.45) !important;
+    /* Halo sombre par-dessous : détache l'anneau d'une image claire. */
+    box-shadow: 0 0 0 5px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.45),
+                0 0 18px var(--sh-focus-glow, rgba(255, 159, 10, 0.38)) !important;
     border-radius: inherit;
 }
 

@@ -57,6 +57,35 @@ export const FOCUSABLES = {
     generic:       '[data-nav-focusable="true"]',
 };
 
+/**
+ * Le « chrome » permanent : ce qui est affiché AU-DESSUS de toutes les vues.
+ *
+ * Le dock supérieur n'est pas une vue, c'est une barre. Dans l'arbre il est un
+ * FRÈRE de la vue courante (tous deux dans `.sh-app-shell`), jamais un
+ * descendant. Un fournisseur de scope qui enracine sa requête sur le
+ * sous-arbre de sa vue — `.sh-dashboard`, `.sh-library-view`… — ne peut donc
+ * PAS le voir, même s'il en liste les sélecteurs. C'est exactement ce qui
+ * rendait le menu inatteignable au clavier : les boutons étaient déclarés et
+ * ne correspondaient à rien.
+ *
+ * Ces sélecteurs sont donc TOUJOURS interrogés depuis le document, et ajoutés
+ * à chaque scope de vue (cf. `_focusablesDuChrome` dans SpatialNavigation).
+ *
+ * `.sh-island-compact-view` en fait partie et c'est délibéré : replié, le dock
+ * met sa vue déployée en `visibility: hidden`, donc ses onglets sont écartés
+ * comme invisibles. Sans point d'entrée toujours visible, il faudrait que le
+ * dock soit déjà déployé pour être atteint, et déjà atteint pour se déployer.
+ * La pastille compacte rompt ce cercle : la focaliser déploie le dock.
+ */
+export const CHROME_PERSISTANT = [
+    '.sh-dynamic-island .sh-island-compact-view',
+    '.sh-dynamic-island .sh-nav-tab-btn',
+    '.sh-dynamic-island .sh-nav-action-btn',
+    '.sh-dynamic-island #sh-user-menu-btn',
+    '.sh-dynamic-island .sh-user-avatar-btn',
+    '.sh-user-dropdown.open .sh-user-dropdown__item',
+].join(', ');
+
 /** Conteneurs à défilement horizontal réellement générés par l'application. */
 export const CAROUSELS = [
     '.sh-card-grid',
@@ -77,4 +106,4 @@ export const SCROLL_CONTAINERS = [
 /** Classes posées par le moteur sur l'élément focalisé. */
 export const FOCUS_CLASSES = ['sh-focus-active', 'sh-tv-focused'];
 
-export default { LAYERS, BACK_ORDER, FOCUSABLES, CAROUSELS, SCROLL_CONTAINERS, FOCUS_CLASSES };
+export default { LAYERS, BACK_ORDER, FOCUSABLES, CHROME_PERSISTANT, CAROUSELS, SCROLL_CONTAINERS, FOCUS_CLASSES };

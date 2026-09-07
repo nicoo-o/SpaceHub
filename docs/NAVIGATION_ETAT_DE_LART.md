@@ -459,6 +459,79 @@ comparables aux 54 ms, les **comptages d'appels** le sont.
 
 ---
 
+## Septième écart, découvert en usage réel : la guerre des scopes
+
+Les six écarts ci-dessus ont été trouvés en comparant SpaceHub aux systèmes
+professionnels. Le septième ne s'est vu qu'en s'asseyant devant l'application :
+le dock supérieur n'était atteignable au clavier dans **aucune** vue.
+
+La cause n'était pas dans l'algorithme. Elle était dans la façon dont les
+scopes étaient déclarés.
+
+### Ce qui se passait
+
+Le moteur déclare dix scopes. Sept composants les **réécrivaient** ensuite avec
+`registerFocusables(..., { force: true })`, chacun en enracinant sa requête sur
+son propre sous-arbre :
+
+```js
+// ui/layouts/Dashboard.js — la version fautive
+const root = container || document.querySelector('.sh-dashboard') || document;
+return Array.from(root.querySelectorAll(
+    '…, .sh-dynamic-island .sh-nav-tab-btn, …'));
+```
+
+Le sélecteur du dock est là, bien visible. Il ne peut pourtant correspondre à
+rien : dans l'arbre, le dock est un **frère** de la vue — tous deux enfants de
+`.sh-app-shell` — jamais un descendant. Une requête enracinée sur
+`.sh-dashboard` ne le verra jamais.
+
+C'est le pire genre de défaut : le code *dit* la bonne chose, et ne la fait pas.
+Aucune relecture de sélecteur ne le trouve, parce que le sélecteur est juste.
+
+Trois autres défauts du même nid, trouvés en tirant le fil :
+
+- **`_detectCurrentScope()` renvoyait `dynamic-island`** dès que le focus s'y
+  trouvait. Ce scope ne contient que le dock : une fois dedans, descendre ne
+  trouvait rien. Le dock était un piège — et deux des sept réécritures
+  existaient précisément pour ruser avec ce piège ;
+- **`focusFirst` était défini deux fois** dans la même classe. La seconde
+  écrasait silencieusement la première : toute correction portée sur celle du
+  haut n'avait aucun effet ;
+- **`extendFocusables` empilait des fermetures.** Appelée depuis une méthode de
+  rendu — ce que faisait `DownloadsView` à chaque affichage — la chaîne
+  s'allongeait sans fin.
+
+### Ce qui a été fait
+
+- `CHROME_PERSISTANT` (core/DomContracts.js) nomme la barre permanente, et le
+  moteur l'ajoute à **chaque scope de vue**, toujours interrogée depuis le
+  document. Les couches confinées (modale, réglages, lecteur, panneau latéral,
+  recherche) ne la reçoivent pas : piéger le focus est leur rôle ;
+- les scopes de vue appartiennent au moteur. Les composants **composent** avec
+  `extendFocusables`, désormais idempotent (sources rangées par nom) ;
+- `_detectCurrentScope()` ne renvoie plus `dynamic-island` : le dock appartient
+  au plan de la vue affichée. Monter y entre, descendre en sort ;
+- un seul `focusFirst`, qui **écarte la barre permanente** du focus d'arrivée —
+  le dock précède la vue dans l'ordre du DOM, il l'aurait sinon capté au
+  démarrage ;
+- la pastille compacte du dock est devenue son point d'entrée clavier. Replié,
+  le dock met ses onglets en `visibility: hidden` : il fallait donc qu'il soit
+  déjà déployé pour être atteint, et déjà atteint pour se déployer. La pastille,
+  toujours visible, rompt ce cercle — la focaliser déploie le dock.
+
+### Ce qui empêche le retour du défaut
+
+- `scripts/focus-containers-check.mjs`, troisième contrat : aucun composant hors
+  du moteur ne peut réécrire un scope de vue. Vérifié : le contrôle sort en
+  erreur, en nommant fichier et ligne ;
+- `tests/NavigationDockEtHero.test.js` : dix tests sur le moteur, dont
+  « le dock est atteignable depuis TOUTES les vues » ;
+- `scripts/e2e.mjs`, scénario « Le dock supérieur s'atteint au clavier depuis la
+  vue » : agencement réel — dock frère de la vue — dans un vrai navigateur, avec
+  les vraies feuilles de style. C'est lui qui a montré que le dock replié
+  n'offre aucune cible visible ; le harnais jsdom, lui, ne le voyait pas.
+
 ## Ce que je ne recommande pas de faire
 
 **Passer à un arbre de focus déclaratif complet.** C'est le modèle de Netflix et

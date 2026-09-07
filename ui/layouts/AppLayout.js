@@ -15,7 +15,6 @@ import AppSidebarDrawer from '../components/AppSidebarDrawer.js';
 import AnalyticsModal from '../components/AnalyticsModal.js';
 import AdminDashboardView from '../views/AdminDashboardView.js';
 import SpatialNavigation  from '../../core/SpatialNavigation.js';
-import { FOCUSABLES } from '../../core/DomContracts.js';
 
 import './AppLayout.css';
 import * as svc from '../../core/services.js';
@@ -38,21 +37,18 @@ class AppLayout {
         this._injectStyles();
 
         this._spatialNav = svc.nav() || svc.nav();
-        if (this._spatialNav?.registerFocusables) {
-            this._spatialNav.registerFocusables('dynamic-island', () => {
-
-                const island = document.querySelector('.sh-dynamic-island, #sh-dynamic-island');
-                if (!island) return [];
-                // Le scope "dock" ne doit pas être un piège : on renvoie les éléments
-                // du dock PUIS ceux de la vue, pour qu'une descente puisse en sortir.
-                const inIsland = Array.from(island.querySelectorAll(FOCUSABLES.dynamicIsland));
-                const dropdown = Array.from(document.querySelectorAll('.sh-user-dropdown.open .sh-user-dropdown__item'));
-                const viewRoot = document.querySelector('.sh-dashboard, .sh-library-view, #app') || document;
-                const inView = Array.from(viewRoot.querySelectorAll('[data-nav-focusable="true"]'))
-                    .filter(el => !island.contains(el));
-                return [...inIsland, ...dropdown, ...inView];
-            }, { force: true }); // re-registration volontaire — cf. plan A04
-        }
+        // Le dock n'a plus de scope à lui.
+        //
+        // Il en avait un, réenregistré ici, qui renvoyait « le dock PUIS la
+        // vue » pour ne pas piéger le focus. C'était soigner le symptôme : le
+        // dock est une barre permanente, pas une couche, et le traiter comme
+        // une couche à part obligeait chaque descente à ruser pour en sortir.
+        //
+        // Il fait désormais partie du plan de la vue affichée : le moteur
+        // ajoute CHROME_PERSISTANT à chaque scope de vue
+        // (`_focusablesDuChrome`), et `_detectCurrentScope()` ne bascule plus
+        // sur « dynamic-island ». Monter y entre, descendre en sort, sans cas
+        // particulier.
 
         // Asservissement de la sliding pill au focus
 
@@ -103,7 +99,13 @@ class AppLayout {
                     <nav class="sh-dynamic-island sh-island--compact" id="sh-dynamic-island">
                         <!-- Phase 1 : Mode Compact Island (Logo + Point Blanc Pur + Horloge Live 12•30) -->
 
-                        <div class="sh-island-compact-view">
+                        <!-- Point d'entrée clavier du dock. Replié, la vue déployée
+                             est en visibility:hidden, donc ses onglets sont écartés
+                             comme invisibles : sans cette pastille — toujours
+                             visible — il faudrait que le dock soit déjà déployé pour
+                             être atteint, et déjà atteint pour se déployer. -->
+                        <div class="sh-island-compact-view" role="button" tabindex="0"
+                             data-nav-focusable="true" aria-label="Ouvrir le menu principal">
                             <div class="sh-luminous-dot" title="SpaceHub Live Hub Active">
                                 <div class="sh-dot-core"></div>
                             </div>
@@ -282,6 +284,18 @@ class AppLayout {
             const inIsland = Boolean(evt?.current?.closest?.('.sh-dynamic-island, #sh-dynamic-island'));
             if (inIsland && island?.classList.contains('sh-island--compact')) {
                 setIslandState('expanded');
+
+                // La pastille est un point d'entrée, pas une destination : une
+                // fois le dock déployé elle passe en visibility:hidden, et
+                // laisser le focus dessus le laisserait sur un élément
+                // invisible. On le pousse sur le premier onglet, qui vient
+                // justement de devenir visible.
+                if (evt.current.classList.contains('sh-island-compact-view')) {
+                    requestAnimationFrame(() => {
+                        const premier = island.querySelector('.sh-nav-tab-btn');
+                        if (premier) this._spatialNav?.setFocus?.(premier, { reason: 'dock-entree' });
+                    });
+                }
             } else if (!inIsland && island?.classList.contains('sh-island--expanded')
                        && !island.classList.contains('sh-island--search')) {
                 setIslandState('compact');

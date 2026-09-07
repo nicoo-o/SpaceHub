@@ -7,8 +7,16 @@
  *    sinon recherche par titre — affichée dans une fenêtre dédiée au design
  *    SpaceHub (barre de titre, glassmorphism, fermeture TV/Échap).
  *
- * Usage : TrailerService.open({ Id, Name }) — menu si plusieurs sources,
- * ouverture directe si une seule.
+ * Usage : TrailerService.open({ Id, Name }) — la première source part
+ * IMMÉDIATEMENT ; s'il y en a d'autres, un bouton « Suivante » les enchaîne
+ * depuis le lecteur.
+ *
+ * Il y avait auparavant un menu de choix flottant. Deux défauts, signalés en
+ * usage réel : il imposait un clic pour rien dans l'immense majorité des cas
+ * (on veut voir la bande-annonce, pas choisir laquelle), et il était positionné
+ * en coordonnées de page à partir d'un rectangle de VIEWPORT — il partait donc
+ * à la dérive dès qu'on touchait à la molette. Choisir se fait maintenant
+ * pendant la lecture, là où on peut juger.
  */
 
 'use strict';
@@ -23,7 +31,9 @@ class TrailerService {
     constructor() {
         this._log = new Logger('TrailerService');
         this._window = null;
-        this._menuEl = null;
+        /** Toutes les sources du média en cours, et celle qui joue. */
+        this._sources = [];
+        this._sourceIndex = 0;
         this._injectStyles();
         this._onKeydown = (e) => {
             if (e.key === 'Escape') this.close();
@@ -162,11 +172,12 @@ class TrailerService {
     }
 
     /**
-     * Point d'entrée unique : menu si plusieurs sources, ouverture directe sinon.
+     * Point d'entrée unique : la première source part tout de suite.
      * @param {Object} item — { Id, Name, RemoteTrailers? }
-     * @param {HTMLElement} [anchorEl] — ancre d'affichage du menu (optionnel)
+     * @param {HTMLElement} [_anchorEl] — conservé pour les appelants existants,
+     *   sans effet depuis la suppression du menu de choix.
      */
-    async open(item, anchorEl = null) {
+    async open(item, _anchorEl = null) {
         const toaster = svc.toaster();
         if (!item?.Id) {
             toaster?.error?.('Média inconnu — impossible de charger la bande-annonce.');
@@ -195,11 +206,11 @@ class TrailerService {
                 toaster?.info?.('Aucune bande-annonce disponible pour ce titre.');
                 return;
             }
-            if (sources.length === 1) {
-                this._launch(sources[0]);
-                return;
-            }
-            this._openMenu(sources, anchorEl);
+            // Les sources sont retenues pour le bouton « Suivante » : c'est le
+            // même choix qu'offrait le menu, rendu au moment où il a un sens.
+            this._sources = sources;
+            this._sourceIndex = 0;
+            this._launch(sources[0]);
         })().finally(() => {
             this._openingId = null;
             this._openingPromise = null;
@@ -207,52 +218,31 @@ class TrailerService {
         return this._openingPromise;
     }
 
-    /** Menu personnalisé SpaceHub listant les sources disponibles. */
-    _openMenu(sources, anchorEl) {
-        this.closeMenu();
-        const menu = document.createElement('div');
-        menu.className = 'sh-trailer-menu';
-        menu.innerHTML = `
-            <div class="sh-trailer-menu__title">🎬 Bandes-annonces</div>
-            ${sources.map((s, i) => `
-                <button class="sh-trailer-menu__item" data-index="${i}" tabindex="0" data-nav-focusable="true">
-                    <span class="sh-trailer-menu__icon">${s.type === 'local' ? '📺' : '▶'}</span>
-                    <span>${escapeHtml(s.label)}</span>
-                </button>
-            `).join('')}
-        `;
-        document.body.appendChild(menu);
-        this._menuEl = menu;
-
-        if (anchorEl && anchorEl.getBoundingClientRect) {
-            const r = anchorEl.getBoundingClientRect();
-            menu.style.top = `${Math.max(12, r.top - 8)}px`;
-            menu.style.left = `${Math.min(window.innerWidth - 240, Math.max(12, r.left))}px`;
-        } else {
-            menu.style.top = '30%';
-            menu.style.left = '50%';
-            menu.style.transform = 'translateX(-50%)';
-        }
-
-        menu.querySelectorAll('.sh-trailer-menu__item').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const source = sources[Number(btn.dataset.index)];
-                this.closeMenu();
-                this._launch(source);
-            });
-        });
-        setTimeout(() => {
-            document.addEventListener('click', this._onDocClick = (e) => {
-                if (this._menuEl && !this._menuEl.contains(e.target)) this.closeMenu();
-            }, { once: true });
-        }, 0);
+    /**
+     * Passe à la bande-annonce suivante, en boucle.
+     * Le lecteur local et la fenêtre YouTube y mènent tous deux : c'est
+     * `_launch` qui sait laquelle des deux ouvrir pour la source choisie.
+     */
+    suivante() {
+        if (!this._sources || this._sources.length < 2) return false;
+        this._sourceIndex = (this._sourceIndex + 1) % this._sources.length;
+        this._launch(this._sources[this._sourceIndex]);
+        return true;
     }
 
-    closeMenu() {
-        this._menuEl?.remove();
-        this._menuEl = null;
-    }
+    /** Nombre de sources disponibles pour le média en cours. */
+    get nombreDeSources() { return this._sources?.length || 0; }
 
+    /**
+     * Ouvre une source, dans le bon lecteur.
+     *
+     * Deux lecteurs coexistent et ils ne se connaissent pas : une
+     * bande-annonce LOCALE passe par le lecteur Jellyfin (flux authentifié,
+     * pleine qualité), une source YouTube par la fenêtre dédiée. Enchaîner de
+     * l'une à l'autre demande donc de FERMER l'autre — sans quoi la première
+     * continue de jouer derrière la seconde, et l'on entend deux bandes-annonces
+     * à la fois.
+     */
     _launch(source) {
         if (source.type === 'local' && source.trailerItem) {
             const player = svc.player();
@@ -260,9 +250,13 @@ class TrailerService {
                 svc.toaster()?.error?.('Lecteur indisponible.');
                 return;
             }
-            this.close();
+            this.close({ immediat: true });     // ferme la fenêtre YouTube
             player.play(source.trailerItem, 0, { isTrailer: true });
         } else {
+            // Si le lecteur Jellyfin jouait la bande-annonce précédente, il doit
+            // se taire avant que l'iframe ne démarre.
+            const player = svc.player();
+            if (player?._playbackOptions?.isTrailer) player.close?.();
             this.openYoutubeWindow(source);
         }
     }
@@ -273,11 +267,19 @@ class TrailerService {
      * @param {string} [title]
      */
     openYoutubeWindow(source, title = this._currentMediaTitle || 'Bande-annonce') {
-        this.close();
+        // Fermeture IMMÉDIATE, sans animation de sortie : on remplace la
+        // fenêtre, on ne la referme pas. La sortie animée laissait l'ancienne
+        // 220 ms de plus dans le DOM, donc deux `.sh-trailer-window` en même
+        // temps — et tout ce qui fait `querySelector('.sh-trailer-window')`
+        // (la garde de `close`, le focus initial) tombait sur la périmée.
+        this.close({ immediat: true });
         const label = source?.label || 'Bande-annonce YouTube';
         const safeTitle = String(title).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         const videoId = source?.videoId || null;
         const search = source?.searchTitle ? encodeURIComponent(source.searchTitle + ' official trailer') : null;
+        // Le bouton n'apparaît que s'il y a réellement quelque chose après :
+        // un « Suivante » qui rejoue la même chose est pire que pas de bouton.
+        const plusieurs = this.nombreDeSources > 1;
 
         const win = document.createElement('div');
         win.className = 'sh-trailer-window';
@@ -286,6 +288,11 @@ class TrailerService {
                 <div class="sh-trailer-window__bar">
                     <span class="sh-trailer-window__badge">🎬 ${escapeHtml(label)}</span>
                     <span class="sh-trailer-window__title">${safeTitle}</span>
+                    ${plusieurs ? `<button class="sh-trailer-window__next" tabindex="0" data-nav-focusable="true"
+                        aria-label="Bande-annonce suivante">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 4 15 12 5 20 5 4"/><rect x="17" y="4" width="2.5" height="16" rx="1"/></svg>
+                        <span>Suivante <span class="sh-trailer-window__rang">${this._sourceIndex + 1}/${this._sources.length}</span></span>
+                    </button>` : ''}
                     <button class="sh-trailer-window__close" aria-label="Fermer la bande-annonce" tabindex="0" data-nav-focusable="true">✕</button>
                 </div>
                 <div class="sh-trailer-window__stage">
@@ -305,6 +312,10 @@ class TrailerService {
         requestAnimationFrame(() => win.classList.add('sh-trailer-window--open'));
 
         win.querySelector('.sh-trailer-window__close').addEventListener('click', () => this.close());
+        win.querySelector('.sh-trailer-window__next')?.addEventListener('click', (e) => {
+            e.stopPropagation();   // sinon le clic remonte au fond et referme
+            this.suivante();
+        });
         win.addEventListener('click', (e) => {
             if (e.target === win) this.close();
         });
@@ -320,8 +331,13 @@ class TrailerService {
         void spatialNav;
     }
 
-    /** Ferme la fenêtre lecteur et restaure l'état. */
-    close() {
+    /**
+     * Ferme la fenêtre lecteur et restaure l'état.
+     * @param {{ immediat?: boolean }} [options] `immediat` retire le nœud tout
+     *   de suite, sans attendre l'animation de sortie — c'est ce qu'il faut
+     *   quand une autre fenêtre prend sa place dans la foulée.
+     */
+    close({ immediat = false } = {}) {
         if (!this._window) return;
         const win = this._window;
         this._window = null;
@@ -331,7 +347,8 @@ class TrailerService {
         win.classList.remove('sh-trailer-window--open');
         const iframe = win.querySelector('iframe');
         if (iframe) iframe.src = 'about:blank';
-        setTimeout(() => win.remove(), 220);
+        if (immediat) win.remove();
+        else setTimeout(() => win.remove(), 220);
     }
 }
 

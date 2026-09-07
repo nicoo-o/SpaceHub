@@ -41,6 +41,7 @@ const PRESETS = [
 
             // Fonds opaques : seuls ceux-ci sont écrits en dur dans tokens.css
             '--sh-bg-base':             '#f4f4f5',
+            '--sh-bg-base-rgb':         '244, 244, 245',
             '--sh-bg-surface':          '#ffffff',
             '--sh-bg-surface-2':        '#ececee',
             '--sh-bg-surface-3':        '#e0e0e3',
@@ -57,8 +58,12 @@ const PRESETS = [
             '--sh-color-primary-active':'#3a3a3d',
             '--sh-color-primary-rgb':   '17, 17, 19',
 
-            // Anneau de focus : doit rester très contrasté sur fond clair
-            '--sh-focus-ring':          'rgba(0, 0, 0, 0.85)',
+            // Anneau de focus : orange assombri. Le #ff9f0a d'Apple n'atteint
+            // pas 3:1 sur blanc — sous ce seuil, un contour cesse d'être lisible
+            // pour une bonne partie des gens. La teinte reste franchement orange.
+            '--sh-focus-ring-rgb':      '198, 92, 0',
+            '--sh-focus-ring':          'rgb(198, 92, 0)',
+            '--sh-focus-glow':          'rgba(198, 92, 0, 0.30)',
             // Ombres adoucies : le noir pur cerne les cartes d'un halo sale sur fond clair.
             '--sh-shadow-rgb': '116, 116, 132',
 

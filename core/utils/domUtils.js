@@ -83,3 +83,27 @@ export function waitForElement(selector, timeout = 10000, root = document.body) 
         }, timeout);
     });
 }
+
+/**
+ * Contexte à passer à un module de gabarit (`*.template.js`).
+ *
+ * POURQUOI CETTE FONCTION EXISTE. Les gabarits extraits appellent
+ * `ctx._escape(…)` — une MÉTHODE du composant, donc portée par son prototype.
+ * Les sites d'appel passaient `{ ...this, …locales }`, et la décomposition ne
+ * copie que les propriétés PROPRES et énumérables : `_escape` disparaissait,
+ * et l'ouverture d'une fiche média plantait sur
+ * « TypeError: _escape is not a function ».
+ *
+ * `Object.create(instance)` fabrique au contraire un objet dont le PROTOTYPE
+ * est l'instance : toutes ses méthodes restent résolubles, et les valeurs
+ * locales viennent par-dessus en propriétés propres. Le gabarit voit
+ * exactement ce qu'il verrait avec `this`, plus ce qu'on lui ajoute.
+ *
+ * @param {Object} instance  le composant appelant (`this`)
+ * @param {Object} [locales] valeurs calculées dans la méthode appelante
+ */
+export function contexteGabarit(instance, locales = null) {
+    const ctx = Object.create(instance);
+    if (locales) Object.assign(ctx, locales);
+    return ctx;
+}

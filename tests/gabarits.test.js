@@ -23,7 +23,15 @@ import { gabaritFeuille } from '../ui/components/ModalSlideUpSheet.template.js';
 import { gabaritConsoleModules } from '../ui/views/JellyfinConsoleModal.template.js';
 
 describe('Gabarits extraits — le HTML n\'a pas bougé d\'un octet', () => {
-    it('VideoPlayer.template.js', () => {
+    it('VideoPlayer.template.js — identique, au bouton « suivante » près', () => {
+        // Une seule divergence voulue depuis l'empreinte : le bouton
+        // « bande-annonce suivante », ajouté au dock en remplacement du menu de
+        // choix flottant que TrailerService affichait avant la lecture.
+        //
+        // La référence n'est PAS régénérée : régénérer une empreinte à chaque
+        // changement revient à ne plus rien prouver. On applique la même
+        // insertion à la référence, puis on exige l'égalité stricte — toute
+        // AUTRE différence tombe.
         const attendu = reference['jellyfin/player/VideoPlayer.js'];
         const html = gabaritLecteur(avecNeutres({
             _escape: echapper, _volume: 0.8, _playbackRate: 1.25,
@@ -31,7 +39,28 @@ describe('Gabarits extraits — le HTML n\'a pas bougé d\'un octet', () => {
             title: 'Le <Titre> & "Cie"', isEpisode: true, seriesName: 'Ma <Serie> & Co',
             episodeNumber: 'S02E07', episodeTitle: "L'<Episode> & suite", year: 2019,
         }, attendu.variablesLibres));
-        expect(html).toBe(attendu.html);
+
+        const ANCRE = '<!-- Ancre Dépliante 1 : Épisodes (Séries) -->';
+        expect(attendu.html, 'l\'ancre d\'insertion doit exister dans la référence')
+            .toContain(ANCRE);
+
+        // On extrait du HTML produit le bloc réellement inséré, entre le bouton
+        // « épisode suivant » et l'ancre — plutôt que de le recopier ici, où il
+        // se périmerait à la première retouche de l'icône.
+        const MARQUE = '<!-- Bande-annonce suivante.';
+        const debut = html.indexOf(MARQUE);
+        const fin = html.indexOf(ANCRE);
+        expect(debut, 'le bouton « bande-annonce suivante » doit être présent').toBeGreaterThan(0);
+        expect(html).toContain('id="sh-btn-next-trailer"');
+        expect(fin).toBeGreaterThan(debut);
+        const insere = html.slice(debut, fin);
+
+        // Ce que l'insertion doit garantir, et que l'égalité seule ne dirait pas.
+        expect(insere).toContain('style="display:none;"');        // caché par défaut
+        expect(insere).toContain('data-nav-focusable="true"');    // atteignable à la télécommande
+
+        const corrigee = attendu.html.replace(ANCRE, insere + ANCRE);
+        expect(html).toBe(corrigee);
     });
 
     it('LibraryView.template.js', () => {

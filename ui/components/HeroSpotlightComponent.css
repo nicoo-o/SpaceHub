@@ -4,9 +4,29 @@
 .sh-hero-gradient-overlay {
         position: absolute;
         inset: 0;
-        background: 
-            linear-gradient(to right, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.7) 35%, transparent 65%),
-            linear-gradient(to top, #000000 0%, #000000 12%, rgba(0,0,0,0.85) 30%, transparent 75%);
+        /* Deux voiles, et ils ne servent PAS à la même chose.
+
+           Le premier, latéral, rend le texte lisible par-dessus l'affiche. Sa
+           couleur est celle de l'ENCRE INVERSÉE — sombre en thème sombre, claire
+           en thème clair — parce que le texte du hero suit désormais le thème
+           comme le reste de l'interface. Un voile noir sous du texte noir, c'est
+           précisément ce qui rendait le hero illisible en mode clair.
+
+           Le second, vertical, raccorde le hero à la page. Il finissait en
+           #000000 codé en dur : en thème clair, une bande noire venait donc
+           buter contre un fond gris très clair, et la couture se voyait d'un
+           bout à l'autre de l'écran. Il se termine maintenant dans la couleur
+           réelle du fond, quelle qu'elle soit. */
+        background:
+            linear-gradient(to right,
+                rgba(var(--sh-ink-inv, 0, 0, 0), 0.96) 0%,
+                rgba(var(--sh-ink-inv, 0, 0, 0), 0.70) 35%,
+                transparent 65%),
+            linear-gradient(to top,
+                rgb(var(--sh-bg-base-rgb, 0, 0, 0)) 0%,
+                rgb(var(--sh-bg-base-rgb, 0, 0, 0)) 12%,
+                rgba(var(--sh-bg-base-rgb, 0, 0, 0), 0.85) 30%,
+                transparent 75%);
         z-index: 6; pointer-events: none !important; }
 .sh-hero-content { position: relative; z-index: 10; height: 100%; max-width: 1600px; margin: 0 auto; padding: 0 54px; display: flex; align-items: flex-end; padding-bottom: 84px; pointer-events: none !important; }
 .sh-hero-info { max-width: 700px; pointer-events: auto !important; }
@@ -14,11 +34,11 @@
 
 
 
-.sh-hero-series-tag { display: inline-flex; color: rgba(var(--sh-on-media, 255, 255, 255), 0.7); font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; background: rgba(var(--sh-on-media, 255, 255, 255), 0.1); padding: 4px 12px; border-radius: 4px; margin-bottom: 12px; }
+.sh-hero-series-tag { display: inline-flex; color: rgba(var(--sh-ink, 255, 255, 255), 0.7); font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; background: rgba(var(--sh-ink, 255, 255, 255), 0.1); padding: 4px 12px; border-radius: 4px; margin-bottom: 12px; }
 .sh-hero-title {
     font-size: clamp(32px, 4.4vw, 54px);
     font-weight: 900;
-    color: var(--sh-on-media-solid, #ffffff);
+    color: var(--sh-ink-solid, #ffffff);
     margin: 0 0 16px 0;
     line-height: 1.15;
     display: -webkit-box;
@@ -31,15 +51,15 @@
 .sh-kt-word { display: inline-block; white-space: nowrap; margin-right: 0.2em; }
 .sh-kt-char { display: inline-block; animation: sh-kt-in 400ms var(--sh-ease-spring) forwards; opacity: 0; transform: translateY(20px); }
 @keyframes sh-kt-in { to { opacity: 1; transform: translateY(0); } }
-.sh-hero-meta { display: flex; gap: 12px; color: var(--sh-on-media-solid, #ffffff); margin-bottom: 20px; }
+.sh-hero-meta { display: flex; gap: 12px; color: var(--sh-ink-solid, #ffffff); margin-bottom: 20px; }
 .sh-hero-badge {
-    background: rgba(var(--sh-on-media, 255, 255, 255),  0.15);
-    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.12);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.15);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 12px;
     font-weight: 700;
-    color: var(--sh-on-media-solid, #ffffff);
+    color: var(--sh-ink-solid, #ffffff);
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -53,11 +73,11 @@
     gap: 6px !important;
     padding: 4px 8px !important;
     border-radius: 4px !important;
-    background: rgba(var(--sh-on-media, 255, 255, 255),  0.15) !important;
-    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.14) !important;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.15) !important;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14) !important;
     font-weight: 700 !important;
     font-size: 12px !important;
-    color: var(--sh-on-media-solid, #ffffff) !important;
+    color: var(--sh-ink-solid, #ffffff) !important;
     user-select: none !important;
     transform: translateZ(0);
     transition: transform var(--sh-dur-3) var(--sh-ease-spring),
@@ -68,7 +88,7 @@
 
 .sh-hero-badge--rt:hover {
     transform: scale(1.18) translateY(-2px) translateZ(0) !important;
-    background: rgba(var(--sh-on-media, 255, 255, 255),  0.22) !important;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.22) !important;
     border-color: rgba(250, 50, 10, 0.85) !important;
     box-shadow: 0 0 18px rgba(250, 50, 10, 0.85), 0 4px 12px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5) !important;
     z-index: 50 !important;
@@ -85,7 +105,7 @@
 
 .sh-hero-badge--imdb:hover {
     transform: scale(1.18) translateY(-2px) translateZ(0) !important;
-    background: rgba(var(--sh-on-media, 255, 255, 255),  0.22) !important;
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.22) !important;
     border-color: rgba(245, 197, 24, 0.85) !important;
     box-shadow: 0 0 18px rgba(245, 197, 24, 0.85), 0 4px 12px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5) !important;
     z-index: 50 !important;
@@ -99,12 +119,12 @@
     transform: scale(1.25) rotate(14deg);
     filter: drop-shadow(0 0 6px #f5c518) !important;
 }
-.sh-hero-overview { color: rgba(var(--sh-on-media, 255, 255, 255), 0.8); line-height: 1.6; margin-bottom: 30px; }
+.sh-hero-overview { color: rgba(var(--sh-ink, 255, 255, 255), 0.8); line-height: 1.6; margin-bottom: 30px; }
 .sh-hero-actions { display: flex; gap: 16px; }
-.sh-hero-btn-play { display: inline-flex; align-items: center; gap: 10px; background: var(--sh-on-media-solid, #ffffff); color: var(--sh-on-media-solid-inv, #000000); border: none; padding: 12px 30px; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; transition: transform 180ms ease; }
+.sh-hero-btn-play { display: inline-flex; align-items: center; gap: 10px; background: var(--sh-ink-solid, #ffffff); color: var(--sh-ink-solid-inv, #000000); border: none; padding: 12px 30px; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; transition: transform 180ms ease; }
 .sh-hero-btn-play:hover { transform: scale(1.03); }
-.sh-hero-btn-glass { display: inline-flex; align-items: center; gap: 8px; background: rgba(var(--sh-on-media, 255, 255, 255), 0.1); color: var(--sh-on-media-solid, #ffffff); border: 1px solid rgba(var(--sh-on-media, 255, 255, 255), 0.2); padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 180ms ease, transform 180ms ease; }
-.sh-hero-btn-glass:hover { background: rgba(var(--sh-on-media, 255, 255, 255), 0.18); transform: scale(1.02); }
+.sh-hero-btn-glass { display: inline-flex; align-items: center; gap: 8px; background: rgba(var(--sh-ink, 255, 255, 255), 0.1); color: var(--sh-ink-solid, #ffffff); border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.2); padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 180ms ease, transform 180ms ease; }
+.sh-hero-btn-glass:hover { background: rgba(var(--sh-ink, 255, 255, 255), 0.18); transform: scale(1.02); }
 .sh-hero-edge-btn {
     position: absolute;
     top: 50%;
@@ -113,9 +133,9 @@
     width: 46px;
     height: 46px;
     border-radius: 50%;
-    background: rgba(var(--sh-on-media-inv, 12, 12, 18),  0.65);
-    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.16);
-    color: rgba(var(--sh-on-media, 255, 255, 255),  0.85);
+    background: rgba(var(--sh-ink-inv, 12, 12, 18),  0.65);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
     cursor: pointer;
     display: inline-flex !important;
     align-items: center !important;
@@ -126,7 +146,12 @@
        donc la fleche n'etait jamais focalisable — or elle ne devenait visible
        qu'une fois focalisee. Cercle vicieux. */
     opacity: 0.001;
-    pointer-events: auto;
+    /* Inerte tant qu'elle est invisible : une flèche qu'on ne voit pas ne doit
+       pas intercepter les clics destinés à l'affiche. Les états `--visible` et
+       `.sh-focus-active` la réactivent. (Il y avait ici deux déclarations
+       contradictoires à la suite, `auto` puis `none` — seule la seconde
+       s'appliquait ; l'intention est celle-là, elle est maintenant écrite une
+       seule fois.) */
     pointer-events: none;
     box-shadow: 0 8px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.6);
     transition: opacity var(--sh-dur-3) var(--sh-ease-out),
@@ -146,7 +171,7 @@
     pointer-events: auto !important;
     transform: translateY(-50%) scale(1.15) !important;
     border-color: #ff9f0a !important;
-    background: rgba(var(--sh-on-media-inv, 30, 30, 45),  0.95) !important;
+    background: rgba(var(--sh-ink-inv, 30, 30, 45),  0.95) !important;
     box-shadow: 0 0 0 2.5px #ff9f0a, 0 0 24px rgba(255, 159, 10, 0.8) !important;
     z-index: 999 !important;
 }
@@ -162,10 +187,10 @@
     opacity: 1;
     pointer-events: auto !important;
     transform: translateY(-50%) scale(1.08) !important;
-    background: rgba(var(--sh-on-media-inv, 26, 26, 36),  0.85);
-    border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.28);
-    color: var(--sh-on-media-solid, #ffffff);
-    box-shadow: 0 12px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.8), 0 0 12px rgba(var(--sh-on-media, 255, 255, 255),  0.08);
+    background: rgba(var(--sh-ink-inv, 26, 26, 36),  0.85);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28);
+    color: var(--sh-ink-solid, #ffffff);
+    box-shadow: 0 12px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.8), 0 0 12px rgba(var(--sh-ink, 255, 255, 255),  0.08);
 }
 .sh-hero-edge-btn:active {
     transform: translateY(-50%) scale(0.94) !important;
@@ -180,17 +205,17 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(var(--sh-on-media-inv, 6, 6, 10),  0.50);
+    background: rgba(var(--sh-ink-inv, 6, 6, 10),  0.50);
     padding: 8px 14px;
     border-radius: 9999px;
-    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.12);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     box-shadow: 0 10px 28px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.75);
     transition: background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease;
 }
 
 .sh-hero-progress-track:hover {
-    background: rgba(var(--sh-on-media-inv, 10, 10, 16),  0.75);
-    border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.22);
+    background: rgba(var(--sh-ink-inv, 10, 10, 16),  0.75);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.22);
 }
 
 .sh-hero-progress-bar {
@@ -198,7 +223,7 @@
     width: 24px;
     height: 4px;
     border-radius: 9999px;
-    background: rgba(var(--sh-on-media, 255, 255, 255),  0.22);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.22);
     border: none;
     cursor: pointer;
     overflow: hidden;
@@ -224,18 +249,18 @@
 
 .sh-hero-progress-bar:hover {
     width: 36px;
-    background: rgba(var(--sh-on-media, 255, 255, 255),  0.65);
-    box-shadow: 0 0 10px rgba(var(--sh-on-media, 255, 255, 255),  0.85), 0 0 18px rgba(var(--sh-on-media, 255, 255, 255),  0.40);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.65);
+    box-shadow: 0 0 10px rgba(var(--sh-ink, 255, 255, 255),  0.85), 0 0 18px rgba(var(--sh-ink, 255, 255, 255),  0.40);
 }
 
 .sh-hero-progress-bar.active {
     width: 48px;
-    background: rgba(var(--sh-on-media, 255, 255, 255),  0.30);
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.30);
 }
 
 .sh-hero-progress-bar.active:hover {
     width: 54px;
-    box-shadow: 0 0 12px rgba(var(--sh-on-media, 255, 255, 255),  0.95), 0 0 22px rgba(var(--sh-on-media, 255, 255, 255),  0.50);
+    box-shadow: 0 0 12px rgba(var(--sh-ink, 255, 255, 255),  0.95), 0 0 22px rgba(var(--sh-ink, 255, 255, 255),  0.50);
 }
 
 .sh-hero-progress-bar:active {
@@ -246,8 +271,8 @@
     height: 100%;
     width: 0%;
     border-radius: 9999px;
-    background: linear-gradient(90deg, rgba(var(--sh-on-media, 255, 255, 255),  0.20) 0%, rgba(var(--sh-on-media, 255, 255, 255),  0.75) 65%, var(--sh-on-media-solid, #ffffff) 100%);
-    box-shadow: 0 0 8px rgba(var(--sh-on-media, 255, 255, 255),  0.9), 0 0 16px rgba(var(--sh-on-media, 255, 255, 255),  0.5);
+    background: linear-gradient(90deg, rgba(var(--sh-ink, 255, 255, 255),  0.20) 0%, rgba(var(--sh-ink, 255, 255, 255),  0.75) 65%, var(--sh-ink-solid, #ffffff) 100%);
+    box-shadow: 0 0 8px rgba(var(--sh-ink, 255, 255, 255),  0.9), 0 0 16px rgba(var(--sh-ink, 255, 255, 255),  0.5);
 }
 @keyframes sh-hero-progress-run { from { width: 0%; } to { width: 100%; } }
 
@@ -303,11 +328,11 @@
 
     align-items: center;
     gap: 6px;
-    background: rgba(var(--sh-on-media-inv, 14, 14, 20),  0.60);
-    border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.14);
+    background: rgba(var(--sh-ink-inv, 14, 14, 20),  0.60);
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14);
     border-radius: 9999px;
     padding: 6px 14px;
-    color: rgba(var(--sh-on-media, 255, 255, 255),  0.85);
+    color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.8px;
@@ -318,9 +343,9 @@
     animation: sh-hint-float var(--sh-dur-5) ease-in-out infinite;
 }
 .sh-hero-scroll-hint:hover {
-    background: rgba(var(--sh-on-media-inv, 26, 26, 36),  0.85);
-    border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.28);
-    color: var(--sh-on-media-solid, #ffffff);
+    background: rgba(var(--sh-ink-inv, 26, 26, 36),  0.85);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28);
+    color: var(--sh-ink-solid, #ffffff);
     transform: translateX(-50%) scale(1.06);
 }
 .sh-scroll-hint-chevron {

@@ -17,18 +17,26 @@
 
 import Logger from '../../core/Logger.js';
 import { gabaritBibliotheque } from './LibraryView.template.js';
+import { contexteGabarit } from '../../core/utils/domUtils.js';
 
 import './LibraryView.css';
 import * as svc from '../../core/services.js';
 class LibraryView {
     constructor() {
-        // Confirmation du scope library dans le Focus Registry
+        // Les contrôles propres à cette vue s'AJOUTENT au scope du moteur.
+        //
+        // Ils l'écrasaient auparavant ({ force: true }), en enracinant la
+        // requête sur `.sh-library-view` — ce qui faisait disparaître le dock
+        // supérieur, frère de la vue et non descendant. extendFocusables
+        // compose : le moteur garde la barre permanente, la vue ajoute ses
+        // boutons.
         const spatialNav = svc.nav() || svc.nav();
-        if (spatialNav?.registerFocusables) {
-            spatialNav.registerFocusables('library', (container) => {
-                const root = container || document.querySelector('.sh-library-view') || document;
-                return Array.from(root.querySelectorAll('.sh-lib-tab-btn, .sh-lib-genre-chip, .sh-lib-alpha-btn, .sh-lib-control-btn, .sh-card, [data-nav-focusable="true"], .sh-lib-manage-btn, .sh-lib-search-input, .sh-lib-search-clear'));
-            }, { force: true }); // re-registration volontaire — cf. plan A04
+        if (spatialNav?.extendFocusables) {
+            spatialNav.extendFocusables('library', () => {
+                const root = document.querySelector('.sh-library-view');
+                if (!root) return [];
+                return Array.from(root.querySelectorAll('.sh-lib-manage-btn, .sh-lib-search-input, .sh-lib-search-clear'));
+            });
         }
         this._log = new Logger('LibraryView');
         this._libraries = [];
@@ -127,7 +135,7 @@ class LibraryView {
         // menus se declenchaient autant de fois qu'il y avait eu de rendus.
         this._renderAbort?.abort();
         this._renderAbort = new AbortController();
-        container.innerHTML = gabaritBibliotheque(this);
+        container.innerHTML = gabaritBibliotheque(contexteGabarit(this));
 
         this._bindToolbarEvents();
         await this._initLibraries(options.libraryId, options.targetType);
