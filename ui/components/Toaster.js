@@ -16,6 +16,7 @@
 import Logger from '../../core/Logger.js';
 
 import './Toaster.css';
+import { apresSortie } from '../../core/utils/domUtils.js';
 const ICONS = {
     success: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
     error:   `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
@@ -152,9 +153,24 @@ class Toaster {
 
         entry.el.classList.remove('sh-toast--visible');
         entry.el.classList.add('sh-toast--leaving');
-        entry.el.addEventListener('animationend', () => entry.el.remove(), { once: true });
-        // Fallback si animationend ne se déclenche pas
-        setTimeout(() => entry.el.remove(), 400);
+
+        // La sortie est une TRANSITION (`.sh-toast--leaving`), pas une
+        // animation. L'ancien code écoutait `animationend` — un événement qui
+        // ne se déclenche jamais sur une transition, mais qui REMONTE PAR
+        // BOUILLONNEMENT depuis l'enfant `.sh-toast__progress`, dont
+        // l'animation dure exactement le temps du toast. Les deux échéances
+        // tombant sur la même image, le nœud était retiré immédiatement : un
+        // toast à expiration automatique disparaissait d'un coup, alors que la
+        // fermeture manuelle, elle, glissait correctement. Deux comportements
+        // différents pour la même sortie, sans raison visible.
+        const fin = (e) => {
+            if (e.target !== entry.el || e.propertyName !== 'transform') return;
+            entry.el.removeEventListener('transitionend', fin);
+            entry.el.remove();
+        };
+        entry.el.addEventListener('transitionend', fin);
+        // Filet : une transition sur un élément jamais peint ne se déclenche pas.
+        apresSortie(() => entry.el.remove(), '--sh-dur-3', 200);
     }
 
     _escape(str) {

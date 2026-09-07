@@ -66,6 +66,23 @@ const PRESETS = [
             '--sh-focus-glow':          'rgba(198, 92, 0, 0.30)',
             // Ombres adoucies : le noir pur cerne les cartes d'un halo sale sur fond clair.
             '--sh-shadow-rgb': '116, 116, 132',
+            // …et l'OPACITÉ doit baisser aussi. Les quatre paliers de l'échelle
+            // sont calibrés pour du blanc sur noir (0,5 à 0,95) ; appliqués tels
+            // quels sur un fond #f4f4f5, ils dessinent exactement le halo sale
+            // que la ligne précédente cherche à éviter.
+            '--sh-shadow-sm':           '0 2px 8px rgba(var(--sh-shadow-rgb), 0.12)',
+            '--sh-shadow-md':           '0 8px 24px rgba(var(--sh-shadow-rgb), 0.16)',
+            '--sh-shadow-lg':           '0 16px 48px rgba(var(--sh-shadow-rgb), 0.20)',
+            '--sh-shadow-xl':           '0 32px 80px rgba(var(--sh-shadow-rgb), 0.24)',
+
+            // Interrupteurs : la piste active était `#ffffff` en dur — blanche
+            // sur une surface blanche, donc invisible une fois cochée.
+            '--sh-toggle-on':           '#111113',
+            '--sh-toggle-thumb':        '#ffffff',
+            '--sh-toggle-off':          'rgba(0, 0, 0, 0.22)',
+
+            // Chevron des listes déroulantes, en encre sombre.
+            '--sh-select-chevron':      "url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(17,17,19,0.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")",
 
             // Ombres : restent noires (une ombre blanche ferait un halo cassé)
             '--sh-card-shadow-hover':   '0 24px 60px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.10)',

@@ -195,14 +195,36 @@ describe('Parité clavier / manette — le point §6 de l\'audit', () => {
         expect(demarre).not.toHaveBeenCalled();
     });
 
-    it('relâcher une direction arrête le moteur, au clavier comme à la manette', () => {
+    it('relâcher la direction EN COURS arrête le moteur, au clavier comme à la manette', () => {
+        // Ce test partait d'un relâchement sans appui, ce qui n'arrive jamais :
+        // on part maintenant d'une salve réellement en cours.
+        vi.spyOn(nav, '_executeNavStep').mockImplementation(() => {});
+        nav._startInputRepeat(NavAction.RIGHT);
+
         const arrete = vi.spyOn(nav, '_stopInputRepeat');
         nav._handleKeyUp({ key: 'ArrowRight' });
         expect(arrete).toHaveBeenCalled();
 
+        nav._startInputRepeat(NavAction.RIGHT);
         arrete.mockClear();
         nav._onGamepadDirectionEnd();
         expect(arrete).toHaveBeenCalled();
+        nav._stopInputRepeat();
+    });
+
+    it('relâcher une AUTRE direction ne coupe pas la salve en cours', () => {
+        // Sur un téléviseur : on maintient Bas pour dévaler la page, on tapote
+        // Droite pour changer de rangée, on relâche Droite — et le défilement
+        // s'arrêtait net, doigt toujours posé sur Bas. `_handleKeyUp` coupait
+        // sans regarder quelle direction était réellement active.
+        vi.spyOn(nav, '_executeNavStep').mockImplementation(() => {});
+        nav._startInputRepeat(NavAction.DOWN);
+
+        const arrete = vi.spyOn(nav, '_stopInputRepeat');
+        nav._handleKeyUp({ key: 'ArrowRight' });
+        expect(arrete).not.toHaveBeenCalled();
+        expect(nav._repeatState.activeAction).toBe(NavAction.DOWN);
+        nav._stopInputRepeat();
     });
 
     it('une touche non directionnelle n\'arrête pas le moteur', () => {

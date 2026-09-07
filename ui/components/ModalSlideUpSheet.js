@@ -18,7 +18,7 @@
 
 import './ModalSlideUpSheet.css';
 import { gabaritFeuille } from './ModalSlideUpSheet.template.js';
-import { contexteGabarit } from '../../core/utils/domUtils.js';
+import { contexteGabarit, comportementDefilement } from '../../core/utils/domUtils.js';
 import * as svc from '../../core/services.js';
 import inputRouter, { PRIORITES } from '../../core/InputRouter.js';
 class ModalSlideUpSheet {
@@ -168,6 +168,21 @@ class ModalSlideUpSheet {
 
         this._overlay.classList.add('sh-slideup-overlay--open');
         this._sheet.classList.add('sh-slideup-sheet--open');
+        // Confinement RÉEL du focus.
+        //
+        // Le moteur sait piéger le focus dans un sous-arbre depuis la vague A
+        // (`data-nav-container="strict"` : on cherche dedans, on ne sort
+        // jamais), et cet attribut n'était posé NULLE PART — quatre-vingts
+        // lignes de moteur qui ne s'exécutaient jamais. Chaque couche rusait
+        // à sa façon, et aucune ne confinait vraiment : c'est la deuxième des
+        // classes de bogues de focus décrites par Netflix pour les
+        // applications de télévision, « quelque chose derrière la vue du
+        // dessus vole le focus ».
+        //
+        // Posé à l'OUVERTURE et retiré à la fermeture : la feuille est un
+        // élément réutilisé, le marquer à la création la ferait piéger le
+        // focus même refermée.
+        this._sheet.dataset.navContainer = 'strict';
         this._isOpen = true;
         document.body.style.overflow = 'hidden';
 
@@ -363,6 +378,7 @@ class ModalSlideUpSheet {
         const closedItem = this._currentItem;
         this._closeAudioPopover();
         this._sheet.classList.remove('sh-slideup-sheet--open');
+        delete this._sheet.dataset.navContainer;
         this._overlay.classList.remove('sh-slideup-overlay--open');
         if (this._ambientGlow) {
             this._ambientGlow.classList.remove('sh-modal-ambient-glow--open');
@@ -665,7 +681,7 @@ class ModalSlideUpSheet {
                                 const progress = Math.round(ep.UserData?.PlayedPercentage || 0);
                                 const dur = ep.RunTimeTicks ? Math.round(ep.RunTimeTicks / 10000000 / 60) + ' min' : '';
                                 return `
-                                    <div class="sh-episode-card" tabindex="0" role="button" data-ep-id="${ep.Id}">
+                                    <div class="sh-episode-card" tabindex="0" role="button" data-nav-focusable="true" data-ep-id="${ep.Id}">
                                         <div class="sh-episode-thumb-wrap" data-action="play">
                                             ${epImg ? `<img decoding="async" src="${epImg}" alt="${this._escape(ep.Name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.IndexNumber || (idx + 1)}</div>`}
                                             <div class="sh-episode-overlay-play">▶</div>
@@ -724,7 +740,7 @@ class ModalSlideUpSheet {
 
                         episodesGrid.innerHTML = hybridList.map(ep => {
                             return `
-                                <div class="sh-episode-card ${ep.isLocal ? '' : 'sh-episode-card--missing'}" tabindex="0" role="button" style="${ep.isLocal ? '' : 'opacity:0.88;'}">
+                                <div class="sh-episode-card ${ep.isLocal ? '' : 'sh-episode-card--missing'}" tabindex="0" role="button" data-nav-focusable="true" style="${ep.isLocal ? '' : 'opacity:0.88;'}">
                                     <div class="sh-episode-thumb-wrap" data-action="${ep.isLocal ? 'play' : 'request'}" data-ep-num="${ep.episodeNumber}">
                                         ${ep.stillUrl ? `<img decoding="async" src="${this._escape(ep.stillUrl)}" alt="${this._escape(ep.name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.episodeNumber}</div>`}
                                         <div class="sh-episode-overlay-play">${ep.isLocal ? '▶' : '📥'}</div>
@@ -987,7 +1003,7 @@ class ModalSlideUpSheet {
             const durationMin = ep.RunTimeTicks ? Math.round(ep.RunTimeTicks / 10000000 / 60) + ' min' : '';
 
             return `
-                <div class="sh-episode-card" tabindex="0" role="button" data-ep-id="${ep.Id}">
+                <div class="sh-episode-card" tabindex="0" role="button" data-nav-focusable="true" data-ep-id="${ep.Id}">
                     <div class="sh-episode-thumb-wrap" data-action="play" title="▶ Lancer l'Épisode ${ep.IndexNumber || (idx + 1)}">
                         ${epImg ? `<img decoding="async" src="${epImg}" alt="${this._escape(ep.Name)}" />` : `<div class="sh-episode-thumb-fallback">EP ${ep.IndexNumber || (idx + 1)}</div>`}
                         <div class="sh-episode-overlay-play">▶</div>
@@ -1086,7 +1102,7 @@ class ModalSlideUpSheet {
         if (reqBtn && drawer) {
             reqBtn.addEventListener('click', async () => {
                 drawer.style.display = 'block';
-                drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                drawer.scrollIntoView({ behavior: comportementDefilement(), block: 'nearest' });
 
                 // Charger les vrais profils Sonarr / Radarr
                 const rawType = (item.Type || item.type || item.MediaType || '').toLowerCase();

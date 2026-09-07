@@ -332,10 +332,7 @@
     animation-delay: calc(var(--item-idx, 0) * 20ms + 30ms);
 }
 
-@keyframes sh-menu-fade-in {
-    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
+
 
 .sh-lib-dropdown-item {
     padding: 8px 12px;
@@ -815,7 +812,7 @@
     border-radius: 16px;
     background: linear-gradient(90deg, rgba(var(--sh-ink, 255, 255, 255), 0.03) 25%, rgba(var(--sh-ink, 255, 255, 255), 0.08) 50%, rgba(var(--sh-ink, 255, 255, 255), 0.03) 75%);
     background-size: 200% 100%;
-    animation: sh-skeleton-wave var(--sh-dur-5) infinite ease-in-out;
+    animation: sh-skeleton-wave var(--sh-loop-shimmer) infinite ease-in-out;
 }
 
 .sh-skeleton-line {
@@ -1207,9 +1204,12 @@
     border: 2px solid rgba(var(--sh-ink, 255, 255, 255),  0.2);
     border-top-color: var(--sh-ink-solid, #ffffff);
     border-radius: 50%;
-    animation: sh-spin var(--sh-dur-5) linear infinite;
+    animation: sh-spin var(--sh-loop-spin) linear infinite;
 }
 
-@keyframes sh-spin {
-    to { transform: rotate(360deg); }
-}
+/* `@keyframes sh-spin` est défini une seule fois, dans
+   public/design-system/tokens.css. Une copie vivait ici : les jeux
+   d'images-clés sont un espace de noms GLOBAL, donc le dernier analysé
+   gagnait pour tous les consommateurs — et l'ordre dépend de la
+   concaténation des feuilles par Vite, pas du code. */
+

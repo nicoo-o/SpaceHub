@@ -1217,7 +1217,7 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     box-shadow: 0 10px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.75);
     z-index: -1;
-    animation: sh-vinyl-spin var(--sh-dur-5) linear infinite;
+    animation: sh-vinyl-spin var(--sh-loop-vinyle) linear infinite;
 }
 @keyframes sh-vinyl-spin {
     from { transform: rotate(0deg); }

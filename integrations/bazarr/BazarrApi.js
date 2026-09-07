@@ -103,35 +103,50 @@ class BazarrApi extends BaseApiClient {
     }
 
     /**
-     * Lance la synchronisation de la bibliothèque Bazarr avec Sonarr & Radarr.
-     * @returns {Promise<Object>}
-     */
-        /**
-     * Lance la synchronisation de la bibliothèque Bazarr avec Sonarr & Radarr (support multi-versions).
-     * @returns {Promise<Object>}
-     */
-        /**
-     * Lance la synchronisation de la bibliothèque Bazarr en interrogeant dynamiquement les tâches supportées.
-     * @returns {Promise<Object>}
+     * Lance la synchronisation des bibliothèques Bazarr avec Sonarr & Radarr.
+     *
+     * Cette méthode DISAIT toujours oui. Elle avalait toutes les erreurs
+     * (`catch { }` vide, `.catch(() => ({ status: 'ok' }))`) et finissait sur
+     * un `return { status: 'sync_requested' }` inconditionnel. Le service
+     * appelant n'ayant aucun moyen de distinguer, il affichait
+     * « Synchronisation Bazarr lancée avec succès ! » même serveur éteint,
+     * même URL fausse, même tâche inexistante.
+     *
+     * Un bouton qui annonce un succès qu'il n'a pas obtenu est pire qu'un
+     * bouton absent : on croit la bibliothèque synchronisée, on ne revient pas
+     * voir, et les sous-titres manquants restent manquants.
+     *
+     * Bazarr expose des noms de tâches variables selon les versions, d'où les
+     * deux formes de POST — mais chaque issue est désormais NOMMÉE.
+     *
+     * @returns {Promise<{success: boolean, status: string, task?: string, error?: string}>}
      */
     async syncLibraries() {
+        let taches;
         try {
-            const tasksRes = await this.get('/api/system/tasks').catch(() => null);
-            const tasks = Array.isArray(tasksRes) ? tasksRes : (tasksRes?.data || []);
-            const targetTask = tasks.find(t => /sync|update/i.test(t.name || t.id || t.action || ''));
-
-            if (targetTask) {
-                const taskName = targetTask.name || targetTask.id;
-                try {
-                    return await this.post(`/api/system/tasks?name=${encodeURIComponent(taskName)}`);
-                } catch {
-                    return await this.post('/api/system/tasks', { name: taskName }).catch(() => ({ status: 'ok' }));
-                }
-            }
-        } catch (e) {
-            // Ignoré
+            const reponse = await this.get('/api/system/tasks');
+            taches = Array.isArray(reponse) ? reponse : (reponse?.data || []);
+        } catch (err) {
+            return { success: false, status: 'unreachable', error: err?.message || 'Bazarr injoignable' };
         }
-        return { status: 'sync_requested' };
+
+        const tache = taches.find(t => /sync|update/i.test(t.name || t.id || t.action || ''));
+        if (!tache) return { success: false, status: 'unsupported' };
+
+        const nom = tache.name || tache.id;
+        // Deux formes selon la version de Bazarr : nom en query, ou en corps.
+        try {
+            const r = await this.post(`/api/system/tasks?name=${encodeURIComponent(nom)}`);
+            return { success: true, status: 'started', task: nom, ...(r || {}) };
+        } catch (premiere) {
+            try {
+                const r = await this.post('/api/system/tasks', { name: nom });
+                return { success: true, status: 'started', task: nom, ...(r || {}) };
+            } catch (seconde) {
+                return { success: false, status: 'failed', task: nom,
+                    error: seconde?.message || premiere?.message || 'Échec du déclenchement' };
+            }
+        }
     }
 }
 

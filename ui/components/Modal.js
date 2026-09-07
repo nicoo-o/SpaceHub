@@ -65,14 +65,31 @@ class Modal {
         this._injectStyles();
 
         const spatialNav = svc.nav() || svc.nav();
-        if (spatialNav?.registerFocusables) {
-            spatialNav.registerFocusables('modal', () => {
-                const openModal = document.querySelector('.sh-modal--open, .sh-slideup-sheet--open, .sh-modal-overlay.open, #sh-modal-spacehub-settings.sh-modal--open');
-                if (!openModal) return [];
-                return Array.from(openModal.querySelectorAll(
+        if (spatialNav?.extendFocusables) {
+            // Deux défauts corrigés ici.
+            //
+            // 1. C'était le CONSTRUCTEUR qui réenregistrait le scope avec
+            //    `{ force: true }` : instancier une modale, même sans jamais
+            //    l'ouvrir, écrasait la définition du moteur. On compose
+            //    désormais (`extendFocusables`, idempotent par source).
+            //
+            // 2. `querySelector` renvoie la PREMIÈRE correspondance dans
+            //    l'ordre du DOCUMENT, qui n'est pas la couche du dessus : les
+            //    modales sont ajoutées à `document.body` dans l'ordre
+            //    d'ouverture, donc la plus ANCIENNE gagnait. Ouvrir une boîte
+            //    de confirmation par-dessus une fiche média faisait naviguer
+            //    dans la fiche, en dessous. On prend la DERNIÈRE, et on ignore
+            //    les couches en cours de fermeture (`inert`).
+            spatialNav.extendFocusables('modal', () => {
+                const ouvertes = [...document.querySelectorAll(
+                    '.sh-modal--open, .sh-slideup-sheet--open, .sh-modal-overlay.open, #sh-modal-spacehub-settings.sh-modal--open'
+                )].filter(el => !el.closest('[inert]') && !el.classList.contains('sh-modal--closing'));
+                const dessus = ouvertes[ouvertes.length - 1];
+                if (!dessus) return [];
+                return Array.from(dessus.querySelectorAll(
                     '.sh-modal__close, .sh-slideup-close-btn, .sh-settings-nav__item, .sh-input, .sh-settings-toggle, .sh-btn--primary, [data-nav-focusable="true"], button:not([disabled]), input:not([disabled]), select:not([disabled])'
                 ));
-            }, { force: true }); // re-registration volontaire — cf. plan A04
+            }, { source: 'modal-du-dessus' });
         }
 
         this._build();
@@ -103,6 +120,11 @@ class Modal {
         // Animation d'entrée
         requestAnimationFrame(() => {
             this._el.classList.add('sh-modal--open');
+            // Confinement réel du focus (cf. les autres couches) : tant que
+            // cette modale est ouverte, la recherche géométrique ne sort pas
+            // de son sous-arbre. C'est ce qui empêche une carte du tableau de
+            // bord, derrière l'overlay, de reprendre le focus.
+            this._el.dataset.navContainer = 'strict';
             this._focusFirstElement();
             const spatialNav = svc.nav() || svc.nav();
             spatialNav?.onModalOpened?.(this._el, this._el.querySelector('.sh-modal__close, [data-nav-focusable="true"], button:not([disabled]), input:not([disabled]), select:not([disabled])'));
@@ -126,6 +148,7 @@ class Modal {
 
         this._el.classList.remove('sh-modal--open');
         this._el.classList.add('sh-modal--closing');
+        delete this._el.dataset.navContainer;   // ne plus piéger une fois fermée
 
         this._retirerClavier?.();
         this._retirerClavier = null;

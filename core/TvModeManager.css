@@ -108,3 +108,24 @@ html.sh-tv-mode .sh-lib-grid--poster {
 html.sh-tv-mode .sh-lib-grid--backdrop {
     grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
 }
+
+
+/* ── Flous ANIMÉS : neutralisés en mode TV ──────────────────────────────────
+   Une dizaine de menus s'ouvrent avec une transition de `filter: blur(8px)`
+   vers `blur(0)` — un effet de mise au point. Sur un écran de bureau il est
+   joli et gratuit ; sur le SoC d'un téléviseur, chaque image demande une passe
+   de filtre GPU sur la boîte entière, et l'ouverture devient pâteuse.
+
+   On ne supprime pas l'effet du produit : on l'éteint là où il coûte. Le menu
+   apparaît alors par simple opacité et échelle, ce qui reste parfaitement
+   lisible à trois mètres — la nuance de flou, elle, ne s'y voit pas. */
+html.sh-tv-mode .sh-lib-sort-menu,
+html.sh-tv-mode .sh-context-menu,
+html.sh-tv-mode .sh-island-compact-view,
+html.sh-tv-mode .sh-island-full-view,
+html.sh-tv-mode .sh-nav-brand,
+html.sh-tv-mode .sh-nav-tabs,
+html.sh-tv-mode .sh-nav-actions,
+html.sh-tv-mode .sh-user-dropdown {
+    filter: none !important;
+}

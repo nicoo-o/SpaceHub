@@ -17,7 +17,7 @@
 
 import Logger from '../../core/Logger.js';
 import { gabaritBibliotheque } from './LibraryView.template.js';
-import { contexteGabarit } from '../../core/utils/domUtils.js';
+import { contexteGabarit , apresSortie } from '../../core/utils/domUtils.js';
 
 import './LibraryView.css';
 import * as svc from '../../core/services.js';
@@ -225,7 +225,7 @@ class LibraryView {
         tabsTrack.innerHTML = `
             <div class="sh-lib-tabs-pill" id="sh-lib-tabs-pill"></div>
             ${this._libraries.map(lib => `
-                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-tab-btn ${lib.Id === this._activeLibrary?.Id ? 'active' : ''}" data-id="${lib.Id}" data-type="${lib.CollectionType || lib.Type || ''}">
+                <button tabindex="0" data-nav-focusable="true" class="sh-lib-tab-btn ${lib.Id === this._activeLibrary?.Id ? 'active' : ''}" data-id="${lib.Id}" data-type="${lib.CollectionType || lib.Type || ''}">
                     <span class="sh-lib-tab-icon">${this._getIconForType(lib.CollectionType || lib.Type)}</span>
                     <span class="sh-lib-tab-name">${this._escape(lib.Name)}</span>
                 </button>
@@ -443,7 +443,7 @@ class LibraryView {
             modal.classList.remove('open');
             const spatialNav = svc.nav() || svc.nav();
             spatialNav?.onModalClosed?.();
-            setTimeout(() => modal.remove(), 240);
+            apresSortie(() => modal.remove());
         };
 
         modal.querySelector('#sh-lib-modal-close')?.addEventListener('click', closeModal);
@@ -530,9 +530,9 @@ class LibraryView {
         try {
             this._genresList = await this._api?.getGenres(this._activeLibrary.Id) || [];
             carousel.innerHTML = `
-                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-genre-chip ${this._activeGenre === 'all' ? 'active' : ''}" data-genre="all">Tous les genres</button>
+                <button tabindex="0" data-nav-focusable="true" class="sh-lib-genre-chip ${this._activeGenre === 'all' ? 'active' : ''}" data-genre="all">Tous les genres</button>
                 ${this._genresList.slice(0, 24).map(genre => `
-                    <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-genre-chip ${this._activeGenre === genre ? 'active' : ''}" data-genre="${this._escape(genre)}">
+                    <button tabindex="0" data-nav-focusable="true" class="sh-lib-genre-chip ${this._activeGenre === genre ? 'active' : ''}" data-genre="${this._escape(genre)}">
                         ${this._escape(genre)}
                     </button>
                 `).join('')}

@@ -11,6 +11,7 @@
 
 
 import './GooeyCarouselScroller.css';
+import { comportementDefilement } from '../../core/utils/domUtils.js';
 class GooeyCarouselScroller {
     constructor() {
         this._attachedContainers = new WeakSet();
@@ -187,13 +188,13 @@ class GooeyCarouselScroller {
 
         prevBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            container.scrollBy({ left: -getStep(), behavior: 'smooth' });
+            container.scrollBy({ left: -getStep(), behavior: comportementDefilement() });
             setTimeout(updateButtons, 350);
         });
 
         nextBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            container.scrollBy({ left: getStep(), behavior: 'smooth' });
+            container.scrollBy({ left: getStep(), behavior: comportementDefilement() });
             setTimeout(updateButtons, 350);
         });
 

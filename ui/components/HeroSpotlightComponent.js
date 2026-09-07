@@ -15,6 +15,7 @@
 import './HeroSpotlightComponent.css';
 import * as svc from '../../core/services.js';
 import inputRouter, { PRIORITES } from '../../core/InputRouter.js';
+import { comportementDefilement } from '../../core/utils/domUtils.js';
 class HeroSpotlightComponent {
     constructor() {
         this._currentIndex = 0;
@@ -185,7 +186,15 @@ class HeroSpotlightComponent {
         const kineticTitle = buildKineticTitle(item.Name);
         container.innerHTML = `
             <div class="sh-hero-container">
-                <div class="sh-hero-bg"${safeBackdropUrl ? ` style="background-image: url('${safeBackdropUrl}');"` : ''}></div>
+                <!-- Deux couches, et c'est nécessaire. Une animation CSS l'emporte
+                     sur TOUTE la cascade auteur, style en ligne compris : tant que
+                     le Ken Burns et la transition de diapositive vivaient sur le
+                     même élément, les transform posés par le JS au changement
+                     d'affiche n'avaient simplement aucun effet. Le mouvement
+                     continu est sur le parent, la transition sur l'enfant. -->
+                <div class="sh-hero-bg-motion">
+                    <div class="sh-hero-bg"${safeBackdropUrl ? ` style="background-image: url('${safeBackdropUrl}');"` : ''}></div>
+                </div>
                 <div class="sh-hero-gradient-overlay"></div>
                 <div class="sh-hero-content">
                     <div class="sh-hero-info sh-hero-info--active">
@@ -354,15 +363,56 @@ class HeroSpotlightComponent {
         this._featuredItems = [];
     }
 
+    /**
+     * Rotation automatique des affiches — mise en pause quand quelqu'un s'en sert.
+     *
+     * Elle refait `container.innerHTML` toutes les huit secondes, ce qui DÉTRUIT
+     * les boutons Regarder / Bande-annonce / Plus d'infos. Rien ne la
+     * suspendait quand le focus était dedans : on s'arrêtait sur
+     * « Bande-annonce », l'anneau disparaissait au bout de huit secondes, et
+     * l'appui sur Entrée déclenchait le rattrapage du moteur — qui reprend le
+     * PREMIER candidat, c'est-à-dire « Regarder ». On lançait donc un film
+     * qu'on n'avait pas choisi.
+     *
+     * C'est la quatrième des quatre classes de bogues de focus décrites par
+     * Netflix pour les applications de télévision : « un élément focalisé est
+     * retiré, et rien ne reprend le focus ».
+     *
+     * Deux gardes, et les deux comptent : on ne tourne pas si le focus est dans
+     * le hero, et on ne tourne pas si l'onglet n'est pas visible — faire défiler
+     * un carrousel en arrière-plan ne sert personne et coûte une recomposition
+     * complète toutes les huit secondes.
+     */
+    _peutTourner(container) {
+        if (this._isHoveringCritique) return false;
+        if (typeof document !== 'undefined' && document.hidden) return false;
+        const focalise = svc.nav()?.getFocusedElement?.() || document.activeElement;
+        if (focalise && container?.contains?.(focalise)) return false;
+        return true;
+    }
+
     _startAutoSlide(container) {
         if (this._sliderTimer) clearInterval(this._sliderTimer);
+        // La barre de progression doit dire la vérité : si la rotation est
+        // suspendue, elle ne doit pas continuer de se remplir dans le vide.
+        // On la sonde plus souvent que la rotation elle-même, sinon elle
+        // resterait figée jusqu'à huit secondes après le retour du focus.
         this._sliderTimer = setInterval(() => {
+            const peut = this._peutTourner(container);
+            const remplissage = container?.querySelector?.(
+                '.sh-hero-progress-bar.active .sh-hero-progress-fill');
+            if (remplissage) remplissage.style.animationPlayState = peut ? 'running' : 'paused';
+            if (!peut) return;
+            this._tempsEcouleSlide = (this._tempsEcouleSlide || 0) + 500;
+            if (this._tempsEcouleSlide < 8000) return;
+            this._tempsEcouleSlide = 0;
             this._goToSlide(container, this._currentIndex + 1);
-        }, 8000);
+        }, 500);
     }
 
     _goToSlide(container, targetIndex) {
         if (this._isTransitioning) return;
+        this._tempsEcouleSlide = 0;
         this._isTransitioning = true;
         // Fermeture immédiate et forcée de tout popover de critique ouvert
         const cardBuilder = svc.cardBuilder();
@@ -501,9 +551,9 @@ class HeroSpotlightComponent {
                 e.stopPropagation();
                 const target = document.querySelector('.sh-dashboard-body') || document.querySelector('.sh-genre-chips-container') || document.querySelector('.sh-dashboard__grid');
                 if (target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    target.scrollIntoView({ behavior: comportementDefilement(), block: 'start' });
                 } else {
-                    window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+                    window.scrollTo({ top: window.innerHeight, behavior: comportementDefilement() });
                 }
             });
         }

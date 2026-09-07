@@ -90,7 +90,7 @@
     border: 2px solid rgba(var(--sh-ink, 255, 255, 255),  0.2);
     border-top-color: #ff9f0a;
     border-radius: 50%;
-    animation: sh-pull-spin var(--sh-dur-5) linear infinite;
+    animation: sh-pull-spin var(--sh-loop-spin) linear infinite;
 }
 
 @keyframes sh-pull-spin {

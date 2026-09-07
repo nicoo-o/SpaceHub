@@ -18,6 +18,7 @@ import { LAYERS, FOCUSABLES } from '../../core/DomContracts.js';
 
 import './AppSidebarDrawer.css';
 import * as svc from '../../core/services.js';
+import { apresSortie, urlSure } from '../../core/utils/domUtils.js';
 class AppSidebarDrawer {
     constructor() {
         this._isOpen = false;
@@ -174,6 +175,8 @@ class AppSidebarDrawer {
 
         this._drawerEl = drawerEl;
         container.appendChild(drawerEl);
+        // Fermé au montage : inerte tant qu'on ne l'ouvre pas.
+        drawerEl.querySelector('#sh-sidebar-panel')?.setAttribute('inert', '');
         this._bindEvents(drawerEl);
         this._loadDynamicLibraries(drawerEl);
     }
@@ -192,6 +195,7 @@ class AppSidebarDrawer {
         }
 
         panel.classList.add('open');
+        panel.removeAttribute('inert');
         this._isOpen = true;
         const firstItem = panel.querySelector('.sh-sidebar-item.active, .sh-sidebar-item:not(.sh-sidebar-item-loading), .sh-sidebar-footer-btn');
         const spatialNav = svc.nav() || svc.nav();
@@ -434,6 +438,13 @@ class AppSidebarDrawer {
 
         const openPanel = () => {
             panel.classList.add('open');
+            // `inert` : la déclaration standard pour « cette partie de la page
+            // n'est pas là ». Fermé, le panneau n'est masqué que par
+            // `transform: translateX(-100%)` — il garde `display: flex`,
+            // `visibility: visible` et un rectangle de 270 px, donc le moteur
+            // spatial le trouvait toujours et une flèche GAUCHE depuis le
+            // tableau de bord envoyait le focus dans un menu hors écran.
+            panel.removeAttribute('inert');
             this._isOpen = true;
             // Réajuster immédiatement la position de la capsule à l'ouverture
             const activeEl = panel.querySelector('.sh-sidebar-item.active');
@@ -446,13 +457,28 @@ class AppSidebarDrawer {
 
         const closeImmediately = () => {
             panel.classList.remove('open');
+            panel.setAttribute('inert', '');
             this._isOpen = false;
         };
 
         this._closePanel = closeImmediately;
 
-        trigger?.addEventListener('mouseenter', openPanel);
-        panel?.addEventListener('mouseenter', openPanel);
+        // Le survol n'ouvre le menu QUE si l'on se sert de la souris.
+        //
+        // `_detectCurrentScope` teste la barre latérale AVANT les modales, et
+        // son seul critère est la classe `.open`. Laisser le curseur au repos
+        // sur la bande de 20 px du bord gauche ouvrait donc le menu tout seul
+        // et basculait TOUT le moteur dans le scope « sidebar » : à la
+        // télécommande, plus aucune flèche ne sortait du menu, quelle que soit
+        // la vue regardée. Une modale ouverte par-dessus était ignorée.
+        //
+        // La modalité est déjà connue (cf. `_appliquerModalite`) : on s'en sert.
+        const ouvrirSiSouris = () => {
+            if (document.documentElement.classList.contains('sh-entree-directionnelle')) return;
+            openPanel();
+        };
+        trigger?.addEventListener('mouseenter', ouvrirSiSouris);
+        panel?.addEventListener('mouseenter', ouvrirSiSouris);
 
         // Fermeture instantanée et propre dès que la souris quitte la zone
         panel?.addEventListener('mouseleave', closeImmediately);
@@ -599,7 +625,7 @@ class AppSidebarDrawer {
             modal.classList.remove('open');
             const spatialNav = svc.nav() || svc.nav();
             spatialNav?.onModalClosed?.();
-            setTimeout(() => modal.remove(), 240);
+            apresSortie(() => modal.remove());
         };
 
         modal.querySelector('#sh-ambilight-close')?.addEventListener('click', closeModal);
@@ -672,7 +698,7 @@ class AppSidebarDrawer {
                 </div>
 
                 <div class="sh-sidebar-modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
-                    <a href="${this._escape(svc.settings()?.get('qbittorrent.url') || 'http://localhost:8080')}" target="_blank" class="sh-hub-ext-link" style="color: var(--sh-color-primary, #64d2ff); font-size: 12px; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                    <a href="${this._escape(urlSure(svc.settings()?.get('qbittorrent.url'), 'http://localhost:8080'))}" target="_blank" rel="noopener noreferrer" class="sh-hub-ext-link" style="color: var(--sh-color-primary, #64d2ff); font-size: 12px; text-decoration: none; display: flex; align-items: center; gap: 4px;">
                         <span>Ouvrir qBittorrent WebUI brute ↗</span>
                     </a>
                     <button class="sh-sidebar-modal-btn-pri" id="sh-downloads-done">Fermer</button>
@@ -691,7 +717,7 @@ class AppSidebarDrawer {
             modal.classList.remove('open');
             const spatialNav = svc.nav() || svc.nav();
             spatialNav?.onModalClosed?.();
-            setTimeout(() => modal.remove(), 240);
+            apresSortie(() => modal.remove());
         };
 
         modal.querySelector('#sh-downloads-close')?.addEventListener('click', closeModal);

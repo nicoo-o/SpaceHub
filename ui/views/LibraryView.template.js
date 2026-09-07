@@ -80,7 +80,7 @@ export function gabaritBibliotheque(ctx) {
                         <div class="sh-lib-toolbar-actions">
                             <!-- Menu de Tri -->
                             <div class="sh-lib-dropdown-wrap">
-                                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-control-btn" id="sh-lib-sort-btn" title="Changer l'ordre de tri">
+                                <button tabindex="0" data-nav-focusable="true" class="sh-lib-control-btn" id="sh-lib-sort-btn" title="Changer l'ordre de tri">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <line x1="12" y1="5" x2="12" y2="19"></line>
                                         <polyline points="19 12 12 19 5 12"></polyline>
@@ -100,7 +100,7 @@ export function gabaritBibliotheque(ctx) {
 
                             <!-- Menu Statut / Qualité -->
                             <div class="sh-lib-dropdown-wrap">
-                                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-control-btn" id="sh-lib-status-btn" title="Filtrer par état">
+                                <button tabindex="0" data-nav-focusable="true" class="sh-lib-control-btn" id="sh-lib-status-btn" title="Filtrer par état">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                                     </svg>
@@ -118,7 +118,7 @@ export function gabaritBibliotheque(ctx) {
 
                             <!-- Commutateur de Mode de Vue (Poster / Backdrop / List) -->
                             <div class="sh-lib-viewmode-group">
-                                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-viewmode-btn ${ctx._viewMode === 'poster' ? 'active' : ''}" data-mode="poster" title="Vue Affiches 2:3">
+                                <button tabindex="0" data-nav-focusable="true" class="sh-lib-viewmode-btn ${ctx._viewMode === 'poster' ? 'active' : ''}" data-mode="poster" title="Vue Affiches 2:3">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect width="7" height="10" x="3" y="3" rx="1"></rect>
                                         <rect width="7" height="10" x="14" y="3" rx="1"></rect>
@@ -126,13 +126,13 @@ export function gabaritBibliotheque(ctx) {
                                         <rect width="7" height="10" x="14" y="14" rx="1"></rect>
                                     </svg>
                                 </button>
-                                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-viewmode-btn ${ctx._viewMode === 'backdrop' ? 'active' : ''}" data-mode="backdrop" title="Vue Paysage 16:9">
+                                <button tabindex="0" data-nav-focusable="true" class="sh-lib-viewmode-btn ${ctx._viewMode === 'backdrop' ? 'active' : ''}" data-mode="backdrop" title="Vue Paysage 16:9">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect width="18" height="8" x="3" y="3" rx="1"></rect>
                                         <rect width="18" height="8" x="3" y="13" rx="1"></rect>
                                     </svg>
                                 </button>
-                                <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-viewmode-btn ${ctx._viewMode === 'list' ? 'active' : ''}" data-mode="list" title="Vue Tableau Détaillé">
+                                <button tabindex="0" data-nav-focusable="true" class="sh-lib-viewmode-btn ${ctx._viewMode === 'list' ? 'active' : ''}" data-mode="list" title="Vue Tableau Détaillé">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <line x1="8" y1="6" x2="21" y2="6"></line>
                                         <line x1="8" y1="12" x2="21" y2="12"></line>
@@ -148,14 +148,14 @@ export function gabaritBibliotheque(ctx) {
 
                     <!-- Ligne des Genres Dynamiques -->
                     <div class="sh-lib-genres-carousel" id="sh-lib-genres-carousel">
-                        <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-genre-chip ${ctx._activeGenre === 'all' ? 'active' : ''}" data-genre="all">Tous les genres</button>
+                        <button tabindex="0" data-nav-focusable="true" class="sh-lib-genre-chip ${ctx._activeGenre === 'all' ? 'active' : ''}" data-genre="all">Tous les genres</button>
                     </div>
 
                     <!-- Index Alphabétique Rapide (A-Z Dock) -->
                     <div class="sh-lib-alphabet-dock" id="sh-lib-alphabet-dock" style="${ctx._sortBy.includes('SortName') ? 'display:flex;' : 'display:none;'}">
-                        <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-alpha-btn ${!ctx._alphabetFilter ? 'active' : ''}" data-char="">#</button>
+                        <button tabindex="0" data-nav-focusable="true" class="sh-lib-alpha-btn ${!ctx._alphabetFilter ? 'active' : ''}" data-char="">#</button>
                         ${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(ch => `
-                            <button tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true" class="sh-lib-alpha-btn ${ctx._alphabetFilter === ch ? 'active' : ''}" data-char="${ch}">${ch}</button>
+                            <button tabindex="0" data-nav-focusable="true" class="sh-lib-alpha-btn ${ctx._alphabetFilter === ch ? 'active' : ''}" data-char="${ch}">${ch}</button>
                         `).join('')}
                     </div>
                 </section>

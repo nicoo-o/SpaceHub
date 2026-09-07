@@ -1,5 +1,28 @@
 .sh-hero-container { position: relative; width: 100%; height: 100vh; overflow: hidden; background: var(--sh-bg-base, #000000); }
-.sh-hero-bg { position: absolute; top: -2%; left: -2%; right: -2%; bottom: -2%; background-size: cover; background-position: center 20%; animation: sh-ken-burns 36s ease-in-out infinite alternate; transition: background-image 500ms ease, opacity 500ms ease, transform 500ms ease; will-change: transform, opacity; pointer-events: none !important; }
+/* Couche 1 : le mouvement continu (Ken Burns). Elle ne fait QUE cela. */
+.sh-hero-bg-motion {
+    position: absolute;
+    top: -2%; left: -2%; right: -2%; bottom: -2%;
+    animation: sh-ken-burns 36s ease-in-out infinite alternate;
+    will-change: transform;
+    pointer-events: none !important;
+}
+
+/* Couche 2 : la transition d'une affiche à l'autre.
+   `background-image` a été retiré de la liste : deux `url()` ne s'interpolent
+   pas, cette transition n'a jamais rien fait. Le fondu se joue sur l'opacité,
+   et le léger dézoom sur `transform` — qui fonctionne enfin, puisque le Ken
+   Burns n'est plus sur le même élément. */
+.sh-hero-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center 20%;
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out),
+                transform var(--sh-dur-4) var(--sh-ease-out);
+    will-change: transform, opacity;
+    pointer-events: none !important;
+}
 @keyframes sh-ken-burns { 0% { transform: scale(1.02) translate(0, 0); } 50% { transform: scale(1.04) translate(-8px, -4px); } 100% { transform: scale(1.02) translate(0, 0); } }
 .sh-hero-gradient-overlay {
         position: absolute;
@@ -228,8 +251,10 @@
     cursor: pointer;
     overflow: hidden;
     padding: 0;
-    will-change: width, background, box-shadow, transform;
-    transform: translateZ(0);
+    /* `will-change` ne promeut que ce qui est composable. Y déclarer `width`
+       n'apporte rien — cette propriété passe par la mise en page — et déclarer
+       quatre propriétés réserve de la mémoire GPU pour rien. */
+    will-change: transform;
     transition: width var(--sh-dur-3) var(--sh-ease-out),
                 background var(--sh-dur-3) ease,
                 box-shadow var(--sh-dur-3) ease,
@@ -267,14 +292,21 @@
     transform: scale(0.95) translateZ(0);
 }
 
+/* Le remplissage se joue sur `transform: scaleX`, pas sur `width`.
+   Animer `width` en `linear` pendant 8 SECONDES demandait une passe de mise en
+   page à chaque image — environ 480 recalculs par diapositive, en continu tant
+   que le tableau de bord est affiché, et ce sur l'écran d'accueil. `scaleX` se
+   compose sur le GPU et ne coûte rien. */
 .sh-hero-progress-fill {
     height: 100%;
-    width: 0%;
+    width: 100%;
+    transform: scaleX(0);
+    transform-origin: left center;
     border-radius: 9999px;
     background: linear-gradient(90deg, rgba(var(--sh-ink, 255, 255, 255),  0.20) 0%, rgba(var(--sh-ink, 255, 255, 255),  0.75) 65%, var(--sh-ink-solid, #ffffff) 100%);
     box-shadow: 0 0 8px rgba(var(--sh-ink, 255, 255, 255),  0.9), 0 0 16px rgba(var(--sh-ink, 255, 255, 255),  0.5);
 }
-@keyframes sh-hero-progress-run { from { width: 0%; } to { width: 100%; } }
+@keyframes sh-hero-progress-run { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 /* Lightbox Bande-Annonce Vidéo */
 .sh-trailer-lightbox {
@@ -340,20 +372,29 @@
     cursor: pointer;
     box-shadow: 0 6px 20px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.6);
     transition: background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease, transform var(--sh-dur-3) ease, opacity var(--sh-dur-3) ease;
-    animation: sh-hint-float var(--sh-dur-5) ease-in-out infinite;
+    animation: sh-hint-float var(--sh-loop-flottement) ease-in-out infinite;
 }
-.sh-hero-scroll-hint:hover {
+/* Le survol ne peut PAS passer par `transform` : les images-clés
+   `sh-hint-float` en écrivent un, et une animation l'emporte sur la cascade.
+   Le bouton ne grossissait donc jamais au survol — seuls le fond et la bordure
+   réagissaient, ce qui donnait l'impression d'un contrôle à moitié cassé.
+   L'échelle passe par une variable que les images-clés consomment. */
+.sh-hero-scroll-hint {
+    --hint-echelle: 1;
+}
+.sh-hero-scroll-hint:hover,
+.sh-hero-scroll-hint.sh-focus-active {
     background: rgba(var(--sh-ink-inv, 26, 26, 36),  0.85);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28);
     color: var(--sh-ink-solid, #ffffff);
-    transform: translateX(-50%) scale(1.06);
+    --hint-echelle: 1.06;
 }
 .sh-scroll-hint-chevron {
-    animation: sh-hint-bounce var(--sh-dur-5) ease-in-out infinite;
+    animation: sh-hint-bounce var(--sh-loop-flottement) ease-in-out infinite;
 }
 @keyframes sh-hint-float {
-    0%, 100% { transform: translateX(-50%) translateY(0); }
-    50% { transform: translateX(-50%) translateY(-4px); }
+    0%, 100% { transform: translateX(-50%) translateY(0) scale(var(--hint-echelle, 1)); }
+    50% { transform: translateX(-50%) translateY(-4px) scale(var(--hint-echelle, 1)); }
 }
 @keyframes sh-hint-bounce {
     0%, 100% { transform: translateY(0); }

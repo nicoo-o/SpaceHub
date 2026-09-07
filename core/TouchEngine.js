@@ -18,6 +18,7 @@ import Logger from './Logger.js';
 
 import './TouchEngine.css';
 import * as svc from './services.js';
+import { comportementDefilement } from './utils/domUtils.js';
 export class TouchEngine {
     constructor() {
         this._log = new Logger('TouchEngine');
@@ -56,7 +57,7 @@ export class TouchEngine {
             window.visualViewport.addEventListener('resize', () => {
                 const searchInput = document.getElementById('sh-search-input');
                 if (document.activeElement === searchInput) {
-                    searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    searchInput.scrollIntoView({ behavior: comportementDefilement(), block: 'center' });
                 }
             });
         }
