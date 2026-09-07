@@ -21,6 +21,7 @@
 'use strict';
 
 import Logger from '../../core/Logger.js';
+import { fetchAvecDelai } from '../../core/utils/reseau.js';
 
 const log = new Logger('DeviceProfile');
 
@@ -166,7 +167,7 @@ export async function negotiatePlayback({ serverUrl, token, userId, deviceId, it
 
     let data;
     try {
-        const res = await fetch(`${serverUrl}/Items/${encodeURIComponent(itemId)}/PlaybackInfo`, {
+        const res = await fetchAvecDelai(`${serverUrl}/Items/${encodeURIComponent(itemId)}/PlaybackInfo`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

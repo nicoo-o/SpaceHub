@@ -20,7 +20,42 @@
 
 import Logger from './Logger.js';
 
+/** Chemin du proxy universel, écrit une seule fois. */
+const CHEMIN_PROXY = '/api-proxy';
+
+/**
+ * Prévient UNE SEULE FOIS que le proxy n'est pas servi.
+ *
+ * Ces deux symboles — `signalerProxyAbsent` et `proxyBase` — étaient APPELÉS
+ * ici et définis NULLE PART. Or c'est le chemin de panne le plus probable en
+ * production : un serveur statique en mode SPA renvoie `index.html` avec un
+ * code 200 pour `/api-proxy`, et cette branche est justement là pour le
+ * détecter. Au lieu du message qui renvoie vers la documentation,
+ * l'utilisateur recevait « signalerProxyAbsent is not defined » — une
+ * `ReferenceError`, donc ni un `ApiError` ni un `TypeError` : elle échappait
+ * aux deux gardes plus bas, consommait les tentatives de reprise, et remontait
+ * telle quelle. La détection annoncée dans `docs/DEPLOIEMENT.md` n'a jamais
+ * fonctionné.
+ *
+ * Une seule alerte par session : ce défaut touche TOUTES les intégrations à la
+ * fois, et vingt notifications identiques n'aident personne.
+ */
+let proxyDejaSignale = false;
+
+/** Une seule alerte de session expirée par chargement de page. */
+let sessionExpireeSignalee = false;
+function signalerProxyAbsent(log) {
+    if (proxyDejaSignale) return;
+    proxyDejaSignale = true;
+    const message = `Aucun proxy n'est servi à « ${CHEMIN_PROXY} ». `
+        + 'Les intégrations qui en dépendent (Servarr, qBittorrent) ne peuvent pas fonctionner. '
+        + 'Configuration : docs/DEPLOIEMENT.md.';
+    log?.error?.(message);
+    try { svc.toaster()?.error?.(message); } catch { /* le filet ne doit pas être la panne */ }
+}
+
 import * as svc from './services.js';
+import { enteteAutorisation } from './utils/identiteClient.js';
 // ─── BaseApiClient ───────────────────────────────────────────────────────────
 
 class BaseApiClient {
@@ -126,7 +161,7 @@ class BaseApiClient {
                         throw new ApiError(
                             502,
                             'Proxy absent',
-                            `Aucun proxy à « ${proxyBase()} » — voir docs/DEPLOIEMENT.md.`,
+                            `Aucun proxy à « ${CHEMIN_PROXY} » — voir docs/DEPLOIEMENT.md.`,
                             requestUrl
                         );
                     }
@@ -152,6 +187,25 @@ class BaseApiClient {
                 // Ne pas retenter sur les erreurs clientes 4xx définitives (400, 401, 403, 404, 422) sauf 429
                 if (err instanceof ApiError && err.status >= 400 && err.status < 500 && err.status !== 429) {
                     this._log.error(`[${method}] ${url} — Erreur client ${err.status} définitive : ${err.message}`);
+
+                    // Session révoquée EN COURS d'usage.
+                    //
+                    // La seule vérification du jeton se faisait au démarrage
+                    // (`AuthManager.init`). Si l'administrateur supprimait la
+                    // session, changeait le mot de passe ou redémarrait
+                    // Jellyfin pendant qu'on s'en servait, chaque widget
+                    // affichait indépendamment « n'a pas pu s'afficher »,
+                    // l'état local restait « authentifié », et le bouton
+                    // « Réessayer » rejouait le même appel à l'identique. Rien
+                    // ne ramenait à l'écran de connexion et rien ne disait
+                    // pourquoi.
+                    //
+                    // On le signale UNE FOIS, par l'EventBus, à qui de droit.
+                    if ((err.status === 401 || err.status === 403) && !sessionExpireeSignalee) {
+                        sessionExpireeSignalee = true;
+                        try { svc.eventBus()?.emit?.('auth:expired', { url, status: err.status }); }
+                        catch { /* le filet ne doit jamais être la panne */ }
+                    }
                     throw err;
                 }
 
@@ -224,7 +278,9 @@ class BaseApiClient {
 class JellyfinClient extends BaseApiClient {
     constructor() {
         const serverAddress = svc.auth()?.getServerUrl() || window.ApiClient?.serverAddress?.() || '';
-        const token         = svc.auth()?.getToken() || window.ApiClient?.accessToken?.()   || '';
+        // Le repli `window.ApiClient.accessToken()` a été retiré : la coque
+        // globale n'expose plus le jeton (cf. AuthManager._syncGlobalClient).
+        const token         = svc.auth()?.getToken() || '';
 
         super(serverAddress, token);
         this.updateAuthHeaders(token);
@@ -234,7 +290,7 @@ class JellyfinClient extends BaseApiClient {
     updateAuthHeaders(token) {
         this.apiKey = token;
         const deviceId = svc.auth()?.getDeviceId?.() || 'sh_web';
-        const authHeader = `MediaBrowser Client="Jellyfin Web", Device="Chrome", DeviceId="${deviceId}", Version="10.8.13"${token ? `, Token="${token}"` : ''}`;
+        const authHeader = enteteAutorisation(deviceId, token);
         this._defaultHeaders['Accept'] = 'application/json';
         this._defaultHeaders['Content-Type'] = 'application/json';
         this._defaultHeaders['X-Emby-Authorization'] = authHeader;
@@ -247,7 +303,7 @@ class JellyfinClient extends BaseApiClient {
 
     /** Rafraîchit le token Jellyfin (à appeler après reconnexion) */
     refreshAuth() {
-        const token = svc.auth()?.getToken() || this._jfClient?.accessToken?.() || '';
+        const token = svc.auth()?.getToken() || '';   // la coque globale n'expose plus le jeton
         this.updateAuthHeaders(token);
     }
 

@@ -9,6 +9,7 @@
 import Logger from './Logger.js';
 
 import * as svc from './services.js';
+import { fetchAvecDelai } from './utils/reseau.js';
 export class NotificationService {
     constructor(eventBus = null, settings = null) {
         this._log = new Logger('NotificationService');
@@ -146,7 +147,7 @@ export class NotificationService {
                 embed.thumbnail = { url: options.posterUrl };
             }
 
-            await fetch(webhookUrl, {
+            await fetchAvecDelai(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -167,7 +168,7 @@ export class NotificationService {
         try {
             const text = `🚀 *${title}*\n${message}`;
             const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-            await fetch(url, {
+            await fetchAvecDelai(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

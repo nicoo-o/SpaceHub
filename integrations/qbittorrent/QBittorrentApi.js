@@ -12,6 +12,7 @@
 import Logger from '../../core/Logger.js';
 
 import * as svc from '../../core/services.js';
+import { fetchAvecDelai } from '../../core/utils/reseau.js';
 class QBittorrentApi {
     constructor() {
         this._log = new Logger('QBittorrentApi');
@@ -44,7 +45,7 @@ class QBittorrentApi {
         try {
             let response;
             try {
-                response = await fetch(url, {
+                response = await fetchAvecDelai(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: body.toString(),
@@ -53,7 +54,7 @@ class QBittorrentApi {
             } catch (netErr) {
                 // Si échec direct, fallback sur le proxy universel
                 const proxyUrl = `/api-proxy?url=${encodeURIComponent(directUrl)}`;
-                response = await fetch(proxyUrl, {
+                response = await fetchAvecDelai(proxyUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: body.toString(),
@@ -94,11 +95,11 @@ class QBittorrentApi {
 
         let response;
         try {
-            response = await fetch(url, config);
+            response = await fetchAvecDelai(url, config);
         } catch (netErr) {
             // Fallback automatique sur le proxy universel
             const proxyUrl = `/api-proxy?url=${encodeURIComponent(directUrl)}`;
-            response = await fetch(proxyUrl, config);
+            response = await fetchAvecDelai(proxyUrl, config);
         }
 
         // Si non autorisé (403), retenter un login puis refaire la requête
@@ -107,10 +108,10 @@ class QBittorrentApi {
             const loggedIn = await this.login();
             if (loggedIn) {
                 try {
-                    response = await fetch(url, config);
+                    response = await fetchAvecDelai(url, config);
                 } catch (retryErr) {
                     const proxyUrl = `/api-proxy?url=${encodeURIComponent(url)}`;
-                    response = await fetch(proxyUrl, config);
+                    response = await fetchAvecDelai(proxyUrl, config);
                 }
             } else {
                 throw new Error('Impossible de s\'authentifier sur qBittorrent (Vérifiez nom d\'utilisateur et mot de passe).');

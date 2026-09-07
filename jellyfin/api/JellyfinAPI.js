@@ -12,6 +12,7 @@
 import Logger from '../../core/Logger.js';
 
 import * as svc from '../../core/services.js';
+import { fetchAvecDelai } from '../../core/utils/reseau.js';
 class JellyfinAPI {
     constructor() {
         this._log = new Logger('JellyfinAPI');
@@ -1168,7 +1169,7 @@ class JellyfinAPI {
             const token = client?._apiKey || svc.auth()?.getToken?.() || '';
             const url = `${baseUrl.replace(/\/+$/, '')}/System/Logs/Log?name=${encodeURIComponent(logName)}`;
 
-            const res = await fetch(url, {
+            const res = await fetchAvecDelai(url, {
                 headers: token ? { 'Authorization': `MediaBrowser Client="SpaceHub", Token="${token}"`, 'X-Emby-Token': token } : {}
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);

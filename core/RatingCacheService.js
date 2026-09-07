@@ -16,6 +16,7 @@
 import Logger from './Logger.js';
 
 import * as svc from './services.js';
+import { fetchAvecDelai } from './utils/reseau.js';
 const PROVIDER_IDS = ['jellyfin', 'rt', 'imdb', 'metacritic', 'tmdb'];
 const DEFAULT_PROVIDERS = ['jellyfin', 'rt', 'imdb', 'tmdb'];
 
@@ -127,7 +128,7 @@ class RatingCacheService {
             const headers = svc.auth()?.getAuthHeaders?.() || {};
             const base = client?.baseUrl || svc.auth()?.getServerUrl?.() || '';
             if (base && seriesId) {
-                const res = await fetch(`${base.replace(/\/$/, '')}/Users/${svc.auth()?.getUserId?.()}/Items/${seriesId}`, { headers });
+                const res = await fetchAvecDelai(`${base.replace(/\/$/, '')}/Users/${svc.auth()?.getUserId?.()}/Items/${seriesId}`, { headers });
                 if (res.ok) {
                     const series = await res.json();
                     imdbId = series?.ProviderIds?.Imdb || null;
@@ -226,7 +227,7 @@ class RatingCacheService {
     async testConnection(apiKey, testImdbId = 'tt0111161') {
         if (!apiKey || typeof apiKey !== 'string') return { ok: false, error: 'Clé API requise.' };
         try {
-            const res = await fetch(
+            const res = await fetchAvecDelai(
                 `https://www.omdbapi.com/?apikey=${encodeURIComponent(apiKey)}&i=${encodeURIComponent(testImdbId)}`,
                 { credentials: 'omit', signal: AbortSignal.timeout(8000) }
             );
@@ -264,7 +265,7 @@ class RatingCacheService {
     async testTmdbConnection(apiKey) {
         if (!apiKey || typeof apiKey !== 'string') return { ok: false, error: 'Clé API requise.' };
         try {
-            const res = await fetch(
+            const res = await fetchAvecDelai(
                 `https://api.themoviedb.org/3/find/tt0111161?api_key=${encodeURIComponent(apiKey)}&external_source=imdb_id&language=fr-FR`,
                 { credentials: 'omit', signal: AbortSignal.timeout(8000) }
             );

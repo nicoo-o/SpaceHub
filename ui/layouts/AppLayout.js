@@ -18,6 +18,7 @@ import SpatialNavigation  from '../../core/SpatialNavigation.js';
 
 import './AppLayout.css';
 import * as svc from '../../core/services.js';
+import { apresSortie, comportementDefilement } from '../../core/utils/domUtils.js';
 class AppLayout {
     constructor() {
         this._log = new Logger('AppLayout');
@@ -56,7 +57,13 @@ class AppLayout {
             if (evt?.current?.classList?.contains('sh-nav-tab-btn')) {
                 const targetView = evt.current.dataset.view;
                 if (targetView && targetView !== this._currentView) {
-                    this._updateSlidingPill(evt.current);
+                    // `_updateSlidingPill` n'a jamais existé : la méthode
+                    // exposée s'appelle `_updateTabPill` (voir plus bas). Un
+                    // renommage fait à moitié — comme `_seekRelative` dans le
+                    // lecteur. Résultat : la pastille glissante ne suivait pas
+                    // le focus clavier sur les onglets du dock, alors que
+                    // c'est précisément ce que ce gestionnaire est là pour faire.
+                    this._updateTabPill?.(evt.current);
                 }
             }
         });
@@ -482,7 +489,7 @@ class AppLayout {
             el.classList.remove('sh-logo-clicked');
             void el.offsetWidth; // Force reflow
             el.classList.add('sh-logo-clicked');
-            setTimeout(() => el.classList.remove('sh-logo-clicked'), 520);
+            apresSortie(() => el.classList.remove('sh-logo-clicked'), '--sh-dur-5');
         };
 
         const scrollToTop = (e) => {
@@ -495,12 +502,12 @@ class AppLayout {
             triggerLogoAnimation(compactEl);
             triggerLogoAnimation(brandEl);
 
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
-            document.body.scrollTo({ top: 0, behavior: 'smooth' });
-            document.querySelector('.sh-app-shell')?.scrollTo({ top: 0, behavior: 'smooth' });
-            document.querySelector('#sh-main-content')?.scrollTo({ top: 0, behavior: 'smooth' });
-            document.querySelector('.sh-dashboard')?.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({ top: 0, behavior: comportementDefilement() });
+            document.documentElement.scrollTo({ top: 0, behavior: comportementDefilement() });
+            document.body.scrollTo({ top: 0, behavior: comportementDefilement() });
+            document.querySelector('.sh-app-shell')?.scrollTo({ top: 0, behavior: comportementDefilement() });
+            document.querySelector('#sh-main-content')?.scrollTo({ top: 0, behavior: comportementDefilement() });
+            document.querySelector('.sh-dashboard')?.scrollTo({ top: 0, behavior: comportementDefilement() });
         };
 
         const compactView = container.querySelector('.sh-island-compact-view');
@@ -590,9 +597,16 @@ class AppLayout {
         });
 
         // Déconnexion
-        container.querySelector('#sh-btn-logout')?.addEventListener('click', () => {
+        container.querySelector('#sh-btn-logout')?.addEventListener('click', (e) => {
             toggleDropdown(false);
-            this._auth?.logout();
+            // `logout()` prévient maintenant le serveur avant de recharger
+            // (audit A1) : cela prend quelques centaines de millisecondes. Sans
+            // retour visuel, l'utilisateur croirait que le clic n'a rien fait
+            // et cliquerait de nouveau.
+            const bouton = e.currentTarget;
+            if (bouton) { bouton.disabled = true; bouton.textContent = 'Déconnexion…'; }
+            svc.toaster()?.info?.('Déconnexion en cours…');
+            Promise.resolve(this._auth?.logout()).catch(() => {});
         });
     }
 

@@ -39,21 +39,30 @@ class ModuleManager {
 
     /**
      * Enregistre un module. N'effectue pas encore l'initialisation.
+     *
+     * Renvoie désormais un booléen. Auparavant elle sortait sur `return;`
+     * dans ses deux cas de refus — identifiant absent, module déjà là — sans
+     * rien renvoyer, et son seul appelant (`SDK.registerModule`) ne pouvait
+     * donc pas savoir que l'enregistrement n'avait pas eu lieu : il annonçait
+     * `true` au plugin dans tous les cas.
+     *
      * @param {ModuleConfig} config
+     * @returns {boolean} vrai si le module a réellement été enregistré.
      */
     register(config) {
-        if (!config.id) {
+        if (!config?.id) {
             this._log.error('Un module doit avoir un "id".');
-            return;
+            return false;
         }
         if (this.modules.has(config.id)) {
             this._log.warn(`Module "${config.id}" déjà enregistré. Ignoré.`);
-            return;
+            return false;
         }
 
         const status = config.enabled === false ? 'disabled' : 'registered';
         this.modules.set(config.id, { config, instance: null, status, error: null });
         this._log.debug(`Module enregistré : "${config.id}" (${status})`);
+        return true;
     }
 
     // ─── Chargement ──────────────────────────────────────────────────────────────

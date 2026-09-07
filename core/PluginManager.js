@@ -10,6 +10,7 @@
 
 import Logger from './Logger.js';
 import PluginPermissions, { PluginPermissionError } from './PluginPermissions.js';
+import { fetchAvecDelai } from './utils/reseau.js';
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9._-]{1,63}$/;
 const STATES = new Set(['registered', 'loaded', 'enabled', 'disabled', 'error', 'quarantined']);
@@ -344,7 +345,10 @@ export class PluginManager {
                 fetch: async (url, options = {}) => {
                     permission('network.external.read');
                     if (typeof url !== 'string' || !/^https:\/\//i.test(url)) throw new TypeError('Seules les URLs HTTPS sont autorisées.');
-                    return fetch(url, { ...options, credentials: 'omit' });
+                    // Plafond de temps imposé au plugin, non négociable : un
+                    // greffon qui interroge un service lent ne doit pas pouvoir
+                    // retenir indéfiniment une promesse de l'hôte.
+                    return fetchAvecDelai(url, { ...options, credentials: 'omit' }, 20000);
                 }
             },
             events: {

@@ -581,8 +581,19 @@ async function init() {
         if (!manifest) return;
         try {
             if (settings.get(`plugins.${manifest.id}.enabled`, null) === false) return; // désactivé volontairement
-            const isAdmin = SpaceHub.auth?.getUser?.()?.Policy?.IsAdministrator === true;
-            if (isAdmin) pluginManager.approvePermissions(manifest.id, manifest.permissions || []);
+            // L'approbation était conditionnée au rôle administrateur. Or ce
+            // plugin ne demande que des permissions LOCALES
+            // (`network.external.read`, `jellyfin.metadata.read`) : aucune
+            // n'agit sur le serveur. Le résultat était qu'aucun compte
+            // ordinaire ne voyait jamais de note externe — alors que l'écran
+            // de réglages lui demandait pourtant sa clé API OMDb.
+            // `approvePermissions` refuse désormais de lui-même, et lui seul,
+            // ce qui touche au serveur.
+            try {
+                pluginManager.approvePermissions(manifest.id, manifest.permissions || []);
+            } catch (err) {
+                log.info(`Permissions du plugin de notes non approuvées : ${err?.message || err}`);
+            }
             const policy = pluginManager.getPermissionPolicy?.(manifest.id);
             if ((policy?.denied || []).length > 0) {
                 log.info('Plugin de notes inactif : permissions non approuvées sur ce compte.');
@@ -637,7 +648,7 @@ async function init() {
     // 13. Monter l'application cliente dans #app (si présent)
     const appTarget = document.getElementById('app');
     if (appTarget) {
-        const renderApp = () => {
+        const renderApp = (avis = '') => {
             appTarget.innerHTML = '';
             if (auth.isAuthenticated()) {
                 const appLayout = new AppLayout();
@@ -659,13 +670,34 @@ async function init() {
                         jfClient.setApiKey(auth.getToken());
                     }
                     renderApp();
-                });
+                }, { avis });
                 SpaceHub.ui.loginView = loginView;
                 loginView.render(appTarget);
                 log.info('LoginView affiché dans #app (Non connecté).');
             }
         };
         renderApp();
+
+        // 13.2 Session révoquée côté serveur.
+        //
+        // Jusqu'ici, la validité du jeton n'était vérifiée qu'AU DÉMARRAGE
+        // (`AuthManager.init`). Si l'administrateur fermait la session pendant
+        // l'utilisation, chaque widget affichait indépendamment « n'a pas pu
+        // s'afficher », l'état local restait « authentifié », et rien ne
+        // ramenait à l'écran de connexion ni ne disait pourquoi.
+        //
+        // `ApiClient` émet désormais `auth:expired` UNE SEULE FOIS par
+        // chargement de page, sur le premier 401/403. On y répond ici : c'est
+        // le seul endroit qui sait remonter l'écran de connexion.
+        let sessionExpireeTraitee = false;
+        eventBus.on('auth:expired', ({ status } = {}) => {
+            if (sessionExpireeTraitee) return;
+            sessionExpireeTraitee = true;
+            log.warn(`Session Jellyfin refusée par le serveur (HTTP ${status}) — retour à la connexion.`);
+            // `rechargement: false` : un reload effacerait le message ci-dessous.
+            auth.logout({ rechargement: false });
+            renderApp('Votre session a expiré ou a été fermée par l\'administrateur du serveur. Reconnectez-vous pour continuer.');
+        });
     }
 
     // 13.5 Outils de développement — chargés uniquement en dev.
@@ -696,10 +728,49 @@ async function init() {
     }
 
     // 14. Masquer le Splash Loader
-    const splash = document.getElementById('sh-splash-loader');
-    if (splash) {
-        splash.style.opacity = '0';
-        setTimeout(() => splash.remove(), 400);
+    //     (également appelé par le `finally` de `demarrer()` : voir plus bas —
+    //      un écran de chargement qui ne part jamais est le pire mode de panne.)
+    retirerSplash();
+
+    // 14.5 Perte et retour de connexion.
+    //
+    // AUDIT B7 — l'application ne s'intéressait pas du tout à l'état du
+    // réseau. Coupure Wi-Fi : chaque widget partait en erreur l'un après
+    // l'autre, chacun affichant « n'a pas pu s'afficher » sans jamais nommer
+    // la vraie cause, et rien ne se rétablissait au retour du réseau — il
+    // fallait recharger la page.
+    //
+    // `navigator.onLine === false` est une information FIABLE (aucune
+    // interface réseau) ; `true` ne prouve rien. On s'en sert donc pour
+    // expliquer une panne, jamais pour promettre que tout fonctionne.
+    if (typeof window !== 'undefined') {
+        const racine = document.documentElement;
+        let etaitHorsLigne = navigator.onLine === false;
+        racine.classList.toggle('sh-hors-ligne', etaitHorsLigne);
+
+        window.addEventListener('offline', () => {
+            etaitHorsLigne = true;
+            racine.classList.add('sh-hors-ligne');
+            log.warn('Connexion réseau perdue.');
+            eventBus.emit('reseau:hors-ligne');
+            SpaceHub.ui?.components?.toaster?.show?.(
+                'Connexion perdue. Les contenus déjà téléchargés restent disponibles.', 'error');
+        });
+
+        window.addEventListener('online', () => {
+            racine.classList.remove('sh-hors-ligne');
+            log.info('Connexion réseau rétablie.');
+            eventBus.emit('reseau:en-ligne');
+            // On ne recharge pas la page de force : l'utilisateur perdrait sa
+            // position. On annonce le retour et on invite les vues à se
+            // rafraîchir — celles qui écoutent le font, les autres attendent
+            // une navigation.
+            if (etaitHorsLigne) {
+                etaitHorsLigne = false;
+                SpaceHub.ui?.components?.toaster?.show?.('Connexion rétablie.', 'success');
+                eventBus.emit('donnees:rafraichir', { cause: 'retour-reseau' });
+            }
+        });
     }
 
     // 15. Émettre l'événement de démarrage global
@@ -709,15 +780,82 @@ async function init() {
 
 // ─── Exposition & Bootstrap ──────────────────────────────────────────────────
 
+/** Retire l'écran de chargement. Idempotent : sûr à appeler deux fois. */
+function retirerSplash() {
+    const splash = document.getElementById('sh-splash-loader');
+    if (!splash || splash.dataset.shRetire === '1') return;
+    splash.dataset.shRetire = '1';
+    splash.style.opacity = '0';
+    setTimeout(() => splash.remove(), 400);
+}
+
+/**
+ * Écran de dernier recours : `init()` a échoué avant d'avoir monté quoi que
+ * ce soit. Sans lui, retirer le splash ne ferait que révéler une page noire —
+ * l'utilisateur n'aurait aucun moyen de savoir si l'application charge encore,
+ * si son serveur est éteint, ou si le navigateur est trop ancien. On donne le
+ * message d'origine et un bouton pour réessayer.
+ */
+function afficherEchecDemarrage(err) {
+    const cible = document.getElementById('app');
+    if (!cible || cible.querySelector('.sh-boot-error')) return;
+    const carte = document.createElement('div');
+    carte.className = 'sh-boot-error';
+    carte.setAttribute('role', 'alert');
+    carte.style.cssText = 'max-width:560px;margin:18vh auto;padding:28px 30px;'
+        + 'border-radius:16px;border:1px solid rgba(255,69,58,0.32);'
+        + 'background:rgba(255,69,58,0.10);color:#fff;'
+        + 'font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;';
+
+    const titre = document.createElement('h2');
+    titre.textContent = 'SpaceHub n\'a pas pu démarrer.';
+    titre.style.cssText = 'margin:0 0 10px;font-size:19px;font-weight:600;';
+
+    const detail = document.createElement('p');
+    // textContent, jamais innerHTML : le message peut venir du serveur.
+    detail.textContent = err?.message || String(err || 'Erreur inconnue.');
+    detail.style.cssText = 'margin:0 0 20px;opacity:0.82;font-size:13.5px;word-break:break-word;';
+
+    const bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.textContent = 'Recharger';
+    bouton.style.cssText = 'padding:11px 26px;border-radius:10px;border:0;cursor:pointer;'
+        + 'background:#fff;color:#111;font-size:14px;font-weight:600;';
+    bouton.addEventListener('click', () => window.location.reload());
+
+    carte.append(titre, detail, bouton);
+    cible.appendChild(carte);
+}
+
+/**
+ * Enveloppe de démarrage.
+ *
+ * Deux défauts corrigés ici :
+ *   1. `init` était passé tel quel à `addEventListener` : la promesse qu'il
+ *      renvoie n'était rattachée à rien, donc un échec de démarrage partait en
+ *      rejet non traité — sans message, sans écran de repli.
+ *   2. Le retrait du splash était la DERNIÈRE instruction de `init` : toute
+ *      exception avant elle laissait l'écran de chargement en place pour
+ *      toujours. Il est désormais dans un `finally`.
+ */
+function demarrer() {
+    return init()
+        .catch(err => {
+            console.error('[SpaceHub] Erreur d\'initialisation:', err);
+            afficherEchecDemarrage(err);
+        })
+        .finally(retirerSplash);
+}
+
 if (typeof window !== 'undefined') {
     window.SpaceHub = SpaceHub;
 
     // Démarre dès que le DOM est prêt
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', () => { demarrer(); });
     } else {
         // DOM déjà chargé (injection tardive)
-        init().catch(err => console.error('[SpaceHub] Erreur d\'initialisation:', err));
+        demarrer();
     }
 }
 

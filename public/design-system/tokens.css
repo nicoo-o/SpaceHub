@@ -94,6 +94,37 @@
     --sh-ease-in-out:   cubic-bezier(0.5, 0, 0.5, 1);
     --sh-ease-shake:    cubic-bezier(0.36, 0.07, 0.19, 0.97);
 
+    /* ── Durées de BOUCLE ─────────────────────────────────────
+       À ne pas confondre avec l'échelle `--sh-dur-*`, qui décrit des
+       TRANSITIONS : un départ, une arrivée, c'est fini.
+
+       Une migration automatisée a remplacé toutes les périodes de boucle par
+       `--sh-dur-5` (550 ms). Les dix-neuf animations `infinite` de
+       l'application tournaient donc à la même cadence : les indicateurs de
+       chargement à 1,8 tour/seconde, les squelettes en stroboscope, le vinyle
+       de la fiche média à 109 tr/min, et les trois orbes de l'écran de
+       connexion — 500 px, floutées à 80 px — pulsant deux fois par seconde.
+
+       Une boucle se mesure en secondes, pas en millisecondes de transition. */
+    --sh-loop-spin:              900ms;   /* un tour d'indicateur de chargement */
+    --sh-loop-pulse:             2s;      /* pastille d'état, point qui respire */
+    --sh-loop-shimmer:           1600ms;  /* balayage d'un squelette de chargement */
+    --sh-loop-flottement:        2600ms;  /* invite au défilement, lent et discret */
+    --sh-loop-vinyle:            3200ms;  /* un 33 tours ne tourne pas vite */
+    --sh-loop-ambiant:           9s;      /* halos de fond, quasi imperceptible */
+
+    /* Interrupteurs. Ces trois couleurs étaient écrites en dur dans les règles
+       (`#ffffff`, `#000000`, `rgba(180,180,180,.9)`) : en thème clair, la piste
+       cochée devenait blanche sur une surface blanche — l'interrupteur activé
+       disparaissait purement et simplement de l'écran des réglages. */
+    --sh-toggle-on:              #ffffff;
+    --sh-toggle-thumb:           #000000;
+    --sh-toggle-off:             rgba(255, 255, 255, 0.15);
+
+    /* Chevron des listes déroulantes. Image complète et non couleur : une
+       teinte écrite dans une URL de données ne suit aucun jeton. */
+    --sh-select-chevron:         url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+
     --sh-blur-chrome:            blur(20px) saturate(160%);
 
     /* ── Anneau de focus TV/clavier ───────────────────────────
@@ -204,10 +235,10 @@
     --sh-leading-relaxed:        1.65;
 
     /* ─── Ombres — Profondes Cinématiques ───────────────────── */
-    --sh-shadow-sm:              0 2px 8px rgba(0, 0, 0, 0.5);
-    --sh-shadow-md:              0 8px 24px rgba(0, 0, 0, 0.7);
-    --sh-shadow-lg:              0 16px 48px rgba(0, 0, 0, 0.85);
-    --sh-shadow-xl:              0 32px 80px rgba(0, 0, 0, 0.95);
+    --sh-shadow-sm:              0 2px 8px rgba(var(--sh-shadow-rgb, 0, 0, 0),  0.5);
+    --sh-shadow-md:              0 8px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0),  0.7);
+    --sh-shadow-lg:              0 16px 48px rgba(var(--sh-shadow-rgb, 0, 0, 0),  0.85);
+    --sh-shadow-xl:              0 32px 80px rgba(var(--sh-shadow-rgb, 0, 0, 0),  0.95);
     --sh-shadow-primary:         0 4px 20px rgba(var(--sh-ink, 255, 255, 255),  0.15);
     --sh-shadow-glow:            0 0 24px rgba(var(--sh-ink, 255, 255, 255),  0.20);
 
@@ -326,26 +357,26 @@ body::-webkit-scrollbar, #app::-webkit-scrollbar { display: none; width: 0; heig
 .sh-toggle-track {
     width: 100%;
     height: 100%;
-    background: rgba(var(--sh-ink, 255, 255, 255),  0.15);
+    background: var(--sh-toggle-off, rgba(var(--sh-ink, 255, 255, 255), 0.15));
     border-radius: 999px;
-    transition: background 220ms ease;
+    transition: background var(--sh-dur-2) ease;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.10);
 }
-.sh-toggle input:checked + .sh-toggle-track { background: #ffffff; }
+.sh-toggle input:checked + .sh-toggle-track { background: var(--sh-toggle-on, #ffffff); }
 .sh-toggle-thumb {
     position: absolute;
     top: 3px;
     left: 3px;
     width: 20px;
     height: 20px;
-    background: rgba(180, 180, 180, 0.9);
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.55);
     border-radius: 50%;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    box-shadow: 0 2px 6px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5);
     transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), background 220ms ease;
 }
 .sh-toggle input:checked ~ .sh-toggle-thumb {
     transform: translateX(18px);
-    background: #000000;
+    background: var(--sh-toggle-thumb, #000000);
 }
 
 /* ── Badge / Pill Statuts ─────────────────────────────────────── */
@@ -388,11 +419,11 @@ body::-webkit-scrollbar, #app::-webkit-scrollbar { display: none; width: 0; heig
 @keyframes sh-fadeIn        { from { opacity: 0; }                               to { opacity: 1; } }
 @keyframes sh-fadeInUp      { from { opacity: 0; transform: translateY(12px); }  to { opacity: 1; transform: translateY(0); } }
 @keyframes sh-fadeInDown    { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes sh-scaleIn       { from { opacity: 0; transform: scale(0.94); }       to { opacity: 1; transform: scale(1); } }
+
 @keyframes sh-springIn      { from { opacity: 0; transform: scale(0.92) translateY(14px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-@keyframes sh-slideInRight  { from { transform: translateX(110%); }              to { transform: translateX(0); } }
-@keyframes sh-slideOutRight { from { transform: translateX(0); opacity: 1; }     to { transform: translateX(110%); opacity: 0; } }
-@keyframes sh-pulse         { 0%, 100% { opacity: 1; }                           50% { opacity: 0.5; } }
+
+
+
 @keyframes sh-spin          { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
@@ -404,6 +435,11 @@ body::-webkit-scrollbar, #app::-webkit-scrollbar { display: none; width: 0; heig
     }
 }
 
+@keyframes sh-pulse-dot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: 0.5; }
+}
+
 /* ── Anneau de focus générique (navigation TV/clavier) ──────────────────────
    SpatialNavigation.setFocus() ajoute .sh-focus-active/.sh-tv-focused à TOUT
    élément qui reçoit le focus logique (sidebar, boutons, filtres, onglets,
@@ -413,6 +449,27 @@ body::-webkit-scrollbar, #app::-webkit-scrollbar { display: none; width: 0; heig
    Ce filet générique garantit un indicateur visible par défaut ; les
    composants qui définissent déjà leur propre traitement (.sh-card,
    .sh-hero-edge-btn) restent inchangés et ne reçoivent pas ce contour en plus. */
+/* ── Un indicateur de position, pour l'entrée qui n'a pas de curseur ────────
+   Quand la souris reprend la main, `SpatialNavigation` retire ses classes de
+   focus et pose `.sh-nav-focus-suspendu` sur l'élément qu'il gardait — il
+   reste sa position de repli, il n'est plus « sélectionné ».
+
+   Ce marqueur est nécessaire parce que retirer nos classes ne suffit pas :
+   l'élément conserve le focus NATIF, et le navigateur le tient toujours pour
+   `:focus-visible` (seul un clic lève cet état, pas un déplacement de souris).
+   Le filet d'accessibilité plus bas reprenait donc la main et redessinait
+   exactement le même anneau — c'est ce qu'on voyait à l'écran.
+
+   La règle ne vise que cet élément-là, et seulement en mode pointeur : un
+   vrai focus clavier obtenu par tabulation garde son anneau. */
+html.sh-entree-pointeur .sh-nav-focus-suspendu,
+html.sh-entree-pointeur .sh-nav-focus-suspendu:focus,
+html.sh-entree-pointeur .sh-nav-focus-suspendu:focus-visible,
+html.sh-entree-pointeur .sh-nav-focus-suspendu .sh-card__image-wrap {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
 .sh-focus-active:not(.sh-card):not(.sh-hero-edge-btn) {
     /* outline-offset NEGATIF : l'anneau est trace A L'INTERIEUR de l'element,
        donc jamais rogne par un parent en overflow:hidden (sidebar, carrousels,
@@ -519,4 +576,31 @@ textarea:focus-visible:not(.sh-focus-active),
 }
 @media (max-width: 480px) {
     :root { --sh-page-gutter: 10px; }
+}
+
+/* ══ État hors-ligne (audit B7) ════════════════════════════════════════════
+   `html.sh-hors-ligne` est posé par core/SpaceHub.js sur l'événement
+   `offline`. Il ne masque rien : il signale, discrètement mais en permanence,
+   que ce qui est à l'écran peut être périmé — sans quoi l'utilisateur lit des
+   données figées en les croyant à jour. */
+html.sh-hors-ligne body::before {
+    content: "Hors ligne — les données affichées peuvent être périmées";
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 99999;
+    padding: 7px 14px;
+    text-align: center;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #101014;
+    background: var(--sh-focus-ring, #ff9f0a);
+    pointer-events: none;
+}
+
+/* Ce qui exige le réseau est visiblement inerte plutôt que faussement actif. */
+html.sh-hors-ligne .sh-requiert-reseau {
+    opacity: 0.42;
+    pointer-events: none;
+    filter: saturate(0.3);
 }
