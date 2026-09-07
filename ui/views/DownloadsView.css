@@ -52,7 +52,7 @@
     border-radius: 50%;
     background: #32d74b;
     box-shadow: 0 0 8px #32d74b;
-    animation: shPulse var(--sh-dur-5) infinite;
+    animation: shPulse var(--sh-loop-pulse) infinite;
 }
 
 @keyframes shPulse {
@@ -92,7 +92,7 @@
     border-radius: 20px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
-    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
 
 .sh-metric-card:hover {
@@ -168,7 +168,7 @@
     font-size: 13.5px;
     font-weight: 650;
     cursor: pointer;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
     white-space: nowrap;
 }
 
@@ -201,7 +201,7 @@
     font-size: 13px;
     font-weight: 650;
     cursor: pointer;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
 
 .sh-dl-action-btn:hover {
@@ -281,7 +281,7 @@
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
 
 .sh-downloads-view .sh-widget__refresh-btn:hover,
@@ -357,7 +357,7 @@
     padding: 16px 20px !important;
     margin-bottom: 12px;
     gap: 12px !important;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important, filter var(--sh-dur-3) var(--sh-ease-out) !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
 .sh-qbit-row:hover {
@@ -392,7 +392,7 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
     border-radius: 16px !important;
     overflow: hidden !important;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important, filter var(--sh-dur-3) var(--sh-ease-out) !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important;
     padding: 8px !important;
 }
 
@@ -451,7 +451,7 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
     border-radius: 16px !important;
     padding: 12px !important;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important, filter var(--sh-dur-3) var(--sh-ease-out) !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
 .sh-sonarr-episode-card:hover {
@@ -492,7 +492,7 @@
     border-radius: 16px !important;
     padding: 16px 20px !important;
     margin-bottom: 12px !important;
-    transition: transform var(--sh-dur-3) ease !important, opacity var(--sh-dur-3) ease !important, background-color var(--sh-dur-3) ease !important, background var(--sh-dur-3) ease !important, border-color var(--sh-dur-3) ease !important, box-shadow var(--sh-dur-3) ease !important, color var(--sh-dur-3) ease !important, filter var(--sh-dur-3) ease !important;
+    transition: transform var(--sh-dur-3) ease !important, opacity var(--sh-dur-3) ease !important, background-color var(--sh-dur-3) ease !important, background var(--sh-dur-3) ease !important, border-color var(--sh-dur-3) ease !important, box-shadow var(--sh-dur-3) ease !important, color var(--sh-dur-3) ease !important;
 }
 
 .sh-sonarr-queue-row:hover,
@@ -525,7 +525,7 @@
     border-radius: 14px !important;
     padding: 12px 18px !important;
     margin-bottom: 10px !important;
-    transition: transform var(--sh-dur-3) ease !important, opacity var(--sh-dur-3) ease !important, background-color var(--sh-dur-3) ease !important, background var(--sh-dur-3) ease !important, border-color var(--sh-dur-3) ease !important, box-shadow var(--sh-dur-3) ease !important, color var(--sh-dur-3) ease !important, filter var(--sh-dur-3) ease !important;
+    transition: transform var(--sh-dur-3) ease !important, opacity var(--sh-dur-3) ease !important, background-color var(--sh-dur-3) ease !important, background var(--sh-dur-3) ease !important, border-color var(--sh-dur-3) ease !important, box-shadow var(--sh-dur-3) ease !important, color var(--sh-dur-3) ease !important;
 }
 
 .sh-bazarr-item:hover {
@@ -563,7 +563,7 @@
     font-size: 12px !important;
     font-weight: 600 !important;
     cursor: pointer !important;
-    transition: transform var(--sh-dur-3) ease !important, opacity var(--sh-dur-3) ease !important, background-color var(--sh-dur-3) ease !important, background var(--sh-dur-3) ease !important, border-color var(--sh-dur-3) ease !important, box-shadow var(--sh-dur-3) ease !important, color var(--sh-dur-3) ease !important, filter var(--sh-dur-3) ease !important;
+    transition: transform var(--sh-dur-3) ease !important, opacity var(--sh-dur-3) ease !important, background-color var(--sh-dur-3) ease !important, background var(--sh-dur-3) ease !important, border-color var(--sh-dur-3) ease !important, box-shadow var(--sh-dur-3) ease !important, color var(--sh-dur-3) ease !important;
 }
 
 .sh-bazarr-search-btn:hover {
@@ -586,7 +586,7 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     border-radius: 18px;
     padding: 8px 18px;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
     box-shadow: 0 4px 20px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.35);
 }
 
@@ -630,7 +630,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform var(--sh-dur-3) ease, opacity var(--sh-dur-3) ease, background-color var(--sh-dur-3) ease, background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease, box-shadow var(--sh-dur-3) ease, color var(--sh-dur-3) ease, filter var(--sh-dur-3) ease;
+    transition: transform var(--sh-dur-3) ease, opacity var(--sh-dur-3) ease, background-color var(--sh-dur-3) ease, background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease, box-shadow var(--sh-dur-3) ease, color var(--sh-dur-3) ease;
 }
 
 .sh-jellyseerr-clear-btn:hover {
@@ -653,7 +653,7 @@
     border-radius: 16px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
-    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
 
 .sh-jellyseerr-card:hover {
@@ -750,7 +750,7 @@
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
-    transition: transform var(--sh-dur-3) ease, opacity var(--sh-dur-3) ease, background-color var(--sh-dur-3) ease, background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease, box-shadow var(--sh-dur-3) ease, color var(--sh-dur-3) ease, filter var(--sh-dur-3) ease;
+    transition: transform var(--sh-dur-3) ease, opacity var(--sh-dur-3) ease, background-color var(--sh-dur-3) ease, background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease, box-shadow var(--sh-dur-3) ease, color var(--sh-dur-3) ease;
 }
 
 .sh-jellyseerr-req-btn:hover {
@@ -788,7 +788,7 @@
     border-radius: 18px !important;
     padding: 14px 18px !important;
     margin-bottom: 12px !important;
-    transition: transform var(--sh-dur-3) ease !important, opacity var(--sh-dur-3) ease !important, background-color var(--sh-dur-3) ease !important, background var(--sh-dur-3) ease !important, border-color var(--sh-dur-3) ease !important, box-shadow var(--sh-dur-3) ease !important, color var(--sh-dur-3) ease !important, filter var(--sh-dur-3) ease !important;
+    transition: transform var(--sh-dur-3) ease !important, opacity var(--sh-dur-3) ease !important, background-color var(--sh-dur-3) ease !important, background var(--sh-dur-3) ease !important, border-color var(--sh-dur-3) ease !important, box-shadow var(--sh-dur-3) ease !important, color var(--sh-dur-3) ease !important;
 }
 
 .sh-jellyseerr-request-card:hover {
@@ -822,7 +822,7 @@
     overflow: hidden !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important, filter var(--sh-dur-3) var(--sh-ease-out) !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important;
     padding: 8px !important;
 }
 
@@ -849,7 +849,7 @@
     border: 3px solid rgba(var(--sh-ink, 255, 255, 255),  0.1);
     border-top-color: var(--sh-color-primary, #64d2ff);
     border-radius: 50%;
-    animation: shSpin var(--sh-dur-5) linear infinite;
+    animation: shSpin var(--sh-loop-spin) linear infinite;
 }
 
 @keyframes shSpin {
@@ -943,7 +943,7 @@
     font-size: 12px !important;
     font-weight: 600 !important;
     cursor: pointer !important;
-    transition: transform var(--sh-dur-2) ease !important, opacity var(--sh-dur-2) ease !important, background-color var(--sh-dur-2) ease !important, background var(--sh-dur-2) ease !important, border-color var(--sh-dur-2) ease !important, box-shadow var(--sh-dur-2) ease !important, color var(--sh-dur-2) ease !important, filter var(--sh-dur-2) ease !important;
+    transition: transform var(--sh-dur-2) ease !important, opacity var(--sh-dur-2) ease !important, background-color var(--sh-dur-2) ease !important, background var(--sh-dur-2) ease !important, border-color var(--sh-dur-2) ease !important, box-shadow var(--sh-dur-2) ease !important, color var(--sh-dur-2) ease !important;
     display: flex !important;
     align-items: center !important;
     gap: 6px !important;
@@ -997,7 +997,7 @@
     font-size: 11px !important;
     font-weight: 600 !important;
     cursor: pointer !important;
-    transition: transform var(--sh-dur-2) ease !important, opacity var(--sh-dur-2) ease !important, background-color var(--sh-dur-2) ease !important, background var(--sh-dur-2) ease !important, border-color var(--sh-dur-2) ease !important, box-shadow var(--sh-dur-2) ease !important, color var(--sh-dur-2) ease !important, filter var(--sh-dur-2) ease !important;
+    transition: transform var(--sh-dur-2) ease !important, opacity var(--sh-dur-2) ease !important, background-color var(--sh-dur-2) ease !important, background var(--sh-dur-2) ease !important, border-color var(--sh-dur-2) ease !important, box-shadow var(--sh-dur-2) ease !important, color var(--sh-dur-2) ease !important;
 }
 
 .sh-cal-jump-today-btn:hover {
@@ -1021,7 +1021,7 @@
     justify-content: center !important;
     cursor: pointer !important;
     font-size: 12px !important;
-    transition: transform var(--sh-dur-2) ease !important, opacity var(--sh-dur-2) ease !important, background-color var(--sh-dur-2) ease !important, background var(--sh-dur-2) ease !important, border-color var(--sh-dur-2) ease !important, box-shadow var(--sh-dur-2) ease !important, color var(--sh-dur-2) ease !important, filter var(--sh-dur-2) ease !important;
+    transition: transform var(--sh-dur-2) ease !important, opacity var(--sh-dur-2) ease !important, background-color var(--sh-dur-2) ease !important, background var(--sh-dur-2) ease !important, border-color var(--sh-dur-2) ease !important, box-shadow var(--sh-dur-2) ease !important, color var(--sh-dur-2) ease !important;
 }
 
 .sh-cal-arrow-btn:hover {
@@ -1058,7 +1058,7 @@
     gap: 6px !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
-    transition: transform var(--sh-dur-2) ease !important, opacity var(--sh-dur-2) ease !important, background-color var(--sh-dur-2) ease !important, background var(--sh-dur-2) ease !important, border-color var(--sh-dur-2) ease !important, box-shadow var(--sh-dur-2) ease !important, color var(--sh-dur-2) ease !important, filter var(--sh-dur-2) ease !important;
+    transition: transform var(--sh-dur-2) ease !important, opacity var(--sh-dur-2) ease !important, background-color var(--sh-dur-2) ease !important, background var(--sh-dur-2) ease !important, border-color var(--sh-dur-2) ease !important, box-shadow var(--sh-dur-2) ease !important, color var(--sh-dur-2) ease !important;
 }
 
 .sh-cal-grid-cell.empty {
@@ -1236,7 +1236,7 @@
     border-radius: 16px !important;
     padding: 10px !important;
     cursor: pointer !important;
-    transition: transform var(--sh-dur-2) ease !important, opacity var(--sh-dur-2) ease !important, background-color var(--sh-dur-2) ease !important, background var(--sh-dur-2) ease !important, border-color var(--sh-dur-2) ease !important, box-shadow var(--sh-dur-2) ease !important, color var(--sh-dur-2) ease !important, filter var(--sh-dur-2) ease !important;
+    transition: transform var(--sh-dur-2) ease !important, opacity var(--sh-dur-2) ease !important, background-color var(--sh-dur-2) ease !important, background var(--sh-dur-2) ease !important, border-color var(--sh-dur-2) ease !important, box-shadow var(--sh-dur-2) ease !important, color var(--sh-dur-2) ease !important;
 }
 
 .sh-cal-timeline-card:hover {
@@ -1320,4 +1320,44 @@
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     margin-top: 2px !important;
+}
+
+/* ── Squelette de chargement (audit B8) ────────────────────────────────────
+   Remplace le compteur centré : il réserve la place que le contenu prendra,
+   ce qui supprime le décalage de mise en page à l'arrivée des données.
+   `.sh-skeleton-block` (défini avec CardBuilder) porte l'animation. */
+.sh-dl-skel {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 4px 0 12px;
+}
+
+.sh-dl-skel__stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+}
+
+.sh-dl-skel__stat {
+    height: 92px;
+    border-radius: 14px;
+}
+
+.sh-dl-skel__list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sh-dl-skel__row {
+    height: 58px;
+    border-radius: 12px;
+}
+
+.sh-dl-skel__label {
+    margin: 6px 0 0;
+    text-align: center;
+    font-size: 13px;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.42);
 }

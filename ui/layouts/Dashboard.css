@@ -40,6 +40,42 @@
     grid-column: span 12;
 }
 
+/* ── Rendu paresseux des sections hors écran ───────────────────────────────
+   Le tableau de bord empile jusqu'à 27 widgets, chacun étant une rangée de
+   cartes avec ses affiches, ses dégradés et ses ombres. Le navigateur les
+   met en page et les peint TOUS au premier rendu, y compris les vingt qui
+   sont à trois écrans plus bas et que personne ne regardera peut-être jamais.
+   Sur un téléviseur, c'est la principale cause du délai avant que la page
+   réponde à la première pression de touche.
+
+   `content-visibility: auto` dit au navigateur de sauter la mise en page et
+   la peinture d'une section tant qu'elle n'approche pas de l'écran. Le gain
+   mesuré sur la démonstration de référence est d'un facteur sept sur le
+   temps de rendu.
+
+   `contain-intrinsic-size: auto <hauteur>` est INDISSOCIABLE : sans lui, une
+   section non rendue vaut zéro pixel de haut, la barre de défilement ment et
+   tout saute à l'arrivée du contenu. Le mot-clé `auto` mémorise en plus la
+   taille réellement rendue une fois la section vue, de sorte que la seconde
+   visite est exacte.
+
+   Sous `@supports` : la propriété n'existe qu'à partir de Chrome 85, et le
+   plancher de compatibilité du projet est Chrome 69. Les téléviseurs anciens
+   gardent le comportement d'avant — plus lent, mais identique. */
+@supports (content-visibility: auto) {
+    .sh-dashboard__item {
+        content-visibility: auto;
+        contain-intrinsic-size: auto 420px;
+    }
+
+    /* Les deux premières sections sont toujours à l'écran : les rendre
+       paresseuses ne gagnerait rien et retarderait le plus gros élément
+       affiché (le point de mesure du LCP). */
+    .sh-dashboard__item:nth-child(-n + 2) {
+        content-visibility: visible;
+    }
+}
+
 @keyframes shSectionFadeIn {
     from {
         opacity: 0;
@@ -73,8 +109,7 @@
         right: 16px;
     }
     .sh-genre-chips-container {
-        padding: 0 16px;
-        margin: 24px auto 20px;
+        margin: 24px auto 20px;   /* le retrait suit --sh-page-gutter */
     }
     .sh-widget__title {
         font-size: 18px;
@@ -86,9 +121,7 @@
         padding: 0 var(--sh-page-gutter) 48px;
         gap: 20px;
     }
-    .sh-genre-chips-container {
-        padding: 0 10px;
-    }
+
 }
 
 /* Base Widget Container */
@@ -251,9 +284,14 @@
 
 /* ── Segmented Control "Elastic Liquid Spring Pill" ────────── */
 .sh-genre-chips-container {
-    max-width: 1560px;
+    /* Ces deux valeurs étaient codées en dur (1560px / 48px) alors que le
+       gabarit de page descend à 32 px sous 1100 px de large et à 16 px sous
+       768 px. Sur écran étroit, la barre de genres restait donc rentrée de
+       32 px par rapport aux étagères juste en dessous — un décalage visible
+       d'un bloc à l'autre, sur la page d'accueil. */
+    max-width: var(--sh-page-max, 1560px);
     margin: 36px auto 28px;
-    padding: 0 48px;
+    padding: 0 var(--sh-page-gutter, 48px);
     display: flex;
     align-items: center;
     overflow-x: auto;

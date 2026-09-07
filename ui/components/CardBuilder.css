@@ -54,7 +54,12 @@
     cursor: pointer;
     position: relative;
     transition: transform var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) ease;
-    will-change: transform;
+    /* `will-change` retiré : cette règle s'applique à CHAQUE carte de chaque
+       grille et de chaque étagère — plusieurs centaines en bibliothèque, toutes
+       promues en couches de compositing en permanence. Une transition sur
+       `transform` seul est déjà composée sans indice ; l'indice, lui, réserve
+       de la mémoire GPU en continu, ce qui se paie cash sur un téléviseur
+       (textures d'affiches qui blanchissent au défilement). */
     backface-visibility: hidden;
 }
 
@@ -674,7 +679,7 @@
 .sh-skeleton-block {
     background: linear-gradient(115deg, var(--sh-bg-surface, #121218) 15%, var(--sh-bg-surface-2, #1e1e28) 35%, var(--sh-bg-surface-3, #2a2a3a) 50%, var(--sh-bg-surface-2, #1e1e28) 65%, var(--sh-bg-surface, #121218) 85%);
     background-size: 250% 100%;
-    animation: sh-shimmer var(--sh-dur-5) var(--sh-ease-standard) infinite;
+    animation: sh-shimmer var(--sh-loop-shimmer) var(--sh-ease-standard) infinite;
 }
 @keyframes sh-shimmer {
     0%   { background-position: 200% center; }
@@ -791,4 +796,16 @@
    navigation. */
 .sh-card--locked.sh-focus-active .sh-card__image-wrap {
     filter: blur(14px) saturate(0.25) brightness(0.75);
+}
+
+/* ── Cales de virtualisation ───────────────────────────────────────────────
+   Au-delà du seuil, une rangée ne rend que sa fenêtre visible : ces deux
+   éléments tiennent la place des cartes absentes, de sorte que la barre de
+   défilement garde sa taille et que la position ne saute pas quand la fenêtre
+   se déplace. Ils ne sont ni focalisables ni lisibles — le moteur de
+   navigation ne doit jamais les considérer comme une cible. */
+.sh-rangee-cale {
+    align-self: stretch;
+    pointer-events: none;
+    visibility: hidden;
 }
