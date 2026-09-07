@@ -13,10 +13,14 @@
  *     que fait un karaoké naïf, et c'est ce qu'on ne fait pas ici.
  */
 
+/* Monté DANS le lecteur : `absolute` et un z-index qui passe au-dessus de la
+   vidéo et des vignettes (4) mais sous la barre de commandes (40), qui doit
+   rester atteignable. Le lecteur occupe déjà le z-index maximal de la page ;
+   un écran posé sur `document.body` passerait derrière lui, invisible. */
 .sh-musique {
-    position: fixed;
+    position: absolute;
     inset: 0;
-    z-index: 900;
+    z-index: 5;
     display: flex;
     align-items: center;
     gap: 4vw;
@@ -28,6 +32,12 @@
 
 /* Fond flouté : un calque séparé, JAMAIS un filtre sur un parent — flouter un
    ancêtre force la recomposition de tout le sous-arbre, paroles comprises. */
+/* Usage autonome, hors lecteur : couvrir la fenêtre. */
+.sh-musique--fenetre {
+    position: fixed;
+    z-index: 900;
+}
+
 .sh-musique__fond {
     position: absolute;
     /* Débord : le flou mange les bords, sans marge on verrait le cadre. */

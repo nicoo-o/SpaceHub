@@ -1,0 +1,37 @@
+feat: points d'entrée du mode musique
+
+Le moteur de la vague 3 était posé et testé, mais invisible : rien ne
+l'ouvrait. Deux entrées le rendent utilisable.
+
+1. « Lancer une radio » au menu contextuel des cartes.
+   Compose la file par /InstantMix et lance le premier titre. Affiché
+   pour la musique SEULEMENT (Audio, MusicAlbum, MusicArtist,
+   MusicGenre, Playlist) : sur un film, /InstantMix renvoie une liste
+   vide sans erreur, et le bouton reviendrait bredouille sans que la
+   personne comprenne pourquoi.
+
+2. Ouverture automatique de l'écran de paroles sur de l'audio.
+   Un morceau lu dans un lecteur vidéo donne un rectangle noir :
+   techniquement correct, visuellement vide. Le basculement se fait à
+   chaque titre DANS LES DEUX SENS — passer d'un album à un film
+   referme l'écran, sinon la pochette resterait posée sur la vidéo.
+
+UN PIÈGE D'INTÉGRATION QUI VALAIT D'ÊTRE TROUVÉ
+
+Le lecteur occupe `z-index: 2147483647`. Un écran monté sur
+`document.body`, quel que soit son propre z-index, serait passé DERRIÈRE
+lui : invisible, sans erreur, sans rien dans une console. L'écran se
+monte donc DANS le lecteur, à un z-index qui passe au-dessus de la vidéo
+et des vignettes (4) mais reste sous la barre de commandes (40), qui
+doit rester atteignable pendant l'écoute.
+
+`definirHote()` accepte l'hôte après coup — le lecteur n'existe pas au
+moment où le service est construit — et referme l'écran avant d'en
+changer, sans quoi un second s'ajouterait dans le nouveau lecteur
+pendant que le premier resterait dans l'ancien. Un test le vérifie.
+
+Tests : 445 (+3), tous verts sur Windows. Le plan est mis à jour :
+le point 13 passe de « moteur » à « fait ».
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01X3wfiMmiuUtHrr88MjmhUC

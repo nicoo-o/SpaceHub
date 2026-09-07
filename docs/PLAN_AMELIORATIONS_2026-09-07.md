@@ -287,7 +287,7 @@ si elle démarre sur la cible.
 | 10 | Media Session (PC/mobile) | Moyenne | Faible | 2 | fait |
 | 11 | `storage.persist()` | Moyenne | Trivial | 2 | fait |
 | 12 | Cible de cast + WebSocket | Très haute | Moyen | 3 | fait |
-| 13 | Mode musique (radio, veille, paroles) | Haute | Moyen | 3 | fait (moteur) |
+| 13 | Mode musique (radio, veille, paroles) | Haute | Moyen | 3 | fait |
 
 ### Ce que « fait » ne veut pas dire
 
@@ -297,13 +297,19 @@ posé dans la barre supérieure du lecteur : à la taille où ce titre s'affiche
 pendant la lecture, une image de logo serait moins lisible que du texte. C'est
 un choix, pas un oubli.
 
-**#13, « fait (moteur) »** — les trois pièces existent et sont testées : la
-composition de radio (`RadioArtiste`), l'écran plein cadre avec pochette, fond
-flouté et paroles au mot (`EcranMusique`), et la résolution ligne/mot
-(`Paroles`). Ce qui reste à faire est de l'assemblage d'interface : un bouton
-« radio » sur les fiches d'album et d'artiste, et l'ouverture automatique de
-l'écran quand la lecture porte sur de l'audio. Le moteur ne se voit pas encore
-tant que ces deux points d'entrée ne sont pas posés.
+**#13** — les trois pièces sont posées et branchées : la composition de radio
+(`RadioArtiste`), l'écran plein cadre avec pochette, fond flouté et paroles au
+mot (`EcranMusique`), la résolution ligne/mot (`Paroles`). Les deux points
+d'entrée existent aussi : « Lancer une radio » au menu contextuel des cartes —
+affiché pour la musique seulement, car `/InstantMix` ne compose rien sur un
+film — et l'ouverture automatique de l'écran dès que la lecture porte sur de
+l'audio, avec fermeture au titre suivant s'il n'est pas musical.
+
+Un détail d'intégration valait d'être relevé : le lecteur occupe le z-index
+maximal de la page. Un écran monté sur `document.body` serait passé DERRIÈRE
+lui — invisible, sans erreur, sans rien dans une console. Il se monte donc
+DANS le lecteur, entre la vidéo et la barre de commandes, qui reste
+atteignable par-dessus.
 
 ### Ce qui ne peut pas être vérifié d'ici
 

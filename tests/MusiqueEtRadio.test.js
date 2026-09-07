@@ -222,3 +222,60 @@ describe('EcranMusique', () => {
         expect(cancelAnimationFrame).toHaveBeenCalled();
     });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('EcranMusique — l\'hôte de montage', () => {
+    it('se monte dans l\'hôte fourni, pas sur le body', async () => {
+        const lecteur = document.createElement('div');
+        document.body.appendChild(lecteur);
+        const ecran = new EcranMusique({
+            paroles: new Paroles({ api: { get: vi.fn(async () => ({ Lyrics: [] })) } }),
+            api: { getImageUrl: () => '' },
+            media: () => ({ currentTime: 0 }),
+        });
+        vi.spyOn(globalThis, 'requestAnimationFrame').mockReturnValue(1);
+        ecran.definirHote(() => lecteur);
+        await ecran.ouvrir({ Id: 'm', Name: 'X' });
+
+        // LE PIÈGE : le lecteur occupe le z-index maximal de la page. Monté sur
+        // `document.body`, l'écran passerait DERRIÈRE lui et resterait
+        // invisible — sans erreur, sans rien dans une console.
+        expect(lecteur.querySelector('.sh-musique')).not.toBeNull();
+        expect(document.body.children).toContain(lecteur);
+        expect(ecran._el.classList.contains('sh-musique--fenetre'))
+            .toBe(false);
+    });
+
+    it('couvre la fenêtre en usage autonome', async () => {
+        const ecran = new EcranMusique({
+            paroles: new Paroles({ api: { get: vi.fn(async () => ({ Lyrics: [] })) } }),
+            api: { getImageUrl: () => '' },
+            media: () => ({ currentTime: 0 }),
+        });
+        vi.spyOn(globalThis, 'requestAnimationFrame').mockReturnValue(1);
+        await ecran.ouvrir({ Id: 'm', Name: 'X' });
+        expect(ecran._el.classList.contains('sh-musique--fenetre')).toBe(true);
+    });
+
+    it('se referme avant de changer d\'hôte', async () => {
+        const a = document.createElement('div');
+        const b = document.createElement('div');
+        document.body.append(a, b);
+        const ecran = new EcranMusique({
+            paroles: new Paroles({ api: { get: vi.fn(async () => ({ Lyrics: [] })) } }),
+            api: { getImageUrl: () => '' },
+            media: () => ({ currentTime: 0 }),
+        });
+        vi.spyOn(globalThis, 'requestAnimationFrame').mockReturnValue(1);
+        vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
+        ecran.definirHote(() => a);
+        await ecran.ouvrir({ Id: 'm', Name: 'X' });
+        ecran.definirHote(() => b);
+        await ecran.ouvrir({ Id: 'm2', Name: 'Y' });
+
+        // Sans la fermeture préalable, l'écran resterait dans l'ancien lecteur
+        // et un second s'ajouterait dans le nouveau.
+        expect(a.querySelector('.sh-musique')).toBeNull();
+        expect(b.querySelectorAll('.sh-musique')).toHaveLength(1);
+    });
+});

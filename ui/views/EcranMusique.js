@@ -40,12 +40,18 @@ export class EcranMusique {
      * @param {Object} options.paroles   instance de Paroles
      * @param {Object} options.api       client Jellyfin, pour les pochettes
      * @param {() => HTMLMediaElement|null} options.media  l'élément qui joue
+     * @param {() => HTMLElement|null} [options.hote]  où se monter.
      */
-    constructor({ paroles, api, media } = {}) {
+    constructor({ paroles, api, media, hote = null } = {}) {
         this._log = new Logger('EcranMusique');
         this._paroles = paroles || null;
         this._api = api || null;
         this._media = media || (() => null);
+        // OÙ SE MONTER, ET POURQUOI ÇA COMPTE. Le lecteur occupe le z-index
+        // maximal : un écran posé sur `document.body` passerait DERRIÈRE lui et
+        // resterait invisible. Monté dans le lecteur, il se glisse entre la
+        // vidéo et la barre de commandes, qui reste accessible par-dessus.
+        this._hote = hote || (() => document.body);
 
         this._el = null;
         this._conteneurParoles = null;
@@ -57,6 +63,21 @@ export class EcranMusique {
     }
 
     get ouvert() { return this._el !== null; }
+
+    /**
+     * Change l'hôte de montage.
+     *
+     * Le lecteur n'existe pas au moment où ce service est construit : il le
+     * fournit lui-même quand il ouvre un morceau. Un changement d'hôte alors que
+     * l'écran est monté le déplacerait — on le referme donc d'abord.
+     *
+     * @param {() => HTMLElement|null} hote
+     */
+    definirHote(hote) {
+        if (typeof hote !== 'function') return;
+        if (this._el && this._hote() !== hote()) this.fermer();
+        this._hote = hote;
+    }
 
     /**
      * Ouvre l'écran pour un morceau.
@@ -117,7 +138,10 @@ export class EcranMusique {
         colonne.append(pochette, titre, artiste);
 
         el.append(fond, colonne, paroles);
-        document.body.appendChild(el);
+        const hote = this._hote() || document.body;
+        // Hors du lecteur (usage autonome), il faut couvrir la fenêtre entière.
+        if (hote === document.body) el.classList.add('sh-musique--fenetre');
+        hote.appendChild(el);
 
         this._el = el;
         this._conteneurParoles = paroles;

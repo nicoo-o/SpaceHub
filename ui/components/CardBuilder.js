@@ -18,6 +18,15 @@ import Logger from '../../core/Logger.js';
 import './CardBuilder.css';
 import * as svc from '../../core/services.js';
 import { VirtualisationRangee, SEUIL_VIRTUALISATION } from './VirtualisationRangee.js';
+
+/**
+ * Types Jellyfin pour lesquels une radio a un sens.
+ *
+ * `/Items/{id}/InstantMix` ne compose que de la musique : sur un film, il
+ * renvoie une liste vide sans erreur. Mieux vaut ne pas proposer le bouton que
+ * de le laisser revenir bredouille.
+ */
+const EST_MUSIQUE = new Set(['Audio', 'MusicAlbum', 'MusicArtist', 'MusicGenre', 'Playlist']);
 /** @typedef {'poster'|'backdrop'|'thumb'} CardType */
 
 /**
@@ -897,6 +906,10 @@ class CardBuilder {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 <span>Télécharger</span>
             </button>
+            <button class="sh-ctx-item" id="sh-ctx-radio" type="button" style="display:none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"></circle><path d="M4.93 19.07a10 10 0 0 1 0-14.14M19.07 4.93a10 10 0 0 1 0 14.14M7.76 16.24a6 6 0 0 1 0-8.48M16.24 7.76a6 6 0 0 1 0 8.48"></path></svg>
+                <span>Lancer une radio</span>
+            </button>
             <button class="sh-ctx-item" id="sh-ctx-cast" type="button" style="display:none;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path><line x1="2" y1="20" x2="2.01" y2="20"></line></svg>
                 <span>Lire sur un autre appareil</span>
@@ -1085,6 +1098,28 @@ class CardBuilder {
         };
         menu.querySelector('#sh-ctx-play-next').onclick = empiler('next');
         menu.querySelector('#sh-ctx-queue').onclick = empiler('end');
+
+        // Radio d'artiste — le serveur compose une file à partir de ce titre.
+        //
+        // N'apparaît QUE pour de la musique : proposer « lancer une radio » sur
+        // un film promettrait quelque chose que /InstantMix ne sait pas faire,
+        // et le bouton reviendrait bredouille sans que la personne comprenne
+        // pourquoi.
+        const boutonRadio = menu.querySelector('#sh-ctx-radio');
+        const radio = svc.radioMusique?.();
+        if (boutonRadio && radio && item.id && EST_MUSIQUE.has(item.type)) {
+            boutonRadio.style.display = '';
+            boutonRadio.onclick = async () => {
+                this._hideContextMenu();
+                const toaster = svc.toaster();
+                const res = await radio.composer(item.id);
+                if (!res.ok) { toaster?.error?.(res.raison || 'Radio impossible.'); return; }
+                const file = svc.queue();
+                file?.setQueue?.(res.titres, 0);
+                svc.player()?.play?.(res.titres[0]);
+                toaster?.success?.(`Radio lancée : ${res.titres.length} titres.`);
+            };
+        }
 
         // Téléchargement hors-ligne — masqué si le navigateur ne sait pas stocker
         // ou si un dossier existe déjà pour ce titre. L'intitulé bascule alors

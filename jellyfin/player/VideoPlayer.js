@@ -228,6 +228,7 @@ class VideoPlayer {
         this._trickplay.reinitialiser();
         this._chargerSegmentsMedia(item?.Id || item?.id);
         this._brancherSessionMedia(item);
+        this._basculerModeMusique(item);
 
         // Recale la file sur ce qui est réellement lancé. Si l'élément vient
         // d'ailleurs (clic sur une affiche), la file devient hors sujet et
@@ -1979,6 +1980,31 @@ class VideoPlayer {
     }
 
     /**
+     * Ouvre — ou ferme — l'écran de musique selon ce qu'on lit.
+     *
+     * Un morceau lu dans un lecteur vidéo donne un rectangle noir : techniquement
+     * correct, visuellement vide. L'écran de musique prend cette place avec la
+     * pochette, le fond flouté et les paroles, et laisse la barre de commandes
+     * accessible par-dessus.
+     *
+     * Le basculement se fait à CHAQUE titre, dans les deux sens : passer d'un
+     * album à un film doit refermer l'écran, sinon la pochette resterait posée
+     * sur la vidéo.
+     *
+     * @param {object} item
+     */
+    _basculerModeMusique(item) {
+        const ecran = svc.ecranMusique?.();
+        if (!ecran) return;
+        const musical = item?.Type === 'Audio' || item?.MediaType === 'Audio';
+        if (!musical) { ecran.fermer(); return; }
+        // L'hôte n'existe qu'une fois le lecteur monté : on le fournit ici
+        // plutôt qu'à la construction, où `this._el` est encore nul.
+        ecran.definirHote(() => this._el);
+        ecran.ouvrir(item).catch(() => { /* pas de paroles : ce n'est pas une panne */ });
+    }
+
+    /**
      * Publie la position courante auprès du système.
      *
      * Ne fait rien tant que la durée n'est pas connue : `SessionMedia` efface
@@ -2383,6 +2409,7 @@ handleNavAction(action) {
         // appellent un lecteur détruit.
         this._verrouEcran?.liberer();
         this._sessionMedia?.liberer();
+        svc.ecranMusique?.()?.fermer?.();
         this._secondePubliee = -1;
         if (this._minuteurStats) { clearInterval(this._minuteurStats); this._minuteurStats = null; }
         if (!this._el) return;
