@@ -716,6 +716,24 @@ async function init() {
         }
     }
 
+    // 13.6 HUD de diagnostic de navigation.
+    //
+    // Contrairement au harnais ci-dessus, il n'est PAS réservé au
+    // développement : son intérêt est justement d'exister sur l'appareil de
+    // recette. Sur un téléviseur il n'y a pas de console — quand le focus part
+    // au mauvais endroit, on ne dispose que de ce qu'on a appuyé et de ce qui
+    // est sélectionné après. Le HUD dit pourquoi.
+    //
+    // Il reste inerte tant que `?debug=1` n'est pas dans l'URL : le module est
+    // chargé (quelques kilo-octets) mais ne construit rien, ne mesure rien, et
+    // la consignation côté moteur est gardée par un drapeau à `null`.
+    try {
+        const { installerHud } = await import('./dev/DebugHud.js');
+        installerHud(SpaceHub);
+    } catch (err) {
+        log.debug('HUD de diagnostic non chargé :', err?.message || err);
+    }
+
     // 13.8 Coque applicative hors-ligne.
     // Uniquement sur l'application construite : en développement, un service
     // worker qui met en cache des modules servirait des versions périmées à

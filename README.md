@@ -14,7 +14,7 @@
     <a href="#-démonstration-interactive"><img src="https://img.shields.io/badge/Design_System-Apple_VisionOS_Glass-blue?style=for-the-badge&logo=apple&logoColor=white&color=0A84FF" alt="VisionOS"/></a>
     <a href="#-écosystème-unifié"><img src="https://img.shields.io/badge/Jellyfin-10.8%2B_Native-00A4DC?style=for-the-badge&logo=jellyfin&logoColor=white" alt="Jellyfin"/></a>
     <a href="#-console-système-avancée"><img src="https://img.shields.io/badge/Servarr-All--in--One_Unified-success?style=for-the-badge&logo=rss&logoColor=white&color=30D158" alt="Servarr"/></a>
-    <a href="#-installation-en-60-secondes"><img src="https://img.shields.io/badge/Performance-60_FPS_Zero--Lag-purple?style=for-the-badge&logo=speedtest&logoColor=white&color=BF5AF2" alt="Performance"/></a>
+    <a href="#-installation-en-60-secondes"><img src="https://img.shields.io/badge/Cible-60_FPS_sur_TV_2020%2B-purple?style=for-the-badge&logo=speedtest&logoColor=white&color=BF5AF2" alt="Cible de performance"/></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT_Open_Source-white?style=for-the-badge&color=2C2C2E" alt="License"/></a>
   </p>
 
@@ -128,16 +128,30 @@ SpaceHub transcende l'interface classique de Jellyfin pour offrir une véritable
 
 ## 🚀 Installation Rapide (60 Secondes)
 
-### 🔹 Méthode 1 : Injection dans Jellyfin Web (Recommandée)
+### 🔹 Méthode 1 : Application autonome (recommandée)
 
-1. Ouvrez votre serveur Jellyfin : **Tableau de bord → Plugins → JavaScript Injector** (ou éditez votre `index.html` Jellyfin).
-2. Ajoutez simplement le script compilé :
+SpaceHub est une application complète : son propre écran de connexion, sa
+propre navigation, son propre lecteur. Elle parle à Jellyfin par son API REST
+et n'a besoin d'aucune modification côté serveur.
 
-```html
-<!-- SpaceHub Next-Gen Media Center -->
-<script type="module" src="https://cdn.jsdelivr.net/gh/nicoo-o/SpaceHub@main/dist/assets/index.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/nicoo-o/SpaceHub@main/dist/assets/index.css">
+```bash
+git clone https://github.com/nicoo-o/SpaceHub.git
+cd SpaceHub
+npm ci
+npm run build          # produit dist/
 ```
+
+Servez ensuite `dist/` avec n'importe quel serveur de fichiers statiques
+(nginx, Caddy, `npx serve dist`), puis indiquez l'adresse de votre serveur
+Jellyfin sur l'écran de connexion.
+
+> **Note sur l'injection dans Jellyfin Web.** Les versions antérieures se
+> greffaient sur l'interface officielle. Ce n'est plus le mode principal, et
+> les instructions qui figuraient ici ne pouvaient pas fonctionner : elles
+> pointaient vers `dist/assets/index.js`, alors que Vite produit des noms
+> hachés (`index-BB8HIIqK.js`) qui changent à chaque compilation. Une
+> intégration par injection reste possible, mais elle demande de lire les noms
+> réellement produits dans `dist/` après compilation.
 
 ### 🔹 Méthode 2 : Développement Local
 
@@ -164,13 +178,20 @@ npm run build
 
 SpaceHub intègre un moteur de thèmes instantané :
 
-| Thème | Style & Ambiance |
-| :--- | :--- |
-| **🌌 SpaceHub Dark (Défaut)** | Noir OLED `#0e0e12`, accents bleu glacier Apple et flou cinématique 50px |
-| **💎 VisionOS Glass** | Verre translucide ultra-lumineux et reflets spéculaires |
-| **🔴 Cyberpunk Red** | Noir intense avec accents rouge néon et typographie contrastée |
-| **🌿 Emerald Glow** | Teintes vert émeraude profondes et éclairage d'ambiance feutré |
-| **⚡ Monochromic Pure** | Style Nothing OS ultra-minimaliste noir & blanc |
+| Thème | Identifiant | Style & Ambiance |
+| :--- | :--- | :--- |
+| **🌌 SpaceHub Dark** (défaut) | `spacehub-dark` | Noir profond, anneau de sélection orange à fort contraste, pensé pour la lecture à trois mètres |
+| **☀️ SpaceHub Light** | `spacehub-light` | Fond clair, anneau orange assombri pour rester lisible sur blanc |
+
+> Ce tableau listait auparavant cinq thèmes — *VisionOS Glass*, *Cyberpunk
+> Red*, *Emerald Glow*, *Monochromic Pure*. Trois d'entre eux n'ont jamais
+> existé dans `ui/themes/presets/` : la documentation annonçait des
+> fonctionnalités absentes. Le même défaut se trouvait dans le code, où la
+> commande « Changer de thème » faisait tourner une liste de quatre
+> identifiants inexistants ; il a été corrigé le 6 septembre.
+>
+> Le moteur de thèmes accepte des thèmes supplémentaires par
+> `SDK.registerTheme()` — voir `docs/PLUGINS.md`.
 
 <br/>
 

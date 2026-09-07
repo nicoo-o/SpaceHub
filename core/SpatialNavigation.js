@@ -89,6 +89,21 @@ export class SpatialNavigation {
          */
         this._layerStack = [];
 
+        /**
+         * Diagnostic de navigation — éteint par défaut, allumé par le HUD.
+         *
+         * Le HUD doit afficher ce que le moteur a RÉELLEMENT décidé. S'il
+         * recalculait les scores de son côté, il montrerait sa propre version
+         * du raisonnement, pas celle qui s'est exécutée — et le jour où les
+         * deux divergeraient, c'est précisément le jour où l'on aurait besoin
+         * de lui. Le moteur consigne donc sa décision ; le HUD la lit.
+         *
+         * `null` tant que personne ne regarde : aucun objet créé, aucune
+         * mesure supplémentaire, aucun coût sur le chemin critique.
+         * @type {Object|null}
+         */
+        this._diagnostic = null;
+
         this._state = {
             mode: 'tv',
             scope: 'dashboard',
@@ -611,6 +626,27 @@ export class SpatialNavigation {
         return true;
     }
 
+    /**
+     * Active ou coupe la consignation des décisions de navigation.
+     *
+     * Réservé au HUD de diagnostic. Hors de ce cas, laisser éteint : les
+     * assignations sont peu coûteuses mais elles sont sur le chemin de chaque
+     * appui de touche, et un téléviseur n'a pas de marge à gaspiller.
+     *
+     * @param {boolean} actif
+     */
+    activerDiagnostic(actif = true) {
+        this._diagnostic = actif ? { direction: null, scope: null, candidats: 0, voie: null, cible: null, score: null, latence: 0, debut: 0 } : null;
+    }
+
+    /**
+     * La dernière décision de navigation, telle que le moteur l'a prise.
+     * @returns {Object|null} `null` si le diagnostic est éteint.
+     */
+    dernierDiagnostic() {
+        return this._diagnostic;
+    }
+
     /** L'élément qui porte le focus logique, ou null. */
     getFocusedElement() {
         const el = this._state.focusedElement;
@@ -701,19 +737,37 @@ export class SpatialNavigation {
     }
 
     _findSpatialTarget(direction) {
+        const debut = this._diagnostic ? performance.now() : 0;
         const current = this._getValidCurrentElement();
         const scope = this._detectCurrentScope();
         const candidates = this.getFocusables(scope);
 
-        if (candidates.length === 0) return null;
-        if (!current || !candidates.includes(current)) return candidates[0];
+        if (this._diagnostic) {
+            this._diagnostic.direction = direction;
+            this._diagnostic.scope = scope;
+            this._diagnostic.candidats = candidates.length;
+            this._diagnostic.voie = null;
+            this._diagnostic.score = null;
+            this._diagnostic.debut = debut;
+        }
+        const conclure = (cible, voie) => {
+            if (this._diagnostic) {
+                this._diagnostic.voie = voie;
+                this._diagnostic.cible = cible;
+                this._diagnostic.latence = performance.now() - this._diagnostic.debut;
+            }
+            return cible;
+        };
+
+        if (candidates.length === 0) return conclure(null, 'aucun candidat');
+        if (!current || !candidates.includes(current)) return conclure(candidates[0], 'entrée dans le scope');
 
         // 0. Redirection déclarée sur l'élément lui-même. Elle passe AVANT tout
         //    le reste, y compris le carrousel : c'est son objet même — dire
         //    « depuis ici, dans cette direction, va là », sans discussion.
         const redirection = this._cibleRedirigee(current, direction);
-        if (redirection === BLOQUE) return null;
-        if (redirection) return redirection;
+        if (redirection === BLOQUE) return conclure(null, 'bloqué par redirection');
+        if (redirection) return conclure(redirection, 'redirection déclarée');
 
         // 0bis. Conteneur déclaré par l'arbre DOM. Quand l'élément courant est
         //       dans un `[data-nav-container]`, la recherche se limite d'abord
@@ -721,20 +775,22 @@ export class SpatialNavigation {
         //       rien — c'est le modèle du W3C, d'Enact et de Norigin, là où
         //       `_detectCurrentScope()` ne connaît qu'une liste plate.
         const parConteneur = this._chercherDansLesConteneurs(current, direction);
-        if (parConteneur !== undefined) return parConteneur;
+        if (parConteneur !== undefined) return conclure(parConteneur, 'conteneur déclaré');
 
         // 1. Navigation Horizontale dans un Carrousel ➔ Délégation Pure au CarouselController
         const currentCarousel = current.closest(CAROUSEL_SELECTOR);
         if (currentCarousel && (direction === NavAction.LEFT || direction === NavAction.RIGHT)) {
             const targetCard = this._carouselController.navigate(currentCarousel, current, direction, this._repeatState.isFastScrolling);
-            if (targetCard) return targetCard; // Retourne l'élément cible calculé
+            if (targetCard) return conclure(targetCard, 'carrousel');
         }
 
         const geometrique = this._chercherParGeometrie(current, direction, candidates);
 
         // 3. Mémoire de conteneur : si l'on CHANGE de rangée, on revient là où
         //    on l'avait quittée plutôt que là où la géométrie tombe.
-        return this._substituerMemoire(current, geometrique, direction) || geometrique;
+        const parMemoire = this._substituerMemoire(current, geometrique, direction);
+        if (parMemoire) return conclure(parMemoire, 'mémoire de rangée');
+        return conclure(geometrique, geometrique ? 'géométrie' : 'aucune cible');
     }
 
     /**
@@ -969,6 +1025,10 @@ export class SpatialNavigation {
             }
         }
 
+        if (this._diagnostic) {
+            this._diagnostic.score = bestCandidate ? Math.round(bestScore) : null;
+            this._diagnostic.examines = candidates.length;
+        }
         return bestCandidate;
     }
 
