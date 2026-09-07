@@ -99,6 +99,86 @@ if (problemes.length) {
     for (const p of problemes) console.error('  ✖ ' + p);
     process.exit(1);
 }
+// ─── Jeux d'images-clés orphelins, et jeux définis deux fois ────────────────
+//
+// Deux défauts distincts, tous deux invisibles à l'exécution :
+//
+//   - un `@keyframes` que plus rien ne référence est un piège de maintenance :
+//     on croit modifier une animation en l'éditant, et rien ne bouge à l'écran.
+//     Six traînaient, dont `sh-login-card-in`, orphelinée quand la carte de
+//     connexion est passée à `sh-springIn` ;
+//   - un nom DÉFINI DEUX FOIS l'est dans un espace de noms global : le dernier
+//     analysé gagne pour tous les consommateurs, et l'ordre dépend de la
+//     concaténation des feuilles par Vite. Le résultat n'était pas
+//     reproductible d'un build à l'autre.
+const declarations = new Map();
+let texteGlobal = '';
+for (const f of files) {
+    if (!f.endsWith('.css') && !f.endsWith('.js')) continue;
+    // Les commentaires citent volontiers un nom d'images-clés — c'est même le
+    // cas de ceux qui expliquent son déplacement. On les neutralise en gardant
+    // les sauts de ligne, pour que les numéros restent justes.
+    const src = fs.readFileSync(f, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+    texteGlobal += '\n' + src;
+    if (!f.endsWith('.css')) continue;
+    const rel = f.split(path.sep).join('/');
+    for (const m of src.matchAll(/@keyframes\s+([A-Za-z0-9_-]+)/g)) {
+        if (!declarations.has(m[1])) declarations.set(m[1], []);
+        declarations.get(m[1]).push(`${rel}:${src.slice(0, m.index).split('\n').length}`);
+    }
+}
+const sansDeclaration = texteGlobal.replace(/@keyframes\s+[A-Za-z0-9_-]+/g, '');
+const orphelines = [];
+const doublons = [];
+for (const [nom, sites] of declarations) {
+    if (sites.length > 1) doublons.push({ nom, sites });
+    const utilise = new RegExp(`(?<![\\w-])${nom.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w-])`).test(sansDeclaration);
+    if (!utilise) orphelines.push({ nom, site: sites[0] });
+}
+if (orphelines.length || doublons.length) {
+    if (orphelines.length) {
+        console.error(`Images-clés : ${orphelines.length} jeu(x) que plus rien n'utilise.\n`);
+        for (const o of orphelines) console.error(`  x ${o.site} — @keyframes ${o.nom}`);
+    }
+    if (doublons.length) {
+        console.error(`\nImages-clés : ${doublons.length} nom(s) déclaré(s) plusieurs fois.\n`);
+        for (const d of doublons) console.error(`  x @keyframes ${d.nom} — ${d.sites.join(', ')}`);
+        console.error('\nLes @keyframes sont un espace de noms GLOBAL : le dernier analysé gagne,');
+        console.error('et l\'ordre dépend de la concaténation des feuilles, pas du code.');
+    }
+    process.exit(1);
+}
+
+// ─── Durée de boucle contre durée de transition ────────────────────────────
+//
+// L'échelle `--sh-dur-*` décrit des TRANSITIONS : un départ, une arrivée, fini.
+// Une boucle, elle, se mesure en secondes. Une migration automatisée a un jour
+// remplacé les dix-neuf périodes de boucle de l'application par `--sh-dur-5`
+// (550 ms) : indicateurs de chargement à 1,8 tour/seconde, squelettes en
+// stroboscope, vinyle de la fiche média à 109 tr/min. Rien ne l'a vu.
+//
+// Une animation `infinite` doit donc utiliser un jeton `--sh-loop-*`.
+const bouclesFautives = [];
+for (const f of css) {
+    const src = fs.readFileSync(f, 'utf8');
+    const rel = f.split(path.sep).join('/');
+    for (const m of src.matchAll(/animation:[^;]*infinite[^;]*;/g)) {
+        if (!/--sh-dur-\d/.test(m[0])) continue;
+        bouclesFautives.push({ rel, ligne: src.slice(0, m.index).split('\n').length,
+            extrait: m[0].trim().slice(0, 90) });
+    }
+}
+if (bouclesFautives.length) {
+    console.error(`Durées de boucle : ${bouclesFautives.length} animation(s) « infinite » sur une durée de transition.\n`);
+    for (const b of bouclesFautives) console.error(`  x ${b.rel}:${b.ligne} — ${b.extrait}`);
+    console.error('\n`--sh-dur-*` décrit une transition (jusqu\'à 550 ms). Une boucle se mesure');
+    console.error('en secondes : utilisez un jeton --sh-loop-* (tokens.css).');
+    process.exit(1);
+}
+
+
+console.log(`Images-clés : ${declarations.size} jeu(x), aucun orphelin, aucun doublon.`);
 console.log(`Hygiène CSS : ${js.length} fichier(s) JS et ${css.length} feuille(s) vérifiés.`);
 console.log(`Aucun CSS embarqué dans du JS, aucune feuille orpheline, aucune ombre figée.`);
 console.log(`Coût GPU : ${backdrop} backdrop-filter (plafond ${MAX_BACKDROP}), 0 « transition: all ».`);

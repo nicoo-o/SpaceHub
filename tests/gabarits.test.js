@@ -63,7 +63,16 @@ describe('Gabarits extraits — le HTML n\'a pas bougé d\'un octet', () => {
         expect(html).toBe(corrigee);
     });
 
-    it('LibraryView.template.js', () => {
+    it('LibraryView.template.js — identique, aux attributs dédoublonnés près', () => {
+        // Seconde divergence voulue : les gabarits de cette vue portaient
+        // `tabindex="0" data-nav-focusable="true"` ÉCRIT DEUX FOIS sur la même
+        // balise, trace d'un ajout automatisé passé deux fois. Le parseur HTML
+        // ignore le doublon, l'effet net était donc nul — mais on ne peut pas
+        // lire un gabarit comme source de vérité quand il se contredit.
+        //
+        // La référence n'est PAS régénérée : on lui applique le même
+        // dédoublonnage, puis on exige l'égalité stricte. Toute AUTRE
+        // différence tombe.
         const attendu = reference['ui/views/LibraryView.js'];
         const html = gabaritBibliotheque(avecNeutres({
             _escape: echapper, _searchQuery: 'que<te & "x"',
@@ -71,7 +80,12 @@ describe('Gabarits extraits — le HTML n\'a pas bougé d\'un octet', () => {
             _viewMode: 'grid', _activeGenre: 'Dra<me', _activeStatus: 'vu',
             _alphabetFilter: 'M',
         }, attendu.variablesLibres));
-        expect(html).toBe(attendu.html);
+
+        const DOUBLON = 'tabindex="0" data-nav-focusable="true" tabindex="0" data-nav-focusable="true"';
+        expect(attendu.html, 'le doublon doit exister dans la référence').toContain(DOUBLON);
+        const corrigee = attendu.html.split(DOUBLON)
+            .join('tabindex="0" data-nav-focusable="true"');
+        expect(html).toBe(corrigee);
     });
 
     it('ModalSlideUpSheet.template.js', () => {

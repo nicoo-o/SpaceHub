@@ -163,7 +163,44 @@ if (reecritures.length) {
     process.exit(1);
 }
 
+// ─── Quatrième contrat : la garde `container || …` qui ne garde rien ────────
+//
+// `getFocusables` appelle un fournisseur avec `this._root`, c'est-à-dire
+// `document`. Or `document` est TRUTHY. Écrire
+//
+//     const root = container || document.querySelector('#ma-couche') || document;
+//
+// s'arrête donc au premier terme, et la racine confinée n'est jamais évaluée :
+// le scope « confiné » renvoie tous les contrôles de la page. Réglages ouverts,
+// une flèche Bas faisait sortir le focus de la modale pour se poser sur une
+// carte du tableau de bord, invisible sous l'overlay.
+//
+// Même famille : le repli `|| root` en fin d'expression. Quand la couche est
+// absente, le scope retombe sur le document entier au lieu de dire « rien ».
+const gardesMortes = [];
+for (const f of ROOTS.flatMap(r => walk(r))) {
+    const rel = f.split(path.sep).join('/');
+    const src = fs.readFileSync(f, 'utf8');
+    for (const m of src.matchAll(/const\s+\w+\s*=\s*container\s*\|\|/g)) {
+        gardesMortes.push({ rel, ligne: src.slice(0, m.index).split('\n').length,
+            motif: 'container || … (container vaut document, donc truthy)' });
+    }
+    for (const m of src.matchAll(/root\.querySelector\([^)]*\)\s*\|\|\s*root\b/g)) {
+        gardesMortes.push({ rel, ligne: src.slice(0, m.index).split('\n').length,
+            motif: 'querySelector(…) || root (retombe sur le document entier)' });
+    }
+}
+
+if (gardesMortes.length) {
+    console.error(`Gardes de scope : ${gardesMortes.length} racine(s) confinée(s) qui ne confinent rien.\n`);
+    for (const g of gardesMortes) console.error(`  x ${g.rel}:${g.ligne} — ${g.motif}`);
+    console.error('\nUn scope confiné qui ne trouve pas sa couche doit renvoyer une liste VIDE.');
+    console.error('Cherchez la racine directement : `document.querySelector(...)`, puis `return []`.');
+    process.exit(1);
+}
+
 console.log(`Conteneurs focalisables : ${balises} balise(s) de conteneur vérifiée(s) sur ${CONTENEURS.length} classes déclarées.`);
 console.log('Aucun conteneur de défilement ne se déclare cible de focus.');
 console.log('Contexte des gabarits : aucun appel ne décompose `this`.');
 console.log('Scopes de vue : aucun composant ne réécrit un scope du moteur.');
+console.log('Gardes de scope : aucune racine confinée ne retombe sur le document.');

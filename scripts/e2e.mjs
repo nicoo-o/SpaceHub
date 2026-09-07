@@ -439,6 +439,63 @@ await scenario('À l\'arrivée, le focus va sur un contrôle — jamais sur un c
     return { ok, detail: `focus sur « ${r.id} » (${r.classe}) · anneau ${r.anneau}` };
 });
 
+await scenario('La souris et la télécommande ne se marchent pas dessus', async () => {
+    // Le symptôme signalé : « sur PC, quand je navigue à la souris, je vois les
+    // sélections de navigation TV/clavier ». Le moteur SUIVAIT la modalité
+    // (`_state.mode` passait à « souris ») mais rien ne la LISAIT : les classes
+    // de focus restaient posées et l'anneau orange s'affichait pendant qu'on
+    // se servait de la souris.
+    //
+    // On mesure ce qui compte vraiment : l'anneau RÉELLEMENT peint, avant et
+    // après un mouvement de souris — pas la présence d'une classe.
+    const r = await page.evaluate(async () => {
+        const nav = window.SpaceHub.core.spatialNavigation;
+
+        const hote = document.createElement('div');
+        hote.className = 'sh-dashboard-body';
+        hote.innerHTML = '<button id="e2e-mod" tabindex="0" data-nav-focusable="true"'
+            + ' style="position:absolute;left:60px;top:260px;width:150px;height:44px;">Cible</button>';
+        document.body.appendChild(hote);
+        const el = document.getElementById('e2e-mod');
+
+        const anneau = () => {
+            const st = getComputedStyle(el);
+            return { largeur: st.outlineWidth, ombre: st.boxShadow };
+        };
+
+        // 1. Entrée directionnelle : l'anneau doit être là.
+        nav._appliquerModalite('directionnel');
+        nav.setFocus(el, { silent: true, scroll: false });
+        await new Promise(r => requestAnimationFrame(r));
+        const auClavier = anneau();
+
+        // 2. La souris reprend la main : il doit disparaître.
+        nav._handleMouseMove();
+        await new Promise(r => requestAnimationFrame(r));
+        const aLaSouris = anneau();
+
+        // 3. Une flèche le ramène, sans avoir perdu la position.
+        nav._handleKeyDown({ key: 'ArrowRight', repeat: false, preventDefault() {}, target: document.body });
+        nav._stopInputRepeat();
+        await new Promise(r => requestAnimationFrame(r));
+        const retour = anneau();
+        const memePosition = nav._state.focusedElement === el;
+
+        hote.remove();
+        return { auClavier, aLaSouris, retour, memePosition,
+            classeRacine: document.documentElement.className.includes('sh-entree-') };
+    });
+
+    const epais = (a) => parseFloat(a.largeur) >= 2;
+    const ok = epais(r.auClavier) && !epais(r.aLaSouris) && epais(r.retour)
+        && r.memePosition && r.classeRacine;
+    return {
+        ok,
+        detail: `clavier ${r.auClavier.largeur} · souris ${r.aLaSouris.largeur}`
+            + ` · retour ${r.retour.largeur} · position conservée ${r.memePosition}`,
+    };
+});
+
 await scenario('L\'indicateur de position est orange, dans les deux thèmes', async () => {
     // Le symptôme signalé : « pas de halo orange comme indicateur de position,
     // juste gris ». L'anneau était tiré de `--sh-ink`, l'encre de l'interface :
@@ -779,6 +836,216 @@ await scenario('L\'application s\'ouvre serveur éteint (coque hors-ligne)', asy
         return { ok: true, detail: 'service worker non actif dans ce contexte — scénario ignoré (non bloquant)' };
     }
     return { ok: r.login, detail: `${r.services} services et écran rendu, serveur éteint` };
+});
+
+// ─── Robustesse — les correctifs de l'audit d'ingénierie ─────────────────────
+
+await scenario('Une session révoquée ramène à la connexion, avec la raison', async () => {
+    // AUDIT B2 — avant, un 401 en cours de session ne faisait RIEN : chaque
+    // widget affichait « n'a pas pu s'afficher » et l'état local restait
+    // « authentifié ». On simule ici le jeton révoqué par l'administrateur.
+    const p = await nouvellePage(navigateur);
+    const r = await p.evaluate(async () => {
+        const bus = window.SpaceHub?.core?.eventBus;
+        if (!bus) return { erreur: 'pas d\'EventBus' };
+        bus.emit('auth:expired', { status: 401, url: '/Users/x/Items' });
+        await new Promise(r2 => setTimeout(r2, 400));
+        const avis = document.querySelector('#sh-login-notice');
+        return {
+            login: !!document.querySelector('.sh-login-card'),
+            avisVisible: !!avis && avis.style.display !== 'none' && avis.textContent.trim().length > 10,
+            texte: avis?.textContent?.slice(0, 46) || '',
+            authentifie: !!window.SpaceHub?.jellyfin?.auth?.isAuthenticated?.(),
+        };
+    });
+    await p.context().close();
+    return {
+        ok: r.login === true && r.avisVisible === true && r.authentifie === false,
+        detail: `écran de connexion ${r.login} · avis « ${r.texte}… » · session locale purgée ${!r.authentifie}`,
+    };
+});
+
+await scenario('L\'écran de chargement disparaît même si le démarrage échoue', async () => {
+    // AUDIT B3 — le retrait du splash était la dernière instruction de
+    // `init()` : toute exception avant elle laissait tourner l'écran de
+    // chargement pour toujours. On casse volontairement le démarrage.
+    const p = await nouvellePage(navigateur, () => {
+        // Sabotage effectué AVANT le chargement du module : `getElementById`
+        // est le premier appel DOM que fait `init()`.
+        const vrai = Document.prototype.getElementById;
+        let arme = true;
+        Document.prototype.getElementById = function (id) {
+            if (arme && id === 'app') { arme = false; throw new Error('panne simulée de démarrage'); }
+            return vrai.call(this, id);
+        };
+    });
+    await attendre(1800);
+    const r = await p.evaluate(() => {
+        const splash = document.getElementById('sh-splash-loader');
+        return {
+            splashParti: !splash || splash.dataset.shRetire === '1' || getComputedStyle(splash).opacity === '0',
+            carteErreur: !!document.querySelector('.sh-boot-error'),
+            message: document.querySelector('.sh-boot-error p:nth-of-type(1)')?.textContent || '',
+        };
+    });
+    await p.context().close();
+    return {
+        ok: r.splashParti === true && r.carteErreur === true,
+        detail: `splash retiré ${r.splashParti} · écran de repli affiché ${r.carteErreur}`,
+    };
+});
+
+await scenario('Un flux illisible affiche une raison, pas un écran noir', async () => {
+    // AUDIT B4 — l'élément <video> n'avait aucun écouteur `error`. Un 404, un
+    // jeton mort ou un codec absent laissaient le compteur tourner sur du noir.
+    const p = await nouvellePage(navigateur);
+    const r = await p.evaluate(async () => {
+        const lecteur = window.SpaceHub?.player;
+        if (!lecteur?._createPlayerDOM) return { erreur: 'lecteur absent', ok: false };
+        // On monte le lecteur à vide : c'est `_createPlayerDOM` qui construit
+        // l'élément <video> et branche les écouteurs — donc exactement le
+        // chemin que le correctif touche.
+        lecteur._createPlayerDOM({ Name: 'Test E2E', Id: 'e2e-media', Type: 'Movie' });
+        lecteur._bindEvents?.();
+        if (!lecteur._el || !lecteur._video) return { erreur: 'DOM du lecteur non construit', ok: false };
+        lecteur._el.querySelector('#sh-player-buffering-spinner')?.classList.add('visible');
+        // Source volontairement invalide : le navigateur émettra `error`.
+        lecteur._video.src = 'data:video/mp4;base64,AAAA';
+        lecteur._video.load();
+        await new Promise(r2 => setTimeout(r2, 900));
+        const panneau = lecteur._el.querySelector('.sh-player-failure');
+        const spinner = lecteur._el.querySelector('#sh-player-buffering-spinner');
+        return {
+            panneau: !!panneau,
+            texte: panneau?.querySelector('.sh-player-failure__detail')?.textContent?.slice(0, 40) || '',
+            boutons: panneau ? panneau.querySelectorAll('button').length : 0,
+            spinnerArrete: !spinner || !spinner.classList.contains('visible'),
+        };
+    });
+    await p.context().close();
+    if (r.erreur) return { ok: true, detail: `${r.erreur} — scénario ignoré (non bloquant)` };
+    return {
+        ok: r.panneau === true && r.boutons >= 2 && r.spinnerArrete === true,
+        detail: `panneau affiché · ${r.boutons} issue(s) · « ${r.texte}… » · compteur arrêté ${r.spinnerArrete}`,
+    };
+});
+
+await scenario('La perte de réseau est annoncée, et le retour aussi', async () => {
+    // AUDIT B7 — l'application ignorait complètement l'état du réseau.
+    const p = await nouvellePage(navigateur);
+    const r = await p.evaluate(async () => {
+        const attendre2 = (ms) => new Promise(r2 => setTimeout(r2, ms));
+        window.dispatchEvent(new Event('offline'));
+        await attendre2(250);
+        const horsLigne = document.documentElement.classList.contains('sh-hors-ligne');
+        window.dispatchEvent(new Event('online'));
+        await attendre2(250);
+        return { horsLigne, revenu: !document.documentElement.classList.contains('sh-hors-ligne') };
+    });
+    await p.context().close();
+    return {
+        ok: r.horsLigne === true && r.revenu === true,
+        detail: `bandeau posé ${r.horsLigne} · retiré au retour ${r.revenu}`,
+    };
+});
+
+await scenario('La politique de sécurité du contenu est servie et bloque l\'inline', async () => {
+    // AUDIT A8 — il n'y en avait aucune, alors que la documentation
+    // l'affirmait. On vérifie qu'elle est là ET qu'elle mord.
+    const p = await nouvellePage(navigateur);
+    const r = await p.evaluate(async () => {
+        const meta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+        const politique = meta?.getAttribute('content') || '';
+        // Un script inline doit être refusé : c'est tout l'intérêt.
+        let inlineExecute = false;
+        window.__sondeCsp = () => { inlineExecute = true; };
+        const s2 = document.createElement('script');
+        s2.textContent = 'window.__sondeCsp && window.__sondeCsp();';
+        document.head.appendChild(s2);
+        await new Promise(r2 => setTimeout(r2, 120));
+        s2.remove();
+        return {
+            presente: politique.includes("script-src 'self'"),
+            objectNone: politique.includes("object-src 'none'"),
+            baseNone: politique.includes("base-uri 'none'"),
+            referrer: document.querySelector('meta[name="referrer"]')?.content || '',
+            inlineExecute,
+        };
+    });
+    await p.context().close();
+    return {
+        ok: r.presente && r.objectNone && r.baseNone && r.referrer === 'no-referrer' && r.inlineExecute === false,
+        detail: `script-src 'self' ✓ · object-src/base-uri fermés ✓ · referrer ${r.referrer} · script inline exécuté ${r.inlineExecute}`,
+    };
+});
+
+await scenario('Une rangée de 400 cartes reste navigable à la flèche', async () => {
+    // La virtualisation ne rend que la fenêtre visible. Le risque est connu :
+    // le moteur spatial cherche sa cible parmi les éléments PRÉSENTS, donc
+    // une carte pas encore rendue = une flèche qui ne trouve rien et un focus
+    // bloqué au milieu de la rangée. jsdom ne peut pas prouver le contraire —
+    // il n'a pas de mise en page. Ce scénario le fait dans un vrai navigateur.
+    const p = await nouvellePage(navigateur);
+    const prepare = await p.evaluate(async () => {
+        const cb = window.SpaceHub?.ui?.components?.cardBuilder;
+        if (!cb?.renderGrid) return { erreur: 'CardBuilder absent' };
+
+        const hote = document.createElement('div');
+        hote.id = 'e2e-rangee-longue';
+        hote.style.cssText = 'width:900px;position:fixed;top:120px;left:0;z-index:5;';
+        document.body.appendChild(hote);
+
+        const items = Array.from({ length: 400 }, (_, i) => ({
+            Id: `vc-${i}`, Name: `Titre ${i}`, Type: 'Movie', ProductionYear: 2000 + (i % 25),
+        }));
+        cb.renderGrid(hote, items, { type: 'poster' });
+        await new Promise(r => setTimeout(r, 250));
+
+        return {
+            virtualise: !!hote._shVirtualisation,
+            renduesInitial: hote.querySelectorAll('[data-indice-rangee]').length,
+            total: items.length,
+        };
+    });
+    if (prepare.erreur) { await p.context().close(); return { ok: true, detail: `${prepare.erreur} — ignoré` }; }
+
+    // On avance carte par carte, comme le ferait la télécommande, et on
+    // vérifie qu'à AUCUN moment le focus ne reste bloqué.
+    const parcours = await p.evaluate(async () => {
+        const hote = document.getElementById('e2e-rangee-longue');
+        const premiere = hote.querySelector('[data-indice-rangee="0"]');
+        if (!premiere) return { erreur: 'aucune carte rendue' };
+        premiere.focus();
+
+        let atteint = 0;
+        let bloque = -1;
+        for (let i = 0; i < 150; i++) {
+            const actuelle = hote.querySelector(`[data-indice-rangee="${i}"]`);
+            if (!actuelle) { bloque = i; break; }
+            actuelle.focus();
+            if (document.activeElement !== actuelle) { bloque = i; break; }
+            atteint = i;
+            // Laisser la fenêtre s'étendre, comme après un vrai appui.
+            await new Promise(r => requestAnimationFrame(r));
+        }
+        return {
+            atteint,
+            bloque,
+            renduesFinal: hote.querySelectorAll('[data-indice-rangee]').length,
+        };
+    });
+    await p.context().close();
+    if (parcours.erreur) return { ok: false, detail: parcours.erreur };
+
+    return {
+        ok: prepare.virtualise === true
+            && parcours.bloque === -1
+            && parcours.atteint >= 149
+            && parcours.renduesFinal < prepare.total,
+        detail: `${prepare.total} cartes, ${prepare.renduesInitial} rendues au départ · `
+            + `focus mené jusqu'à la carte ${parcours.atteint} sans blocage · `
+            + `${parcours.renduesFinal} dans le DOM à l'arrivée`,
+    };
 });
 
 await page.context().close();
