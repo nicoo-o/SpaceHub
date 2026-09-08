@@ -737,3 +737,25 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 .sh-apple-switch input:checked + .sh-apple-switch-slider:before {
     transform: translateX(20px);
 }
+
+/* A2 — Avertissement d'approbation d'un greffon.
+   Voir le commentaire du gabarit : la liste des permissions décrit une
+   intention, elle ne contraint rien. Cet encart le dit, et il est conçu pour
+   ne pas pouvoir être confondu avec de la décoration : bordure d'accent à
+   gauche, fond teinté, jamais replié. */
+.sh-plugin-avertissement {
+    margin: 10px 0 12px;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.78);
+    background: rgba(var(--sh-focus-ring-rgb, 255, 159, 10), 0.10);
+    border-left: 3px solid rgba(var(--sh-focus-ring-rgb, 255, 159, 10), 0.75);
+    border-radius: 0 8px 8px 0;
+}
+
+.sh-plugin-avertissement strong {
+    display: block;
+    margin-bottom: 3px;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.95);
+}

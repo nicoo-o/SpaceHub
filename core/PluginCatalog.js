@@ -10,6 +10,7 @@
 import Logger from './Logger.js';
 
 import * as svc from './services.js';
+import { resoudreCle, Confiance } from './ClesDeConfiance.js';
 const ID_PATTERN = /^[a-z0-9][a-z0-9._-]{1,63}$/;
 const VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
@@ -50,7 +51,8 @@ class PluginCatalog {
 
     /**
      * Charge un catalogue JSON distant. Le document doit être HTTPS et, en
-     * mode signé, prendre la forme { entries, signature, publicKey }.
+     * mode signé, prendre la forme { entries, signature, keyId } — un
+     * IDENTIFIANT de clé, jamais la clé elle-même : voir core/ClesDeConfiance.js.
      */
     async load(url) {
         if (typeof url !== 'string' || !/^https:\/\//i.test(url)) {
@@ -65,9 +67,15 @@ class PluginCatalog {
         if (this._requireSigned) {
             if (Array.isArray(document)) throw new Error('Un catalogue distant signé doit fournir une enveloppe signée.');
             const payload = JSON.stringify(entries);
-            if (!(await this.verifySignature(payload, document.signature, document.publicKey))) {
+            // La clé vient de l'APPLICATION, pas du document. Auparavant on
+            // lisait `document.publicKey` : le catalogue fournissait alors le
+            // contenu, la signature et la clé qui la vérifie.
+            const { cle, confiance, raison } = resoudreCle(document.keyId, this._settings);
+            if (!cle) throw new Error(raison || 'Clé de signature du catalogue inconnue.');
+            if (!(await this.verifySignature(payload, document.signature, cle))) {
                 throw new Error('Signature du catalogue invalide.');
             }
+            this._log.info(`Catalogue vérifié avec une clé ${confiance}.`);
         }
         const registered = this.registerMany(entries);
         this._settings?.set('plugins.catalogUrl', url);
@@ -89,7 +97,18 @@ class PluginCatalog {
         }
         if (entry?.entrypoint && !/^https:\/\//i.test(entry.entrypoint)) errors.push('L’entrypoint doit utiliser HTTPS.');
         if (entry?.integrity && !/^sha256-[A-Za-z0-9+/=]+$/.test(entry.integrity)) errors.push('Intégrité SHA-256 invalide.');
-        if (this._requireSigned && entry?.entrypoint && (!entry.signature || !entry.publicKey)) errors.push('Signature et clé publique requises pour un plugin distant.');
+        if (this._requireSigned && entry?.entrypoint) {
+            if (!entry.signature) errors.push('Signature requise pour un plugin distant.');
+            // On exige un IDENTIFIANT de clé, pas une clé. Une entrée qui porte
+            // encore `publicKey` vient d'un catalogue écrit pour l'ancien
+            // modèle : la refuser explicitement vaut mieux que de l'ignorer en
+            // silence et de laisser croire que la clé sert à quelque chose.
+            if (!entry.keyId) errors.push('Identifiant de clé (keyId) requis pour un plugin distant.');
+            if (entry.publicKey) errors.push('Une clé publique embarquée dans le catalogue ne prouve rien : utilisez keyId.');
+            else if (!resoudreCle(entry.keyId, this._settings).cle) {
+                errors.push(`Clé « ${entry.keyId} » inconnue de cette installation.`);
+            }
+        }
         if (entry?.compatibility?.minSpaceHub && !this._isCompatible(entry.compatibility.minSpaceHub)) {
             errors.push(`Plugin incompatible avec SpaceHub ${this._hostVersion}.`);
         }
@@ -165,8 +184,12 @@ class PluginCatalog {
             if (!entry.integrity || !(await this.verifyIntegrity(source, entry.integrity))) {
                 throw new Error('Une intégrité SHA-256 valide est requise.');
             }
-            if (this._requireSigned && !(await this.verifySignature(source, entry.signature, entry.publicKey))) {
-                throw new Error('Signature du plugin invalide.');
+            if (this._requireSigned) {
+                const { cle, raison } = resoudreCle(entry.keyId, this._settings);
+                if (!cle) throw new Error(raison || 'Clé de signature du greffon inconnue.');
+                if (!(await this.verifySignature(source, entry.signature, cle))) {
+                    throw new Error('Signature du plugin invalide.');
+                }
             }
             this._setStatus(entry.id, 'verified', null, entry.version);
             return { source, entry };

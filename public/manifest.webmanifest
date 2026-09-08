@@ -1,0 +1,42 @@
+{
+  "name": "SpaceHub — Media Center",
+  "short_name": "SpaceHub",
+  "description": "Client web unifié pour Jellyfin et la suite Servarr.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "fullscreen"],
+  "orientation": "any",
+  "background_color": "#101014",
+  "theme_color": "#101014",
+  "lang": "fr",
+  "dir": "ltr",
+  "categories": ["entertainment", "video", "music"],
+  "icons": [
+    {
+      "src": "/icone.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icone.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Reprendre la lecture",
+      "short_name": "Reprendre",
+      "url": "/?raccourci=reprendre"
+    },
+    {
+      "name": "Recherche",
+      "short_name": "Recherche",
+      "url": "/?raccourci=recherche"
+    }
+  ]
+}

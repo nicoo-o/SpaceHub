@@ -13,11 +13,11 @@ import LibraryView from '../views/LibraryView.js';
 import DownloadsView from '../views/DownloadsView.js';
 import AppSidebarDrawer from '../components/AppSidebarDrawer.js';
 import AnalyticsModal from '../components/AnalyticsModal.js';
-import AdminDashboardView from '../views/AdminDashboardView.js';
 import SpatialNavigation  from '../../core/SpatialNavigation.js';
 
 import './AppLayout.css';
 import * as svc from '../../core/services.js';
+import { chargerConsoleAdmin } from '../views/chargerConsoleAdmin.js';
 import { apresSortie, comportementDefilement } from '../../core/utils/domUtils.js';
 class AppLayout {
     constructor() {
@@ -583,8 +583,12 @@ class AppLayout {
         if (svc.features()?.isEnabled?.('features.adminConsole') === false) {
             boutonAdmin?.remove();
         } else {
-            boutonAdmin?.addEventListener('click', () => {
-                const adminView = svc.adminDashboard() || new AdminDashboardView();
+            boutonAdmin?.addEventListener('click', async () => {
+                const adminView = svc.adminDashboard() || await chargerConsoleAdmin();
+                if (!adminView) {
+                    svc.toaster()?.error?.("La console d'administration n'a pas pu être chargée.");
+                    return;
+                }
                 adminView.open();
                 toggleDropdown(false);
             });

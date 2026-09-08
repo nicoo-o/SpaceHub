@@ -13,7 +13,6 @@
 
 'use strict';
 
-import Hls from 'hls.js';
 import { gabaritLecteur } from './VideoPlayer.template.js';
 import { contexteGabarit, comportementDefilement } from '../../core/utils/domUtils.js';
 import { negotiatePlayback } from './DeviceProfile.js';
@@ -286,7 +285,8 @@ class VideoPlayer {
                     this._playMethod = 'DirectPlay';
                     this._playSessionId = '';
                     this._mediaSourceId = itemId;
-                    this._setupVideoSource(urlLocale, startPositionSeconds, '', this._playGeneration, false);
+                    this._setupVideoSource(urlLocale, startPositionSeconds, '', this._playGeneration, false)
+                        .catch(err => this._log.warn('Source locale :', err?.message || err));
                     this._resetIdleTimer();
                     // Aucun rapport de session : le serveur n'est peut-être pas
                     // joignable, et annoncer une lecture qu'il ne peut pas suivre
@@ -352,7 +352,11 @@ class VideoPlayer {
             this._log.warn('PlaybackInfo indisponible — repli sur le flux HLS générique.');
         }
 
-        this._setupVideoSource(streamUrl, startPositionSeconds, token, this._playGeneration, nego?.isHls);
+        // Volontairement non attendu : la suite de `play()` prépare l'interface,
+        // elle n'a pas besoin que le flux soit branché. Mais un rejet sans `catch`
+        // remonterait à la frontière d'erreur globale et afficherait une alerte.
+        this._setupVideoSource(streamUrl, startPositionSeconds, token, this._playGeneration, nego?.isHls)
+            .catch(err => this._log.warn('Branchement de la source :', err?.message || err));
         this._reportPlaybackStart();
         this._startProgressReporting();
         this._resetIdleTimer();
@@ -404,7 +408,21 @@ class VideoPlayer {
         this._prepareSeasonEpisodes(this._currentItem || item);
     }
 
-    _setupVideoSource(streamUrl, startPositionSeconds, token, generation = this._playGeneration, isHls = true) {
+    /**
+     * Branche la source sur l'élément vidéo.
+     *
+     * POURQUOI CETTE FONCTION EST DEVENUE ASYNCHRONE. `hls.js` pèse 185 ko une
+     * fois compressé — plus, à lui seul, que tout le reste de l'application
+     * réuni. Il était importé statiquement en tête de ce fichier, donc analysé
+     * et compilé AVANT le premier écran, pour une bibliothèque qui ne sert
+     * qu'au moment où une lecture HLS commence. Sur un téléviseur de 2020, ce
+     * n'est pas le téléchargement qui coûte, c'est la compilation.
+     *
+     * `vite.config.js` isolait déjà `hls.js` dans son propre paquet en le
+     * décrivant comme « lazy, uniquement si lecture HLS » : l'intention était
+     * écrite, l'import statique la contredisait.
+     */
+    async _setupVideoSource(streamUrl, startPositionSeconds, token, generation = this._playGeneration, isHls = true) {
         const spinner = this._el?.querySelector('#sh-player-buffering-spinner');
         if (spinner) spinner.classList.add('visible');
 
@@ -425,7 +443,32 @@ class VideoPlayer {
             return;
         }
 
-        if (Hls.isSupported()) {
+        // PRÉ-CONTRÔLE SANS RIEN TÉLÉCHARGER. `Hls.isSupported()` teste la
+        // présence des Media Source Extensions. Sur iOS et iPadOS, elles
+        // n'existent pas : hls.js répondrait `false`, et on aurait téléchargé
+        // 185 ko pour poser une question dont la réponse était connue. On la
+        // pose donc avant, sur `window`.
+        const supporteMse = typeof window !== 'undefined'
+            && (typeof window.MediaSource !== 'undefined'
+                || typeof window.ManagedMediaSource !== 'undefined');
+
+        let Hls = null;
+        if (supporteMse) {
+            try {
+                ({ default: Hls } = await import('hls.js'));
+            } catch (err) {
+                // Réseau coupé pendant le chargement du module : on n'a plus de
+                // lecteur HLS, mais le flux direct reste jouable.
+                this._log.warn('hls.js indisponible :', err?.message || err);
+            }
+            // LE PIÈGE DE L'ATTENTE. Entre la demande du module et son arrivée,
+            // la personne a pu fermer le lecteur ou lancer un autre titre. Sans
+            // cette relecture de la génération, on brancherait le film précédent
+            // sur le lecteur courant.
+            if (generation !== this._playGeneration || !this._video) return;
+        }
+
+        if (Hls?.isSupported()) {
             if (this._hls) this._hls.destroy();
             this._hls = new Hls({
                 capLevelToPlayerSize: true,

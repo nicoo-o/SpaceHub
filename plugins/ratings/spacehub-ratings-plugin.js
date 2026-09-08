@@ -41,9 +41,14 @@ const manifest = {
     },
 
     onLoad: async (ctx) => {
-        const ratingCache = window.SpaceHub?.core?.ratingCache;
+        // Ce crochet allait chercher `window.SpaceHub.core.ratingCache`. C'était
+        // le contournement même que le contrôle statique des sources doit
+        // interdire — et il était donné en exemple par le greffon livré avec
+        // l'application. Le service arrive désormais par le contexte, derrière
+        // la permission `jellyfin.metadata.read` que ce greffon demande déjà.
+        const ratingCache = ctx.ratings;
         if (!ratingCache || typeof ratingCache.setProvider !== 'function') {
-            throw new Error('RatingCacheService indisponible.');
+            throw new Error('Service de notes indisponible dans ce contexte.');
         }
 
         // ── 1. Notes OMDb (scores RT / IMDb / Metacritic) ──
@@ -151,14 +156,17 @@ const manifest = {
         ctx.log.info('Providers OMDb + recherche + TMDB enregistrés.');
     },
 
-    onDisable: async () => {
-        const ratingCache = window.SpaceHub?.core?.ratingCache;
-        if (ratingCache) ratingCache.clearProvider();
+    // `clearProvider()` ne retirait QUE le fournisseur de notes. La recherche
+    // par titre et les textes critiques n'avaient aucune méthode de retrait :
+    // désactiver ce greffon laissait deux de ses trois fermetures vivantes, qui
+    // continuaient d'interroger OMDb et TMDB avec la clé de l'utilisateur —
+    // pour un greffon qu'il croyait éteint.
+    onDisable: async (ctx) => {
+        ctx.ratings?.clearProviders?.();
     },
 
-    onUnload: async () => {
-        const ratingCache = window.SpaceHub?.core?.ratingCache;
-        if (ratingCache) ratingCache.clearProvider();
+    onUnload: async (ctx) => {
+        ctx.ratings?.clearProviders?.();
     }
 };
 

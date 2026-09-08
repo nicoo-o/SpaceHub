@@ -13,11 +13,11 @@
 
 'use strict';
 
-import AdminDashboardView from '../views/AdminDashboardView.js';
 import { LAYERS, FOCUSABLES } from '../../core/DomContracts.js';
 
 import './AppSidebarDrawer.css';
 import * as svc from '../../core/services.js';
+import { chargerConsoleAdmin } from '../views/chargerConsoleAdmin.js';
 import { apresSortie, urlSure } from '../../core/utils/domUtils.js';
 class AppSidebarDrawer {
     constructor() {
@@ -814,15 +814,22 @@ class AppSidebarDrawer {
     /**
      * 🛡️ Accès au Centre d'Administration & Supervision Serveur SpaceHub
      */
-    _openAdminDashboard() {
+    async _openAdminDashboard() {
         // Gelée : l'objet n'est pas instancié au démarrage. Sans ce garde-fou,
-        // le repli `|| new AdminDashboardView()` la ressusciterait ici.
+        // le repli ressusciterait la vue ici — et rechargerait au passage les
+        // 18,5 ko que le gel est censé éviter.
         if (svc.features()?.isEnabled?.('features.adminConsole') === false) {
             svc.toaster()?.info?.(
                 "La console d'administration est gelée. Réglages → Fonctionnalités pour la rallumer.");
             return;
         }
-        const adminView = svc.adminDashboard() || new AdminDashboardView();
+        const adminView = svc.adminDashboard() || await chargerConsoleAdmin();
+        // Un échec de chargement doit se voir : sans ce message, le clic ne
+        // ferait rien et rien n'expliquerait pourquoi.
+        if (!adminView) {
+            svc.toaster()?.error?.("La console d'administration n'a pas pu être chargée.");
+            return;
+        }
         adminView.open();
     }
 

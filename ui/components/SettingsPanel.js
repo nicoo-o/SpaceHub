@@ -144,6 +144,27 @@ class SettingsPanel {
                         <h3>Configuration Générale</h3>
                         <p class="sh-settings-desc">Paramètres globaux de fonctionnement de SpaceHub.</p>
                         
+                        <!-- C14 — Report de configuration d'un appareil à l'autre.
+                             La partie difficile était déjà écrite et testée :
+                             la méthode import() de SettingsManager assainit ce
+                             qu'elle reçoit, refuse les clés dangereuses et
+                             laisse le contrôle parental en dehors par défaut.
+                             Il ne manquait que deux boutons.
+                             (Pas d'accent grave dans ce commentaire : il vit
+                             DANS un littéral de gabarit, qu'il refermerait.) -->
+                        <div class="sh-form-group">
+                            <label>Configuration</label>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button type="button" class="sh-btn sh-btn--ghost" id="cfg-export" data-nav-focusable="true">Exporter</button>
+                                <button type="button" class="sh-btn sh-btn--ghost" id="cfg-import" data-nav-focusable="true">Importer</button>
+                                <input type="file" id="cfg-import-fichier" accept="application/json,.json" hidden />
+                            </div>
+                            <p class="sh-form-hint">
+                                L'export ne contient ni votre jeton de session, ni le code du mode enfant.
+                            </p>
+                            <p id="cfg-config-result" class="sh-form-hint" role="status" aria-live="polite"></p>
+                        </div>
+
                         <div class="sh-form-group">
                             <label>Niveau de logs (Console)</label>
                             <select class="sh-input" id="cfg-log-level">
@@ -1309,6 +1330,61 @@ class SettingsPanel {
             modal.close();
             svc.onboarding()?.open?.('admin', { force: true });
         });
+        // C14 — Export et import de la configuration.
+        el.querySelector('#cfg-export')?.addEventListener('click', () => {
+            const sortie = el.querySelector('#cfg-config-result');
+            try {
+                const json = this._settings?.export?.();
+                if (!json) { if (sortie) sortie.textContent = 'Rien à exporter.'; return; }
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const lien = document.createElement('a');
+                lien.href = url;
+                const jour = new Date().toISOString().slice(0, 10);
+                lien.download = `spacehub-configuration-${jour}.json`;
+                lien.click();
+                // Sans cette révocation, le Blob reste référencé et le
+                // navigateur ne rend pas la place, même l'onglet fermé.
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                if (sortie) sortie.textContent = 'Configuration exportée.';
+            } catch (err) {
+                if (sortie) sortie.textContent = `Export impossible : ${err?.message || err}`;
+            }
+        });
+
+        el.querySelector('#cfg-import')?.addEventListener('click', () => {
+            el.querySelector('#cfg-import-fichier')?.click();
+        });
+
+        el.querySelector('#cfg-import-fichier')?.addEventListener('change', async (evt) => {
+            const sortie = el.querySelector('#cfg-config-result');
+            const fichier = evt.currentTarget?.files?.[0];
+            // Remettre la valeur à zéro : sans cela, réimporter DEUX FOIS le
+            // même fichier ne déclenche pas de second `change`.
+            if (evt.currentTarget) evt.currentTarget.value = '';
+            if (!fichier) return;
+            try {
+                const texte = await fichier.text();
+                const bilan = this._settings?.import?.(texte);
+                if (!bilan) { if (sortie) sortie.textContent = 'Import impossible.'; return; }
+                // `import()` dit précisément ce qui s'est passé : un refus porte
+                // une raison, un succès porte le nombre de clés écartées par
+                // sécurité. Annoncer « importé » dans les deux cas serait faux.
+                if (bilan.ok !== true) {
+                    if (sortie) sortie.textContent = bilan.erreur || 'Aucun réglage exploitable dans ce fichier.';
+                    return;
+                }
+                const refusees = Array.isArray(bilan.refusees) ? bilan.refusees.length : 0;
+                if (sortie) {
+                    sortie.textContent = refusees
+                        ? `${bilan.appliquees} réglage(s) importé(s), ${refusees} écarté(s) par sécurité. Rechargez la page.`
+                        : `${bilan.appliquees} réglage(s) importé(s). Rechargez la page pour tout appliquer.`;
+                }
+            } catch (err) {
+                if (sortie) sortie.textContent = `Fichier illisible : ${err?.message || err}`;
+            }
+        });
+
         // Clé API OMDb (administrateur) — enregistrement + test réel
         el.querySelector('#cfg-omdb-save')?.addEventListener('click', () => {
             const input = el.querySelector('#cfg-omdb-key');

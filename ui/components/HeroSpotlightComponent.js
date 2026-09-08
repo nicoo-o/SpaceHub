@@ -96,6 +96,14 @@ class HeroSpotlightComponent {
         const renderId = ++this._slideRenderId;
         const backdropUrl = item.backdropUrl || '';
         const safeBackdropUrl = this._escapeUrl(backdropUrl);
+        // E3 — Cette image d'arrière-plan est, sur l'écran d'accueil, l'élément
+        // qui décide du plus grand rendu de contenu. Elle concourait pourtant à
+        // armes égales avec les vignettes des cartes, qui peuvent attendre.
+        //
+        // `fetchpriority` est un attribut HTML : il ne s'applique pas à une
+        // image posée en CSS. Le seul levier disponible ici est donc un
+        // `<link rel="preload">` déclaré dès que l'URL est connue.
+        this._prioriserArrierePlan(safeBackdropUrl, index);
 
         const buildKineticTitle = (name) => {
             let globalCharIndex = 0;
@@ -698,6 +706,36 @@ class HeroSpotlightComponent {
                 window.location.hash = `#/details?id=${current.Id || current.id}`;
             }
         });
+    }
+
+    /**
+     * Déclare l'arrière-plan du héros comme ressource prioritaire.
+     *
+     * UNIQUEMENT POUR LA PREMIÈRE DIAPOSITIVE. Le carrousel en fait défiler
+     * plusieurs : préchargier chacune en priorité haute reviendrait à n'en
+     * prioriser aucune, et à disputer la bande passante à l'image qu'on est en
+     * train de regarder. Seule la première décide du plus grand rendu.
+     *
+     * @param {string} url    URL déjà validée par `_escapeUrl`.
+     * @param {number} index  rang de la diapositive.
+     */
+    _prioriserArrierePlan(url, index) {
+        if (index !== 0 || !url || typeof document === 'undefined') return;
+        // Un seul lien pour toute la vie de la page : le réémettre à chaque
+        // retour sur l'accueil remplirait le `<head>` sans rien accélérer.
+        if (this._arrierePlanPriorise) return;
+        this._arrierePlanPriorise = true;
+        try {
+            const lien = document.createElement('link');
+            lien.rel = 'preload';
+            lien.as = 'image';
+            // `fetchpriority` n'existe qu'à partir de Chrome 101. En dessous
+            // l'attribut est ignoré et le préchargement reste utile : c'est
+            // exactement le comportement voulu, on ne teste donc rien.
+            lien.setAttribute('fetchpriority', 'high');
+            lien.href = url;
+            document.head.appendChild(lien);
+        } catch { /* un préchargement raté ne doit rien casser */ }
     }
 
     _escapeUrl(value) {

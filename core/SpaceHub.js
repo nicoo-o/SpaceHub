@@ -21,6 +21,7 @@ import EventBus        from './EventBus.js';
 import ModuleManager   from './ModuleManager.js';
 import PluginManager    from './PluginManager.js';
 import Router           from './Router.js';
+import { chargerConsoleAdmin } from '../ui/views/chargerConsoleAdmin.js';
 import SocketJellyfin   from '../jellyfin/temps-reel/SocketJellyfin.js';
 import CibleDistante    from '../jellyfin/temps-reel/CibleDistante.js';
 import Paroles          from '../jellyfin/musique/Paroles.js';
@@ -54,8 +55,6 @@ import SettingsPanel   from '../ui/components/SettingsPanel.js';
 import ModalSlideUpSheet from '../ui/components/ModalSlideUpSheet.js';
 import AppLayout       from '../ui/layouts/AppLayout.js';
 import Dashboard       from '../ui/layouts/Dashboard.js';
-import AdminDashboardView from '../ui/views/AdminDashboardView.js';
-import JellyfinConsoleModal from '../ui/views/JellyfinConsoleModal.js';
 import NotificationService from './NotificationService.js';
 import OnboardingWizard from '../ui/components/OnboardingWizard.js';
 
@@ -478,9 +477,22 @@ async function init() {
         // Console d'administration : instanciée seulement si le drapeau est levé.
         // Les appelants testent déjà l'existence de l'objet (`?.open?.()`), donc
         // laisser ces champs à null suffit à neutraliser tous les points d'entrée.
+        // CE QUE LE GEL NE FAISAIT PAS. `FeatureFlags.js` le disait lui-même :
+        // « Ce que le gel NE fait pas : alléger le bundle. Le code est toujours
+        // importé. […] Un vrai retrait passerait par un import dynamique —
+        // c'est la suite logique si le gel se confirme dans la durée. »
+        //
+        // Le gel a tenu. Ces deux vues pèsent 18,5 ko compressés et étaient
+        // téléchargées puis compilées à CHAQUE démarrage pour une
+        // fonctionnalité éteinte par défaut. L'import devient donc dynamique.
+        //
+        // Volontairement non attendu : rien au démarrage n'en dépend, les
+        // appelants les cherchent au moment du clic.
+        // Le drapeau est levé : on précharge, sans attendre. Le chargeur
+        // mémorise sa promesse, donc un clic pendant le chargement ne construit
+        // pas une seconde vue — il rejoint celle qui arrive.
         if (features.isEnabled('features.adminConsole')) {
-            SpaceHub.ui.adminDashboard = new AdminDashboardView();
-            SpaceHub.ui.jellyfinConsole = new JellyfinConsoleModal();
+            chargerConsoleAdmin().catch(err => log.warn("Console d'administration indisponible :", err));
         }
         log.info('Dashboard & Tous les Widgets enregistrés.');
     } catch (err) {

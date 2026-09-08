@@ -24,7 +24,7 @@ const ROOTS = ['core', 'ui', 'jellyfin', 'integrations'];
 const EXCLUS = new Set(['core/SpaceHub.js', 'core/services.js', 'core/ServiceRegistry.js']);
 
 /** Plafond d'accès directs. Baissez-le à chaque migration ; ne le remontez jamais. */
-const PLAFOND = 20;
+const PLAFOND = 19;
 
 function walk(dir, out = []) {
     if (!fs.existsSync(dir)) return out;
@@ -46,6 +46,22 @@ for (const f of ROOTS.flatMap(r => walk(r))) {
     const lignes = fs.readFileSync(f, 'utf8').split('\n');
     lignes.forEach((l, i) => {
         if (!l.includes('window.SpaceHub')) return;
+        // UN COMMENTAIRE N'EST PAS UN ACCÈS.
+        //
+        // Le contrôle comptait toute ligne CONTENANT « window.SpaceHub », y
+        // compris celles qui l'expliquent. Conséquence perverse : documenter le
+        // retrait d'un accès global faisait monter le compteur des accès
+        // globaux, et la façon la moins chère de faire passer ce contrôle était
+        // d'effacer l'explication. Un contrat qui punit la documentation de sa
+        // propre correction se retourne contre lui-même.
+        //
+        // Le repérage reste volontairement simple : `//`, `*` en tête de ligne
+        // de bloc, `/*`. Il ne gère pas une chaîne de caractères contenant
+        // « // » avant un accès réel — ce cas n'existe pas dans ce dépôt, et
+        // faire mieux exigerait d'analyser le code plutôt que de le lire.
+        const avant = l.slice(0, l.indexOf('window.SpaceHub'));
+        const nu = avant.trimStart();
+        if (nu.startsWith('//') || nu.startsWith('*') || nu.startsWith('/*')) return;
         total++;
         const estEcriture = /window\.SpaceHub[^;]*=\s*[^=]/.test(l) || /delete\s+window\.SpaceHub/.test(l);
         (estEcriture ? ecritures : lectures).push(`${rel}:${i + 1}`);

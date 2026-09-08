@@ -11,15 +11,26 @@
 import Logger from './Logger.js';
 import PluginPermissions, { PluginPermissionError } from './PluginPermissions.js';
 import { fetchAvecDelai } from './utils/reseau.js';
+import * as svc from './services.js';
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9._-]{1,63}$/;
 const STATES = new Set(['registered', 'loaded', 'enabled', 'disabled', 'error', 'quarantined']);
 const HOOKS = ['onLoad', 'onEnable', 'onDisable', 'onUnload'];
 const CONTRIBUTIONS = new Set(['widget', 'theme', 'route', 'metadataProvider', 'action', 'adminPanel', 'module']);
 
-function safeWindow() {
-    return typeof window !== 'undefined' ? window : {};
-}
+/**
+ * Version de l'API de greffons fournie par ce SDK.
+ *
+ * La MAJEURE change quand un greffon existant peut casser ; la mineure quand
+ * on ajoute sans retirer. `_validateManifest` s'en sert pour refuser un greffon
+ * écrit contre une majeure différente.
+ */
+export const API_VERSION = '2.0.0';
+
+// `safeWindow()` vivait ici et servait à atteindre `window.SpaceHub`. Tous ses
+// appels passent désormais par le registre de services (A8) : plus rien dans ce
+// module ne touche à la façade globale, qui pourra donc disparaître sans le
+// casser.
 
 export class PluginManager {
     constructor({ eventBus = null, settings = null, userProvider = null, timeoutMs = 10000, hostVersion = '1.0.0' } = {}) {
@@ -34,7 +45,7 @@ export class PluginManager {
         this._permissions = new PluginPermissions({
             settings,
             eventBus,
-            userProvider: userProvider || (() => safeWindow().SpaceHub?.auth?.getUser?.())
+            userProvider: userProvider || (() => svc.auth()?.getUser?.())
         });
     }
 
@@ -256,20 +267,23 @@ export class PluginManager {
             throw new Error(`Contribution déjà utilisée : ${contributionKey}`);
         }
         this._contributions.set(contributionKey, { pluginId: plugin.id, type, contribution });
-        const host = safeWindow().SpaceHub || {};
+        // A8 — Ce chemin s'adressait à `window.SpaceHub`. L'application est
+        // passée au registre de services, avec un plafond d'accès globaux tenu
+        // par `test:globals` ; celui-ci le contournait, et casserait le jour où
+        // la façade globale disparaîtra.
         if (type === 'widget' && typeof contribution.WidgetClass === 'function') {
-            host.ui?.dashboard?.registerWidget?.(key, contribution.WidgetClass);
+            svc.dashboard()?.registerWidget?.(key, contribution.WidgetClass);
         } else if (type === 'theme') {
-            host.ui?.themes?.register?.(contribution);
+            svc.themes()?.register?.(contribution);
         } else if (type === 'metadataProvider') {
-            host.metadata?.registerProvider?.(contribution);
+            svc.metadata()?.registerProvider?.(contribution);
         }
         return () => {
             const current = this._contributions.get(contributionKey);
             if (current?.pluginId !== plugin.id) return;
-            if (type === 'widget') host.ui?.dashboard?.unregisterWidget?.(key, contribution.WidgetClass);
-            if (type === 'theme') host.ui?.themes?.unregister?.(key);
-            if (type === 'metadataProvider') host.metadata?.unregisterProvider?.(key);
+            if (type === 'widget') svc.dashboard()?.unregisterWidget?.(key, contribution.WidgetClass);
+            if (type === 'theme') svc.themes()?.unregister?.(key);
+            if (type === 'metadataProvider') svc.metadata()?.unregisterProvider?.(key);
             this._contributions.delete(contributionKey);
         };
     }
@@ -314,7 +328,6 @@ export class PluginManager {
             requested: plugin.manifest.permissions,
             ...options
         });
-        const host = safeWindow().SpaceHub || {};
         return {
             pluginId: id,
             manifest: this._publicManifest(plugin.manifest),
@@ -337,11 +350,11 @@ export class PluginManager {
                 }
             },
             api: {
-                getItem: (...args) => { permission('jellyfin.items.read'); return host.jellyfin?.api?.getItem?.(...args); },
-                getItems: (...args) => { permission('jellyfin.items.read'); return host.jellyfin?.api?.getItems?.(...args); },
-                getMetadata: (...args) => { permission('jellyfin.metadata.read'); return host.metadata?.get?.(...args); },
-                getServerPlugins: (...args) => { permission('server.plugins.read'); return host.jellyfin?.plugins?.list?.(...args); },
-                configureServerPlugin: (...args) => { permission('server.plugins.configure'); return host.jellyfin?.plugins?.saveConfiguration?.(...args); },
+                getItem: (...args) => { permission('jellyfin.items.read'); return svc.jellyfinApi()?.getItem?.(...args); },
+                getItems: (...args) => { permission('jellyfin.items.read'); return svc.jellyfinApi()?.getItems?.(...args); },
+                getMetadata: (...args) => { permission('jellyfin.metadata.read'); return svc.metadata()?.get?.(...args); },
+                getServerPlugins: (...args) => { permission('server.plugins.read'); return svc.jellyfinPlugins()?.list?.(...args); },
+                configureServerPlugin: (...args) => { permission('server.plugins.configure'); return svc.jellyfinPlugins()?.saveConfiguration?.(...args); },
                 fetch: async (url, options = {}) => {
                     permission('network.external.read');
                     if (typeof url !== 'string' || !/^https:\/\//i.test(url)) throw new TypeError('Seules les URLs HTTPS sont autorisées.');
@@ -356,21 +369,32 @@ export class PluginManager {
                 once: (event, callback) => this._trackCleanup(plugin, this._eventBus?.once(`plugin:${id}:${event}`, callback)),
                 emit: (event, data) => this._eventBus?.emit(`plugin:${id}:${event}`, data)
             },
+            // D3 — Le greffon de notes allait chercher son service dans
+            // `window.SpaceHub.core.ratingCache` : exactement le contournement
+            // que le contrôle statique doit interdire. Il est désormais offert
+            // ici, derrière la permission qui lui correspond — enregistrer un
+            // fournisseur de notes, c'est lire des métadonnées.
+            ratings: {
+                setProvider: fn => { permission('jellyfin.metadata.read'); return svc.ratingCache()?.setProvider?.(fn); },
+                setSearchProvider: fn => { permission('jellyfin.metadata.read'); return svc.ratingCache()?.setSearchProvider?.(fn); },
+                setTextProvider: fn => { permission('jellyfin.metadata.read'); return svc.ratingCache()?.setTextProvider?.(fn); },
+                clearProviders: () => svc.ratingCache()?.clearProviders?.(),
+            },
             settings: this.getPluginStorage(id),
             permissions: { has: name => this._permissions.can(id, name, { requested: plugin.manifest.permissions }) },
             ui: {
-                toaster: host.ui?.components?.toaster,
+                toaster: svc.toaster(),
                 dashboard: {
                     registerWidget: (widgetId, WidgetClass) => {
                         permission('ui.dashboard.write');
-                        return host.ui?.dashboard?.registerWidget?.(widgetId, WidgetClass);
+                        return svc.dashboard()?.registerWidget?.(widgetId, WidgetClass);
                     }
                 },
                 themes: {
-                    register: theme => { permission('ui.theme.register'); return host.ui?.themes?.register?.(theme); },
-                    apply: themeId => { permission('ui.theme.apply'); return host.ui?.themes?.apply?.(themeId); }
+                    register: theme => { permission('ui.theme.register'); return svc.themes()?.register?.(theme); },
+                    apply: themeId => { permission('ui.theme.apply'); return svc.themes()?.apply?.(themeId); }
                 },
-                openModal: options => { permission('ui.modal.open'); return host.sdk?.openModal?.(options); }
+                openModal: options => { permission('ui.modal.open'); return svc.sdk()?.openModal?.(options); }
             },
             log: new Logger(`Plugin:${id}`)
         };
@@ -419,6 +443,29 @@ export class PluginManager {
             this._log.error(`Plugin "${id}" incompatible avec SpaceHub ${this._hostVersion}.`);
             return null;
         }
+
+        // A7 — `apiVersion` était déclarée dans chaque manifeste et confrontée
+        // à RIEN. Un greffon écrit pour l'API 1 se chargeait sans un mot contre
+        // l'API 2, puis échouait plus tard sur une méthode disparue, à un
+        // endroit sans rapport avec la cause.
+        //
+        // Seule la MAJEURE compte : c'est la seule qui puisse casser un
+        // greffon. Une mineure supérieure signifie « écrit pour une version
+        // plus récente du SDK » — on l'accepte en le disant, parce que refuser
+        // rendrait toute évolution du SDK bloquante pour l'écosystème.
+        const apiDemandee = String(manifest.apiVersion || API_VERSION);
+        const majeureDemandee = Number.parseInt(apiDemandee, 10);
+        const majeureCourante = Number.parseInt(API_VERSION, 10);
+        if (Number.isFinite(majeureDemandee) && majeureDemandee !== majeureCourante) {
+            this._log.error(
+                `Plugin "${id}" écrit pour l'API ${majeureDemandee}, le SDK est en ${majeureCourante}.`);
+            return null;
+        }
+        if (this._comparerVersions(apiDemandee, API_VERSION) > 0) {
+            this._log.warn(
+                `Plugin "${id}" demande l'API ${apiDemandee}, le SDK fournit ${API_VERSION} : `
+                + 'certaines fonctions peuvent manquer.');
+        }
         return {
             id,
             name: manifest.name || id,
@@ -458,6 +505,19 @@ export class PluginManager {
     }
 
     _normalizeId(id) { return String(id || '').trim().toLowerCase(); }
+
+    /**
+     * Compare deux versions « x.y.z ».
+     * @returns {number} négatif si a < b, 0 si égales, positif si a > b.
+     */
+    _comparerVersions(a, b) {
+        const ga = String(a).split('.').map(n => Number.parseInt(n, 10) || 0);
+        const gb = String(b).split('.').map(n => Number.parseInt(n, 10) || 0);
+        for (let i = 0; i < 3; i += 1) {
+            if ((ga[i] || 0) !== (gb[i] || 0)) return (ga[i] || 0) - (gb[i] || 0);
+        }
+        return 0;
+    }
 
     _isCompatible(minVersion) {
         const current = String(this._hostVersion).split('.').map(Number);

@@ -18,11 +18,33 @@ import Logger from './Logger.js';
 import * as svc from './services.js';
 import { fetchAvecDelai } from './utils/reseau.js';
 const PROVIDER_IDS = ['jellyfin', 'rt', 'imdb', 'metacritic', 'tmdb'];
+
+/** Préfixe des clés dans le magasin `general` du CacheManager. */
+const PREFIXE_CACHE = 'notes:';
+
+/**
+ * Durée de vie d'une ABSENCE : sept jours.
+ *
+ * Plus longue que celle d'une note (24 h), et c'est délibéré. Une note peut
+ * bouger d'un jour à l'autre ; un film absent d'OMDb n'y entre pas du jour au
+ * lendemain. Réinterroger ces titres toutes les 24 h reviendrait à dépenser le
+ * quota pour des réponses qu'on connaît déjà.
+ */
+const TTL_ABSENCE_MS = 7 * 24 * 60 * 60 * 1000;
 const DEFAULT_PROVIDERS = ['jellyfin', 'rt', 'imdb', 'tmdb'];
 
 class RatingCacheService {
-    constructor({ settings = null } = {}) {
+    /**
+     * @param {Object} [options]
+     * @param {Object} [options.settings]
+     * @param {() => Object|null} [options.cache] accès PARESSEUX au CacheManager.
+     *   Paresseux parce que ce service est construit tôt : une référence prise
+     *   maintenant serait nulle pour toute la session.
+     */
+    constructor({ settings = null, cache = null } = {}) {
         this._settings = settings || (typeof window !== 'undefined' ? svc.settings() : null);
+        this._cache = cache || (() => (typeof window !== 'undefined' ? svc.cache() : null));
+        this._ttlAbsence = TTL_ABSENCE_MS;
         this._log = new Logger('RatingCache');
         this._memory = new Map();
         this._inFlight = new Map();
@@ -54,9 +76,42 @@ class RatingCacheService {
         if (typeof fn === 'function') this._textProvider = fn;
     }
 
+    /**
+     * Retire le fournisseur de notes.
+     *
+     * ATTENTION — cette méthode ne retire QUE celui-là. Elle est conservée pour
+     * les appelants existants, mais un greffon qui se désactive doit appeler
+     * `clearProviders()` : voir le commentaire de cette dernière.
+     */
     clearProvider() {
         this._provider = null;
         this._log.info('Provider de notes externes retiré.');
+    }
+
+    /**
+     * Retire les TROIS fournisseurs.
+     *
+     * LA FUITE QUE CECI FERME. `clearProvider()` ne remettait à zéro que
+     * `_provider`. `_searchProvider` et `_textProvider` n'avaient AUCUNE
+     * méthode de retrait, et les crochets `onDisable` / `onUnload` du greffon
+     * de notes n'appelaient que `clearProvider()`.
+     *
+     * Désactiver le greffon laissait donc deux de ses trois fermetures
+     * installées et vivantes : la recherche par titre et les textes critiques
+     * continuaient d'interroger Internet avec la clé de l'utilisateur, pour un
+     * greffon qu'il croyait éteint. Rien ne le signalait — les requêtes
+     * partaient, les résultats arrivaient, personne ne les regardait.
+     */
+    clearProviders() {
+        this._provider = null;
+        this._searchProvider = null;
+        this._textProvider = null;
+        this._log.info('Fournisseurs de notes retirés (notes, recherche, textes).');
+    }
+
+    /** Vrai si la recherche par titre est disponible. */
+    hasSearchProvider() {
+        return this._searchProvider !== null;
     }
 
     hasProvider() {
@@ -289,22 +344,105 @@ class RatingCacheService {
         return Number.isFinite(val) ? val : null;
     }
 
+    /**
+     * Résout les notes d'un identifiant IMDb.
+     *
+     * TROIS NIVEAUX, ET LE QUOTA COMMANDE TOUT
+     * ----------------------------------------
+     * Le quota OMDb gratuit est de **1 000 requêtes par jour**. Une page de
+     * médiathèque qui affiche soixante affiches déclenche soixante résolutions.
+     * Le cache était une `Map` mémoire : tout était perdu au rechargement de la
+     * page, donc trois ouvertures de l'application épuisaient la journée — sans
+     * message, les notes cessaient simplement d'apparaître.
+     *
+     *   1. mémoire      — instantané, perdu au rechargement ;
+     *   2. IndexedDB    — survit au rechargement, même durée de vie de 24 h ;
+     *   3. réseau       — le seul niveau qui consomme du quota.
+     *
+     * ET LE CACHE DES ABSENCES. Un titre qu'OMDb ne connaît pas était
+     * réinterrogé à chaque visite, indéfiniment. Dans une médiathèque qui
+     * contient de l'animation japonaise ou du cinéma non anglophone, ces échecs
+     * sont souvent la MAJORITÉ du trafic. Une absence se met donc en cache
+     * aussi, plus longtemps — un film absent d'OMDb le reste.
+     */
     async _resolve(imdbId, opts = {}) {
         const mem = this._memory.get(imdbId);
         if (mem && mem.expiresAt > Date.now()) return mem.data;
 
+        // LA DÉDUPLICATION DOIT ÊTRE POSÉE AVANT LE PREMIER `await`.
+        //
+        // Ce détail a été cassé en introduisant le niveau disque : la lecture
+        // IndexedDB était placée ICI, entre le test d'existence et
+        // l'inscription. Or un `await` rend la main au navigateur — deux appels
+        // simultanés franchissaient donc tous deux le test avant que l'un ait
+        // pu s'inscrire, et la page envoyait deux requêtes OMDb pour la même
+        // affiche. Sur une grille, cela double la consommation d'un quota
+        // limité à mille requêtes par jour.
+        //
+        // Le travail asynchrone est donc entièrement déporté dans
+        // `_resoudreVraiment`, et cette fonction-ci n'attend rien avant d'avoir
+        // inscrit sa promesse.
         if (this._inFlight.has(imdbId)) return this._inFlight.get(imdbId);
 
-        const promise = this._enqueue(imdbId, opts).finally(() => {
-            this._inFlight.delete(imdbId);
-        });
-        this._inFlight.set(imdbId, promise);
+        const promesse = this._resoudreVraiment(imdbId, opts)
+            .finally(() => { this._inFlight.delete(imdbId); });
+        this._inFlight.set(imdbId, promesse);
+        return promesse;
+    }
 
-        const data = await promise;
-        if (data) {
-            this._memory.set(imdbId, { data, expiresAt: Date.now() + this._ttl });
+    /** Le travail réel : disque, puis réseau. Toujours appelé dédupliqué. */
+    async _resoudreVraiment(imdbId, opts) {
+        // Niveau 2 : le disque. Une lecture IndexedDB coûte une milliseconde,
+        // une requête OMDb coûte un millième du quota quotidien.
+        const surDisque = await this._lireDisque(imdbId);
+        if (surDisque !== undefined) {
+            this._memory.set(imdbId, { data: surDisque, expiresAt: Date.now() + this._ttl });
+            return surDisque;
         }
+
+        const data = await this._enqueue(imdbId, opts);
+        // `data` vaut `null` quand OMDb ne connaît pas le titre. On mémorise
+        // AUSSI ce cas : c'est là qu'est le gros du gaspillage.
+        this._memory.set(imdbId, {
+            data: data || null,
+            expiresAt: Date.now() + (data ? this._ttl : this._ttlAbsence),
+        });
+        this._ecrireDisque(imdbId, data || null);
         return data;
+    }
+
+    // ─── Niveau 2 : le disque ───────────────────────────────────────────────
+
+    /**
+     * @returns {Promise<object|null|undefined>} la valeur en cache — `null` est
+     *   une absence MÉMORISÉE, `undefined` signifie « rien en cache ». La
+     *   distinction est tout l'intérêt du cache des absences : les confondre
+     *   ferait réinterroger OMDb pour chaque titre qu'il ne connaît pas.
+     */
+    async _lireDisque(imdbId) {
+        const cache = this._cache?.();
+        if (!cache?.get) return undefined;
+        try {
+            const entree = await cache.get('general', `${PREFIXE_CACHE}${imdbId}`);
+            if (!entree || typeof entree !== 'object') return undefined;
+            if (!Number.isFinite(entree.expiresAt) || entree.expiresAt <= Date.now()) return undefined;
+            return entree.data ?? null;
+        } catch {
+            // Navigation privée, IndexedDB refusé : ce n'est pas une panne, on
+            // retombe simplement sur le réseau.
+            return undefined;
+        }
+    }
+
+    _ecrireDisque(imdbId, data) {
+        const cache = this._cache?.();
+        if (!cache?.set) return;
+        const dureeMs = data ? this._ttl : this._ttlAbsence;
+        try {
+            cache.set('general', `${PREFIXE_CACHE}${imdbId}`,
+                { data, expiresAt: Date.now() + dureeMs },
+                Math.round(dureeMs / 1000))?.catch?.(() => {});
+        } catch { /* écriture impossible : sans effet sur la lecture */ }
     }
 
     _enqueue(imdbId, opts) {
@@ -333,7 +471,13 @@ class RatingCacheService {
         return await this._provider(imdbId, opts);
     }
 
-    invalidate(imdbId) { this._memory.delete(imdbId); }
+    invalidate(imdbId) {
+        this._memory.delete(imdbId);
+        // Sans cette ligne, « invalider » ne vidait que le premier niveau : la
+        // lecture suivante retrouvait la même valeur sur le disque.
+        try { this._cache?.()?.delete?.('general', `${PREFIXE_CACHE}${imdbId}`)?.catch?.(() => {}); } catch { /* sans effet */ }
+    }
+
     clear() { this._memory.clear(); this._textMemory.clear(); }
 }
 

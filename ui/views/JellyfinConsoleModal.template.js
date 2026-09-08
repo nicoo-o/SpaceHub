@@ -83,6 +83,20 @@ export function gabaritConsoleModules(ctx) {
                             </div>
                             <p class="sh-console-plugin-desc">${ctx._escape(plugin.description || 'Aucune description.')}</p>
                             <small>Permissions : ${ctx._escape((plugin.permissions || []).join(', ') || 'aucune')}<br>Approuvées : ${ctx._escape((plugin.permissionPolicy?.approved || []).join(', ') || 'aucune')}</small>
+                            <!-- A2 — Dire la vérité sur ce qu'une approbation accorde.
+                                 La liste de permissions ci-dessus décrit ce que le greffon
+                                 DÉCLARE vouloir faire ; elle ne l'y contraint pas. Un
+                                 greffon s'exécute dans la page, avec le même accès que
+                                 l'application — y compris à la session. Une liste qui
+                                 ressemble à celle d'Android sans en avoir la force est
+                                 pire que pas de liste : elle invite à approuver.
+                                 Cet avertissement n'est pas repliable, par construction. -->
+                            <p class="sh-plugin-avertissement" role="note">
+                                <strong>Un greffon s'exécute avec les mêmes droits que SpaceHub.</strong>
+                                Les permissions ci-dessus décrivent son intention, elles ne la limitent pas :
+                                il peut lire vos réglages et votre session. N'approuvez que des greffons
+                                dont vous connaissez l'auteur.
+                            </p>
                             <button class="sh-console-action-btn sh-sdk-approve" data-plugin-id="${ctx._escape(plugin.id)}">Approuver les permissions</button>
                         </div>
                     `).join('') : `

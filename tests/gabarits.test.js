@@ -157,7 +157,7 @@ describe('Gabarits extraits — le HTML n\'a pas bougé d\'un octet', () => {
         expect(html).toBe(attendu.html);
     });
 
-    it('JellyfinConsoleModal.template.js — identique, aux deux échappements ajoutés près', () => {
+    it('JellyfinConsoleModal.template.js — identique, aux échappements et à l\'avertissement près', () => {
         // Ce gabarit est le seul à différer de son état d'origine, et la
         // différence est voulue : `mod.icon` et `mod.name` partaient en HTML
         // sans échappement. Plutôt que d'accepter une divergence vague, le
@@ -175,6 +175,40 @@ describe('Gabarits extraits — le HTML n\'a pas bougé d\'un octet', () => {
                 corrigee = corrigee.split(brut).join(echapper(brut));
             }
         }
+
+        // SECONDE divergence voulue : l'avertissement d'approbation d'un
+        // greffon. Il dit que les permissions décrivent une INTENTION et ne
+        // contraignent rien — un greffon s'exécute dans la page, avec le même
+        // accès que l'application. Même méthode que pour le lecteur : on
+        // extrait le bloc du HTML produit et on l'applique à la référence,
+        // plutôt que de régénérer celle-ci.
+        const INDENT = ' '.repeat(28);
+        const ANCRE_APPROBATION = `${INDENT}<button class="sh-console-action-btn sh-sdk-approve"`;
+        const MARQUE_AVERTISSEMENT = `${INDENT}<!-- A2`;
+        const debut = html.indexOf(MARQUE_AVERTISSEMENT);
+        const fin = html.indexOf(ANCRE_APPROBATION, debut);
+        expect(debut, 'l\'avertissement d\'approbation doit être présent').toBeGreaterThan(0);
+        expect(fin).toBeGreaterThan(debut);
+        const avertissement = html.slice(debut, fin);
+
+        // Ce que ce bloc doit garantir, et que l'égalité seule ne dirait pas.
+        // L'empreinte ne protège plus son contenu — il est extrait du HTML
+        // produit, donc égal à lui-même par construction : ces vérifications
+        // referment le trou à la main.
+        expect(avertissement).toContain('class="sh-plugin-avertissement"');
+        expect(avertissement, 'l\'avertissement doit dire que les droits sont les mêmes')
+            .toContain('mêmes droits que SpaceHub');
+        expect(avertissement, 'et qu\'une permission ne limite rien')
+            .toContain('elles ne la limitent pas');
+        expect(avertissement, 'un avertissement replié ne serait pas lu')
+            .not.toContain('<details');
+
+        // Le gabarit boucle sur les greffons : le bloc apparaît autant de fois
+        // que le bouton. On l'applique donc à CHAQUE occurrence.
+        expect(attendu.html.split(ANCRE_APPROBATION).length - 1)
+            .toBe(html.split(ANCRE_APPROBATION).length - 1);
+        corrigee = corrigee.split(ANCRE_APPROBATION).join(avertissement + ANCRE_APPROBATION);
+
         expect(html).toBe(corrigee);
     });
 });
