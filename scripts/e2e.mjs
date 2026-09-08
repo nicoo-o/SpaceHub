@@ -153,6 +153,25 @@ await scenario('Les deux thèmes basculent et restent lisibles', async () => {
 });
 
 await scenario('« Retour » ferme la couche du DESSUS, quel que soit l\'ordre d\'ouverture', async () => {
+    // NOTE SUR LA STABILITÉ DE CE SCÉNARIO.
+    //
+    // Il échoue environ une fois sur trois, et la cause est identifiée sans
+    // être corrigée : les attentes ci-dessous sont des DURÉES fixes, or ce que
+    // « Retour » consulte n'est pas le DOM mais la pile de couches de
+    // SpatialNavigation. L'élément apparaît dans le DOM avant que sa couche
+    // soit empilée ; sous charge, la touche part dans cet intervalle.
+    //
+    // Deux tentatives de correction ont été faites et ANNULÉES, parce qu'elles
+    // rendaient la suite moins fiable, pas plus : attendre la présence dans le
+    // DOM inverse le résultat (on interroge une pile incomplète), et attendre
+    // la profondeur de la pile accélère assez le scénario pour en déstabiliser
+    // d'autres, qui dépendent eux aussi de délais fixes.
+    //
+    // Corriger cela pour de bon demande de rendre l'empilement OBSERVABLE —
+    // un événement à l'empilement et au dépilement — et de reprendre les
+    // attentes de plusieurs scénarios à la fois. C'est un chantier à part, pas
+    // une retouche : le laisser à moitié fait est ce qui produit une suite dont
+    // on apprend à ignorer les échecs.
     const essai = async (ordre) => page.evaluate(async (ordre) => {
         const S = window.SpaceHub;
         S.jellyfin.search.close?.(); S.ui.settingsPanel.close?.();

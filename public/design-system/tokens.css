@@ -147,6 +147,38 @@
     /* Épaisseur : le mode TV l'augmente (cf. core/TvModeManager.css). */
     --sh-focus-ring-width:       3px;
 
+    /* ─── Gamme d'accent ──────────────────────────────────────
+       POURQUOI ELLE ARRIVE MAINTENANT, ET POURQUOI ELLE N'EST PAS ORANGE.
+
+       Jusqu'ici, le SEUL jeton chromatique de toute l'application était
+       l'anneau de focus. Tout le reste — action principale comprise — était
+       du gris neutre, saturation zéro, dans les deux thèmes.
+
+       Sur fond noir, cela fonctionne : un noir et blanc sur du noir est un
+       parti pris légitime, cinématographique, et c'est l'identité voulue. Sur
+       fond blanc, la MÊME palette ne se lit plus comme un parti pris mais
+       comme une maquette pas finie — le thème clair paraît monotone, et il
+       l'est objectivement.
+
+       L'accent n'est PAS l'orange du focus, et c'est délibéré. L'anneau doit
+       rester « la seule chose de cette couleur à l'écran » : c'est ce qui
+       permet de trouver sa position d'un coup d'œil à trois mètres. Un accent
+       orange le noierait parmi les boutons.
+
+       CE QU'ELLE COLORE, ET CE QU'ELLE NE COLORE PAS. Progression de lecture,
+       élément sélectionné, onglet actif, pastille « nouveau ». Pas les
+       boutons principaux : l'action principale reste monochrome, parce que
+       l'identité Apple TV du produit tient à cela. La règle est « commencer en
+       niveaux de gris, ajouter de la couleur pour clarifier, pas pour
+       décorer ». */
+    --sh-accent-rgb:             90, 180, 220;
+    --sh-accent:                 rgb(var(--sh-accent-rgb));
+    --sh-accent-fort:            #7ec8e8;   /* survol, sur fond sombre on ÉCLAIRCIT */
+    --sh-accent-doux:            rgba(var(--sh-accent-rgb), 0.18);
+    --sh-accent-trace:           rgba(var(--sh-accent-rgb), 0.34);
+    /* Encre à poser SUR l'accent. En sombre l'accent est clair : encre noire. */
+    --sh-accent-contraste:       #06131a;
+
     /* ─── Couleurs de base — Monochrome Apple TV ─────────────── */
     --sh-color-primary:          #ffffff;   /* Blanc pur (actions principales) */
     --sh-color-primary-hover:    #f0f0f0;
@@ -186,6 +218,24 @@
     --sh-border-color:           rgba(var(--sh-ink, 255, 255, 255),  0.08);
     --sh-border-color-hover:     rgba(var(--sh-ink, 255, 255, 255),  0.16);
     --sh-border-color-focus:     rgba(var(--sh-ink, 255, 255, 255),  0.40);
+    /* ── Délimitation de surface — le pendant clair du verre dépoli ──
+       En SOMBRE, une carte se détache par sa luminosité et par le flou de
+       fond : elle n'a besoin d'aucun trait, et ce jeton est donc transparent.
+       En CLAIR, le flou ne produit rien (blanc derrière blanc reste blanc) et
+       c'est le trait qui délimite. Un seul jeton, deux comportements, aucune
+       règle conditionnelle à écrire dans les composants. */
+    /* ── Élément SÉLECTIONNÉ sur une surface de thème ──
+       En sombre, un pavé blanc à encre noire : c'est l'identité monochrome du
+       produit, et elle fonctionne. En clair, la même règle produit un pavé
+       NOIR au milieu d'une page claire — lourd, et perçu comme une erreur.
+       Le thème clair y met donc son accent. Un jeton, deux valeurs, et pas une
+       ligne de CSS conditionnelle. */
+    --sh-selection-bg:           var(--sh-ink-solid, #ffffff);
+    --sh-selection-ink:          var(--sh-ink-solid-inv, #000000);
+
+    --sh-border-subtle:          transparent;
+    --sh-border-strong:          transparent;
+
     --sh-border-width:           1px;
     --sh-border-width-thick:     2px;
 

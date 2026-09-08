@@ -46,12 +46,16 @@
 }
 .sh-settings-nav__item:hover svg { opacity: 1; }
 
+/* L'entrée active passait par l'encre pleine : blanche sur fond sombre, donc
+   NOIRE sur fond clair — un pavé noir au milieu d'une page claire. Le jeton de
+   sélection laisse chaque thème choisir : encre pleine en sombre, accent en
+   clair. */
 .sh-settings-nav__item.active {
-    color: var(--sh-ink-solid-inv, #000000);
-    background: var(--sh-ink-solid, #ffffff);
+    color: var(--sh-selection-ink, #000000);
+    background: var(--sh-selection-bg, #ffffff);
     font-weight: 700;
 }
-.sh-settings-nav__item.active svg { stroke: var(--sh-ink-solid-inv, #000000); opacity: 1; }
+.sh-settings-nav__item.active svg { stroke: var(--sh-selection-ink, #000000); opacity: 1; }
 
 .sh-settings-content {
     flex: 1;

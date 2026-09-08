@@ -14,6 +14,12 @@
     background: rgba(var(--sh-ink-inv, 0, 0, 0),  0.45);
     backdrop-filter: var(--sh-blur-chrome, blur(20px));
     -webkit-backdrop-filter: var(--sh-blur-chrome, blur(20px));
+    /* F3 — Délimitation en thème clair.
+       Le flou ci-dessus ne produit RIEN sur fond clair (blanc derrière blanc
+       reste blanc) ; le préréglage clair le neutralise donc, et ce trait prend
+       le relais. En sombre, `--sh-border-subtle` vaut `transparent` : la règle
+       est présente et sans effet, aucune condition à écrire. */
+    border: 1px solid var(--sh-border-subtle, transparent);
     transition: opacity var(--sh-dur-3) ease;
 }
 
