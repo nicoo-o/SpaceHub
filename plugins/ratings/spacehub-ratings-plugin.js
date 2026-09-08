@@ -16,6 +16,17 @@
 
 const PLUGIN_ID = 'spacehub.ratings';
 
+/**
+ * Écart d'année toléré lors d'une recherche par titre.
+ *
+ * Un an, et pas davantage : c'est l'écart réel entre une année de festival et
+ * une année de sortie, ou entre deux bases qui ne datent pas au même moment.
+ * À deux ans, on commencerait à confondre des films différents portant le même
+ * titre — un remake sort rarement l'année suivante, souvent la décennie
+ * d'après, mais la marge doit rester une marge.
+ */
+const TOLERANCE_ANNEE = 1;
+
 const manifest = {
     id: PLUGIN_ID,
     name: 'Ratings (Rotten Tomatoes / IMDb / Metacritic / TMDB)',
@@ -34,6 +45,40 @@ const manifest = {
     // pour « faire coller » le manifeste aurait été pire — on retire la
     // déclaration, le nettoyage réel se fait dans `onDisable`/`onUnload`.
     contributions: [],
+
+    // A6 — La configuration de ce greffon était écrite EN DUR dans
+    // SettingsPanel.js : deux champs, deux identifiants, quatre gestionnaires.
+    // Tout nouveau greffon ayant besoin d'un réglage exigeait donc de modifier
+    // l'application hôte, ce qui annule une bonne part de l'intérêt d'avoir
+    // des greffons. Le manifeste le déclare maintenant, et l'hôte le rend.
+    settingsSchema: [
+        {
+            cle: 'omdbApiKey',
+            type: 'secret',
+            titre: 'Clé API OMDb',
+            invite: 'Clé API OMDb',
+            aide: 'Gratuite, 1 000 requêtes par jour. Sans elle, aucune note externe.',
+        },
+        {
+            cle: 'tmdbApiKey',
+            type: 'secret',
+            titre: 'Clé API TMDB',
+            invite: 'Clé API TMDB (optionnelle)',
+            aide: 'Facultative : elle sert aux textes de critiques.',
+        },
+        {
+            cle: 'tmdbLanguage',
+            type: 'select',
+            titre: 'Langue des critiques',
+            defaut: 'fr-FR',
+            options: [
+                { valeur: 'fr-FR', libelle: 'Français' },
+                { valeur: 'en-US', libelle: 'Anglais' },
+                { valeur: 'es-ES', libelle: 'Espagnol' },
+                { valeur: 'de-DE', libelle: 'Allemand' },
+            ],
+        },
+    ],
 
     healthCheck: async (ctx) => {
         const key = ctx.settings.get('omdbApiKey', null);
@@ -78,7 +123,18 @@ const manifest = {
         };
 
         // ── 2. Recherche OMDb par titre (médias sans ProviderIds.Imdb) ──
-        // Année exacte exigée : aucun match approximatif.
+        //
+        // D5 — L'EXIGENCE D'ANNÉE EXACTE FAISAIT DISPARAÎTRE DES FILMS ENTIERS.
+        //
+        // La rigueur était louable, la conséquence l'était moins. L'année d'un
+        // film diffère couramment d'une source à l'autre : présenté en festival
+        // une année, sorti en salle la suivante, Jellyfin retient l'une et OMDb
+        // l'autre. Ces titres n'obtenaient JAMAIS de note, en silence.
+        //
+        // On tolère donc un an d'écart. Ce n'est pas un relâchement : la
+        // recherche par TITRE reste exacte, seule l'année admet le décalage
+        // qu'elle a réellement dans la nature. Au-delà d'un an, on refuse —
+        // deux films de même titre à cinq ans d'intervalle sont deux films.
         const searchByTitle = async ({ title, year, type }) => {
             const apiKey = ctx.settings.get('omdbApiKey', null);
             if (!apiKey || !title) return null;
@@ -93,7 +149,14 @@ const manifest = {
             if (!res.ok) return null;
             const data = await res.json();
             if (data.Response === 'False' || !data.imdbID) return null;
-            if (year && Number(data.Year) !== Number(year)) return null; // exigence d'exactitude
+            if (year) {
+                // `data.Year` peut valoir « 2019 » ou « 2019–2023 » pour une
+                // série : on lit la première année, pas la chaîne entière.
+                const annonceeMatch = String(data.Year).match(/\d{4}/);
+                const annoncee = annonceeMatch ? Number(annonceeMatch[0]) : NaN;
+                if (!Number.isFinite(annoncee)) return null;
+                if (Math.abs(annoncee - Number(year)) > TOLERANCE_ANNEE) return null;
+            }
             return data.imdbID;
         };
 

@@ -910,6 +910,10 @@ class CardBuilder {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"></circle><path d="M4.93 19.07a10 10 0 0 1 0-14.14M19.07 4.93a10 10 0 0 1 0 14.14M7.76 16.24a6 6 0 0 1 0-8.48M16.24 7.76a6 6 0 0 1 0 8.48"></path></svg>
                 <span>Lancer une radio</span>
             </button>
+            <!-- Actions de greffons. Vide et masqué quand aucun greffon n'en
+                 apporte, ce qui est le cas par défaut : un séparateur seul
+                 dans un menu ressemble à une entrée qui n'a pas chargé. -->
+            <div id="sh-ctx-greffons" hidden></div>
             <button class="sh-ctx-item" id="sh-ctx-cast" type="button" style="display:none;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path><line x1="2" y1="20" x2="2.01" y2="20"></line></svg>
                 <span>Lire sur un autre appareil</span>
@@ -1099,6 +1103,18 @@ class CardBuilder {
         menu.querySelector('#sh-ctx-play-next').onclick = empiler('next');
         menu.querySelector('#sh-ctx-queue').onclick = empiler('end');
 
+        // A5 — Actions apportées par des greffons.
+        //
+        // Le menu contextuel d'une carte est l'endroit NATUREL d'un greffon :
+        // « chercher les paroles », « marquer sur Trakt », « envoyer à… ». Le
+        // type de contribution `action` existait, était validé, stocké — et
+        // jamais relu par personne.
+        //
+        // Les entrées sont lues À L'OUVERTURE du menu, pas à l'enregistrement :
+        // un greffon activé après le premier rendu doit apparaître sans qu'on
+        // recharge la page.
+        this._poserActionsGreffons(menu, item);
+
         // Radio d'artiste — le serveur compose une file à partir de ce titre.
         //
         // N'apparaît QUE pour de la musique : proposer « lancer une radio » sur
@@ -1222,6 +1238,55 @@ class CardBuilder {
                 svc.toaster()?.info?.('Impossible de mettre à jour le statut vu.');
             }
         };
+    }
+
+    /**
+     * Ajoute au menu contextuel les actions apportées par des greffons.
+     *
+     * @param {HTMLElement} menu
+     * @param {object} item  la carte, telle que l'interface la connaît.
+     */
+    _poserActionsGreffons(menu, item) {
+        const conteneur = menu.querySelector('#sh-ctx-greffons');
+        if (!conteneur) return;
+        conteneur.textContent = '';
+
+        const actions = svc.plugins()?.getContributions?.('action') || [];
+        let posees = 0;
+        for (const { pluginId, contribution } of actions) {
+            const libelle = String(contribution?.libelle || contribution?.label || '').trim();
+            if (!libelle || typeof contribution.executer !== 'function') continue;
+            // Un greffon peut restreindre son action à certains types de média.
+            // On le laisse décider, mais on le protège : un filtre qui jette ne
+            // doit pas faire disparaître le menu entier.
+            try {
+                if (typeof contribution.convient === 'function' && !contribution.convient(item)) continue;
+            } catch { continue; }
+
+            const bouton = document.createElement('button');
+            bouton.type = 'button';
+            bouton.className = 'sh-ctx-item';
+            bouton.dataset.pluginId = pluginId;
+            // `textContent` et jamais `innerHTML` : ce libellé vient d'un
+            // greffon, c'est-à-dire de code tiers.
+            const texte = document.createElement('span');
+            texte.textContent = libelle;
+            bouton.appendChild(texte);
+            bouton.addEventListener('click', async () => {
+                this._hideContextMenu();
+                try {
+                    await contribution.executer(item);
+                } catch (err) {
+                    // L'échec d'un greffon se dit, et ne remonte pas à la
+                    // frontière d'erreur globale comme si l'application avait
+                    // planté.
+                    svc.toaster()?.error?.(`« ${libelle} » a échoué : ${err?.message || err}`);
+                }
+            });
+            conteneur.appendChild(bouton);
+            posees += 1;
+        }
+        conteneur.hidden = posees === 0;
     }
 
     _hideContextMenu() {

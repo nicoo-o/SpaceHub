@@ -16,7 +16,20 @@ import * as svc from './services.js';
 const ID_PATTERN = /^[a-z0-9][a-z0-9._-]{1,63}$/;
 const STATES = new Set(['registered', 'loaded', 'enabled', 'disabled', 'error', 'quarantined']);
 const HOOKS = ['onLoad', 'onEnable', 'onDisable', 'onUnload'];
-const CONTRIBUTIONS = new Set(['widget', 'theme', 'route', 'metadataProvider', 'action', 'adminPanel', 'module']);
+/**
+ * Types de contribution acceptés.
+ *
+ * A5 — `adminPanel` et `module` ONT ÉTÉ RETIRÉS. Ils étaient déclarés,
+ * validés, stockés dans une `Map`… et jamais relus : rien dans l'application
+ * n'appelait `getContributions()`. Un greffon qui enregistrait un panneau
+ * d'administration recevait une fonction de désabonnement parfaitement valide,
+ * et aucun panneau n'existait — sans erreur à chercher.
+ *
+ * Une déclaration sans consommateur est un piège pour l'auteur du greffon.
+ * Les cinq restants ont chacun un point d'application réel, vérifié par un
+ * test qui lie cette liste au code qui la consomme.
+ */
+const CONTRIBUTIONS = new Set(['widget', 'theme', 'route', 'metadataProvider', 'action']);
 
 /**
  * Version de l'API de greffons fournie par ce SDK.
@@ -277,13 +290,23 @@ export class PluginManager {
             svc.themes()?.register?.(contribution);
         } else if (type === 'metadataProvider') {
             svc.metadata()?.registerProvider?.(contribution);
+        } else if (type === 'route') {
+            // Le nom est PRÉFIXÉ par l'identifiant du greffon. Sans cela, un
+            // greffon pourrait enregistrer « accueil » et détourner la
+            // navigation de l'application — le registre de routes est une
+            // simple Map, le dernier inscrit gagne.
+            svc.router()?.registerRoute?.(`x/${plugin.id}/${key}`, contribution);
         }
+        // `action` n'a rien à faire ici : les menus contextuels lisent les
+        // contributions au moment où ils s'ouvrent, plutôt que de recevoir un
+        // enregistrement à l'avance. Voir CardBuilder.
         return () => {
             const current = this._contributions.get(contributionKey);
             if (current?.pluginId !== plugin.id) return;
             if (type === 'widget') svc.dashboard()?.unregisterWidget?.(key, contribution.WidgetClass);
             if (type === 'theme') svc.themes()?.unregister?.(key);
             if (type === 'metadataProvider') svc.metadata()?.unregisterProvider?.(key);
+            if (type === 'route') svc.router()?.unregisterRoute?.(`x/${plugin.id}/${key}`);
             this._contributions.delete(contributionKey);
         };
     }

@@ -21,7 +21,24 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOTS = ['core', 'ui', 'jellyfin', 'integrations'];
-const EXCLUS = new Set(['core/SpaceHub.js', 'core/services.js', 'core/ServiceRegistry.js']);
+/**
+ * Fichiers exemptés, et la raison de chacun.
+ *
+ *   — `SpaceHub.js` CONSTRUIT la façade globale ;
+ *   — `services.js` et `ServiceRegistry.js` sont l'alternative qu'on promeut ;
+ *   — `InspectionGreffon.js` est le module qui INTERDIT cet accès aux
+ *     greffons : le motif de détection contient forcément la chaîne
+ *     recherchée. Le contrôle ignore déjà les commentaires, mais pas les
+ *     littéraux de chaîne, et les distinguer de façon fiable en lecture ligne
+ *     à ligne demanderait d'analyser le code plutôt que de le lire.
+ *     Une exemption nommée vaut mieux qu'un analyseur approximatif.
+ */
+const EXCLUS = new Set([
+    'core/SpaceHub.js',
+    'core/services.js',
+    'core/ServiceRegistry.js',
+    'core/InspectionGreffon.js',
+]);
 
 /** Plafond d'accès directs. Baissez-le à chaque migration ; ne le remontez jamais. */
 const PLAFOND = 19;

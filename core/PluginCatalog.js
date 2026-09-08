@@ -11,6 +11,7 @@ import Logger from './Logger.js';
 
 import * as svc from './services.js';
 import { resoudreCle, Confiance } from './ClesDeConfiance.js';
+import { inspecter, expliquer } from './InspectionGreffon.js';
 const ID_PATTERN = /^[a-z0-9][a-z0-9._-]{1,63}$/;
 const VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
@@ -191,6 +192,17 @@ class PluginCatalog {
                     throw new Error('Signature du plugin invalide.');
                 }
             }
+            // A3 — INSPECTION STATIQUE, au seul moment où elle est possible :
+            // on détient la source en texte, et le chargeur ne l'a pas encore
+            // exécutée. Ce n'est pas un bac à sable — un attaquant décidé
+            // construit ses accès dynamiquement — mais cela attrape l'auteur
+            // négligent, et cela rend le contournement volontaire et visible.
+            const inspection = inspecter(source);
+            if (!inspection.propre) {
+                throw new Error(
+                    `Le greffon touche à ce qu'il ne devrait pas : ${expliquer(inspection.infractions)}.`);
+            }
+
             this._setStatus(entry.id, 'verified', null, entry.version);
             return { source, entry };
         } catch (error) {

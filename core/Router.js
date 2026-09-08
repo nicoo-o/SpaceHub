@@ -40,6 +40,22 @@ export class Router {
     }
 
     /**
+     * Retire une route.
+     *
+     * Nécessaire depuis qu'un greffon peut en enregistrer : sans retrait, une
+     * route survivrait à la désactivation de son greffon et mènerait à une vue
+     * dont plus personne ne répond.
+     *
+     * @param {string} name
+     * @returns {boolean} vrai si une route a effectivement été retirée.
+     */
+    unregisterRoute(name) {
+        const retiree = this._routes.delete(name);
+        if (retiree) this._log.debug(`Route retirée : "${name}"`);
+        return retiree;
+    }
+
+    /**
      * Navigue vers une vue donnée.
      * @param {string} routeName
      * @param {Object} [params={}]
