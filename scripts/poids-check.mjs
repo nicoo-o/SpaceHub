@@ -63,12 +63,24 @@ const PLAFONDS = {
 /**
  * RESTE À FAIRE, et volontairement pas masqué par un plafond large.
  *
- * `settings` (17 ko) et `integrations` (17 ko) sont découpés en paquets
+ * `settings` (17 ko) et `integrations` (18 ko) sont découpés en paquets
  * distincts — l'intention était de les différer — mais restent importés
- * statiquement, donc préchargés et compilés au démarrage. Le découpage ne leur
- * apporte rien tant que ces imports ne deviennent pas dynamiques. Environ 34 ko
- * sont récupérables ici, au prix d'un chemin d'appel plus prudent que celui de
- * la console d'administration : l'écran de réglages, lui, n'est pas gelé.
+ * statiquement, donc préchargés et compilés au démarrage. Environ 35 ko sont
+ * récupérables, et ce n'est PAS une simple retouche d'import :
+ *
+ *   — `integrations` a été tenté puis annulé. Le tableau de bord ignore, avec
+ *     un simple avertissement, un type de widget non encore enregistré au
+ *     moment où il lit son agencement — et il ne se rerend pas de lui-même.
+ *     Différer l'import ferait donc disparaître les widgets Servarr au premier
+ *     affichage, en silence, pour ceux qui s'en servent. Il faut d'abord que
+ *     `registerWidget` sache monter un widget arrivé en retard dans
+ *     l'emplacement qui l'attendait.
+ *
+ *   — `settings` pose une question voisine : `svc.settingsPanel()?.open()` ne
+ *     fait RIEN quand le panneau n'est pas encore chargé, et un bouton muet
+ *     est pire qu'un bouton lent. Il faut un chemin d'attente explicite.
+ *
+ * Le plafond reste donc serré, pour que ces 35 ko continuent de se voir.
  */
 
 /** Paquets qui ne doivent JAMAIS être préchargés au démarrage. */

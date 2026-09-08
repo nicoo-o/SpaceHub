@@ -402,6 +402,7 @@ export class PluginManager {
                 setSearchProvider: fn => { permission('jellyfin.metadata.read'); return svc.ratingCache()?.setSearchProvider?.(fn); },
                 setTextProvider: fn => { permission('jellyfin.metadata.read'); return svc.ratingCache()?.setTextProvider?.(fn); },
                 clearProviders: () => svc.ratingCache()?.clearProviders?.(),
+                signalerEtat: (etat) => svc.ratingCache()?.signalerEtat?.(etat),
             },
             settings: this.getPluginStorage(id),
             permissions: { has: name => this._permissions.can(id, name, { requested: plugin.manifest.permissions }) },

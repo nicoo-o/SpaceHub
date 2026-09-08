@@ -43,9 +43,19 @@ export class Paroles {
      * @param {Object} options
      * @param {Object} options.api  client Jellyfin
      */
-    constructor({ api } = {}) {
+    constructor({ api, repli = null } = {}) {
         this._log = new Logger('Paroles');
         this._api = api || null;
+        /**
+         * Repli quand le serveur n'a rien : une fonction
+         * `(morceau) => Promise<lignes|null>`, au MÊME format que le serveur
+         * (temps en ticks). Posée par un greffon.
+         *
+         * La plupart des fichiers ne portent pas de paroles ; sans repli,
+         * l'écran de musique affiche « pas de paroles » pour l'essentiel d'une
+         * médiathèque.
+         */
+        this._repli = typeof repli === 'function' ? repli : null;
         /** @type {Array<{texte: string, debut: number, fin: number|null, segments: Array}>} */
         this._lignes = [];
         this._itemId = null;
@@ -70,16 +80,48 @@ export class Paroles {
      *   absence n'est PAS une erreur : la plupart des morceaux n'en ont pas, et
      *   le serveur répond alors 404.
      */
-    async charger(itemId) {
+    /**
+     * Pose le repli utilisé quand le serveur n'a pas de paroles.
+     * @param {((morceau: object) => Promise<Array|null>)|null} fn
+     */
+    definirRepli(fn) { this._repli = typeof fn === 'function' ? fn : null; }
+
+    /**
+     * Charge les paroles d'un morceau.
+     *
+     * @param {string|object} morceau  l'identifiant, ou la fiche complète —
+     *   le repli a besoin du titre, de l'artiste et de la durée, qu'un
+     *   identifiant seul ne porte pas.
+     * @returns {Promise<boolean>} vrai si des paroles ont été trouvées.
+     */
+    async charger(morceau) {
         this.reinitialiser();
-        if (!itemId || !this._api) return false;
+        const fiche = (morceau && typeof morceau === 'object') ? morceau : null;
+        const itemId = fiche ? (fiche.Id || fiche.id) : morceau;
+        if (!itemId) return false;
         this._itemId = itemId;
+
+        if (this._api) {
+            try {
+                const rep = await this._api.get(`/Audio/${encodeURIComponent(itemId)}/Lyrics`);
+                this._lignes = this._normaliser(rep?.Lyrics);
+                if (this.disponibles) return true;
+            } catch {
+                // 404 = pas de paroles sur le serveur. C'est le cas courant, et
+                // c'est précisément là que le repli sert.
+            }
+        }
+
+        if (!this._repli || !fiche) return false;
         try {
-            const rep = await this._api.get(`/Audio/${encodeURIComponent(itemId)}/Lyrics`);
-            this._lignes = this._normaliser(rep?.Lyrics);
+            const lignes = await this._repli(fiche);
+            // Le morceau a pu changer pendant la requête : sans cette
+            // vérification, on afficherait les paroles du précédent.
+            if (this._itemId !== itemId) return false;
+            this._lignes = this._normaliser(lignes);
+            if (this.disponibles) this._log.info('Paroles trouvées par le repli.');
             return this.disponibles;
         } catch {
-            // 404 = pas de paroles pour ce morceau. C'est le cas courant.
             return false;
         }
     }

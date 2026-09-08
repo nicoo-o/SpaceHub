@@ -20,6 +20,17 @@ import Logger          from './Logger.js';
 import EventBus        from './EventBus.js';
 import ModuleManager   from './ModuleManager.js';
 import PluginManager    from './PluginManager.js';
+import SonarrService from '../integrations/sonarr/SonarrService.js';
+import { UpcomingEpisodesWidget, SonarrQueueWidget } from '../integrations/sonarr/SonarrWidgets.js';
+import RadarrService from '../integrations/radarr/RadarrService.js';
+import { UpcomingMoviesWidget, RadarrQueueWidget } from '../integrations/radarr/RadarrWidgets.js';
+import ProwlarrService from '../integrations/prowlarr/ProwlarrService.js';
+import { ProwlarrStatusWidget } from '../integrations/prowlarr/ProwlarrWidgets.js';
+import BazarrService from '../integrations/bazarr/BazarrService.js';
+import { BazarrWantedWidget } from '../integrations/bazarr/BazarrWidgets.js';
+import JellyseerrService from '../integrations/jellyseerr/JellyseerrService.js';
+import { JellyseerrRequestsWidget } from '../integrations/jellyseerr/JellyseerrWidgets.js';
+import QBittorrentService from '../integrations/qbittorrent/QBittorrentService.js';
 import Router           from './Router.js';
 import { chargerConsoleAdmin } from '../ui/views/chargerConsoleAdmin.js';
 import MinuteurSommeil  from './MinuteurSommeil.js';
@@ -85,23 +96,11 @@ import DownloadManager  from '../jellyfin/offline/DownloadManager.js';
 import AuthManager      from '../jellyfin/auth/AuthManager.js';
 import LoginView        from '../ui/views/LoginView.js';
 
-import SonarrService from '../integrations/sonarr/SonarrService.js';
-import { UpcomingEpisodesWidget, SonarrQueueWidget } from '../integrations/sonarr/SonarrWidgets.js';
 
-import RadarrService from '../integrations/radarr/RadarrService.js';
-import { UpcomingMoviesWidget, RadarrQueueWidget } from '../integrations/radarr/RadarrWidgets.js';
 
-import ProwlarrService from '../integrations/prowlarr/ProwlarrService.js';
-import { ProwlarrStatusWidget } from '../integrations/prowlarr/ProwlarrWidgets.js';
 
-import BazarrService from '../integrations/bazarr/BazarrService.js';
-import { BazarrWantedWidget } from '../integrations/bazarr/BazarrWidgets.js';
 
-import JellyseerrService from '../integrations/jellyseerr/JellyseerrService.js';
-import { JellyseerrRequestsWidget, JellyseerrTrendingWidget } from '../integrations/jellyseerr/JellyseerrWidgets.js';
 
-import QBittorrentService from '../integrations/qbittorrent/QBittorrentService.js';
-import { QBittorrentSpeedWidget, QBittorrentActiveWidget } from '../integrations/qbittorrent/QBittorrentWidgets.js';
 import { enregistrerTouches } from './TelecommandeTv.js';
 
 // ─── Namespace global ────────────────────────────────────────────────────────
@@ -461,6 +460,22 @@ async function init() {
         dashboard.registerWidget('anime', AnimeWidget);
         dashboard.registerWidget('collections-sagas', CollectionsWidget);
         dashboard.registerWidget('music-soundtracks', MusicWidget);
+        // POURQUOI CES WIDGETS RESTENT IMPORTÉS STATIQUEMENT.
+        //
+        // Le paquet `integrations` pèse 17 ko compressés et est chargé au
+        // démarrage pour des tableaux de bord Servarr que beaucoup
+        // d'installations n'ont pas. Les rendre dynamiques a été TENTÉ et
+        // ANNULÉ, parce que le tableau de bord ne le supporte pas : à la
+        // lecture de l'agencement, un type de widget non encore enregistré est
+        // ignoré avec un simple avertissement (`Type de widget inconnu`), et
+        // il n'apparaît PAS au chargement suivant — le tableau ne se rerend
+        // pas de lui-même.
+        //
+        // Différer l'import ferait donc disparaître les widgets Servarr au
+        // premier affichage, en silence, pour ceux qui s'en servent. Le faire
+        // proprement demande que `registerWidget` sache monter un widget
+        // arrivé en retard dans l'emplacement qui l'attendait — un chantier à
+        // part, pas une retouche d'import.
         dashboard.registerWidget('sonarr-upcoming', UpcomingEpisodesWidget);
         dashboard.registerWidget('sonarr-queue', SonarrQueueWidget);
         dashboard.registerWidget('radarr-upcoming', UpcomingMoviesWidget);
@@ -539,6 +554,9 @@ async function init() {
         // (le serveur compose, on lit), l'écran plein cadre, et les paroles
         // synchronisées au mot quand le fichier en porte.
         SpaceHub.musique = {
+            // Le repli est posé par le greffon `spacehub.paroles` s'il est
+            // activé ; sans lui, seules les paroles portées par le fichier
+            // s'affichent — c'est-à-dire presque aucune.
             paroles: new Paroles({ api }),
             radio: new RadioArtiste({ api, auth }),
         };

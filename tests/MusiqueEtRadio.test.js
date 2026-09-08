@@ -279,3 +279,109 @@ describe('EcranMusique — l\'hôte de montage', () => {
         expect(b.querySelectorAll('.sh-musique')).toHaveLength(1);
     });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Paroles LRCLIB — la conversion du LRC', () => {
+    it('lit centièmes ET millièmes sans confondre les deux', async () => {
+        const { convertirLrc } = await import('../plugins/paroles/spacehub-paroles-plugin.js');
+        const lignes = convertirLrc('[00:12.50]Deux chiffres\n[01:02.250]Trois chiffres');
+        // CONTRE-ÉPREUVE : traiter « 250 » comme des centièmes donnerait
+        // 62 + 2,5 s au lieu de 62,25 — un décalage de deux secondes qui rend
+        // les paroles visiblement fausses.
+        expect(lignes[0].Start / TICKS_PAR_SECONDE).toBeCloseTo(12.5, 3);
+        expect(lignes[1].Start / TICKS_PAR_SECONDE).toBeCloseTo(62.25, 3);
+    });
+
+    it('ignore les balises de métadonnées, qui ressemblent à des horodatages', async () => {
+        const { convertirLrc } = await import('../plugins/paroles/spacehub-paroles-plugin.js');
+        const lignes = convertirLrc('[ar:Artiste]\n[ti:Titre]\n[00:05.00]Vraie ligne');
+        expect(lignes).toHaveLength(1);
+        expect(lignes[0].Text).toBe('Vraie ligne');
+    });
+
+    it('répète une ligne portant plusieurs horodatages', async () => {
+        const { convertirLrc } = await import('../plugins/paroles/spacehub-paroles-plugin.js');
+        // Un refrain revient : le LRC l'écrit une fois avec deux temps.
+        const lignes = convertirLrc('[00:20.00][02:30.00]Refrain');
+        expect(lignes).toHaveLength(2);
+        expect(lignes.map(l => l.Start / TICKS_PAR_SECONDE)).toEqual([20, 150]);
+    });
+
+    it('garde les lignes vides, qui éteignent l\'affichage pendant l\'instrumental', async () => {
+        const { convertirLrc } = await import('../plugins/paroles/spacehub-paroles-plugin.js');
+        const lignes = convertirLrc('[00:10.00]Couplet\n[00:15.00]\n[00:30.00]Suite');
+        expect(lignes).toHaveLength(3);
+        expect(lignes[1].Text).toBe('');
+    });
+
+    it('trie ce qu\'un fichier bricolé n\'a pas trié', async () => {
+        const { convertirLrc } = await import('../plugins/paroles/spacehub-paroles-plugin.js');
+        const lignes = convertirLrc('[00:30.00]Deux\n[00:10.00]Un');
+        expect(lignes.map(l => l.Text)).toEqual(['Un', 'Deux']);
+    });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Paroles — le repli', () => {
+    const LIGNES_REPLI = [{ Text: 'Depuis le repli', Start: t(5) }];
+
+    function fabriquer({ serveurARepondu = false, repli = null } = {}) {
+        const get = vi.fn(async () => {
+            if (!serveurARepondu) throw new Error('404');
+            return { Lyrics: [{ Text: 'Depuis le serveur', Start: t(1) }] };
+        });
+        return new Paroles({ api: { get }, repli });
+    }
+
+    const MORCEAU = { Id: 'm1', Name: 'Titre', Artists: ['Artiste'], RunTimeTicks: t(180) };
+
+    it('préfère le serveur quand il répond', async () => {
+        const repli = vi.fn(async () => LIGNES_REPLI);
+        const p = fabriquer({ serveurARepondu: true, repli });
+        expect(await p.charger(MORCEAU)).toBe(true);
+        expect(p.lignes()[0].texte).toBe('Depuis le serveur');
+        // Interroger un service externe alors que le serveur a répondu serait
+        // une requête pour rien, et une fuite d'information gratuite.
+        expect(repli).not.toHaveBeenCalled();
+    });
+
+    it('appelle le repli quand le serveur n\'a rien', async () => {
+        const repli = vi.fn(async () => LIGNES_REPLI);
+        const p = fabriquer({ repli });
+        expect(await p.charger(MORCEAU)).toBe(true);
+        expect(repli).toHaveBeenCalledWith(MORCEAU);
+        expect(p.lignes()[0].texte).toBe('Depuis le repli');
+    });
+
+    it('n\'appelle pas le repli avec un simple identifiant', async () => {
+        const repli = vi.fn(async () => LIGNES_REPLI);
+        const p = fabriquer({ repli });
+        // Le repli a besoin du titre, de l'artiste et de la durée : un
+        // identifiant seul ne les porte pas, et l'appeler quand même
+        // produirait une requête vouée à revenir vide.
+        expect(await p.charger('m1')).toBe(false);
+        expect(repli).not.toHaveBeenCalled();
+    });
+
+    it('écarte un repli arrivé après un changement de morceau', async () => {
+        let debloquer;
+        const repli = vi.fn(() => new Promise(r => { debloquer = () => r(LIGNES_REPLI); }));
+        const p = fabriquer({ repli });
+
+        const enCours = p.charger(MORCEAU);
+        // Laisser le temps à l'appel serveur d'échouer et au repli de partir :
+        // `debloquer` n'existe qu'une fois l'exécuteur de la promesse lancé.
+        await new Promise(r => setTimeout(r, 0));
+        // La personne passe au morceau suivant pendant la requête.
+        p.reinitialiser();
+        debloquer();
+        // Sans cette garde, on afficherait les paroles du morceau précédent.
+        expect(await enCours).toBe(false);
+        expect(p.disponibles).toBe(false);
+    });
+
+    it('survit à un repli qui jette', async () => {
+        const p = fabriquer({ repli: async () => { throw new Error('réseau'); } });
+        await expect(p.charger(MORCEAU)).resolves.toBe(false);
+    });
+});

@@ -400,6 +400,59 @@ class CardBuilder {
         const capsule = card.querySelector('.sh-card__dual-score');
         if (!extEl || !capsule) return;
 
+        // D7 — NE RÉSOUDRE QUE CE QUI EST RÉELLEMENT VU.
+        //
+        // La résolution partait à la CRÉATION de la carte. Une rangée de deux
+        // cents titres déclenchait donc deux cents résolutions, étalées trois
+        // par trois — pour un quota OMDb de mille requêtes PAR JOUR. La
+        // virtualisation limitait déjà les rangées longues, mais toute rangée
+        // de moins de soixante éléments passait entière, et une page en
+        // contient plusieurs.
+        //
+        // `IntersectionObserver` répond exactement à cette question, et existe
+        // depuis Chrome 51 — bien en deçà du plancher de ce projet. Sans lui
+        // (environnement de test, navigateur exotique), on retombe sur le
+        // comportement d'avant plutôt que de ne rien afficher.
+        this._quandVisible(card, () => this._resoudreNotes(card, rawItem, extEl, capsule));
+    }
+
+    /**
+     * Exécute une action au premier passage à l'écran de l'élément.
+     *
+     * @param {HTMLElement} el
+     * @param {() => void} action
+     */
+    _quandVisible(el, action) {
+        if (typeof IntersectionObserver !== 'function') { action(); return; }
+
+        if (!this._observateurNotes) {
+            this._observateurNotes = new IntersectionObserver((entrees, obs) => {
+                for (const entree of entrees) {
+                    if (!entree.isIntersecting) continue;
+                    // On cesse d'observer AVANT d'agir : une action qui
+                    // modifierait la carte pourrait sinon redéclencher
+                    // l'observateur sur le même élément.
+                    obs.unobserve(entree.target);
+                    const differee = this._actionsVisibilite?.get(entree.target);
+                    this._actionsVisibilite?.delete(entree.target);
+                    try { differee?.(); } catch { /* une carte fautive n'en bloque pas d'autres */ }
+                }
+            }, {
+                // Une marge d'un demi-écran : les notes arrivent pendant que
+                // la carte monte, pas une fois qu'elle est plantée sous les
+                // yeux de la personne.
+                rootMargin: '50% 0px',
+            });
+            this._actionsVisibilite = new WeakMap();
+        }
+        this._actionsVisibilite.set(el, action);
+        this._observateurNotes.observe(el);
+    }
+
+    /** Le travail réel, une fois la carte à l'écran. */
+    _resoudreNotes(card, rawItem, extEl, capsule) {
+        const ratingCache = svc.ratingCache();
+        if (!ratingCache || !document.contains(card)) return;
         ratingCache.get(rawItem).then(ratings => {
             if (!document.contains(card)) return;
             // Mise à jour du badge 🍅 Jellyfin avec la valeur OMDb — pas de doublon

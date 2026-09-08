@@ -31,6 +31,22 @@ const PREFIXE_CACHE = 'notes:';
  * quota pour des réponses qu'on connaît déjà.
  */
 const TTL_ABSENCE_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Ce qu'on dit à l'utilisateur pour chaque état.
+ *
+ * Chaque message doit répondre à « et maintenant ? ». « Erreur » ne répond
+ * pas ; « quota épuisé, réinitialisation à minuit UTC » répond.
+ */
+const MESSAGES_ETAT = {
+    'ok': 'Les notes externes fonctionnent.',
+    'sans-fournisseur': 'Le greffon de notes est désactivé.',
+    'sans-cle': 'Aucune clé OMDb : les notes externes sont indisponibles.',
+    'cle-invalide': 'Clé OMDb refusée. Vérifiez-la sur omdbapi.com.',
+    'quota-epuise': 'Quota OMDb épuisé (1 000 requêtes par jour). Réinitialisation à minuit UTC.',
+    'injoignable': 'OMDb est injoignable pour le moment.',
+    'inconnu': 'État des notes externes inconnu — aucune requête depuis le démarrage.',
+};
 const DEFAULT_PROVIDERS = ['jellyfin', 'rt', 'imdb', 'tmdb'];
 
 class RatingCacheService {
@@ -57,6 +73,8 @@ class RatingCacheService {
         this._textProvider = null;
         this._textMemory = new Map();
         this._seriesIdMemory = new Map();
+        /** @type {{etat: string, depuis: number}|null} */
+        this._etat = null;
     }
 
     /** Plugin appelle ceci pour enregistrer sa fonction de fetch OMDb (imdbId, opts) → données. */
@@ -106,12 +124,53 @@ class RatingCacheService {
         this._provider = null;
         this._searchProvider = null;
         this._textProvider = null;
+        // L'état décrivait un fournisseur qui n'existe plus : le garder ferait
+        // afficher « quota épuisé » pour un greffon désactivé.
+        this._etat = null;
         this._log.info('Fournisseurs de notes retirés (notes, recherche, textes).');
     }
 
     /** Vrai si la recherche par titre est disponible. */
     hasSearchProvider() {
         return this._searchProvider !== null;
+    }
+
+    // ─── D8 : dire POURQUOI il n'y a pas de note ────────────────────────────
+    //
+    // Quatre situations produisaient le même écran vide : la clé est absente,
+    // la clé est invalide, le quota est épuisé, ou OMDb ne connaît pas ce
+    // titre. L'utilisateur ne pouvait pas les distinguer, et interprétait le
+    // silence comme une panne de l'application.
+    //
+    // Le service distinguait pourtant déjà la clé invalide du quota épuisé —
+    // OMDb renvoie un HTTP 401 dans les deux cas et ne les sépare que dans le
+    // corps JSON — mais seulement dans le bouton « Tester ». Cette information
+    // remonte maintenant de la lecture NORMALE, où elle sert vraiment.
+
+    /**
+     * Signale l'état du fournisseur externe. Appelé par le greffon.
+     * @param {'ok'|'sans-cle'|'cle-invalide'|'quota-epuise'|'injoignable'} etat
+     */
+    signalerEtat(etat) {
+        const connus = ['ok', 'sans-cle', 'cle-invalide', 'quota-epuise', 'injoignable'];
+        if (!connus.includes(etat)) return;
+        // On ne réécrit pas la date quand l'état ne change pas : « depuis »
+        // doit dire depuis quand cet état dure, pas quand on l'a revu.
+        if (this._etat?.etat === etat) return;
+        this._etat = { etat, depuis: Date.now() };
+        this._log.info(`État des notes externes : ${etat}.`);
+    }
+
+    /**
+     * @returns {{etat: string, depuis: number|null, message: string}}
+     */
+    etat() {
+        const courant = this._etat?.etat || (this._provider ? 'inconnu' : 'sans-fournisseur');
+        return {
+            etat: courant,
+            depuis: this._etat?.depuis ?? null,
+            message: MESSAGES_ETAT[courant] || MESSAGES_ETAT.inconnu,
+        };
     }
 
     hasProvider() {

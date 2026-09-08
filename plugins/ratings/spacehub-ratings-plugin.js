@@ -102,13 +102,33 @@ const manifest = {
         // la majorité des séries, elle est donc volontairement abandonnée.
         const fetchOmdb = async (imdbId) => {
             const apiKey = ctx.settings.get('omdbApiKey', null);
-            if (!apiKey) return null;
+            if (!apiKey) { ratingCache.signalerEtat?.('sans-cle'); return null; }
 
             const url = `https://www.omdbapi.com/?apikey=${encodeURIComponent(apiKey)}&i=${encodeURIComponent(imdbId)}`;
 
-            const res = await ctx.api.fetch(url);
-            if (!res.ok) return null;
+            let res;
+            try {
+                res = await ctx.api.fetch(url);
+            } catch {
+                ratingCache.signalerEtat?.('injoignable');
+                return null;
+            }
+            if (!res.ok) {
+                // D8 — OMDb renvoie un HTTP 401 pour une clé invalide ET pour
+                // un quota épuisé ; il ne les distingue que dans le corps JSON.
+                // Sans cette lecture, l'utilisateur voit le même écran vide
+                // dans les deux cas, et conclut à une panne de l'application.
+                let raison = null;
+                try { raison = (await res.json())?.Error || null; } catch { /* corps illisible */ }
+                if (raison === 'Request limit reached!') ratingCache.signalerEtat?.('quota-epuise');
+                else if (raison === 'Invalid API key!') ratingCache.signalerEtat?.('cle-invalide');
+                else ratingCache.signalerEtat?.('injoignable');
+                return null;
+            }
             const data = await res.json();
+            // Une réponse « False » ici signifie « OMDb ne connaît pas ce
+            // titre » — la clé et le quota vont bien.
+            ratingCache.signalerEtat?.('ok');
             if (data.Response === 'False') return null;
 
             const rtEntry = Array.isArray(data.Ratings)

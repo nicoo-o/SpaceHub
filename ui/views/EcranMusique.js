@@ -90,7 +90,9 @@ export class EcranMusique {
 
         const id = item.Id || item.id;
         this._peint = { ligne: -2, caracteres: -2 };
-        const trouvees = await this._paroles?.charger?.(id);
+        // La fiche ENTIÈRE, pas seulement l'identifiant : le repli a besoin du
+        // titre, de l'artiste et de la durée pour interroger une base externe.
+        const trouvees = await this._paroles?.charger?.(item);
         this._construireParoles(trouvees === true);
         this._demarrerBoucle();
     }

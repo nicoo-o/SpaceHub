@@ -204,6 +204,12 @@ class SettingsPanel {
                                 <button type="button" class="sh-btn sh-btn--ghost" id="cfg-omdb-test" data-nav-focusable="true">Tester</button>
                             </div>
                             <p id="cfg-omdb-result" style="font-size:12px; color:rgba(var(--sh-ink, 255, 255, 255), 0.7); margin-top:6px;"></p>
+                            <!-- D8 — L'état RÉEL du fournisseur, pas seulement
+                                 le résultat du dernier bouton « Tester ».
+                                 Quatre situations produisaient le même écran
+                                 vide : pas de clé, clé invalide, quota épuisé,
+                                 ou titre inconnu d'OMDb. -->
+                            <p id="cfg-omdb-etat" class="sh-form-hint" role="status" aria-live="polite"></p>
                             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px;">
                                 <input type="password" class="sh-input" id="cfg-tmdb-key" placeholder="${(svc.sdk()?.getPluginStorage?.('spacehub.ratings')?.get?.('tmdbApiKey', '') || '') ? 'Clé TMDB enregistrée (••••)' : 'Clé API TMDB (textes de critiques — optionnel)'}" style="flex:1; min-width:180px;" autocomplete="off" />
                                 <button type="button" class="sh-btn sh-btn--ghost" id="cfg-tmdb-save" data-nav-focusable="true">Enregistrer TMDB</button>
@@ -1331,6 +1337,10 @@ class SettingsPanel {
             svc.onboarding()?.open?.('admin', { force: true });
         });
         // C14 — Export et import de la configuration.
+        // D8 — L'état du fournisseur de notes, posé par textContent.
+        const etatNotes = el.querySelector('#cfg-omdb-etat');
+        if (etatNotes) etatNotes.textContent = svc.ratingCache()?.etat?.()?.message || '';
+
         el.querySelector('#cfg-export')?.addEventListener('click', () => {
             const sortie = el.querySelector('#cfg-config-result');
             try {
