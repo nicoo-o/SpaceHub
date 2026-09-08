@@ -22,6 +22,7 @@ import ModuleManager   from './ModuleManager.js';
 import PluginManager    from './PluginManager.js';
 import Router           from './Router.js';
 import { chargerConsoleAdmin } from '../ui/views/chargerConsoleAdmin.js';
+import MinuteurSommeil  from './MinuteurSommeil.js';
 import SocketJellyfin   from '../jellyfin/temps-reel/SocketJellyfin.js';
 import CibleDistante    from '../jellyfin/temps-reel/CibleDistante.js';
 import Paroles          from '../jellyfin/musique/Paroles.js';
@@ -552,6 +553,14 @@ async function init() {
         services.register('musique.radio', SpaceHub.musique.radio);
         services.register('musique.ecran', SpaceHub.musique.ecran);
 
+        // Minuteur de sommeil : attendu de tout appareil de salon, absent ici.
+        SpaceHub.core.sommeil = new MinuteurSommeil({
+            lecteur: () => SpaceHub.player,
+            toaster: SpaceHub.ui?.components?.toaster,
+            eventBus,
+        });
+        services.register('core.sommeil', SpaceHub.core.sommeil);
+
         // Canal temps réel + réception d'ordres (« cast »).
         //
         // C'est le pendant de RemoteControlService : celui-ci ENVOIE des ordres
@@ -583,6 +592,9 @@ async function init() {
                 file: () => SpaceHub.player?.queue,
                 routeur: SpaceHub.router,
                 toaster: SpaceHub.ui?.components?.toaster,
+                // Le téléphone comme clavier : la recherche est construite plus
+                // tard dans l'initialisation, d'où l'accès paresseux.
+                recherche: () => SpaceHub.jellyfin?.search,
             });
             SpaceHub.jellyfin.cibleDistante = cible;
             services.register('jellyfin.cible-distante', cible);

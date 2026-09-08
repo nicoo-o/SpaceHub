@@ -44,6 +44,18 @@ export const COMMANDES = [
     'DisplayMessage',
     'GoHome',
     'GoToSearch',
+    // C8 — LE TÉLÉPHONE COMME CLAVIER.
+    //
+    // La saisie à la télécommande est la pire friction d'un client de
+    // téléviseur : chercher « Interstellar » demande une trentaine d'appuis
+    // directionnels. L'application Jellyfin d'un téléphone sait envoyer du
+    // texte à une session distante — il suffisait de déclarer qu'on l'accepte.
+    //
+    // Deux commandes distinctes, et la nuance compte : `SendString` envoie un
+    // mot, `SendKey` une touche unique (Retour arrière, Entrée). Ne déclarer
+    // que la première donnerait un champ dans lequel on ne peut pas corriger.
+    'SendString',
+    'SendKey',
     'Mute',
     'Unmute',
     'ToggleMute',
@@ -70,10 +82,11 @@ export class CibleDistante {
      * @param {Object} options.api       client Jellyfin
      * @param {() => Object} options.lecteur   accès paresseux au VideoPlayer
      * @param {() => Object} [options.file]    accès paresseux à la file d'attente
-     * @param {Object} [options.routeur]       Router, pour GoHome / GoToSearch
+     * @param {Object} [options.routeur]       Router, pour GoHome
+     * @param {() => Object|null} [options.recherche]  accès paresseux à la recherche
      * @param {Object} [options.toaster]
      */
-    constructor({ socket, api, lecteur, file = null, routeur = null, toaster = null } = {}) {
+    constructor({ socket, api, lecteur, file = null, routeur = null, toaster = null, recherche = null } = {}) {
         this._log = new Logger('CibleDistante');
         this._socket = socket || null;
         this._api = api || null;
@@ -81,6 +94,10 @@ export class CibleDistante {
         this._file = file || (() => null);
         this._routeur = routeur;
         this._toaster = toaster;
+        // Accès PARESSEUX : la recherche n'existe pas encore quand ce service
+        // est construit, et une référence figée resterait nulle pour toute la
+        // session.
+        this._recherche = recherche || (() => null);
         this._desabonnements = [];
         this._active = false;
     }
@@ -238,7 +255,9 @@ export class CibleDistante {
                 this._annoncer([args.Header, args.Text].filter(Boolean).join(' — ') || 'Message reçu.');
                 break;
             case 'GoHome':      this._routeur?.navigate?.('/'); break;
-            case 'GoToSearch':  this._routeur?.navigate?.('/recherche'); break;
+            case 'GoToSearch':  this._recherche()?.open?.(); break;
+            case 'SendString':  this._saisir(String(args.String ?? args.Text ?? '')); break;
+            case 'SendKey':     this._touche(String(args.Key ?? '')); break;
             case 'Back':        lecteur?.close?.() ?? this._routeur?.back?.(); break;
             case 'ToggleFullscreen': lecteur?._toggleFullscreen?.(); break;
             case 'ToggleOsd':   lecteur?._showControls?.(); break;
@@ -267,6 +286,66 @@ export class CibleDistante {
                 break;
             }
         }
+    }
+
+    /** Le champ de recherche, ouvert au besoin. */
+    _champRecherche({ ouvrir = true } = {}) {
+        if (typeof document === 'undefined') return null;
+        let champ = document.querySelector('.sh-spotlight-overlay.open .sh-spotlight-input');
+        if (!champ && ouvrir) {
+            this._recherche()?.open?.();
+            champ = document.querySelector('.sh-spotlight-overlay.open .sh-spotlight-input');
+        }
+        return champ;
+    }
+
+    /**
+     * Écrit du texte venu du téléphone dans le champ de recherche.
+     *
+     * ON N'ÉCRIT PAS `value` SANS PRÉVENIR. Le champ écoute `input` pour
+     * relancer la recherche ; une affectation directe ne déclenche aucun
+     * événement, et le texte apparaîtrait sans qu'aucun résultat ne bouge —
+     * le symptôme le plus déroutant possible.
+     *
+     * @param {string} texte
+     */
+    _saisir(texte) {
+        if (!texte) return;
+        const champ = this._champRecherche();
+        if (!champ) { this._log.info('Texte reçu, mais aucun champ de saisie ouvert.'); return; }
+        // On AJOUTE au lieu de remplacer : un téléphone envoie souvent mot par
+        // mot, et remplacer effacerait ce qui précède à chaque envoi.
+        champ.value = `${champ.value || ''}${texte}`;
+        champ.dispatchEvent(new Event('input', { bubbles: true }));
+        champ.focus?.();
+    }
+
+    /**
+     * Applique une touche unique venue du téléphone.
+     *
+     * Jellyfin envoie des noms de touches ; on ne traite que ceux qui ont un
+     * sens dans un champ de recherche. Le reste est ignoré NOMMÉMENT plutôt
+     * que réinterprété au jugé.
+     *
+     * @param {string} touche
+     */
+    _touche(touche) {
+        const champ = this._champRecherche({ ouvrir: false });
+        if (!champ) return;
+        const nom = touche.toLowerCase();
+        if (nom === 'backspace' || nom === 'back') {
+            champ.value = String(champ.value || '').slice(0, -1);
+            champ.dispatchEvent(new Event('input', { bubbles: true }));
+            return;
+        }
+        if (nom === 'enter' || nom === 'return') {
+            champ.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+            return;
+        }
+        if (nom === 'space') { this._saisir(' '); return; }
+        // Un caractère isolé est du texte, pas une touche spéciale.
+        if (touche.length === 1) { this._saisir(touche); return; }
+        this._log.info(`Touche ignorée : ${touche}`);
     }
 
     _volume(delta) {
