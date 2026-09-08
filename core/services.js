@@ -147,6 +147,7 @@ export const queue         = definir('player.queue', 'player', 'queue');
 // null en mode non connecté, ce qui est un état normal et non une panne.
 export const socket        = definir('jellyfin.socket', 'jellyfin', 'socket');
 export const cibleDistante = definir('jellyfin.cible-distante', 'jellyfin', 'cibleDistante');
+export const syncPlay      = definir('jellyfin.syncplay', 'jellyfin', 'syncPlay');
 export const paroles       = definir('musique.paroles', 'musique', 'paroles');
 export const radioMusique  = definir('musique.radio', 'musique', 'radio');
 export const ecranMusique  = definir('musique.ecran', 'musique', 'ecran');
@@ -189,5 +190,5 @@ export default {
     jellyfinConsole, trailers, auth, jellyfinApi, jellyfinPlugins, metadata,
     search, collections, remote, player, queue, integration, client, manquants,
     modalClass, config, plugins, userDropdown, registry, offlineStore, downloads,
-    socket, cibleDistante, paroles, radioMusique, ecranMusique, sommeil,
+    socket, cibleDistante, syncPlay, paroles, radioMusique, ecranMusique, sommeil,
 };

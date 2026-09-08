@@ -25,6 +25,7 @@ import { actionMedia, ActionMedia } from '../../core/TelecommandeTv.js';
 import Trickplay from './Trickplay.js';
 import VerrouEcran from '../../core/VerrouEcran.js';
 import SessionMedia from '../../core/SessionMedia.js';
+import * as sousTitres from './ApparenceSousTitres.js';
 import { fetchAvecDelai } from '../../core/utils/reseau.js';
 class VideoPlayer {
     constructor() {
@@ -227,6 +228,11 @@ class VideoPlayer {
         this._trickplay.reinitialiser();
         this._chargerSegmentsMedia(item?.Id || item?.id);
         this._brancherSessionMedia(item);
+        // C3 — Apparence des sous-titres. Appliquée à chaque ouverture plutôt
+        // qu'une fois au démarrage : les réglages peuvent avoir changé entre
+        // deux lectures, et une feuille posée une seule fois figerait le
+        // premier état pour toute la session.
+        sousTitres.appliquer(svc.settings());
         this._basculerModeMusique(item);
 
         // Recale la file sur ce qui est réellement lancé. Si l'élément vient

@@ -174,11 +174,17 @@ await scenario('« Retour » ferme la couche du DESSUS, quel que soit l\'ordre d
     // on apprend à ignorer les échecs.
     const essai = async (ordre) => page.evaluate(async (ordre) => {
         const S = window.SpaceHub;
-        S.jellyfin.search.close?.(); S.ui.settingsPanel.close?.();
+        // L'écran des réglages est chargé à la demande : il n'est plus posé
+        // sur `SpaceHub.ui.settingsPanel` au démarrage, mais enregistré dans
+        // le registre à sa construction. Lire l'ancien chemin renvoyait
+        // `undefined`, le `?.close?.()` ne fermait donc RIEN — et la modale
+        // restée ouverte empoisonnait tous les scénarios suivants.
+        S.jellyfin.search.close?.();
+        S.services?.resolve?.('ui.settingsPanel')?.close?.();
         await new Promise(r => setTimeout(r, 500));
         if (S.core.spatialNavigation) S.core.spatialNavigation._layerStack.length = 0;
         for (const o of ordre) {
-            if (o === 'settings') S.ui.settingsPanel.open();
+            if (o === 'settings') await S.ui.ouvrirReglages();
             if (o === 'search') S.jellyfin.search.open();
             await new Promise(r => setTimeout(r, 550));
         }
@@ -186,7 +192,13 @@ await scenario('« Retour » ferme la couche du DESSUS, quel que soit l\'ordre d
         await new Promise(r => setTimeout(r, 700));
         const etat = { recherche: !!document.querySelector('.sh-spotlight-overlay.open'),
                        reglages: !!document.querySelector('#sh-modal-spacehub-settings') };
-        S.jellyfin.search.close?.(); S.ui.settingsPanel.close?.();
+        // L'écran des réglages est chargé à la demande : il n'est plus posé
+        // sur `SpaceHub.ui.settingsPanel` au démarrage, mais enregistré dans
+        // le registre à sa construction. Lire l'ancien chemin renvoyait
+        // `undefined`, le `?.close?.()` ne fermait donc RIEN — et la modale
+        // restée ouverte empoisonnait tous les scénarios suivants.
+        S.jellyfin.search.close?.();
+        S.services?.resolve?.('ui.settingsPanel')?.close?.();
         return etat;
     }, ordre);
 

@@ -24,6 +24,7 @@
 import { LAYERS, FOCUSABLES } from '../DomContracts.js';
 
 import * as svc from '../services.js';
+import { ouvrirReglages } from '../../ui/components/chargerReglages.js';
 const KEY = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -176,7 +177,11 @@ class NavTestHarness {
               fermer: () => (svc.sidebar() || svc.appLayout()?._sidebarDrawer)?.close?.() },
             { nom: 'search',  ouvrir: () => svc.search()?.open?.(),
               fermer: () => svc.search()?.close?.() },
-            { nom: 'settings', ouvrir: () => svc.settingsPanel()?.open?.(),
+            // Le harnais charge l'écran explicitement : depuis que le
+            // panneau est chargé à la demande, `svc.settingsPanel()` renvoie
+            // `null` tant que personne ne l'a ouvert, et le scénario mesurerait
+            // une couche qui n'existe pas.
+            { nom: 'settings', ouvrir: () => ouvrirReglages(),
               fermer: () => svc.settingsPanel()?.close?.() },
         ];
 

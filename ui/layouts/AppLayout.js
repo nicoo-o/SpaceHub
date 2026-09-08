@@ -18,6 +18,7 @@ import SpatialNavigation  from '../../core/SpatialNavigation.js';
 import './AppLayout.css';
 import * as svc from '../../core/services.js';
 import { chargerConsoleAdmin } from '../views/chargerConsoleAdmin.js';
+import { ouvrirReglages } from '../components/chargerReglages.js';
 import { apresSortie, comportementDefilement } from '../../core/utils/domUtils.js';
 class AppLayout {
     constructor() {
@@ -558,7 +559,7 @@ class AppLayout {
 
         // Personnaliser l'accueil depuis le menu utilisateur
         container.querySelector('#sh-btn-customize-dashboard')?.addEventListener('click', () => {
-            svc.settingsPanel()?.open?.('dashboard');
+            ouvrirReglages('dashboard');
             toggleDropdown(false);
         });
 
@@ -596,7 +597,7 @@ class AppLayout {
 
         // Réglages depuis le menu utilisateur
         container.querySelector('#sh-btn-open-settings')?.addEventListener('click', () => {
-            svc.settingsPanel()?.open();
+            ouvrirReglages();
             toggleDropdown(false);
         });
 

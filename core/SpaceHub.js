@@ -33,9 +33,11 @@ import { JellyseerrRequestsWidget } from '../integrations/jellyseerr/JellyseerrW
 import QBittorrentService from '../integrations/qbittorrent/QBittorrentService.js';
 import Router           from './Router.js';
 import { chargerConsoleAdmin } from '../ui/views/chargerConsoleAdmin.js';
+import { ouvrirReglages } from '../ui/components/chargerReglages.js';
 import MinuteurSommeil  from './MinuteurSommeil.js';
 import SocketJellyfin   from '../jellyfin/temps-reel/SocketJellyfin.js';
 import CibleDistante    from '../jellyfin/temps-reel/CibleDistante.js';
+import SyncPlay         from '../jellyfin/temps-reel/SyncPlay.js';
 import Paroles          from '../jellyfin/musique/Paroles.js';
 import RadioArtiste     from '../jellyfin/musique/RadioArtiste.js';
 import EcranMusique     from '../ui/views/EcranMusique.js';
@@ -63,7 +65,6 @@ import ThemeManager    from '../ui/themes/ThemeManager.js';
 import Toaster         from '../ui/components/Toaster.js';
 import Modal           from '../ui/components/Modal.js';
 import CardBuilder     from '../ui/components/CardBuilder.js';
-import SettingsPanel   from '../ui/components/SettingsPanel.js';
 import ModalSlideUpSheet from '../ui/components/ModalSlideUpSheet.js';
 import AppLayout       from '../ui/layouts/AppLayout.js';
 import Dashboard       from '../ui/layouts/Dashboard.js';
@@ -157,12 +158,11 @@ const SpaceHub = {
      * @type {{
      *   dashboard: Dashboard,
      *   themes: ThemeManager,
-     *   settingsPanel: SettingsPanel,
+     *   settingsPanel: Object|null,   // chargé à la demande
      *   components: {
      *     toaster: Toaster,
      *     Modal: typeof Modal,
      *     cardBuilder: CardBuilder,
-     *     SettingsPanel: typeof SettingsPanel,
      *   }
      * }}
      */
@@ -174,7 +174,10 @@ const SpaceHub = {
             toaster: null,
             Modal: Modal,
             cardBuilder: null,
-            SettingsPanel: SettingsPanel,
+            // La CLASSE n'est plus exposée : elle n'est chargée qu'à
+            // l'ouverture des réglages. Exposer un constructeur qui peut ne pas
+            // exister encore ferait plus de mal que de bien — quiconque en a
+            // besoin passe par `ouvrirReglages()`.
             OnboardingWizard: OnboardingWizard,
         },
         onboarding: null,
@@ -431,7 +434,19 @@ async function init() {
         SpaceHub.ui.components.toaster = new Toaster();
         SpaceHub.ui.components.Modal = Modal;
         SpaceHub.ui.components.cardBuilder = new CardBuilder();
-        SpaceHub.ui.settingsPanel = new SettingsPanel();
+        // L'écran des réglages est chargé À LA DEMANDE : 17 ko compressés
+        // qui ne servent qu'au moment où quelqu'un ouvre les réglages, et
+        // jamais au premier écran. Le chargeur `ui/components/chargerReglages`
+        // le construit et l'enregistre alors.
+        //
+        // Le chaînage `svc.settingsPanel()?.open()` des points d'entrée a été
+        // remplacé par `ouvrirReglages()` : sans cela, un clic avant chargement
+        // n'aurait RIEN fait — pas d'erreur, un bouton mort.
+        //
+        // La façade globale expose l'OUVERTURE, pas l'instance : un scénario
+        // e2e ou une console qui écrivait `SpaceHub.ui.settingsPanel.open()`
+        // écrit maintenant `await SpaceHub.ui.ouvrirReglages()`.
+        SpaceHub.ui.ouvrirReglages = ouvrirReglages;
         SpaceHub.ui.onboarding = new OnboardingWizard({ settings, auth, eventBus });
         
         const modalSlideUp = new ModalSlideUpSheet();
@@ -443,7 +458,7 @@ async function init() {
         services.register('ui.slideUpSheet', modalSlideUp);
         SpaceHub.ui.components.modalSlideUpSheet = modalSlideUp;
 
-        log.info('UI & Design System (ThemeManager, Toaster, Modal, CardBuilder, SettingsPanel, ModalSlideUpSheet) prêts.');
+        log.info('UI & Design System (ThemeManager, Toaster, Modal, CardBuilder, ModalSlideUpSheet) prêts. Réglages : à la demande.');
     } catch (err) {
         log.error('Erreur initialisation UI:', err);
     }
@@ -619,6 +634,21 @@ async function init() {
             // La déclaration part en arrière-plan : un serveur qui la refuse ne
             // doit pas retarder l'affichage de la page d'accueil.
             cible.activer().catch(err => log.warn('Cible de lecture à distance :', err));
+
+            // SyncPlay — regarder ensemble. Le canal, le lecteur et la file
+            // existaient déjà ; il ne manquait qu'une horloge commune.
+            //
+            // Rien ne démarre tant qu'un groupe n'est pas rejoint : l'horloge
+            // ne se cale pas, aucun abonnement n'est posé, aucune minuterie ne
+            // tourne. Le service est prêt, il n'est pas actif.
+            const syncPlay = new SyncPlay({
+                api, socket,
+                lecteur: () => SpaceHub.player,
+                toaster: SpaceHub.ui?.components?.toaster,
+                eventBus,
+            });
+            SpaceHub.jellyfin.syncPlay = syncPlay;
+            services.register('jellyfin.syncplay', syncPlay);
         }
 
         // Hors-ligne : le stockage et le gestionnaire de téléchargement.

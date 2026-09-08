@@ -51,11 +51,14 @@ const ASSETS = join(DIST, 'assets');
  * Repères, pour comprendre ce que ces chiffres valent :
  *   — avant la vague 1, le démarrage pesait ≈ 464 ko (hls.js préchargé) ;
  *   — sortir hls.js du chemin critique en a retiré 181 ;
- *   — rendre dynamique la console d'administration, gelée par défaut, 18 de plus.
+ *   — rendre dynamique la console d'administration, gelée par défaut, 18 ;
+ *   — rendre dynamique l'écran des réglages, 18 encore.
+ *
+ * Soit 255 ko aujourd'hui, contre 464 au départ : 45 % de moins.
  */
 const PLAFONDS = {
     /** Total de ce que le navigateur charge avant toute interaction. */
-    demarrage: 270 * 1024,
+    demarrage: 258 * 1024,
     /** La feuille de style unique, bloquante au rendu. */
     style: 46 * 1024,
 };
@@ -76,11 +79,18 @@ const PLAFONDS = {
  *     `registerWidget` sache monter un widget arrivé en retard dans
  *     l'emplacement qui l'attendait.
  *
- *   — `settings` pose une question voisine : `svc.settingsPanel()?.open()` ne
- *     fait RIEN quand le panneau n'est pas encore chargé, et un bouton muet
- *     est pire qu'un bouton lent. Il faut un chemin d'attente explicite.
+ *   — `settings` A ÉTÉ FAIT : le chaînage muet `svc.settingsPanel()?.open()`
+ *     — qui ne faisait RIEN avant chargement, sans erreur, un bouton mort —
+ *     est remplacé par `ouvrirReglages()`, qui attend et signale l'échec.
  *
- * Le plafond reste donc serré, pour que ces 35 ko continuent de se voir.
+ *     Une leçon à garder : la mise en différé a AUSSI retiré
+ *     `SpaceHub.ui.settingsPanel` de la façade globale au démarrage. Cinq
+ *     scénarios e2e s'en servaient pour FERMER la modale ; ils fermaient donc
+ *     `undefined`, la modale restait ouverte et empoisonnait les scénarios
+ *     suivants. Différer un module change ce qui existe AU DÉMARRAGE, pas
+ *     seulement quand il se charge.
+ *
+ * Reste `integrations` (18 ko). Le plafond reste serré pour qu'il se voie.
  */
 
 /** Paquets qui ne doivent JAMAIS être préchargés au démarrage. */

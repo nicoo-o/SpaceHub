@@ -13,6 +13,7 @@ import Logger from '../../core/Logger.js';
 
 import './SettingsPanel.css';
 import * as svc from '../../core/services.js';
+import * as sousTitres from '../../jellyfin/player/ApparenceSousTitres.js';
 class SettingsPanel {
     constructor() {
         // Confirmation du scope settings dans le Focus Registry
@@ -163,6 +164,31 @@ class SettingsPanel {
                                 L'export ne contient ni votre jeton de session, ni le code du mode enfant.
                             </p>
                             <p id="cfg-config-result" class="sh-form-hint" role="status" aria-live="polite"></p>
+                        </div>
+
+                        <!-- C3 — Apparence des sous-titres.
+                             C'est de l'accessibilité avant d'être du confort :
+                             un sous-titre blanc sans fond sur une scène de
+                             neige disparaît, et le critère WCAG 1.4.3 ne
+                             s'applique pas moins parce que le fond est une
+                             image. À trois mètres, la taille par défaut d'un
+                             cue est calculée pour un écran à cinquante
+                             centimètres. -->
+                        <div class="sh-form-group">
+                            <label>Sous-titres — apparence</label>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                                <select class="sh-input" id="cfg-st-taille" style="flex:1; min-width:120px;"></select>
+                                <select class="sh-input" id="cfg-st-police" style="flex:1; min-width:120px;"></select>
+                                <select class="sh-input" id="cfg-st-fond" style="flex:1; min-width:120px;"></select>
+                            </div>
+                            <p class="sh-form-hint">
+                                Sans effet sur les sous-titres incrustés : ceux-là sont gravés dans l'image
+                                par le serveur, aucun réglage d'affichage ne les atteint.
+                            </p>
+                            <p id="cfg-st-apercu" class="sh-form-hint" aria-hidden="true"
+                               style="margin-top:6px; padding:6px 10px; border-radius:6px; display:inline-block;">
+                                Exemple de sous-titre
+                            </p>
                         </div>
 
                         <div class="sh-form-group">
@@ -1337,6 +1363,50 @@ class SettingsPanel {
             svc.onboarding()?.open?.('admin', { force: true });
         });
         // C14 — Export et import de la configuration.
+        // C3 — Les trois listes des sous-titres, remplies depuis le module
+        // plutôt qu'écrites en dur : ajouter une police ne doit pas demander
+        // de retoucher cet écran.
+        const stTaille = el.querySelector('#cfg-st-taille');
+        const stPolice = el.querySelector('#cfg-st-police');
+        const stFond = el.querySelector('#cfg-st-fond');
+        const stApercu = el.querySelector('#cfg-st-apercu');
+        if (stTaille && stPolice && stFond) {
+            const courant = sousTitres.lire(this._settings);
+            const remplir = (select, options, actuelle) => {
+                select.textContent = '';
+                for (const o of options) {
+                    const opt = document.createElement('option');
+                    opt.value = String(o.valeur);
+                    opt.textContent = String(o.libelle);
+                    if (String(o.valeur) === String(actuelle)) opt.selected = true;
+                    select.appendChild(opt);
+                }
+            };
+            remplir(stTaille, sousTitres.TAILLES.map(t => ({ valeur: t, libelle: `${t} %` })), courant.taille);
+            remplir(stPolice, sousTitres.POLICES, courant.police);
+            remplir(stFond, sousTitres.FONDS, courant.fond);
+
+            const majApercu = () => {
+                const r = {
+                    taille: Number(stTaille.value),
+                    police: stPolice.value,
+                    fond: stFond.value,
+                };
+                sousTitres.ecrire(this._settings, r);
+                sousTitres.appliquer(this._settings);
+                // L'aperçu montre le RÉSULTAT, pas une approximation : on lui
+                // applique les mêmes propriétés que la règle `::cue`.
+                if (stApercu) {
+                    const regle = sousTitres.css(sousTitres.lire(this._settings));
+                    const corps = regle.slice(regle.indexOf('{') + 1, regle.lastIndexOf('}'));
+                    stApercu.setAttribute('style',
+                        `margin-top:6px; padding:6px 10px; border-radius:6px; display:inline-block; ${corps}`);
+                }
+            };
+            for (const sel of [stTaille, stPolice, stFond]) sel.addEventListener('change', majApercu);
+            majApercu();
+        }
+
         // D8 — L'état du fournisseur de notes, posé par textContent.
         const etatNotes = el.querySelector('#cfg-omdb-etat');
         if (etatNotes) etatNotes.textContent = svc.ratingCache()?.etat?.()?.message || '';

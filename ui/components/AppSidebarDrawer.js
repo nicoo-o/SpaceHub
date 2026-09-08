@@ -18,6 +18,7 @@ import { LAYERS, FOCUSABLES } from '../../core/DomContracts.js';
 import './AppSidebarDrawer.css';
 import * as svc from '../../core/services.js';
 import { chargerConsoleAdmin } from '../views/chargerConsoleAdmin.js';
+import { ouvrirReglages } from '../components/chargerReglages.js';
 import { apresSortie, urlSure } from '../../core/utils/domUtils.js';
 class AppSidebarDrawer {
     constructor() {
@@ -538,7 +539,7 @@ class AppSidebarDrawer {
         });
 
         el.querySelector('#sh-sidebar-btn-settings')?.addEventListener('click', () => {
-            svc.settingsPanel()?.open();
+            ouvrirReglages();
             closeImmediately();
         });
     }

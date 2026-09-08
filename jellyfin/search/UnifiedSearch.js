@@ -18,6 +18,7 @@ import './UnifiedSearch.css';
 import * as svc from '../../core/services.js';
 import inputRouter, { PRIORITES } from '../../core/InputRouter.js';
 import { comportementDefilement } from '../../core/utils/domUtils.js';
+import { ouvrirReglages } from '../../ui/components/chargerReglages.js';
 class UnifiedSearch {
     constructor() {
         // Confirmation du scope search dans le Focus Registry
@@ -167,7 +168,7 @@ class UnifiedSearch {
                 sub: 'Préférences & Clés API',
                 action: () => {
                     this._navigateAndDismiss(() => {
-                        svc.settingsPanel()?.open();
+                        ouvrirReglages();
                     });
                 }
             }
