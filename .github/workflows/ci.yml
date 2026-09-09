@@ -12,6 +12,22 @@
 # Il produit aussi un artefact : le build de `main`, téléchargeable depuis
 # l'onglet Actions pendant 30 jours. C'est le moyen le plus direct de poser
 # l'application sur un téléviseur sans rien installer localement.
+#
+# DEUX GÉNÉRATIONS DE CHROMIUM POUR L'E2E
+# ---------------------------------------
+# La suite e2e mesure le navigateur autant que l'application. Le 9 septembre
+# 2026, Chromium 151 a fait échouer deux scénarios verts sur main : un contour
+# SUPPRIMÉ se lisait avec une largeur et une couleur résiduelles (3px, blanc)
+# au lieu de 0px, et le navigateur peignait son propre anneau sur
+# :focus-visible. Rien n'avait changé dans l'application. Pour que ce type de
+# dérive soit VU avant de mordre, l'e2e tourne sur deux jambes :
+#   1. `e2e-epingle`  — Chromium épinglé (playwright@1.62.1, révision 1234),
+#      la base validée du dépôt ; un échec ici est une régression de l'app.
+#   2. `e2e-courant`  — dernière version publiée de Playwright et son
+#      Chromium ; un échec ici est une dérive du NAVIGATEUR à investiguer.
+# Concrètement : quand la jambe courante devient rouge, on met à jour les
+# mesures devenues obsolètes, puis on remonte la version épinglée avec la
+# preuve à l'appui. La base validée ne saute jamais de version à l'aveugle.
 
 name: Verify
 
@@ -45,8 +61,8 @@ jobs:
         run: npm ci
 
       # La chaîne complète : lint, tests unitaires, smoke, contrats statiques
-      # (navigation, entrées, focus, gabarits, CSS, XSS, globaux, contraste)
-      # et le contrat de taille des monolithes.
+      # (navigation, entrées, focus, gabarits, CSS, XSS, globaux, contraste,
+      # taille des monolithes, conformité du changelog).
       - name: Chaîne de vérification
         run: npm run test
 
@@ -57,29 +73,27 @@ jobs:
         run: npm run test:poids
 
       # `playwright-core` ne sait pas télécharger de navigateur : on installe
-      # Chromium avec le paquet complet `playwright` à la version compatible
-      # (le dépôt épinglant playwright-core ^1.62.1). L'appel `npx` évite
+      # Chromium avec le paquet complet `playwright` à la version épinglée
+      # (le dépôt utilise playwright-core ^1.62.1). L'appel `npx` évite
       # d'ajouter une dépendance au projet ; pour un cache plus rapide sur
       # beaucoup d'exécutions, remplacer par une dépendance de développement
       # `playwright@1.62.1` et le cache intégré de `setup-node`.
-      - name: Installer Chromium pour l'e2e
+      - name: Installer Chromium épinglé
         run: npx -y playwright@1.62.1 install --with-deps chromium
 
       # Les scripts e2e cherchent SPACEHUB_CHROMIUM, puis leurs chemins
       # internes, puis Chrome/Edge locaux. On résout ici le chemin réel de
       # l'installation précédente pour ne rien laisser au hasard.
-      - name: Localiser Chromium
+      - name: Localiser Chromium épinglé
         run: |
           CHEMIN=$(find ~/.cache/ms-playwright -type f -name chrome -path '*chrome-linux*' | head -1)
-          if [ -z "$CHEMIN" ]; then echo "Chromium introuvable après installation" >&2; exit 1; fi
+          if [ -z "$CHEMIN" ]; then echo "Chromium épinglé introuvable après installation" >&2; exit 1; fi
           echo "SPACEHUB_CHROMIUM=$CHEMIN" >> "$GITHUB_ENV"
-          echo "Chromium : $CHEMIN"
+          echo "Chromium épinglé : $CHEMIN"
 
-      # 26 scénarios dans un vrai Chromium, serveur HTTP auto-hébergé inclus.
-      # La suite s'abstient au lieu d'échouer si aucun navigateur n'est
-      # trouvé — c'est pourquoi l'étape de localisation ci-dessus échoue
-      # elle-même plutôt que de laisser passer une abstention silencieuse.
-      - name: Tests de bout en bout
+      # 27 scénarios dans le Chromium épinglé — la base validée. Un échec
+      # est une régression de l'application, à corriger, jamais à abstendre.
+      - name: E2E sur Chromium épinglé
         run: npm run test:e2e
 
       # Le build de main, posé ici : c'est la version à télécharger pour
@@ -91,3 +105,36 @@ jobs:
           name: spacehub-main
           path: dist/
           retention-days: 30
+
+  # La jambe « courant » : même suite, navigateur le plus récent. Rouge ici
+  # ne bloque pas la publication de l'artefact — elle signale que le
+  # navigateur a bougé sous nos pieds et qu'il faut relire les mesures.
+  e2e-courant:
+    name: E2E sur Chromium courant (dérive navigateur)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Construction
+        run: npm run build
+
+      - name: Installer le Playwright le plus récent
+        run: npx -y playwright@latest install --with-deps chromium
+
+      - name: Localiser Chromium courant
+        run: |
+          CHEMIN=$(find ~/.cache/ms-playwright -type f -name chrome -path '*chrome-linux*' | head -1)
+          if [ -z "$CHEMIN" ]; then echo "Chromium courant introuvable après installation" >&2; exit 1; fi
+          echo "SPACEHUB_CHROMIUM=$CHEMIN" >> "$GITHUB_ENV"
+          echo "Chromium courant : $CHEMIN"
+
+      - name: E2E sur Chromium courant
+        run: npm run test:e2e
