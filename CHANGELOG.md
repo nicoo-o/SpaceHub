@@ -5,7 +5,23 @@ All notable changes to SpaceHub are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-09-09
+
+First installable release. The web archive is joined by an Android APK
+(Cordova WebView, phone and Android TV launcher) and Windows executables
+(Electron NSIS installer + portable) — all built only after the same
+verification chain is green, named like the tag, checksummed.
+
+Underneath, the build toolchain moved a generation: Vitest 5 and Vite 8 —
+inseparable majors, since vitest 5 peers on vite ≥ 6 — with all 34 suites
+passing unmodified, and rolldown's stricter CSS parsing exposing that 47
+`transition` declarations had carried an invalid mid-value `!important`:
+browsers dropped them whole, so those hover/motion transitions had **never
+animated**. They were repaired and a new e2e scenario now proves the
+animation frame by frame (45/49/73 intermediate transform values). The
+VideoPlayer decomposition also started: the media-segments logic left the
+monolith behind an unchanged facade, with the size contract tightened in
+the same commit.
 
 ### Added
 - Continuous integration: the full verification chain runs on every push and
