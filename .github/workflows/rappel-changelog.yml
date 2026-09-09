@@ -44,7 +44,7 @@ jobs:
     name: Rappel changelog
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         # Le diff d'une pull request est celui du commit de fusion contre sa
         # base : depth 2 suffit pour `git diff HEAD^ HEAD`.
         with:
