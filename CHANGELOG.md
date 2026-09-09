@@ -5,6 +5,16 @@ All notable changes to SpaceHub are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- CSS hygiene check: `transition` declarations carrying more than one
+  `!important` — the mid-value pattern that vite 8's stricter parser exposed
+  (and that had silently disabled 47 widget transitions) — are now rejected
+  in CI, per declaration, so multi-line transitions cannot slip through.
+- PROJECT_STATUS: the CSS sheet count in the validation table was stale
+  (32 → 33).
+
 ## [1.1.0] - 2026-09-09
 
 First installable release. The web archive is joined by an Android APK
@@ -147,5 +157,6 @@ and TVs all open the same PWA, served behind any reverse proxy.
 - Plugin SDK made usable by authors other than its own: context-isolated
   permissions, dependency resolution with cycle detection, quarantine.
 
-[Unreleased]: https://github.com/nicoo-o/SpaceHub/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/nicoo-o/SpaceHub/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/nicoo-o/SpaceHub/releases/tag/v1.1.0
 [1.0.1]: https://github.com/nicoo-o/SpaceHub/releases/tag/v1.0.1

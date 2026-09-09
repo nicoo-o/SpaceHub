@@ -44,7 +44,7 @@ nom de fichier que Vite ne produit jamais.
 | `npm run test:focus` | 22 conteneurs, 9 classes | ✅ |
 | `npm run test:fantomes` | 918 appels, 81 classes | ✅ |
 | `npm run test:gabarits` | 110 interpolations, 4 modules | ✅ |
-| `npm run test:css` | 32 feuilles, 36 jeux d'images-clés | ✅ |
+| `npm run test:css` | 33 feuilles, 36 jeux d'images-clés | ✅ |
 | `npm run test:xss` | 512 interpolations, 140 gabarits | ✅ |
 | `npm run test:globals` | plafond de 20 accès | ✅ |
 | `npm run build` | bundle de production | ✅ |

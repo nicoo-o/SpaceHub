@@ -14,6 +14,8 @@
  *      (sinon il n'est pas empaqueté et ses règles ne s'appliquent jamais).
  *   3. Les ombres portées passent par --sh-shadow-rgb et non par du noir figé,
  *      sans quoi elles cernent les cartes d'un halo sale en thème clair.
+ *   6. Les déclarations `transition` portent au plus un `!important`, terminal
+ *      — le motif du milieu de liste que vite 8 a révélé est refusé ici.
  */
 
 import fs from 'node:fs';
@@ -39,6 +41,33 @@ const files = ROOTS.flatMap(r => walk(r));
 const js = files.filter(f => f.endsWith('.js'));
 const css = files.filter(f => f.endsWith('.css'));
 const problemes = [];
+
+/* ── 0. !important terminal dans les déclarations `transition` ─────────────
+ *
+ * L'incident « vite 8 » : une quinzaine de déclarations portaient
+ * `!important` AU MILIEU de la liste de valeurs —
+ *   transition: transform .26s !important, opacity .2s !important, …
+ * Ce n'est pas du CSS : une déclaration n'admet qu'UN `!important`, terminal.
+ * Rolldown parse strictement et rejette le tout (donc TOUTES les propriétés
+ * de la déclaration, même les parties valides) — et comme le CSS du dépôt
+ * n'embarque jamais de `!important` légitime (règle 6 plus bas), le rejet
+ * silencieux signifiait : zéro animation, sur des dizaines de widgets, sans
+ * aucun test rouge. L'e2e « Les transitions réparées des widgets s'animent
+ * réellement au survol » ferme désormais la boucle côté rendu.
+ *
+ * Détection PAR DÉCLARATION (et non par ligne) : une transition répartie
+ * sur plusieurs lignes échapperait à une inspection ligne à ligne.
+ */
+const MULTIPLE_IMPORTANT = /transition\s*:[^;{}]*![^;{}]*![^;{}]*;/g;
+for (const f of css) {
+    const src = fs.readFileSync(f, 'utf8');
+    const rel = f.split(path.sep).join('/');
+    for (const m of src.matchAll(MULTIPLE_IMPORTANT)) {
+        problemes.push(
+            `${rel}:${src.slice(0, m.index).split('\n').length} — déclaration « transition » avec plus d'un « !important » : un seul, terminal, est valide. Rolldown (vite 8) rejette la déclaration entière : aucune des propriétés n'anime. Retirez tous les « !important » de la liste — le dépôt n'en embarque jamais légitimement (voir la règle 6 ci-dessous).`
+        );
+    }
+}
 
 // 1. Pas de CSS embarqué dans du JS.
 for (const f of js) {
