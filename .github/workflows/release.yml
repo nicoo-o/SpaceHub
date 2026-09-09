@@ -1,0 +1,81 @@
+# SpaceHub — publication d'une release
+#
+# COMMENT ON PUBLIE
+# -----------------
+#   1. S'assurer que la CI est verte sur main.
+#   2. Mettre à jour « version » dans package.json si le tag est significatif.
+#   3.   git tag v1.0.1 && git push origin v1.0.1
+#
+# Le push du tag déclenche ce workflow, qui fait tourner LA MÊME chaîne que la
+# CI — tests, contrats, build, e2e — avant de mettre dist/ en pièce jointe.
+# Une release ne peut donc jamais contenir du code que la suite n'a pas vu.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publier:
+    name: Vérifier, construire, publier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Chaîne de vérification
+        run: npm run test
+
+      - name: Construction
+        run: npm run build
+
+      - name: Contrat de poids
+        run: npm run test:poids
+
+      - name: Installer Chromium pour l'e2e
+        run: npx -y playwright@1.62.1 install --with-deps chromium
+
+      - name: Localiser Chromium
+        run: |
+          CHEMIN=$(find ~/.cache/ms-playwright -type f -name chrome -path '*chrome-linux*' | head -1)
+          if [ -z "$CHEMIN" ]; then echo "Chromium introuvable après installation" >&2; exit 1; fi
+          echo "SPACEHUB_CHROMIUM=$CHEMIN" >> "$GITHUB_ENV"
+
+      - name: Tests de bout en bout
+        run: npm run test:e2e
+
+      # Une seule archive, un seul point d'entrée : dist/ est un site statique
+      # (PWA) que l'on sert derrière nginx, Caddy ou Jellyfin — cf.
+      # docs/DEPLOIEMENT.md. Il n'existe pas de build distinct par plateforme :
+      # PC, Android et téléviseurs ouvrent la même application.
+      - name: Assembler l'archive
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          cd dist
+          zip -r "../spacehub-${VERSION}.zip" .
+          cd ..
+          sha256sum "spacehub-${VERSION}.zip" > "spacehub-${VERSION}.zip.sha256"
+
+      - name: Publier la release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            spacehub-*.zip
+            spacehub-*.zip.sha256
+          generate_release_notes: true
+          draft: false

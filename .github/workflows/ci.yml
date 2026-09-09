@@ -1,0 +1,91 @@
+# SpaceHub — intégration continue
+#
+# POURQUOI CE FICHIER EXISTE
+# --------------------------
+# `npm run verify` est une excellente porte de fusion qui ne s'exécutait que
+# lorsque quelqu'un y pensait. Chaque contrat automatisé du dépôt (navigation,
+# XSS, poids, taille, contraste…) était, à un checkout périmé près, violable
+# en silence. Ce workflow fait tourner la totalité de la chaîne à chaque push
+# et chaque pull request — la branche principale ne peut plus régresser sans
+# que ce soit visible.
+#
+# Il produit aussi un artefact : le build de `main`, téléchargeable depuis
+# l'onglet Actions pendant 30 jours. C'est le moyen le plus direct de poser
+# l'application sur un téléviseur sans rien installer localement.
+
+name: Verify
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+# Un nouveau push sur la même branche annule l'exécution précédente — sauf
+# sur main, dont chaque build publié mérite d'aller jusqu'au bout.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  verify:
+    name: Vérifier et construire
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      # La chaîne complète : lint, tests unitaires, smoke, contrats statiques
+      # (navigation, entrées, focus, gabarits, CSS, XSS, globaux, contraste)
+      # et le contrat de taille des monolithes.
+      - name: Chaîne de vérification
+        run: npm run test
+
+      - name: Construction
+        run: npm run build
+
+      - name: Contrat de poids
+        run: npm run test:poids
+
+      # `playwright-core` ne sait pas télécharger de navigateur : on installe
+      # Chromium avec le paquet complet `playwright` à la version compatible
+      # (le dépôt épinglant playwright-core ^1.62.1). L'appel `npx` évite
+      # d'ajouter une dépendance au projet ; pour un cache plus rapide sur
+      # beaucoup d'exécutions, remplacer par une dépendance de développement
+      # `playwright@1.62.1` et le cache intégré de `setup-node`.
+      - name: Installer Chromium pour l'e2e
+        run: npx -y playwright@1.62.1 install --with-deps chromium
+
+      # Les scripts e2e cherchent SPACEHUB_CHROMIUM, puis leurs chemins
+      # internes, puis Chrome/Edge locaux. On résout ici le chemin réel de
+      # l'installation précédente pour ne rien laisser au hasard.
+      - name: Localiser Chromium
+        run: |
+          CHEMIN=$(find ~/.cache/ms-playwright -type f -name chrome -path '*chrome-linux*' | head -1)
+          if [ -z "$CHEMIN" ]; then echo "Chromium introuvable après installation" >&2; exit 1; fi
+          echo "SPACEHUB_CHROMIUM=$CHEMIN" >> "$GITHUB_ENV"
+          echo "Chromium : $CHEMIN"
+
+      # 26 scénarios dans un vrai Chromium, serveur HTTP auto-hébergé inclus.
+      # La suite s'abstient au lieu d'échouer si aucun navigateur n'est
+      # trouvé — c'est pourquoi l'étape de localisation ci-dessus échoue
+      # elle-même plutôt que de laisser passer une abstention silencieuse.
+      - name: Tests de bout en bout
+        run: npm run test:e2e
+
+      # Le build de main, posé ici : c'est la version à télécharger pour
+      # tester sur téléviseur, téléphone ou PC avant la prochaine release.
+      - name: Publier le build de main comme artefact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: spacehub-main
+          path: dist/
+          retention-days: 30

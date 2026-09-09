@@ -1,6 +1,6 @@
 {
   "name": "spacehub",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SpaceHub — Client web unifié pour Jellyfin & l'écosystème Servarr (Sonarr, Radarr, Bazarr, Prowlarr, Jellyseerr, qBittorrent)",
   "type": "module",
   "scripts": {
@@ -13,10 +13,11 @@
     "test:xss": "node scripts/xss-hygiene-check.mjs",
     "test:globals": "node scripts/globals-check.mjs",
     "test:e2e": "node scripts/e2e.mjs",
-    "test": "npm run lint && npm run test:unit && npm run test:smoke && npm run test:nav && npm run test:input && npm run test:focus && npm run test:fantomes && npm run test:gabarits && npm run test:css && npm run test:xss && npm run test:globals && npm run test:contraste",
+    "test": "npm run lint && npm run test:unit && npm run test:smoke && npm run test:nav && npm run test:input && npm run test:focus && npm run test:fantomes && npm run test:gabarits && npm run test:css && npm run test:xss && npm run test:globals && npm run test:contraste && npm run test:taille",
     "verify": "npm run test && npm run build && npm run test:poids && npm run test:e2e",
     "test:poids": "node scripts/poids-check.mjs",
     "test:contraste": "node scripts/contraste-check.mjs",
+    "test:taille": "node scripts/taille-monolithes-check.mjs",
     "lint": "node scripts/syntax-check.mjs",
     "test:unit": "vitest run",
     "test:input": "node scripts/input-pipeline-check.mjs",

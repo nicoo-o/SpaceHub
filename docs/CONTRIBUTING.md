@@ -1,52 +1,141 @@
-# Guide de Contribution — SpaceHub
+# Guide de contribution — SpaceHub
+
+> **Ce document fait foi** pour contribuer au code. Pour l'état général du
+> projet, c'est `docs/PROJECT_STATUS.md`. Les fichiers `AUDIT_*.md` et
+> `PLAN_*.md` à la racine sont des archives datées.
 
 ## Architecture
 
-SpaceHub est organisé en couches strictes :
+SpaceHub est une application web autonome pour Jellyfin : son propre écran de
+connexion, son propre lecteur, sa propre navigation — le serveur n'est jamais
+modifié, l'application parle à son API REST. JavaScript sans framework,
+compilé par Vite pour un plancher de compatibilité **Chromium 69**
+(téléviseurs de 2020), distribué en PWA (`manifest.webmanifest` +
+`sh-offline-sw.js`).
 
 ```
-core/          → Moteur applicatif ESM (Logger, EventBus, SettingsManager, etc.)
-ui/            → Interface utilisateur (composants, vues, widgets, thèmes)
-jellyfin/      → Intégration Jellyfin (API, auth, player, search, calendar)
-integrations/  → Services tiers (Sonarr, Radarr, Bazarr, Prowlarr, Jellyseerr, qBit)
-scripts/       → Modules legacy IIFE (en cours de migration vers core/)
-skins/         → Correctifs CSS pour thèmes Jellyfin tiers
+core/          → Moteur applicatif ESM (Logger, EventBus, SettingsManager, Router,
+                 SpatialNavigation, PluginManager, SDK…)
+ui/            → Interface (components/, views/, layouts/, themes/, design-system/)
+jellyfin/      → Intégration Jellyfin (api/, auth/, player/, search/, calendar/,
+                 musique/, temps-reel/, offline/, remote/…)
+integrations/  → Services tiers, un dossier par service
+                 (sonarr, radarr, prowlarr, bazarr, jellyseerr, qbittorrent)
+plugins/       → Greffons livrés en exemple (ratings, paroles, exemple)
+scripts/       → OUTILLAGE DE CONTRÔLE QUALITÉ uniquement (aucun code applicatif)
+tests/         → Suites unitaires Vitest (34 fichiers, 561 tests)
 ```
 
-## Ordre de chargement (mode injection Jellyfin)
+L'ancienne architecture « par injection dans Jellyfin Web » (`scripts/*.js`
+legacy, `spaceHub-injector.js`, `skins/`) a été supprimée ; toute documentation
+qui la mentionne comme active est périmée.
 
-Le bon ordre de chargement est :
-1. `spaceHub-default-config.js` → expose `window.SpaceHubDefaultConfig`
-2. `spaceHub.minimal.js` → expose `window.SpaceHubConfig` (surcharge les defaults)
-3. `spaceHub-plugin.js` → détecte le plugin Jellyfin, installe l'injector
-4. `spaceHub-injector.js` → charge tous les modules depuis le CDN
+## La règle des monolithes
+
+**Les sept plus gros fichiers ne grandissent plus.** Leurs budgets sont figés
+dans `scripts/taille-monolithes-check.mjs` et vérifiés par `npm run
+test:taille`, inclus dans la chaîne `npm run test` — un CI vert prouve que la
+règle est respectée :
+
+| Fichier | Budget (lignes) |
+|---|---:|
+| `jellyfin/player/VideoPlayer.js` | 2578 |
+| `core/SpatialNavigation.js` | 1750 |
+| `ui/components/SettingsPanel.js` | 1624 |
+| `ui/components/CardBuilder.js` | 1403 |
+| `jellyfin/search/UnifiedSearch.js` | 1366 |
+| `ui/components/ModalSlideUpSheet.js` | 1350 |
+| `jellyfin/api/JellyfinAPI.js` | 1291 |
+
+Tout autre fichier applicatif passe sous un plafond par défaut de **1200
+lignes** : un nouveau module ne naît pas monolithe.
+
+**Ce que cela implique en pratique :** une nouvelle fonctionnalité s'écrit
+dans un **nouveau module**, branché au point d'entrée existant — c'est la
+manière dont les dernières vagues ont procédé (`BadgesQualite`,
+`MinuteurSommeil`, `ApparenceSousTitres`, `HorlogeServeur` sont nés à côté du
+lecteur, pas dedans). Si un fichier figé doit malgré tout grossir, relever son
+budget est une décision explicite : elle se fait dans un commit qui le
+justifie, jamais au fil de l'eau. Découper un monolithe existant est
+toujours bienvenu — le budget se baisse alors dans le même commit.
 
 ## Pattern intégration
 
 Chaque intégration (Sonarr, Radarr, etc.) suit ce pattern :
-- `*Api.js` → Client HTTP bas niveau (hérite de `BaseApiClient`)
-- `*Service.js` → Logique métier + cache + EventBus
-- `*Widgets.js` → Composants UI
+
+- `*Api.js` → client HTTP bas niveau (authentification, routes)
+- `*Service.js` → logique métier + cache + EventBus
+- `*Widgets.js` → composants UI
+
+Aucune logique métier dans le DOM, aucune manipulation du DOM dans un service.
 
 ## Conventions
 
-- ESM natif (`import`/`export`) dans `core/`, `ui/`, `jellyfin/`, `integrations/`
-- IIFE + `'use strict'` dans `scripts/` (legacy)
-- CSS custom properties préfixées `--sh-*`
+- ESM natif (`import`/`export`) partout dans le code applicatif
+- CSS custom properties préfixées `--sh-*`, extraites des fichiers JS
+  (une feuille par composant, à côté de celui-ci)
 - Nommage BEM-like : `.sh-composant__element--modifieur`
 - EventBus pour la communication inter-modules (éviter le couplage direct)
+- Le nommage des modules récents suit le français (`MinuteurSommeil`,
+  `HorlogeServeur`) ; ne pas mélanger les langues dans un même domaine
 
-## Sécurité
+## La chaîne de vérification
 
-- Ne jamais logger de tokens, mots de passe ou clés API en console
-- Utiliser `escapeHtml()` de `core/utils/domUtils.js` avant tout `innerHTML` avec données utilisateur
-- Valider les URLs externes avant tout `fetch()` avec `new URL()`
-- Ne jamais hardcoder d'identifiants, user IDs ou clés dans le code source
+`npm run verify` est la porte de fusion : elle exécute la chaîne complète
+(`npm run test`), la construction, le contrat de poids et l'e2e. La CI
+GitHub Actions (`.github/workflows/ci.yml`) la fait tourner à chaque push et
+pull request — elle ne doit jamais être rouge sur `main`.
+
+| Contrôle | Ce qu'il prouve |
+|---|---|
+| `npm run lint` | Syntaxe valide sur tous les fichiers |
+| `npm run test:unit` | 561 tests unitaires Vitest (34 suites) |
+| `npm run test:smoke` | Démarrage complet de l'application hors navigateur |
+| `npm run test:nav` | Contrats de navigation (sélecteurs, scopes, comportement) |
+| `npm run test:input` | Pipeline d'entrée : un seul routeur, ordre écrit |
+| `npm run test:focus` | Conteneurs focalisables déclarés et cohérents |
+| `npm run test:fantomes` | Aucune « méthode fantôme » (appel sans définition) |
+| `npm run test:gabarits` | Identifiants d'interpolation des gabarits |
+| `npm run test:css` | Hygiène CSS (feuilles, jeux d'images-clés) |
+| `npm run test:xss` | Toute interpolation HTML passe par l'échappement |
+| `npm run test:globals` | Plafond d'accès globaux (20) |
+| `npm run test:contraste` | Contraste des thèmes clair et foncé |
+| `npm run test:taille` | Règle des monolithes (voir plus haut) |
+| `npm run build` + `test:poids` | Build de production sous les plafonds de poids |
+| `npm run test:e2e` | 26 scénarios dans un vrai Chromium |
 
 ## Développement local
 
 ```bash
-npm install
-npm run dev    # Lance le serveur Vite sur http://localhost:5173
-npm run build  # Build de production dans dist/
+npm ci           # installer exactement ce que le lockfile décrit
+npm run dev      # serveur Vite sur http://localhost:3000
+npm run verify   # la porte de fusion complète, avant chaque merge
 ```
+
+Pour tester l'e2e sur une machine sans Chrome : `npx playwright@1.62.1
+install chromium`, puis `export SPACEHUB_CHROMIUM=$(find
+~/.cache/ms-playwright -type f -name chrome -path '*chrome-linux*' | head -1)`.
+
+## Sécurité
+
+- Ne jamais logger de tokens, mots de passe ou clés API en console
+- Utiliser `escapeHtml()` avant tout `innerHTML` avec des données externes —
+  les exceptions documentées vivent dans `docs/XSS_EXCEPTIONS.md`
+- Valider les URLs externes avant tout `fetch()` avec `new URL()`
+- Le jeton d'authentification vit en mémoire + `sessionStorage`, jamais dans
+  `localStorage` (`tests/StockageDuJeton.test.js` le vérifie)
+- Ne jamais hardcoder d'identifiants, user IDs ou clés dans le code source
+
+## Greffons et SDK
+
+Pour écrire un greffon, lire `docs/ECRIRE_UN_GREFFON.md` et partir de
+`plugins/exemple/`. Rappels non négociables : tout passe par le contexte
+`ctx` remis par le SDK — pas de `window.SpaceHub`, pas de `fetch` global ;
+les permissions sont refusées par défaut.
+
+## Publication
+
+Les releases sont automatiques : pousser un tag `v*` déclenche
+`.github/workflows/release.yml`, qui fait tourner la même chaîne de
+vérification puis joint `dist/` en archive à la release GitHub. Voir
+`docs/DEPLOIEMENT.md` pour servir l'archive derrière nginx ou Caddy.

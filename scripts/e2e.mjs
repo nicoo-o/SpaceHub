@@ -419,17 +419,29 @@ await scenario('Un conteneur de défilement ne dessine pas d\'anneau de focus', 
         document.body.appendChild(barre);
 
         barre.focus();
-        const surBarre = getComputedStyle(barre).outlineWidth;
+        const sb = getComputedStyle(barre);
+        const surBarre = { style: sb.outlineStyle, largeur: sb.outlineWidth, couleur: sb.outlineColor };
         bouton.focus();
-        const surBouton = getComputedStyle(bouton).outlineWidth;
+        const bo = getComputedStyle(bouton);
+        const surBouton = { style: bo.outlineStyle, largeur: bo.outlineWidth, couleur: bo.outlineColor };
 
         barre.remove();
         return { surBarre, surBouton };
     });
 
-    const nul = (v) => v === '0px' || v === 'none' || v === '';
-    const ok = nul(r.surBarre) && !nul(r.surBouton);
-    return { ok, detail: `conteneur: ${r.surBarre} · bouton: ${r.surBouton}` };
+    // Ce que le scénario traque, c'est l'anneau DESSINÉ PAR L'APPLICATION.
+    // Depuis Chromium 151, un contour SUPPRIMÉ (`outline: none`) ne se lit
+    // plus `0px` : le style calculé rapporte une largeur et une couleur
+    // résiduelles (ici 3px, blanc) avec `outline-style: none` — et ne peint
+    // donc RIEN. La largeur et la couleur ne distinguent plus rien ; c'est
+    // le STYLE qui fait foi : `none` = rien de peint, `solid` = l'anneau de
+    // l'application (qui ne dessine qu'en solid), `auto` = l'anneau du
+    // navigateur lui-même. Une régression réelle — un `outline: 3px solid
+    // blanc` qui reviendrait sur le conteneur — reste un échec.
+    const anneauApp = (a) => parseFloat(a.largeur) >= 2
+        && a.style !== 'none' && a.style !== 'hidden';
+    const ok = !anneauApp(r.surBarre) && anneauApp(r.surBouton);
+    return { ok, detail: `conteneur: ${r.surBarre.style} ${r.surBarre.largeur} · bouton: ${r.surBouton.style} ${r.surBouton.largeur} ${r.surBouton.couleur}` };
 });
 
 await scenario('À l\'arrivée, le focus va sur un contrôle — jamais sur un conteneur', async () => {
@@ -491,7 +503,7 @@ await scenario('La souris et la télécommande ne se marchent pas dessus', async
 
         const anneau = () => {
             const st = getComputedStyle(el);
-            return { largeur: st.outlineWidth, ombre: st.boxShadow };
+            return { style: st.outlineStyle, largeur: st.outlineWidth, couleur: st.outlineColor, ombre: st.boxShadow };
         };
 
         // 1. Entrée directionnelle : l'anneau doit être là.
@@ -517,13 +529,19 @@ await scenario('La souris et la télécommande ne se marchent pas dessus', async
             classeRacine: document.documentElement.className.includes('sh-entree-') };
     });
 
-    const epais = (a) => parseFloat(a.largeur) >= 2;
-    const ok = epais(r.auClavier) && !epais(r.aLaSouris) && epais(r.retour)
+    // Même distinction que pour le conteneur ci-dessus : Chromium 151 rapporte
+    // largeur et couleur résiduelles sur un contour SUPPRIMÉ (`outline-style:
+    // none`) au lieu de `0px`. L'anneau de l'application est toujours `solid` :
+    // c'est lui qui doit disparaître quand la souris reprend la main, et
+    // revenir à la première flèche.
+    const anneauApp = (a) => parseFloat(a.largeur) >= 2
+        && a.style !== 'none' && a.style !== 'hidden';
+    const ok = anneauApp(r.auClavier) && !anneauApp(r.aLaSouris) && anneauApp(r.retour)
         && r.memePosition && r.classeRacine;
     return {
         ok,
-        detail: `clavier ${r.auClavier.largeur} · souris ${r.aLaSouris.largeur}`
-            + ` · retour ${r.retour.largeur} · position conservée ${r.memePosition}`,
+        detail: `clavier ${r.auClavier.style} ${r.auClavier.largeur} · souris ${r.aLaSouris.style} ${r.aLaSouris.largeur}`
+            + ` · retour ${r.retour.style} ${r.retour.largeur} · position conservée ${r.memePosition}`,
     };
 });
 

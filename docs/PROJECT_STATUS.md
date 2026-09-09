@@ -35,7 +35,8 @@ nom de fichier que Vite ne produit jamais.
 
 | Contrôle | Portée | État |
 |---|---|---|
-| `npm run lint` | 149 fichiers | ✅ |
+| `npm run lint` | 184 fichiers | ✅ |
+| CI GitHub Actions | la même chaîne à chaque push et pull request, build de main publié en artefact | ✅ |
 | `npm run test:unit` | 311 tests, 23 suites | ✅ |
 | `npm run test:smoke` | démarrage complet hors navigateur | ✅ |
 | `npm run test:nav` | 46 sélecteurs, 12 scopes | ✅ |

@@ -2,11 +2,80 @@
 
 *Point « priorité 2 » de l'audit externe. À faire par vous : je n'ai aucun appareil.*
 
+---
+
+## Session 1 — un téléviseur Tizen, deux heures
+
+Cette session tranche les quatre inconnues que la suite automatisée ne peut
+pas trancher — celles que `docs/PROJECT_STATUS.md` liste comme non faites.
+Chacune a un **critère de bascule** précis : tant qu'il n'est pas atteint,
+l'inconnue reste ouverte, même si tout le reste est au vert.
+
+### Préparation (15 minutes)
+
+```bash
+npm ci
+npm run verify        # au vert, sinon on ne mesure pas un TV mais un bug
+npm run build         # hls.js ESM par défaut (voir la mesure n° 2)
+npm run preview -- --host
+```
+
+Servir sur le réseau local, idéalement en HTTPS (Caddy de préférence —
+sans HTTPS, plein écran, stockage persistant et service worker hors-ligne ne
+se comportent pas). Ouvrir l'URL **aussi sur le PC** avec `?debug=1` : le HUD
+affiche focus, scope et latence — c'est lui qui donne les chiffres.
+
+### Les quatre mesures
+
+| # | Inconnue | Manipulation | Basculée quand |
+|---|---|---|---|
+| 1 | **Démarrage Chromium 69** | Ouvrir l'application sur le téléviseur, à froid, depuis l'écran de veille | L'écran de connexion apparaît — ni blanc (syntaxe non analysée) ni noir — et la connexion aboutit ; le HUD `?debug=1` affiche le moteur de navigation v11 |
+| 2 | **Dégradation hls.js sur Tizen** | Laisser tourner un film **au moins 20 minutes** sans interaction | Soit la lecture reste stable, soit le rebuild `SPACEHUB_HLS_UMD=1 npm run build` corrige une dégradation constatée — dans ce cas la bascule devient le défaut, adossée à cette mesure |
+| 3 | **Latence réelle (INP/LoAF)** | `?debug=1`, défilement de carrousels, séries de 30 appuis sur les quatre directions | Les chiffres de latence sont notés dans le gabarit ci-dessous — ceux d'un PC ne disent rien d'un Chromium embarqué de 2020 |
+| 4 | **Parité télécommande** | Sections C et D, depuis le canapé | Un verdict par ligne, y compris l'écart connu A21 vs B8 (cadence d'avance rapide clavier/manette) |
+
+### Gabarit de résultats de session
+
+À copier dans `docs/PROJECT_STATUS.md` une fois rempli — c'est lui qui fait
+disparaître les lignes « jamais faite » du tableau de validation.
+
+```
+=== SESSION RECETTE — <date> ===
+Téléviseur : marque, modèle exact, année, firmware
+Connexion  : HTTPS oui/non, hôte : port
+
+MESURE 1 — Démarrage
+  Écran de connexion : OK / KO (préciser : blanc, noir, autre)
+  Connexion          : OK / KO
+  HUD v11            : oui / non
+  → Basculée : oui / non
+
+MESURE 2 — Lecture longue
+  Durée testée       : … min
+  Stabilité          : stable / dégradation (décrire)
+  Test UMD si besoin : SPACEHUB_HLS_UMD=1 → résultat
+  → Basculée : oui / non
+
+MESURE 3 — Latence (HUD)
+  Directions : haut … ms · bas … ms · gauche … ms · droite … ms
+  Au-delà de ~150 ms : perceptible — noter le ressenti
+  → Basculée : oui / non
+
+MESURE 4 — Parité télécommande
+  Sections C et D : …/18 lignes OK
+  Écart A21 vs B8 : gênant ? oui/non
+  → Basculée : oui / non
+
+ANOMALIES : fiches selon le gabarit général ci-dessous.
+```
+
+---
+
 ## Pourquoi ce document existe, et ce qu'il ne remplace pas
 
-Tout ce que je pouvais vérifier seul l'est : 117 tests unitaires, 6 contrôles
-statiques, 11 scénarios de bout en bout dans un vrai Chromium. Ils tournent avec
-`npm run verify` et sont tous au vert.
+Tout ce que je pouvais vérifier seul l'est : 561 tests unitaires, 12 contrôles
+statiques, 26 scénarios de bout en bout dans un vrai Chromium. Ils tournent avec
+`npm run verify` (et en CI à chaque push) et sont tous au vert.
 
 Aucun de ces contrôles ne touche une manette, une télécommande ou un téléviseur.
 Un navigateur sans tête ne dit rien sur la latence d'une touche, sur la lisibilité
@@ -28,7 +97,7 @@ puis 100 ms). C'est délibéré, mais il faut voir si c'est agréable en vrai.
 
 ```bash
 npm ci
-npm run verify        # doit finir sur « 11/11 scénario(s) au vert »
+npm run verify        # la chaîne complète doit finir au vert
 npm run build
 npm run preview       # sert dist/ ; notez l'adresse affichée
 ```
