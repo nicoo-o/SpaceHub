@@ -36,7 +36,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 24 : l'outillage de contrôle utilise `module.registerHooks`,
+          # disponible à partir de Node 22.15 (cf. scripts/css-stub-loader.mjs).
+          node-version: 24
           cache: npm
 
       - name: Installer les dépendances
