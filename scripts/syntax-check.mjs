@@ -7,7 +7,11 @@ const execFileAsync = promisify(execFile);
 // `_to_delete` est le tampon des fichiers en attente de retrait manuel : il
 // contient d'anciens bundles minifiés. Les analyser gonflait le compte de
 // fichiers (131 au lieu de 108) et validait du code qui n'existe plus.
-const ignoredDirectories = new Set(['node_modules', 'dist', '.git', '_to_delete', 'coverage', '.vite']);
+// `build` contient les bobines d'emballage GÉNÉRÉES (APK/exe, cf.
+// scripts/preparer-bobines.mjs) : du code produit, pas du code source —
+// et sa présence dépend de l'historique local, ce qui rendrait le compte
+// non reproductible d'une machine à l'autre.
+const ignoredDirectories = new Set(['node_modules', 'dist', 'build', '.git', '_to_delete', 'coverage', '.vite']);
 
 async function collectJavaScriptFiles(directory) {
     const entries = await readdir(directory, { withFileTypes: true });

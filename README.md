@@ -51,12 +51,22 @@ automated contract checks** that run on every push.
 
 ## 📦 Install
 
-SpaceHub is **one web build for every platform** — PC, Android and TVs all
-open the same app. There is nothing to compile on your side.
+SpaceHub ships three ways — pick the one that fits your device. All come
+from the same codebase and the same verification chain.
 
-**1. Download** the latest archive from
-[**Releases**](https://github.com/nicoo-o/SpaceHub/releases)
-(`spacehub-vX.Y.Z.zip`), or grab the newest build of `main` from the
+**Option A — installable packages (newest, easiest):** from the
+[**Releases**](https://github.com/nicoo-o/SpaceHub/releases) page, grab
+`spacehub-vX.Y.Z.apk` for Android phones and Android TV, or
+`SpaceHub-Setup-X.Y.Z.exe` (installer) / `SpaceHub-X.Y.Z-portable.exe`
+(no install) for Windows. SHA-256 checksums are attached next to each
+file. The APK embeds the whole app — point it at your Jellyfin server on
+first launch, nothing to serve or host. The Windows exe is unsigned:
+SmartScreen shows a one-time warning, choose « More info → Run anyway ».
+
+**Option B — serve the web build (self-hosted):**
+
+**1. Download** the archive (`spacehub-vX.Y.Z.zip`) from Releases, or
+grab the newest build of `main` from the
 [Actions tab](https://github.com/nicoo-o/SpaceHub/actions/workflows/ci.yml)
 (artifact `spacehub-main`).
 
@@ -84,9 +94,10 @@ spacehub.lan {
 
 | Platform | How |
 |---|---|
-| 🖥️ **Windows / macOS / Linux** | Any modern browser; « Install app » in Chrome/Edge for the PWA |
-| 📱 **Android** | Chrome → menu → *Add to Home screen* |
-| 📺 **Android TV / Google TV** | [TV Bro](https://github.com/truefedex/tv-bro) or Firefox TV, open the URL |
+| 🖥️ **Windows** | Packaged `.exe` (Option A) or any modern browser; « Install app » in Chrome/Edge for the PWA |
+| 🖥️ **macOS / Linux** | Any modern browser; « Install app » for the PWA |
+| 📱 **Android** | The `.apk` (Option A) or Chrome → menu → *Add to Home screen* |
+| 📺 **Android TV / Google TV** | The `.apk` installs directly into the TV launcher, or [TV Bro](https://github.com/truefedex/tv-bro) with the URL |
 | 📺 **Samsung Tizen (2020+)** | Built-in TV browser |
 | 📺 **LG webOS (2020+)** | Built-in TV browser |
 | 🎮 **Xbox** | Microsoft Edge |

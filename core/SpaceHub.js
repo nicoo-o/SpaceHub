@@ -29,8 +29,9 @@ import { ProwlarrStatusWidget } from '../integrations/prowlarr/ProwlarrWidgets.j
 import BazarrService from '../integrations/bazarr/BazarrService.js';
 import { BazarrWantedWidget } from '../integrations/bazarr/BazarrWidgets.js';
 import JellyseerrService from '../integrations/jellyseerr/JellyseerrService.js';
-import { JellyseerrRequestsWidget } from '../integrations/jellyseerr/JellyseerrWidgets.js';
+import { JellyseerrRequestsWidget, JellyseerrTrendingWidget } from '../integrations/jellyseerr/JellyseerrWidgets.js';
 import QBittorrentService from '../integrations/qbittorrent/QBittorrentService.js';
+import { QBittorrentSpeedWidget, QBittorrentActiveWidget } from '../integrations/qbittorrent/QBittorrentWidgets.js';
 import Router           from './Router.js';
 import { chargerConsoleAdmin } from '../ui/views/chargerConsoleAdmin.js';
 import { ouvrirReglages } from '../ui/components/chargerReglages.js';
