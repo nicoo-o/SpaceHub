@@ -48,7 +48,7 @@ nom de fichier que Vite ne produit jamais.
 | `npm run test:xss` | 512 interpolations, 140 gabarits | ✅ |
 | `npm run test:globals` | plafond de 20 accès | ✅ |
 | `npm run build` | bundle de production | ✅ |
-| `npm run test:e2e` | 27 scénarios, Chromium réel | ✅ |
+| `npm run test:e2e` | 28 scénarios, Chromium réel | ✅ |
 | **Recette sur téléviseur réel** | Tizen, webOS, Android TV | ❌ **jamais faite** |
 
 La dernière ligne est le seul vrai trou de validation, et c'est aujourd'hui le

@@ -112,7 +112,7 @@ jobs:
           echo "SPACEHUB_CHROMIUM=$CHEMIN" >> "$GITHUB_ENV"
           echo "Chromium épinglé : $CHEMIN"
 
-      # 27 scénarios dans le Chromium épinglé — la base validée. Un échec
+      # 28 scénarios dans le Chromium épinglé — la base validée. Un échec
       # est une régression de l'application, à corriger, jamais à abstendre.
       - name: E2E sur Chromium épinglé
         run: npm run test:e2e
