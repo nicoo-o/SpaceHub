@@ -35,6 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   suites / 561 tests pass unchanged, builds emit through rolldown, and
   the startup budget moves 258 → 270 kB gzip to absorb the toolchain
   delta — same application code, still 45 % lighter than before wave 1.
+- jsdom, the DOM layer under every DOM-touching unit suite, jumped 25 → 30:
+  zero test files needed modification, the config used only current-API
+  options, and the suite surface (`vi.fn`, `vi.spyOn`, fake timers) is
+  stable across the jump — verified against all 561 tests after a clean
+  install.
 - License unified to GPL-3.0 (package.json, README badge, LICENSE), with the
   upstream KefinTweaks MIT notice preserved in LICENSE.
 - README rewritten as an English home page: install from Releases, platform
