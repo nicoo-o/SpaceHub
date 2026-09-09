@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Decision doc for signed Windows builds and auto-update
+  (`docs/SIGNATURE_WINDOWS_ET_AUTO_UPDATE.md`): certificate options
+  evaluated against this repo's Linux-CI, single-maintainer reality
+  (recommended: Azure Artifact Signing public profile, ~$10/month), how
+  SmartScreen reputation actually builds, and the ordered plan — sign
+  first, then wire NSIS auto-update with signature verification and a
+  user-facing opt-out.
 - VideoPlayer decomposition step 2: the four pure helpers (time formatting,
   HTML escaping, URL sanitizing, button spring animation) moved to
   `jellyfin/player/UtilitairesLecteur.js` with a focused unit suite;
