@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Caller-side facade enforcement: a CI check (`test:facade-appelants`) fails
+  when any file outside `jellyfin/player/` reaches a `VideoPlayer` member
+  outside the contract — the mirror of the class-side facade test. Both
+  guards now read one shared surface (`jellyfin/player/ContratFacade.js`,
+  25 members incl. documented tolerances `_video`, `_queue`,
+  `_playbackOptions`), so the decomposition cannot be silently broken from
+  the caller side either.
 - Decomposition ledger for `VideoPlayer.js` (`docs/DECOMPOSITION_VIDEOPLAYER.md`):
   landed steps 0–1 with their commit references, the confirmed extraction
   order for the remaining steps, and the non-negotiables of the method.

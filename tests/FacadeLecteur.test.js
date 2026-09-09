@@ -19,26 +19,16 @@
 
 import { describe, it, expect } from 'vitest';
 import VideoPlayer from '../jellyfin/player/VideoPlayer.js';
+import { MEMBRES_APPELABLES, CHAMPS_TOLERES, CHAMPS_INJECTES } from '../jellyfin/player/ContratFacade.js';
 
 describe('Le contrat de façade de VideoPlayer', () => {
     it('expose tous les membres appelés de l extérieur', () => {
         const p = new VideoPlayer();
 
-        // Modules frères et temps réel (CibleDistante, SpatialNavigation…).
-        const membresInternes = [
-            'play', 'close', 'handleNavAction',
-            '_togglePlayPause', '_seekRelative', '_executerActionMedia',
-            '_showControls', '_reloadCurrentSourceWithOptions', '_toggleFullscreen',
-            '_brancherSessionMedia', '_publierPosition',
-        ];
-
-        // La logique segments, unitairement testée par SegmentsMedia.test.js.
-        const membresSegments = [
-            '_chargerSegmentsMedia', '_segment', '_getIntroInterval',
-            '_segmentActionnableA', '_passerSegment', '_performSkipIntro',
-        ];
-
-        for (const membre of [...membresInternes, ...membresSegments]) {
+        // La liste vit dans jellyfin/player/ContratFacade.js — source de
+        // vérité unique partagée avec le contrôle côté appelants
+        // (scripts/facade-appelants-check.mjs).
+        for (const membre of MEMBRES_APPELABLES) {
             expect(typeof p[membre], `membre manquant : ${membre}`).toBe('function');
         }
     });
@@ -58,5 +48,25 @@ describe('Le contrat de façade de VideoPlayer', () => {
         expect(p._segmentsPourItem).toBeNull();
         expect(p._intervalleIntro).toBeUndefined();
         expect(p._segmentCourant).toBeNull();
+    });
+
+    it('ne tolère aucun champ hors contrat dans la liste des champs', () => {
+        // Garde-fou méta : CHAMPS_TOLERES ne doit lister que des champs qui
+        // existent réellement sur une instance neuve — sinon la liste dérive
+        // du code et les deux gardiens protègent une fiction.
+        const p = new VideoPlayer();
+        for (const champ of CHAMPS_TOLERES) {
+            expect(champ in p, `champ introuvable sur l'instance : ${champ}`).toBe(true);
+        }
+    });
+
+    it('garde les champs injectés après construction hors de la liste des champs constructeur', () => {
+        // `_queue` n'existe pas sur une instance neuve : SpaceHub l'injecte
+        // après coup. La séparation évite que la méta-vérification du champ
+        // constructeur exige une fiction.
+        const p = new VideoPlayer();
+        for (const champ of CHAMPS_INJECTES) {
+            expect(champ in p, `${champ} devrait être injecté, pas construit`).toBe(false);
+        }
     });
 });

@@ -35,7 +35,7 @@ nom de fichier que Vite ne produit jamais.
 
 | Contrôle | Portée | État |
 |---|---|---|
-| `npm run lint` | 192 fichiers | ✅ |
+| `npm run lint` | 194 fichiers | ✅ |
 | CI GitHub Actions | la même chaîne à chaque push et pull request, build de main publié en artefact, e2e sur deux générations de Chromium (épinglé + courant), rappel changelog sur les PR (label `no-changelog` en échappatoire), mises à jour de dépendances par Dependabot | ✅ |
 | `npm run test:unit` | 564 tests, 35 suites (vitest 5) | ✅ |
 | `npm run test:smoke` | démarrage complet hors navigateur | ✅ |
@@ -43,6 +43,7 @@ nom de fichier que Vite ne produit jamais.
 | `npm run test:input` | 10 gestionnaires inscrits | ✅ |
 | `npm run test:focus` | 22 conteneurs, 9 classes | ✅ |
 | `npm run test:fantomes` | 918 appels, 81 classes | ✅ |
+| `npm run test:facade-appelants` | 119 fichiers, surface de 25 membres | ✅ |
 | `npm run test:gabarits` | 110 interpolations, 4 modules | ✅ |
 | `npm run test:css` | 33 feuilles, 36 jeux d'images-clés | ✅ |
 | `npm run test:xss` | 512 interpolations, 140 gabarits | ✅ |
@@ -125,7 +126,9 @@ ce que fait désormais `test:gabarits`.
 **La décomposition de `VideoPlayer.js` a commencé** (étapes 0 et 1 atterries,
 PR #13 — filet de façade, segments média extraits, budget 2578 → 2537) : le
 registre des étapes et l'ordre confirmé des suivantes vivent dans
-`docs/DECOMPOSITION_VIDEOPLAYER.md`.
+`docs/DECOMPOSITION_VIDEOPLAYER.md`. Le contrat est appliqué des DEUX côtés :
+côté classe par `tests/FacadeLecteur.test.js`, côté appelants par
+`test:facade-appelants` (surface unique dans `jellyfin/player/ContratFacade.js`).
 
 **Mémoire de focus par identifiant généré.** Les conteneurs mémorisent
 `data-focus="sh-nav-37"`. Après un rerender complet, l'ancien identifiant ne
