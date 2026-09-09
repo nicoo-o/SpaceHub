@@ -90,7 +90,7 @@ jobs:
           sha256sum "spacehub-${VERSION}.zip" > "spacehub-${VERSION}.zip.sha256"
 
       - name: Publier la release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             spacehub-*.zip
