@@ -236,10 +236,17 @@ export default defineConfig({
     //
     // LA MESURE, faite ici et non recopiée d'ailleurs :
     //
-    //     ESM (dist/hls.mjs)  →  593 kB  (gzip 185 kB)   ← défaut
-    //     UMD (dist/hls.js)   →  625 kB  (gzip 194 kB)   ← +32 kB, +5,5 %
+    //     Sous Vite 5 + esbuild (mesure initiale) :
+    //       ESM (dist/hls.mjs)  →  593 kB  (gzip 185 kB)   ← défaut
+    //       UMD (dist/hls.js)   →  625 kB  (gzip 194 kB)   ← +32 kB, +5,5 %
     //
-    // Les 25 scénarios de bout en bout passent dans les deux cas.
+    //     Re-mesurée le 9 septembre 2026 sous Vite 8 + rolldown — la
+    //     décision tient, l'écart est resté le même à 1 ko près :
+    //       ESM (dist/hls.mjs)  →  584,6 kB  (gzip 181,5 kB)  ← défaut
+    //       UMD (dist/hls.js)   →  619,8 kB  (gzip 190,5 kB)  ← +35 kB, +6,0 %
+    //
+    // Les 27 scénarios de bout en bout passent dans les deux cas
+    // (re-prouvé sur le build UMD lors de la re-mesure).
     //
     // POURQUOI CE N'EST PAS LE DÉFAUT. Le coût est certain et mesuré : 9 kB
     // de plus sur le fil, sur un appareil dont le Wi-Fi est justement le
@@ -327,7 +334,7 @@ export default defineConfig({
     // Un fichier unique rend l'ordre déterministe (= ordre des imports, donc
     // tokens.css en premier) et évite 5 feuilles bloquantes en cascade sur TV.
     cssCodeSplit: false,
-    // hls.js et le chunk app font 584 kB / 590 kB — libs externes non fragmentables.
+    // hls.js (584 kB) et le chunk app (~320 kB) — libs externes non fragmentables.
     // On monte la limite à 700 kB pour éviter le warning non-actionnable sur vendor-hls.
     chunkSizeWarningLimit: 700,
     rollupOptions: {
