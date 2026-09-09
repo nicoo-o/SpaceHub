@@ -1,0 +1,58 @@
+# SpaceHub — mises à jour automatiques des dépendances
+#
+# POURQUOI CE FICHIER EXISTE
+# --------------------------
+# Les dépendances de ce dépôt sont peu nombreuses — c'est un choix assumé —
+# mais elles portent tout : `hls.js` est la seule dépendance d'exécution, et
+# les quatre dépendances de développement outillent toute la chaîne de
+# vérification. Une vulnérabilité ou une régression dans l'une d'elles
+# concerne donc l'application entière. Dependabot ouvre une pull request
+# dès qu'une version plus récente existe ; la CI (Verify) fait tourner la
+# chaîne complète sur chacune — le « vérifiées par la CI » n'est donc pas un
+# vœu, c'est la même porte de fusion que pour le code humain.
+#
+# POURQUOI DEPENDABOT PLUTÔT QUE RENOVATE
+# ---------------------------------------
+# Natif GitHub (aucune application tierce à autoriser sur le dépôt), zéro
+# configuration de serveur, et ses pull requests déclenchent la CI existante
+# sans raccord supplémentaire. Renovate ferait la même chose avec plus
+# d'options de groupage ; ce dépôt n'en a pas besoin.
+#
+# POURQUOI CES RÈGLES
+# -------------------
+#   — grouped : toutes les versions mineures/patch d'un écosystème dans UNE
+#     pull request. Cinq PR par semaine pour quatre dépendances, c'est le
+#     bruit qui fait qu'on finit par tout ignorer.
+#   — major séparées : une montée de version majeure (Vite 5 → 6, jsdom 25 →
+#     26) est une décision, pas une formalité — elle mérite sa propre PR avec
+#     son propre verdict de la chaîne.
+#   — schedule hebdomadaire : plus souvent ne sert qu'à ouvrir des PR pour
+#     des versions qui sortent entre-temps.
+#   — / (racine) : le seul package.json du dépôt ; les workflows n'ont pas
+#     d'autres dossiers à surveiller.
+#
+# Note : les PR de Dependabot déclenchent la CI via l'événement
+# `pull_request` uniquement — `ci.yml` ignore le double déclenchement `push`
+# sur les branches `dependabot/*`.
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      npm-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
