@@ -88,8 +88,12 @@ async function scenario(nom, fn) {
 const attendre = (ms) => new Promise(r => setTimeout(r, ms));
 const URL_BASE = `http://127.0.0.1:${PORT}/`;
 
-async function nouvellePage(navigateur, avantChargement) {
-    const ctx = await navigateur.newContext({ viewport: { width: 1440, height: 900 } });
+async function nouvellePage(navigateur, avantChargement, options = {}) {
+    // `options` passe au contexte Playwright (ex. reducedMotion:'no-preference'
+    // pour les scénarios d'animation : c'est le comportement PAR DÉFAUT qu'il
+    // faut y tester, pas celui du media query « reduce » qui désactive
+    // légitimement les transitions).
+    const ctx = await navigateur.newContext({ viewport: { width: 1440, height: 900 }, ...options });
     const page = await ctx.newPage();
     page.__erreurs = [];
     page.on('pageerror', e => page.__erreurs.push(e.message));
@@ -1154,6 +1158,98 @@ await scenario('Le HUD de diagnostic dit ce que le moteur a vraiment décidé', 
         detail: `cible réelle « ${r.cible} » par la voie « ${r.voie} » · `
             + `${r.candidats} candidats · latence mesurée ${r.latenceMesuree} · `
             + `inerte ${r.inerte} · extinction propre ${r.eteintProprement}`,
+    };
+});
+
+await scenario('Les transitions réparées des widgets s\'animent réellement au survol', async () => {
+    // L'HISTOIRE. Quarante-sept déclarations `transition` portaient
+    // `!important` au MILIEU de leur liste de valeurs — syntaxe invalide que
+    // tout navigateur jetait ENTIÈRE. Les boutons d'action des widgets
+    // (rafraîchir, synchroniser…) n'ont donc JAMAIS animé leur survol, et le
+    // pipeline de build ne l'a pas vu venir : la suite statique lit le code,
+    // pas le rendu. Ce scénario ferme exactement ce trou : il monte les vrais
+    // composants avec les vraies feuilles, pose le survol RÉEL (les événements
+    // synthétiques ne déclenchent pas l'état :hover de Chromium), puis
+    // échantillonne la matrice de transformation image par image. Une
+    // transition vivante passe par des valeurs intermédiaires ; une
+    // déclaration rejetée saute de la position de départ à l'arrivée.
+    // Un témoin jamais cassé (le soulèvement de .sh-card, déclarée propre dès
+    // l'origine) prouve que le harnais sait voir une animation quand il y en a
+    // une — sinon l'échec pourrait venir de l'environnement, pas du CSS.
+    const p = await nouvellePage(navigateur, null, { reducedMotion: 'no-preference' });
+    const r = await p.evaluate(async () => {
+        const hote = document.createElement('div');
+        hote.id = 'e2e-widget-transitions';
+        hote.style.cssText = 'position:fixed;top:120px;left:40px;z-index:5;';
+        hote.innerHTML = `
+          <div class="sh-widget">
+            <button type="button" class="sh-widget__refresh-btn" id="e2e-refresh" aria-label="Rafraîchir" style="width:32px;height:32px;">
+              <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/></svg>
+            </button>
+            <button type="button" class="sh-widget__sync-btn" id="e2e-sync">Synchroniser</button>
+          </div>
+          <div class="sh-card-grid" style="margin-top:80px;">
+            <div class="sh-card sh-card--poster" id="e2e-card" style="width:196px;height:294px;">
+              <div class="sh-card__image-wrap" style="height:100%;"></div>
+            </div>
+          </div>`;
+        document.body.appendChild(hote);
+        await new Promise(r2 => requestAnimationFrame(r2));
+
+        // La déclaration réparée est-elle VIVANTE dans le calculé ? L'ancien
+        // bug se lisait ainsi : « all » en propriété et 0s en durée — toute
+        // la déclaration avait été jetée.
+        const etatTransition = (el) => {
+            const s = getComputedStyle(el);
+            const durs = s.transitionDuration.split(',').map(v => parseFloat(v) || 0);
+            const props = s.transitionProperty.split(',').map(v => v.trim());
+            return { propriete: props[0] || 'all', duree: Math.max(0, ...durs) };
+        };
+        const etat = etatTransition(document.getElementById('e2e-refresh'));
+
+        // Échantillonne la transformation de l'élément pendant `duree` ms,
+        // pendant qu'un survol RÉEL arrive de l'extérieur de l'evaluate.
+        // Retourne le nombre de VALEURS DISTINCTES : le easing « spring »
+        // dépasse sa cible (overshoot), inutile de chercher une monotonie.
+        window.__echantillonner = (id, duree) => new Promise((resoudre) => {
+            const el = document.getElementById(id);
+            const valeurs = new Set();
+            const t0 = performance.now();
+            const boucle = () => {
+                const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
+                valeurs.add(`${Math.round(m.a * 1000)}/${Math.round(m.f * 1000)}`);
+                if (performance.now() - t0 < duree) requestAnimationFrame(boucle);
+                else resoudre(valeurs.size);
+            };
+            requestAnimationFrame(boucle);
+        });
+        return { etat };
+    });
+
+    // Survol réel, et SÉQUENTIEL : il n'y a QU'UN pointeur — survoler le
+    // second bouton pendant le premier annulerait le :hover du premier
+    // (première version de ce scénario prise en défaut exactement par là :
+    // seuls le dernier survol et le témoin s'animaient). Entre chaque cible,
+    // le pointeur repart vers un coin neutre, comme un utilisateur qui
+    // déplace la souris ailleurs.
+    const mesures = [];
+    for (const cible of ['e2e-refresh', 'e2e-sync', 'e2e-card']) {
+        const promesse = p.evaluate((id) => window.__echantillonner(id, 650), cible);
+        await p.hover(`#${cible}`);
+        mesures.push(await promesse);
+        await p.mouse.move(720, 700);
+        await attendre(90);
+    }
+    await p.context().close();
+
+    const declarationVive = r.etat.duree >= 0.15 && r.etat.propriete !== 'all';
+    const animer = (n) => n >= 3;   // départ + arrivée + au moins un intermédiaire
+    const [nbRefresh, nbSync, nbCarte] = mesures;
+
+    return {
+        ok: declarationVive && animer(nbRefresh) && animer(nbSync) && animer(nbCarte),
+        detail: `déclaration calculée ${r.etat.propriete} ${r.etat.duree}s `
+            + `· rafraîchir ${nbRefresh} valeurs distinctes · sync ${nbSync} · témoin .sh-card ${nbCarte}`,
     };
 });
 

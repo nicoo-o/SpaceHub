@@ -36,6 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   release. Icon set is rasterized from `public/icone.svg` by a
   dependency-free renderer; the embedded build is rebuilt with relative
   paths so the same code also boots from `file://`.
+- E2E proof that the repaired CSS transitions actually animate: the new
+  scenario performs real hovers (one pointer, sequential, with a never-broken
+  witness) and counts distinct transform values per frame — 45/49/73
+  intermediate steps where the invalid mid-value `!important` declarations
+  had always produced a single jump.
 
 ### Changed
 - VideoPlayer decomposition started: the media-segments logic (acquisition,
