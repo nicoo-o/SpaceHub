@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Two-generation e2e in CI: the pinned Chromium (playwright 1.62.1) remains
   the validated baseline, and a canary job runs the same suite on the latest
   Playwright Chromium so browser drift is seen before it bites.
+- Dependabot on the GitHub Actions and npm ecosystems, weekly: minor and
+  patch updates grouped per ecosystem, majors kept separate; every update
+  goes through the same verification chain as human code.
 
 ### Changed
 - License unified to GPL-3.0 (package.json, README badge, LICENSE), with the
