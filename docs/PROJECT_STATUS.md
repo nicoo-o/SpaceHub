@@ -122,6 +122,11 @@ extraire cette responsabilité à ce moment-là. Les gabarits `*.template.js`
 montrent que l'extraction fonctionne — à condition de vérifier ce qu'ils lisent,
 ce que fait désormais `test:gabarits`.
 
+**La décomposition de `VideoPlayer.js` a commencé** (étapes 0 et 1 atterries,
+PR #13 — filet de façade, segments média extraits, budget 2578 → 2537) : le
+registre des étapes et l'ordre confirmé des suivantes vivent dans
+`docs/DECOMPOSITION_VIDEOPLAYER.md`.
+
 **Mémoire de focus par identifiant généré.** Les conteneurs mémorisent
 `data-focus="sh-nav-37"`. Après un rerender complet, l'ancien identifiant ne
 correspond plus à rien ; le code le détecte et retombe sur la géométrie — donc

@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Decomposition ledger for `VideoPlayer.js` (`docs/DECOMPOSITION_VIDEOPLAYER.md`):
+  landed steps 0–1 with their commit references, the confirmed extraction
+  order for the remaining steps, and the non-negotiables of the method.
 - CSS hygiene check: `transition` declarations carrying more than one
   `!important` — the mid-value pattern that vite 8's stricter parser exposed
   (and that had silently disabled 47 widget transitions) — are now rejected
