@@ -58,3 +58,5 @@ class Logger {
 }
 
 export default Logger;
+
+// Essai du rappel changelog : cette ligne de commentaire ne change aucun comportement.
