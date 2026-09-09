@@ -39,7 +39,11 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
  * reste le témoin de ce dont il partait.
  */
 const BUDGETS = {
-    'jellyfin/player/VideoPlayer.js': 2578,
+    // 2578 → 2537 le 9 septembre 2026 : première peau extraite du plan de
+    // décomposition (segments médias → jellyfin/player/SegmentsMedia.js).
+    // Le budget se baisse dans le commit qui prouve la descente, jamais
+    // au fil de l'eau.
+    'jellyfin/player/VideoPlayer.js': 2537,
     'core/SpatialNavigation.js': 1750,
     'ui/components/SettingsPanel.js': 1624,
     'ui/components/CardBuilder.js': 1403,
