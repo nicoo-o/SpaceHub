@@ -52,7 +52,15 @@ const EMBARQUE = join(RACINE, 'build', 'dist-embarque');
 const pkg = JSON.parse(readFileSync(join(RACINE, 'package.json'), 'utf8'));
 // SPACEHUB_PAQUET_VERSION : en CI, le nom de tag (v1.2.3 → 1.2.3) pour que
 // les artefacts s'appellent comme la release ; sinon la version package.json.
-const version = process.env.SPACEHUB_PAQUET_VERSION || pkg.version || '0.0.0';
+// Un déclenchement manuel sans tag peut passer un nom de branche (« main ») :
+// versionCode Android et electron-builder exigent du semver — on ignore alors
+// la surcharge et on retombe sur la version du dépôt.
+const brut = process.env.SPACEHUB_PAQUET_VERSION || '';
+const candidat = brut.replace(/^v/, '');
+const version = /^\d+\.\d+\.\d+$/.test(candidat) ? candidat : (pkg.version || '0.0.0');
+if (brut && version !== candidat) {
+    console.warn(`SPACEHUB_PAQUET_VERSION="${brut}" ignoré (semver attendu) — version du dépôt utilisée : ${version}`);
+}
 const svg = analyserSvg(SVG);
 
 /* ── Build embarqué (base relative) ───────────────────────────────────── */

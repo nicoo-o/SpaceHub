@@ -84,6 +84,15 @@ the same commit.
   acceptance doc gained an executable one-TV session runbook.
 
 ### Fixed
+
+- Packaging: the first `Paquets` run on v1.1.0 produced no artifacts — the
+  Cordova build read `release` as a platform name instead of the `--release`
+  flag (and its piped output masked the failure), and the Windows job ran a
+  bash-only step under PowerShell. Both fixed; a failed native build now
+  fails loudly, uploads its full log, and refuses to ship an empty package.
+- Packaging: a bootstrap run (no signing secrets) now uploads its ephemeral
+  keystore as a run artifact — previously the printed fingerprint pointed at
+  a key that was deleted, making permanent signing impossible to bootstrap.
 - Dashboard widget registration no longer crashes at startup:
   `JellyseerrTrendingWidget` and the two qBittorrent widgets were
   registered in `core/SpaceHub.js` but never imported — every dashboard

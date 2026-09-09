@@ -6,6 +6,8 @@
 # sur une TV il fallait déjà savoir servir un site statique. Les APK et
 # .exe sont la réponse au « je veux installer, pas déployer ». Ce workflow
 # construit, pour chaque tag v*, un APK Android (Cordova — le même build
+# web embarqué dans une WebView autonome) et un exécutable Windows
+# (Electron — installeur NSIS + portable).
 # Les deux jobs tournent
 # UNIQUEMENT après que le workflow Release a conclu avec succès sur le
 # même commit de tag — Release fait tourner la chaîne complète (tests,
@@ -40,6 +42,14 @@ on:
   workflow_dispatch:
     # Lancement à la main : construit les paquets de la branche courante
     # et les publie comme artefacts de run (jamais attachés à une release).
+    # Cas d'usage principal : reconstruire les paquets d'un tag existant
+    # (paquets.yml corrigé APRÈS le tag) — passer `version: vX.Y.Z` : le
+    # checkout part du commit du tag, et l'attachement à la release s'active.
+    inputs:
+      version:
+        description: 'Tag existant à reconstruire (ex. v1.1.0). Vide : branche courante.'
+        required: false
+        default: ''
   workflow_run:
     # Déclenché quand Release conclut sur un push de tag v* : les paquets
     # sont construits depuis CE commit de tag, après sa chaîne verte.
@@ -60,13 +70,35 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       construire: ${{ steps.verdict.outputs.construire }}
+      # SHA à construire : commit du tag pour un rebuild manuel, sinon le
+      # SHA validé par Release (workflow_run) ou le HEAD courant.
+      sha: ${{ steps.verdict.outputs.sha }}
+      version: ${{ steps.verdict.outputs.version }}
     steps:
       - id: verdict
+        env:
+          VERSION_SAISIE: ${{ inputs.version }}
+          # gh api (vérification d'existence du tag) exige le jeton explicite.
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ -n "$VERSION_SAISIE" ]; then
+            # Rebuild manuel d'un tag : checkout du commit du tag, attachement
+            # à la release activé. AUCUNE vérification de chaîne n'est contournée
+            # : les paquets partent du commit exact que Release a validé.
+            if ! gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$VERSION_SAISIE" > /dev/null 2>&1; then
+              echo "Tag $VERSION_SAISIE introuvable sur origin" >&2; exit 1
+            fi
             echo "construire=oui" >> "$GITHUB_OUTPUT"
+            echo "sha=$VERSION_SAISIE" >> "$GITHUB_OUTPUT"
+            echo "version=$VERSION_SAISIE" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "construire=oui" >> "$GITHUB_OUTPUT"
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+            echo "version=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event.workflow_run.conclusion }}" = "success" ] && [[ "${{ github.event.workflow_run.head_branch }}" == v* ]]; then
             echo "construire=oui" >> "$GITHUB_OUTPUT"
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+            echo "version=${{ github.event.workflow_run.head_branch }}" >> "$GITHUB_OUTPUT"
           else
             echo "construire=non" >> "$GITHUB_OUTPUT"
             echo "Release n'a pas réussi sur un tag v* — aucun paquet natif ne sera construit."
@@ -80,9 +112,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          # Sur un déclenchement workflow_run, checkout le commit exact
-          # validé par Verify — pas le HEAD de la branche par défaut.
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+          # Commit exact validé (tag rebuilt, workflow_run) ou HEAD courant.
+          ref: ${{ needs.verifier-conclusion.outputs.sha }}
 
       - uses: actions/setup-node@v7
         with:
@@ -116,7 +147,7 @@ jobs:
 
       - name: Préparer la bobine Cordova
         env:
-          VERSION_BRUTE: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+          VERSION_BRUTE: ${{ needs.verifier-conclusion.outputs.version }}
         # v1.2.3 → 1.2.3 : versionName Android et noms de fichiers sans « v ».
         run: SPACEHUB_PAQUET_VERSION="${VERSION_BRUTE#v}" node scripts/preparer-bobines.mjs
 
@@ -132,44 +163,86 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           cd build/cordova
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > spacehub.keystore
-            ../outillage/node_modules/.bin/cordova build android release \
-              --keystore=spacehub.keystore \
-              --storePassword="$KEYSTORE_PASSWORD" \
-              --alias="${KEY_ALIAS:-spacehub}" \
-              --password="$KEY_PASSWORD" \
-              -- --packageType=apk --no-telemetry 2>&1 | tail -5
-            rm -f spacehub.keystore
-          else
+          # « release » est une OPTION (--release), pas un argument de
+          # plateforme — passé nu, Cordova le lit comme un nom de plateforme
+          # inexistant et ne construit aucun APK. Les drapeaux de signature
+          # vont APRÈS le séparateur -- (relais vers gradle). Les deux points
+          # ci-dessous ont rendu le premier run v1.1.0 silencieusement stérile.
+          COMMANDE=(../outillage/node_modules/.bin/cordova build android --release
+            -- --packageType=apk --no-telemetry
+            --keystore=spacehub.keystore --alias=${KEY_ALIAS:-spacehub})
+          MOT_DE_PASSE=$KEYSTORE_PASSWORD
+          if [ -z "$KEYSTORE_B64" ]; then
             # Pas de secret : amorçage — clé éphémère, documentée dans le
             # résumé du run pour devenir permanente à l'étape suivante.
             keytool -genkeypair -v -keystore spacehub.keystore \
               -alias spacehub -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass spacehub-ephemere -keypass spacehub-ephemere \
               -dname "CN=SpaceHub, OU=Ephemeral, O=SpaceHub, C=FR"
-            ../outillage/node_modules/.bin/cordova build android release \
-              --keystore=spacehub.keystore \
-              --storePassword=spacehub-ephemere \
-              --alias=spacehub \
-              --password=spacehub-ephemere \
-              -- --packageType=apk --no-telemetry 2>&1 | tail -5
+            MOT_DE_PASSE=spacehub-ephemere
+          fi
+          set +e
+          "${COMMANDE[@]}" --storePassword="$MOT_DE_PASSE" --password="$MOT_DE_PASSE" > ../cordova-build.log 2>&1
+          CODE=$?
+          set -e
+          tail -12 ../cordova-build.log
+          if [ $CODE -ne 0 ]; then
+            echo "::error::La construction Cordova a échoué (code $CODE) — journal complet : cordova-build.log ci-dessous."
+            tail -60 ../cordova-build.log >&2 || true
+            exit $CODE
+          fi
+          if [ -z "$KEYSTORE_B64" ]; then
             EMPREINTE=$(keytool -list -v -keystore spacehub.keystore -storepass spacehub-ephemere -alias spacehub | grep 'SHA256:' | head -1)
-            rm -f spacehub.keystore
             echo "### Clé de signature éphémère (à promouvoir en secret)" >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
             echo "EMPREINTE SHA256 : $EMPREINTE" >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
-            echo "Pour rendre la signature permanente : exporter ce keystore depuis ce run, puis le charger en secret ANDROID_KEYSTORE (cf. en-tête du workflow)." >> "$GITHUB_STEP_SUMMARY"
+            # Le keystore est détruit ci-dessous (jamais dans le dépôt) — mais
+            # il est D'ABORD téléversé comme artefact de run chiffré, afin que
+            # le propriétaire puisse le télécharger et le charger en secret
+            # ANDROID_KEYSTORE. Sans cet artefact, l'empreinte affichée
+            # désignerait une clé déjà perdue : impossible de construire
+            # dessus. Le run n'est conservé que 30 jours : la promotion en
+            # secret doit suivre la première version signée.
+            mkdir -p ../keystore-amorcage
+            cp spacehub.keystore ../keystore-amorcage/spacehub-ephemere.keystore
           fi
+          rm -f spacehub.keystore
+
+      - name: Artefact du journal de build Cordova
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cordova-build-log
+          path: build/cordova-build.log
+          retention-days: 7
+
+      - name: Artefact du keystore d'amorçage
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          # Présent uniquement en amorçage (pas de secrets configurés) —
+          # « ignore » : avec secrets, ce dossier n'existe pas et l'étape
+          # ne doit PAS échouer pour autant.
+          if-no-files-found: ignore
+          name: keystore-amorcage-a-promouvoir-en-secret
+          path: keystore-amorcage/spacehub-ephemere.keystore
+          retention-days: 30
 
       - name: Rassembler les APK
         env:
-          VERSION: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+          VERSION: ${{ needs.verifier-conclusion.outputs.version }}
         run: |
           mkdir -p apk
           shopt -s nullglob
           find build/cordova/platforms/android -name '*.apk' -path '*release*' -exec cp {} apk/ \;
+          # Garde-fou bruyant : après l'incident v1.1.0 (build silencieusement
+          # stérile), une collecte vide est un échec IMMÉDIAT et explicite —
+          # plus jamais un « not a ZIP » d'apksigner comme seul indice.
+          if [ -z "$(ls -A apk 2>/dev/null)" ]; then
+            echo "::error::Aucun APK trouvé sous build/cordova/platforms/android — la construction a échoué sans le dire. Journal : artefact cordova-build-log."
+            exit 1
+          fi
           # Nom explicite : spacehub-v1.2.3.apk (Cordova garde le sien en interne).
           for f in apk/*-release.apk; do mv "$f" "apk/spacehub-${VERSION}.apk"; done
           ls -la apk/
@@ -190,11 +263,11 @@ jobs:
           retention-days: 30
 
       - name: Attacher à la release
-        if: startsWith(github.event.workflow_run.head_branch || github.ref_name, 'v')
+        if: startsWith(needs.verifier-conclusion.outputs.version, 'v')
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.verifier-conclusion.outputs.version }}
         run: |
-          VERSION="${{ github.event.workflow_run.head_branch || github.ref_name }}"
           if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             gh release upload "$VERSION" apk/*.apk apk/*.apk.sha256 --repo "$GITHUB_REPOSITORY" --clobber
             echo "APK attachés à la release $VERSION"
@@ -210,7 +283,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+          # Commit exact validé (tag rebuilt, workflow_run) ou HEAD courant.
+          ref: ${{ needs.verifier-conclusion.outputs.sha }}
 
       - uses: actions/setup-node@v7
         with:
@@ -224,8 +298,12 @@ jobs:
         run: npm run build
 
       - name: Préparer la bobine Electron
+        # shell: bash obligatoire : sans lui, le runner Windows exécute la
+        # recette sous pwsh — qui ne connaît pas la syntaxe d'env-prefix bash
+        # (VAR=valeur commande) et échoue comme sur le premier run v1.1.0.
+        shell: bash
         env:
-          VERSION_BRUTE: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+          VERSION_BRUTE: ${{ needs.verifier-conclusion.outputs.version }}
         run: SPACEHUB_PAQUET_VERSION="${VERSION_BRUTE#v}" node scripts/preparer-bobines.mjs
 
       - name: Construire l'exécutable Windows
@@ -256,12 +334,12 @@ jobs:
           retention-days: 30
 
       - name: Attacher à la release
-        if: startsWith(github.event.workflow_run.head_branch || github.ref_name, 'v')
+        if: startsWith(needs.verifier-conclusion.outputs.version, 'v')
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.verifier-conclusion.outputs.version }}
         run: |
-          VERSION="${{ github.event.workflow_run.head_branch || github.ref_name }}"
           if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             gh release upload "$VERSION" exe/*.exe exe/*.exe.sha256 --repo "$GITHUB_REPOSITORY" --clobber
             echo "Exécutables attachés à la release $VERSION"
