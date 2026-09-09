@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on dl.google.com) fails the build no more.
 
 ### Changed
+- VideoPlayer decomposition started: the media-segments logic (acquisition,
+  intro resolution, skip priority) moves to `jellyfin/player/SegmentsMedia.js`
+  behind an unchanged facade; the monolith budget drops 2578 → 2537 in the
+  same commit. Every existing method still answers, now as delegation.
 - Test and build toolchain migrated to Vitest 5 and Vite 8 (vitest 5
   requires vite ≥ 6 as a peer, so the two majors move together): all 34
   suites / 561 tests pass unchanged, builds emit through rolldown, and

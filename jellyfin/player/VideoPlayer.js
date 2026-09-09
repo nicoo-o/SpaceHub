@@ -27,6 +27,7 @@ import VerrouEcran from '../../core/VerrouEcran.js';
 import SessionMedia from '../../core/SessionMedia.js';
 import * as sousTitres from './ApparenceSousTitres.js';
 import { fetchAvecDelai } from '../../core/utils/reseau.js';
+import * as segmentsMedia from './SegmentsMedia.js';
 class VideoPlayer {
     constructor() {
         this._log = new Logger('VideoPlayer');
@@ -1572,36 +1573,28 @@ class VideoPlayer {
     async _chargerSegmentsMedia(itemId) {
         if (!itemId) return;
         const generation = this._playGeneration;
-        const base = this._auth?.getServerUrl?.() || '';
-        if (!base) return;
+        let resultat;
         try {
-            const res = await fetchAvecDelai(
-                `${base}/MediaSegments/${encodeURIComponent(itemId)}`,
-                { headers: this._auth?.getAuthHeaders?.() || {} },
-                6000);
-            if (generation !== this._playGeneration) return;   // titre changé entre-temps
-            if (!res.ok) { this._segmentsMedia = []; this._segmentsPourItem = itemId; return; }
-            const data = await res.json();
-            const bruts = Array.isArray(data?.Items) ? data.Items : (Array.isArray(data) ? data : []);
-            this._segmentsMedia = bruts
-                .map(seg => ({
-                    type: String(seg.Type || seg.type || '').toLowerCase(),
-                    debut: Number(seg.StartTicks ?? seg.startTicks ?? 0) / 10000000,
-                    fin: Number(seg.EndTicks ?? seg.endTicks ?? 0) / 10000000,
-                }))
-                .filter(seg => seg.fin > seg.debut);
-            this._segmentsPourItem = itemId;
-            this._intervalleIntro = undefined;               // à recalculer avec la nouvelle source
-            if (this._segmentsMedia.length) {
-                this._log.info(`${this._segmentsMedia.length} segment(s) média fourni(s) par le serveur : `
-                    + this._segmentsMedia.map(s2 => s2.type).join(', '));
-            }
+            resultat = await segmentsMedia.chargerSegments(itemId, {
+                serverUrl: () => this._auth?.getServerUrl?.(),
+                headers: () => this._auth?.getAuthHeaders?.(),
+            });
         } catch (err) {
             // 404 sur un serveur ancien, réseau coupé, greffon absent : aucun
             // de ces cas n'est une panne. On repasse aux chapitres.
             this._segmentsMedia = [];
             this._segmentsPourItem = itemId;
             this._log.debug('Segments médias indisponibles :', err?.message || err);
+            return;
+        }
+        if (generation !== this._playGeneration) return;   // titre changé entre-temps
+        if (resultat === null) return;                     // pas d'URL serveur : rien à faire
+        this._segmentsMedia = resultat.ok ? resultat.segments : [];
+        this._segmentsPourItem = itemId;
+        this._intervalleIntro = undefined;                 // à recalculer avec la nouvelle source
+        if (this._segmentsMedia.length) {
+            this._log.info(`${this._segmentsMedia.length} segment(s) média fourni(s) par le serveur : `
+                + this._segmentsMedia.map(s2 => s2.type).join(', '));
         }
     }
 
@@ -1618,12 +1611,12 @@ class VideoPlayer {
      * « passer la publicité » sur un enregistrement télé reviendrait à
      * décider à la place de l'utilisateur ce qui est du contenu.
      */
+    /**
+     * Types de segments sur lesquels on propose une action — délégué au
+     * module SegmentsMedia ; la façade statique reste le contrat public.
+     */
     static get SEGMENTS_ACTIONNABLES() {
-        return [
-            { type: 'recap', libelle: 'Passer le résumé' },
-            { type: 'intro', libelle: 'Passer l\'intro' },
-            { type: 'preview', libelle: 'Passer l\'aperçu' },
-        ];
+        return segmentsMedia.SEGMENTS_ACTIONNABLES;
     }
 
     /**
@@ -1638,17 +1631,7 @@ class VideoPlayer {
      * @returns {{ start: number, end: number, libelle: string }|null}
      */
     _segmentActionnableA(temps) {
-        for (const { type, libelle } of VideoPlayer.SEGMENTS_ACTIONNABLES) {
-            // L'introduction garde son chemin dédié : elle sait retomber sur
-            // les chapitres quand le serveur ne fournit pas de segments.
-            const plage = type === 'intro'
-                ? (this._intervalleIntro ?? null)
-                : this._segment(type);
-            if (plage && temps >= plage.start && temps < plage.end) {
-                return { ...plage, libelle };
-            }
-        }
-        return null;
+        return segmentsMedia.segmentActionnableA(temps, this._segmentsMedia, this._intervalleIntro);
     }
 
     /**
@@ -1657,9 +1640,11 @@ class VideoPlayer {
      */
     _passerSegment(segment) {
         if (!segment || !this._video) return;
-        this._video.currentTime = Math.min(this._video.duration || segment.end, segment.end);
-        this._showFlashOSD('⏭️', segment.libelle.replace(/^Passer /, 'Passé : '));
-        this._el?.querySelector('#sh-smart-skip-btn')?.classList.remove('visible');
+        segmentsMedia.passerSegment(segment, {
+            video: this._video,
+            montrerOSD: (icone, texte) => this._showFlashOSD(icone, texte),
+            cacherBouton: () => this._el?.querySelector('#sh-smart-skip-btn')?.classList.remove('visible'),
+        });
     }
 
     /**
@@ -1668,9 +1653,7 @@ class VideoPlayer {
      * @returns {{ start: number, end: number }|null}
      */
     _segment(...types) {
-        const voulus = new Set(types.map(t => t.toLowerCase()));
-        const seg = (this._segmentsMedia || []).find(s2 => voulus.has(s2.type));
-        return seg ? { start: seg.debut, end: seg.fin } : null;
+        return segmentsMedia.premierSegment(this._segmentsMedia, ...types);
     }
 
     /**
@@ -1679,41 +1662,17 @@ class VideoPlayer {
      * @returns {{ start: number, end: number } | null}
      */
     _getIntroInterval(item) {
-        // Source de vérité n°1 : les segments typés du serveur.
-        const parSegment = this._segment('intro');
-        if (parSegment) return parSegment;
-
-        // Repli : les chapitres, avec leur heuristique sur le nom. Conservé
-        // pour les serveurs antérieurs à 10.10 et ceux sans greffon.
-        const chapters = item?.Chapters || [];
-        for (let i = 0; i < chapters.length; i++) {
-            const ch = chapters[i];
-            const name = (ch.Name || '').toLowerCase();
-            const isIntro = ch.ChapterType === 'Intro' || name.includes('intro') || name.includes('opening') || name.includes('générique');
-            if (isIntro) {
-                const startSec = (ch.StartPositionTicks || 0) / 10000000;
-                let endSec = ch.EndPositionTicks ? (ch.EndPositionTicks / 10000000) : null;
-                if (!endSec && i + 1 < chapters.length) {
-                    endSec = (chapters[i + 1].StartPositionTicks || 0) / 10000000;
-                }
-                if (!endSec || endSec <= startSec) {
-                    // Sans borne de fin fournie par Jellyfin, l'intervalle est ambigu.
-                    // Ne pas inventer une durée d'introduction côté client.
-                    continue;
-                }
-                return { start: startSec, end: endSec };
-            }
-        }
-        // Sans chapitre explicite, aucune introduction ne peut être identifiée de manière fiable.
-        return null;
+        return segmentsMedia.intervalleIntroduction(item, this._segmentsMedia);
     }
 
     _performSkipIntro() {
         const interval = this._getIntroInterval(this._currentItem);
         if (!interval || !this._video) return;
-        this._video.currentTime = Math.min(this._video.duration || interval.end, interval.end);
-        this._showFlashOSD('⏭️', 'Introduction passée');
-        this._el?.querySelector('#sh-smart-skip-btn')?.classList.remove('visible');
+        segmentsMedia.passerSegment({ end: interval.end, libelle: 'Passer l\'intro' }, {
+            video: this._video,
+            montrerOSD: (icone, texte) => this._showFlashOSD(icone, texte),
+            cacherBouton: () => this._el?.querySelector('#sh-smart-skip-btn')?.classList.remove('visible'),
+        });
     }
 
         _onTimeUpdate() {
