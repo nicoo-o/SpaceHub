@@ -65,8 +65,18 @@ jobs:
       - name: Contrat de poids
         run: npm run test:poids
 
+      # Même réessai que la CI : un miroir apt qui dérive (ex. « Hash Sum
+      # mismatch » sur dl.google.com) n'est pas un signal sur le code.
       - name: Installer Chromium pour l'e2e
-        run: npx -y playwright@1.62.1 install --with-deps chromium
+        run: |
+          for i in 1 2 3 4 5; do
+            if npx -y playwright@1.62.1 install --with-deps chromium; then break; fi
+            echo "Tentative $i échouée — nettoyage apt, nouvelle tentative dans 30 s" >&2
+            sudo apt-get clean
+            sudo rm -rf /var/lib/apt/lists/*
+            sudo apt-get update
+            sleep 30
+          done
 
       - name: Localiser Chromium
         run: |

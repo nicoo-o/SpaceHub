@@ -82,8 +82,21 @@ jobs:
       # d'ajouter une dépendance au projet ; pour un cache plus rapide sur
       # beaucoup d'exécutions, remplacer par une dépendance de développement
       # `playwright@1.62.1` et le cache intégré de `setup-node`.
+      # --with-deps passe par apt : quand un miroir (ex. dl.google.com) sert
+      # des métadonnées périmées, l'installation échoue en « Hash Sum
+      # mismatch ». C'est un incident d'infrastructure, pas un échec du
+      # dépôt — on réessaie avec nettoyage apt entre les tentatives.
       - name: Installer Chromium épinglé
-        run: npx -y playwright@1.62.1 install --with-deps chromium
+        run: |
+          for i in 1 2 3 4 5; do
+            if npx -y playwright@1.62.1 install --with-deps chromium; then exit 0; fi
+            echo "Tentative $i échouée — nettoyage apt, nouvelle tentative dans 30 s" >&2
+            sudo apt-get clean
+            sudo rm -rf /var/lib/apt/lists/*
+            sudo apt-get update
+            sleep 30
+          done
+          exit 1
 
       # Les scripts e2e cherchent SPACEHUB_CHROMIUM, puis leurs chemins
       # internes, puis Chrome/Edge locaux. On résout ici le chemin réel de
@@ -130,8 +143,19 @@ jobs:
       - name: Construction
         run: npm run build
 
+      # Même logique de réessai que l'installation épinglée ci-dessus :
+      # un miroir apt qui dérive n'est pas un signal sur le code.
       - name: Installer le Playwright le plus récent
-        run: npx -y playwright@latest install --with-deps chromium
+        run: |
+          for i in 1 2 3 4 5; do
+            if npx -y playwright@latest install --with-deps chromium; then exit 0; fi
+            echo "Tentative $i échouée — nettoyage apt, nouvelle tentative dans 30 s" >&2
+            sudo apt-get clean
+            sudo rm -rf /var/lib/apt/lists/*
+            sudo apt-get update
+            sleep 30
+          done
+          exit 1
 
       - name: Localiser Chromium courant
         run: |

@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changelog reminder on pull requests: a PR touching app code must also
   touch this file, or carry the `no-changelog` label; the check is
   dependency-free and fails in seconds.
+- CI resilience: browser-install steps retry up to five times with an apt
+  cleanup between attempts, so a drifting mirror (e.g. `Hash Sum mismatch`
+  on dl.google.com) fails the build no more.
 
 ### Changed
 - License unified to GPL-3.0 (package.json, README badge, LICENSE), with the
