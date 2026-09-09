@@ -28,6 +28,7 @@ import SessionMedia from '../../core/SessionMedia.js';
 import * as sousTitres from './ApparenceSousTitres.js';
 import { fetchAvecDelai } from '../../core/utils/reseau.js';
 import * as segmentsMedia from './SegmentsMedia.js';
+import * as utilitairesLecteur from './UtilitairesLecteur.js';
 class VideoPlayer {
     constructor() {
         this._log = new Logger('VideoPlayer');
@@ -1450,10 +1451,9 @@ class VideoPlayer {
     }
 
     _animateButtonSpring(btn) {
-        if (!btn) return;
-        btn.classList.remove('spring-bounce');
-        void btn.offsetWidth;
-        btn.classList.add('spring-bounce');
+        // Peau 2 : extrait vers UtilitairesLecteur.js (le nœud est passé en
+        // argument — la fonction ne touche jamais l'état du lecteur).
+        utilitairesLecteur.ressortirBouton(btn);
     }
 
     _applySubtitleOffset() {
@@ -2178,15 +2178,9 @@ class VideoPlayer {
     }
 
     _escapeUrl(value) {
-        const url = String(value || '').trim();
-        if (!url) return '';
-        try {
-            const parsed = new URL(url, window.location.origin);
-            if (!['http:', 'https:'].includes(parsed.protocol)) return '';
-            return parsed.href.replace(/["'\\]/g, character => `\\${character}`);
-        } catch {
-            return '';
-        }
+        // Peau 2 : logique pure extraite vers UtilitairesLecteur.js ;
+        // le talon reste, la surface interne ne bouge pas.
+        return utilitairesLecteur.echapperUrl(value);
     }
 
     _setVolumeDelta(delta) {
@@ -2511,20 +2505,13 @@ handleNavAction(action) {
     }
 
     _formatTime(seconds) {
-        if (isNaN(seconds) || seconds < 0) return '00:00:00';
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = Math.floor(seconds % 60);
-        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        // Peau 2 : extraite vers UtilitairesLecteur.js.
+        return utilitairesLecteur.formaterTemps(seconds);
     }
 
     _escape(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
+        // Peau 2 : extraite vers UtilitairesLecteur.js.
+        return utilitairesLecteur.echapperHtml(str);
     }
 
     _injectStyles() {
