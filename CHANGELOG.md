@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- VideoPlayer decomposition step 2: the four pure helpers (time formatting,
+  HTML escaping, URL sanitizing, button spring animation) moved to
+  `jellyfin/player/UtilitairesLecteur.js` with a focused unit suite;
+  delegation stubs keep every internal call site unchanged. Monolith budget
+  lowered 2537 → 2524 in the same change.
 - Caller-side facade enforcement: a CI check (`test:facade-appelants`) fails
   when any file outside `jellyfin/player/` reaches a `VideoPlayer` member
   outside the contract — the mirror of the class-side facade test. Both
