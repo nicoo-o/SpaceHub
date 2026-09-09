@@ -43,6 +43,22 @@ jobs:
       - name: Chaîne de vérification
         run: npm run test
 
+      # Les notes viennent du changelog, pas des messages de commit : le
+      # script échoue si la section du tag manque — on ne publie donc jamais
+      # une release sans notes écrites pour celui qui télécharge.
+      - name: Extraire les notes de release
+        run: |
+          node scripts/notes-release.mjs "${GITHUB_REF_NAME}" > RELEASE_NOTES.md
+          # Pied de page commun. Attention aux accents graves : entre guillemets
+          # doubles, bash y voit une substitution de commande — d'où les
+          # apostrophes qui encadrent les segments contenant des backticks.
+          {
+            echo ""
+            echo "---"
+            echo '**Download:** `'"spacehub-${GITHUB_REF_NAME}"'.zip` attached below — SHA-256 checksum included.'
+            echo "One web build for PC, Android and TVs — how to serve it: the [README](https://github.com/${GITHUB_REPOSITORY}#-install)."
+          } >> RELEASE_NOTES.md
+
       - name: Construction
         run: npm run build
 
@@ -79,5 +95,5 @@ jobs:
           files: |
             spacehub-*.zip
             spacehub-*.zip.sha256
-          generate_release_notes: true
+          body_path: RELEASE_NOTES.md
           draft: false
