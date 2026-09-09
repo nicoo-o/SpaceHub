@@ -1,6 +1,6 @@
 {
     "name": "spacehub",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "SpaceHub — Client web unifié pour Jellyfin & l'écosystème Servarr (Sonarr, Radarr, Bazarr, Prowlarr, Jellyseerr, qBittorrent)",
     "type": "module",
     "engines": {
