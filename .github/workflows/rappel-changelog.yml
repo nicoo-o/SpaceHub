@@ -1,0 +1,59 @@
+# SpaceHub — rappel changelog sur les pull requests
+#
+# POURQUOI CE WORKFLOW EXISTE
+# ---------------------------
+# La règle « la puce s'écrit dans le même commit que le code » a une ennemie
+# naturelle : l'oubli. Il a déjà eu lieu — le commit Dependabot b3b8645 a vu
+# sa puce arriver deux commits plus tard, rattrapée à la main. Un rappel
+# humain dépend de la mémoire du relecteur ; un rappel de CI ne dort jamais.
+#
+# L'ESPRIT
+# --------
+# Un RAPPEL, pas un mur. Le job échoue en quelques secondes, n'installe
+# aucune dépendance, et offre deux issues honnêtes : écrire la puce, ou
+# poser le label « no-changelog » quand le changement n'appelle pas de puce
+# (refactor interne, outillage CI, docs). La décision reste tracée sur la
+# PR — c'est le seul « tampon » qu'on demande.
+#
+# POURQUOI UN WORKFLOW SÉPARÉ
+# ---------------------------
+# `on: pull_request` ne se déclenche PAS sur les événements `labeled` /
+# `unlabeled`. Vivre dans ci.yml rendrait l'escape hatch inutilisable : le
+# label serait posé sur une PR rouge, sans moyen de la reverdir avant le
+# prochain push. Ici, poser (ou retirer) le label relance UNIQUEMENT ce job
+# de quelques secondes — pas la chaîne de dix minutes — et une PR est
+# toujours reverdie par l'une des deux issues, sans attendre un commit.
+#
+# Fonctionne sans rien changer aux PR Dependabot : le rappel lit le label
+# et les fichiers modifiés, il ne parle pas à l'API.
+
+name: Rappel changelog
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+# Le job ne lit que git et le dépôt : redondance impossible, inutile
+# d'empiler les exécutions quand les événements s'enchaînent.
+concurrency:
+  group: rappel-changelog-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  rappel-changelog:
+    name: Rappel changelog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        # Le diff d'une pull request est celui du commit de fusion contre sa
+        # base : depth 2 suffit pour `git diff HEAD^ HEAD`.
+        with:
+          fetch-depth: 2
+
+      - name: Vérifier que CHANGELOG.md suit le code applicatif
+        env:
+          # Le label arrive par une expression GitHub, sans appel d'API.
+          SPACEHUB_SANS_CHANGELOG: ${{ contains(github.event.pull_request.labels.*.name, 'no-changelog') }}
+        run: |
+          git diff --name-only -z HEAD^ HEAD \
+            | xargs -0 --no-run-if-empty node scripts/changelog-pr-check.mjs

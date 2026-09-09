@@ -101,6 +101,7 @@ pull request — elle ne doit jamais être rouge sur `main`.
 | `npm run test:globals` | Plafond d'accès globaux (20) |
 | `npm run test:contraste` | Contraste des thèmes clair et foncé |
 | `npm run test:taille` | Règle des monolithes (voir plus haut) |
+| `npm run test:changelog` | Convention du changelog (voir plus bas) |
 | `npm run build` + `test:poids` | Build de production sous les plafonds de poids |
 | `npm run test:e2e` | 26 scénarios dans un vrai Chromium |
 
@@ -133,9 +134,64 @@ Pour écrire un greffon, lire `docs/ECRIRE_UN_GREFFON.md` et partir de
 `ctx` remis par le SDK — pas de `window.SpaceHub`, pas de `fetch` global ;
 les permissions sont refusées par défaut.
 
+## Changelog
+
+Les notes de release s'écrivent dans `CHANGELOG.md`, au format
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — en **anglais**,
+comme le README : elles deviennent telles quelles le corps de la release
+GitHub. Elles décrivent le POURQUOI pour celui qui télécharge, pas une liste
+de messages de commit.
+
+```markdown
+## [Unreleased]
+
+### Added
+- Ce qui n'existait pas. Une puce par changement qui compte pour l'utilisateur.
+
+### Changed
+- Ce qui existait et se comporte autrement.
+
+### Fixed
+- Ce qui était cassé et ne l'est plus.
+
+## [1.2.3] - 2026-09-09
+
+Une phrase d'introduction, si la version le mérite.
+
+### Added
+- …
+```
+
+Les règles, vérifiées par `npm run test:changelog` (donc par la CI) :
+
+1. **Tout changement visible s'écrit d'abord dans `## [Unreleased]`** — au
+   moment du commit qui le réalise, pas la veille de la release.
+2. **Une version se publie en renommant et en datant** : `## [Unreleased]`
+   devient `## [1.2.3] - AAAA-MM-JJ`, une section `Unreleased` vide repart.
+3. **Pas de section, pas de release.** Pousser un tag sans sa section échoue
+   (`scripts/notes-release.mjs`) — le workflow refuse de publier des notes
+   générées automatiquement à la place.
+4. Catégories réservées : `Added`, `Changed`, `Fixed`, `Deprecated`,
+   `Removed`, `Security`.
+5. **Une PR qui touche le code applicatif touche `CHANGELOG.md`** — vérifié
+   par le job « Rappel changelog » de la CI (`scripts/changelog-pr-check.mjs`,
+   aucune dépendance). Le code applicatif y a la même définition que le
+   contrat de taille (`core/`, `ui/`, `jellyfin/`, `integrations/`,
+   `plugins/`). Deux issues honnêtes :
+   - écrire la puce sous `[Unreleased]` (le cas normal), ou
+   - poser le label **`no-changelog`** quand le changement n'appelle pas de
+     puce : refactor interne, outillage CI, docs. La décision reste tracée
+     sur la PR — c'est le seul « tampon » demandé.
+
+Concrètement : un commit qui ajoute une fonctionnalité visible modifie le
+code **et** ajoute sa puce sous `[Unreleased]` dans le même commit. Le
+rappel de CI est là pour l'oubli, pas pour la pédagogie : il a déjà eu lieu
+(la puce Dependabot est arrivée deux commits plus tard).
+
 ## Publication
 
 Les releases sont automatiques : pousser un tag `v*` déclenche
 `.github/workflows/release.yml`, qui fait tourner la même chaîne de
-vérification puis joint `dist/` en archive à la release GitHub. Voir
+vérification, **extrait la section du tag depuis `CHANGELOG.md`** (échec si
+absente ou vide), puis joint `dist/` en archive à la release GitHub. Voir
 `docs/DEPLOIEMENT.md` pour servir l'archive derrière nginx ou Caddy.

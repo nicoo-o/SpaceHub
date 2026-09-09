@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependabot on the GitHub Actions and npm ecosystems, weekly: minor and
   patch updates grouped per ecosystem, majors kept separate; every update
   goes through the same verification chain as human code.
+- Changelog reminder on pull requests: a PR touching app code must also
+  touch this file, or carry the `no-changelog` label; the check is
+  dependency-free and fails in seconds.
 
 ### Changed
 - License unified to GPL-3.0 (package.json, README badge, LICENSE), with the
