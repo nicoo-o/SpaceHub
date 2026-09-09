@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI resilience: browser-install steps retry up to five times with an apt
   cleanup between attempts, so a drifting mirror (e.g. `Hash Sum mismatch`
   on dl.google.com) fails the build no more.
+- Native packages: the `Paquets` workflow builds, for every `v*` release
+  and on demand, an Android APK (Cordova WebView embedding the app,
+  phone and Android TV launcher) and Windows executables (Electron NSIS
+  installer + portable). Both run only after the Release chain is green,
+  are named like the tag, carry SHA-256 checksums, and attach to the
+  release. Icon set is rasterized from `public/icone.svg` by a
+  dependency-free renderer; the embedded build is rebuilt with relative
+  paths so the same code also boots from `file://`.
 
 ### Changed
 - VideoPlayer decomposition started: the media-segments logic (acquisition,
@@ -55,6 +63,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   acceptance doc gained an executable one-TV session runbook.
 
 ### Fixed
+- Dashboard widget registration no longer crashes at startup:
+  `JellyseerrTrendingWidget` and the two qBittorrent widgets were
+  registered in `core/SpaceHub.js` but never imported — every dashboard
+  init threw a `ReferenceError` (caught, but it aborted the remaining
+  registrations). Found by the file:// boot probe written for the
+  packaging work.
 - 47 CSS `transition` declarations carried an invalid mid-value `!important`
   (one declaration admits only a trailing one): browsers dropped the whole
   declaration — these hover/motion transitions never animated — and the

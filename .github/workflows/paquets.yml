@@ -1,0 +1,270 @@
+# SpaceHub — paquets natifs (APK Android, exécutable Windows)
+#
+# POURQUOI CE WORKFLOW EXISTE
+# ---------------------------
+# La release v1.0.1 ne publiait que l'archive web (dist/) : pour la poser
+# sur une TV il fallait déjà savoir servir un site statique. Les APK et
+# .exe sont la réponse au « je veux installer, pas déployer ». Ce workflow
+# construit, pour chaque tag v*, un APK Android (Cordova — le même build
+# Les deux jobs tournent
+# UNIQUEMENT après que le workflow Release a conclu avec succès sur le
+# même commit de tag — Release fait tourner la chaîne complète (tests,
+# contrats, build, e2e) AVANT de publier l'archive web. Aucun paquet
+# natif ne peut donc contenir du code que la vérification n'a pas vu.
+# (Verify, filtré sur les branches, ne tourne jamais sur un push de tag :
+# c'est bien Release qui est la porte du tag.)
+#
+# SUR QUOI IL S'APPUIE
+# --------------------
+#   scripts/preparer-bobines.mjs  reconstruit build/cordova et
+#                                 build/electron depuis dist/ + icône SVG
+#   scripts/icone-vers-png.mjs    rasterisation SVG→PNG/ICO sans dépendance
+#
+# SECRET DE SIGNATURE (APK) — comment il est fabriqué
+# ---------------------------------------------------
+#   1. Laisser ce workflow tourner une fois : sans secret, l'APK est signé
+#      par une clé éphémère générée à la volée (valable pour tester,
+#      pas pour enchaîner des mises à jour).
+#   2. Récupérer la clé publique affichée dans le résumé du run, puis
+#      GitHub Actions → Secrets → « Actions secrets » :
+#        ANDROID_KEYSTORE = le fichier .keystore encodé en base64
+#        ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS / ANDROID_KEY_PASSWORD
+#   3. Re-lancer le job : l'APK est signé par cette clé permanente, et les
+#      versions suivantes s'installent par-dessus les précédentes.
+# Le keystore ne vit JAMAIS dans le dépôt (public) — cette routine
+# d'amorçage est le seul moyen d'en créer un sans jamais le versionner.
+
+name: Paquets
+
+on:
+  workflow_dispatch:
+    # Lancement à la main : construit les paquets de la branche courante
+    # et les publie comme artefacts de run (jamais attachés à une release).
+  workflow_run:
+    # Déclenché quand Release conclut sur un push de tag v* : les paquets
+    # sont construits depuis CE commit de tag, après sa chaîne verte.
+    workflows: ['Release']
+    types: [completed]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paquets-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verifier-conclusion:
+    # workflow_run tourne après TOUTE conclusion de Release ; sur un tag,
+    # on ne construit des paquets que si Release a réussi.
+    runs-on: ubuntu-latest
+    outputs:
+      construire: ${{ steps.verdict.outputs.construire }}
+    steps:
+      - id: verdict
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "construire=oui" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.workflow_run.conclusion }}" = "success" ] && [[ "${{ github.event.workflow_run.head_branch }}" == v* ]]; then
+            echo "construire=oui" >> "$GITHUB_OUTPUT"
+          else
+            echo "construire=non" >> "$GITHUB_OUTPUT"
+            echo "Release n'a pas réussi sur un tag v* — aucun paquet natif ne sera construit."
+          fi
+
+  apk:
+    name: APK Android (Cordova)
+    needs: verifier-conclusion
+    if: needs.verifier-conclusion.outputs.construire == 'oui'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Sur un déclenchement workflow_run, checkout le commit exact
+          # validé par Verify — pas le HEAD de la branche par défaut.
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # Android SDK : le runner ubuntu-latest embarque déjà le SDK complet
+      # (sdkmanager, platforms, build-tools) — il ne manque que la licence
+      # d'acceptation, pré-acceptée sur l'image, et ANDROID_HOME est préposé.
+      - name: Installer les dépendances web
+        run: npm ci
+
+      # Le SDK Android téléchargé par Cordova exige une arborescence
+      # exacte ; Cordova sait l'installer lui-même, mais `npm ci` d'un
+      # projet non-déclaré est exclu — on installe l'outillage Cordova
+      # dans un dossier outillage/ à côté de la bobine.
+      - name: Installer l'outillage Cordova
+        run: |
+          mkdir -p build/outillage
+          cd build/outillage
+          npm init -y > /dev/null
+          npm install cordova@13 --no-audit --no-fund 2>&1 | tail -1
+
+      - name: Construire le web (dist/)
+        run: npm run build
+
+      - name: Préparer la bobine Cordova
+        env:
+          VERSION_BRUTE: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+        # v1.2.3 → 1.2.3 : versionName Android et noms de fichiers sans « v ».
+        run: SPACEHUB_PAQUET_VERSION="${VERSION_BRUTE#v}" node scripts/preparer-bobines.mjs
+
+      - name: Ajouter la plateforme Android
+        working-directory: build/cordova
+        run: ../outillage/node_modules/.bin/cordova platform add android@15 --no-telemetry 2>&1 | tail -3
+
+      - name: Signature de l'APK
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd build/cordova
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > spacehub.keystore
+            ../outillage/node_modules/.bin/cordova build android release \
+              --keystore=spacehub.keystore \
+              --storePassword="$KEYSTORE_PASSWORD" \
+              --alias="${KEY_ALIAS:-spacehub}" \
+              --password="$KEY_PASSWORD" \
+              -- --packageType=apk --no-telemetry 2>&1 | tail -5
+            rm -f spacehub.keystore
+          else
+            # Pas de secret : amorçage — clé éphémère, documentée dans le
+            # résumé du run pour devenir permanente à l'étape suivante.
+            keytool -genkeypair -v -keystore spacehub.keystore \
+              -alias spacehub -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass spacehub-ephemere -keypass spacehub-ephemere \
+              -dname "CN=SpaceHub, OU=Ephemeral, O=SpaceHub, C=FR"
+            ../outillage/node_modules/.bin/cordova build android release \
+              --keystore=spacehub.keystore \
+              --storePassword=spacehub-ephemere \
+              --alias=spacehub \
+              --password=spacehub-ephemere \
+              -- --packageType=apk --no-telemetry 2>&1 | tail -5
+            EMPREINTE=$(keytool -list -v -keystore spacehub.keystore -storepass spacehub-ephemere -alias spacehub | grep 'SHA256:' | head -1)
+            rm -f spacehub.keystore
+            echo "### Clé de signature éphémère (à promouvoir en secret)" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "EMPREINTE SHA256 : $EMPREINTE" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "Pour rendre la signature permanente : exporter ce keystore depuis ce run, puis le charger en secret ANDROID_KEYSTORE (cf. en-tête du workflow)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Rassembler les APK
+        env:
+          VERSION: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+        run: |
+          mkdir -p apk
+          shopt -s nullglob
+          find build/cordova/platforms/android -name '*.apk' -path '*release*' -exec cp {} apk/ \;
+          # Nom explicite : spacehub-v1.2.3.apk (Cordova garde le sien en interne).
+          for f in apk/*-release.apk; do mv "$f" "apk/spacehub-${VERSION}.apk"; done
+          ls -la apk/
+          # Garde-fou : un APK « release » non signé est un échec, pas un
+          # livrable — apksigner (build-tools du runner) le détecte.
+          APK=$(ls apk/*.apk | head -1)
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs "$APK" > /dev/null
+          for f in apk/*.apk; do sha256sum "$f" > "$f.sha256"; done
+
+      - name: Artefact du run
+        uses: actions/upload-artifact@v7
+        with:
+          name: spacehub-android
+          path: |
+            apk/*.apk
+            apk/*.apk.sha256
+          retention-days: 30
+
+      - name: Attacher à la release
+        if: startsWith(github.event.workflow_run.head_branch || github.ref_name, 'v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ github.event.workflow_run.head_branch || github.ref_name }}"
+          if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$VERSION" apk/*.apk apk/*.apk.sha256 --repo "$GITHUB_REPOSITORY" --clobber
+            echo "APK attachés à la release $VERSION"
+          else
+            echo "Release $VERSION absente — APK laissés en artefact de run uniquement."
+          fi
+
+  exe:
+    name: Exécutable Windows (Electron)
+    needs: verifier-conclusion
+    if: needs.verifier-conclusion.outputs.construire == 'oui'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Installer les dépendances web
+        run: npm ci
+
+      - name: Construire le web (dist/)
+        run: npm run build
+
+      - name: Préparer la bobine Electron
+        env:
+          VERSION_BRUTE: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+        run: SPACEHUB_PAQUET_VERSION="${VERSION_BRUTE#v}" node scripts/preparer-bobines.mjs
+
+      - name: Construire l'exécutable Windows
+        working-directory: build/electron
+        # electron-builder télécharge l'Electron déclaré dans la bobine
+        # (mis en cache par lui dans %LOCALAPPDATA%) et produit NSIS +
+        # portable dans sortie/.
+        shell: bash
+        run: |
+          npx --yes electron-builder@26 --win --x64 --publish never 2>&1 | tail -6
+          ls -la sortie/
+
+      - name: Rassembler les exécutables
+        shell: bash
+        run: |
+          mkdir -p exe
+          find build/electron/sortie -name '*.exe' -exec cp {} exe/ \;
+          ls -la exe/
+          for f in exe/*.exe; do sha256sum "$f" > "$f.sha256"; done
+
+      - name: Artefact du run
+        uses: actions/upload-artifact@v7
+        with:
+          name: spacehub-windows
+          path: |
+            exe/*.exe
+            exe/*.exe.sha256
+          retention-days: 30
+
+      - name: Attacher à la release
+        if: startsWith(github.event.workflow_run.head_branch || github.ref_name, 'v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ github.event.workflow_run.head_branch || github.ref_name }}"
+          if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$VERSION" exe/*.exe exe/*.exe.sha256 --repo "$GITHUB_REPOSITORY" --clobber
+            echo "Exécutables attachés à la release $VERSION"
+          else
+            echo "Release $VERSION absente — exécutables laissés en artefact de run uniquement."
+          fi
