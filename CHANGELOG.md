@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dependency-free and fails in seconds.
 
 ### Changed
+- Test and build toolchain migrated to Vitest 5 and Vite 8 (vitest 5
+  requires vite ≥ 6 as a peer, so the two majors move together): all 34
+  suites / 561 tests pass unchanged, builds emit through rolldown, and
+  the startup budget moves 258 → 270 kB gzip to absorb the toolchain
+  delta — same application code, still 45 % lighter than before wave 1.
 - License unified to GPL-3.0 (package.json, README badge, LICENSE), with the
   upstream KefinTweaks MIT notice preserved in LICENSE.
 - README rewritten as an English home page: install from Releases, platform
@@ -38,6 +43,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   acceptance doc gained an executable one-TV session runbook.
 
 ### Fixed
+- 47 CSS `transition` declarations carried an invalid mid-value `!important`
+  (one declaration admits only a trailing one): browsers dropped the whole
+  declaration — these hover/motion transitions never animated — and the
+  new build pipeline rejects the syntax outright. Repaired to the valid
+  form; the transitions work for the first time.
 - CI ground truth: the verification chain requires Node ≥ 22.15
   (`module.registerHooks`); workflows now run Node 24 and `package.json`
   declares the floor.

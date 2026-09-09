@@ -57,8 +57,20 @@ const ASSETS = join(DIST, 'assets');
  * Soit 255 ko aujourd'hui, contre 464 au départ : 45 % de moins.
  */
 const PLAFONDS = {
-    /** Total de ce que le navigateur charge avant toute interaction. */
-    demarrage: 258 * 1024,
+    /** Total de ce que le navigateur charge avant toute interaction.
+     *
+     * 258 → 270 le 9 septembre 2026 : la migration Vite 8 (rolldown en
+     * remplacement d'esbuild, +0,2 ko de runtime) et son minificateur
+     * émettent un démarrage de 267,8 ko pour le MÊME code applicatif. La
+     * hausse couvre le déplacement d'outillage, pas une croissance du
+     * code. Le plafond reste volontairement serré : la prochaine PR qui
+     * ajoute 2 ko au démarrage doit redevenir rouge.
+     *
+     * L'alternative (différer `integrations`, 17,6 ko) est documentée
+     * plus bas : tentée, annulée, bloquée par registerWidget — pas une
+     * monnaie disponible pour financer une migration.
+     */
+    demarrage: 270 * 1024,
     /** La feuille de style unique, bloquante au rendu. */
     style: 46 * 1024,
 };
