@@ -28,7 +28,7 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
     border-radius: 18px !important;
     padding: 8px !important;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out) !important, opacity var(--sh-dur-3) var(--sh-ease-out) !important, background-color var(--sh-dur-3) var(--sh-ease-out) !important, background var(--sh-dur-3) var(--sh-ease-out) !important, border-color var(--sh-dur-3) var(--sh-ease-out) !important, box-shadow var(--sh-dur-3) var(--sh-ease-out) !important, color var(--sh-dur-3) var(--sh-ease-out) !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
     position: relative !important;
     cursor: pointer !important;
 }
