@@ -144,23 +144,45 @@ function preparerCordova() {
     <preference name="AndroidWindowSplashScreenBackground" value="#101014" />
 
     <platform name="android">
+        <!-- Icônes : sans déclaration <icon>, cordova-android embarque son
+             robot par défaut — le paquet serait livré SANS l'icône
+             SpaceHub. Une par densité + une par défaut. -->
+        <icon src="res/icon.png" />
+        <icon src="res/icon/android/ic_launcher_ldpi.png" density="ldpi" />
+        <icon src="res/icon/android/ic_launcher_mdpi.png" density="mdpi" />
+        <icon src="res/icon/android/ic_launcher_hdpi.png" density="hdpi" />
+        <icon src="res/icon/android/ic_launcher_xhdpi.png" density="xhdpi" />
+        <icon src="res/icon/android/ic_launcher_xxhdpi.png" density="xxhdpi" />
+        <icon src="res/icon/android/ic_launcher_xxxhdpi.png" density="xxxhdpi" />
         <!-- Android TV : sans uses-feature leanback (non requis, donc aussi
              installable sur téléphone) l'app s'installe mais n'apparaît pas
              dans le lanceur TV ; sans bannière, elle s'y affiche sans image.
              La fusion cible l'élément activity (unique) : elle ajoute
              l'attribut banner et un second intent-filter LEANBACK_LAUNCHER
              à côté du LAUNCHER téléphone. -->
-        <resource-file src="res/screen/android/banniere-tv.png" target="res/drawable-xhdpi/banner.png" />
+        <!-- Cible RELATIVE À LA RACINE DE LA PLATEFORME : cordova-android 15
+             joint l'attribut target à platforms/android/ (lib/prepare.js,
+             updateFileResources). « res/drawable-xhdpi » atterrissait hors
+             du projet gradle et AAPT échouait : « resource drawable/banner
+             not found » (troisième run v1.1.0). -->
+        <resource-file src="res/screen/android/banniere-tv.png" target="app/src/main/res/drawable-xhdpi/banner.png" />
         <config-file target="app/src/main/AndroidManifest.xml" parent="/manifest">
             <uses-feature android:name="android.software.leanback" android:required="false" />
         </config-file>
+        <!-- L'attribut banner fusionne via edit-config (mode merge = attributs
+             uniquement : les ENFANTS d'un edit-config ne sont pas appendes) ;
+             l'intent-filter LEANBACK passe donc par config-file, qui ajoute
+             ses enfants tels quels. Premier run v1.1.0 : l'intent-filter
+             declare dans l'edit-config n'a jamais atterri dans le manifeste. -->
         <edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application/activity">
             <activity android:banner="@drawable/banner" />
-            <intent-filter>
+        </edit-config>
+        <config-file target="app/src/main/AndroidManifest.xml" parent="/manifest/application/activity">
+            <intent-filter android:label="@string/launcher_name">
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
-        </edit-config>
+        </config-file>
     </platform>
 </widget>
 `);

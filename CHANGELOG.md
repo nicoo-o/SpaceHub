@@ -97,6 +97,14 @@ the same commit.
   format Android resources require — the `0xARGB` value (valid for
   Cordova's runtime `BackgroundColor` preference) failed the resource
   link step (`expected color but got (raw string) 0xff101014`).
+- Packaging: the APK now carries the SpaceHub icons and the TV banner —
+  the icons were generated but never declared as `<icon>` elements (the
+  default Cordova robot would have shipped), and the banner's
+  `resource-file` target predated the cordova-android 7 layout, landing
+  outside the Gradle project (`resource drawable/banner not found`). The
+  LEANBACK launcher intent-filter is now merged through `config-file`,
+  whose children are actually appended. The full `platform add` pipeline
+  is exercised locally before each change reaches CI.
 - Dashboard widget registration no longer crashes at startup:
   `JellyseerrTrendingWidget` and the two qBittorrent widgets were
   registered in `core/SpaceHub.js` but never imported — every dashboard
