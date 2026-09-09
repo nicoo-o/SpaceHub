@@ -61,7 +61,9 @@ from the same codebase and the same verification chain.
 (no install) for Windows. SHA-256 checksums are attached next to each
 file. The APK embeds the whole app — point it at your Jellyfin server on
 first launch, nothing to serve or host. The Windows exe is unsigned:
-SmartScreen shows a one-time warning, choose « More info → Run anyway ».
+SmartScreen shows a one-time warning, choose « More info → Run anyway »
+(the path to signed builds and verified auto-updates is evaluated in
+[`docs/SIGNATURE_WINDOWS_ET_AUTO_UPDATE.md`](docs/SIGNATURE_WINDOWS_ET_AUTO_UPDATE.md)).
 
 **Option B — serve the web build (self-hosted):**
 
