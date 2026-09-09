@@ -320,7 +320,19 @@ jobs:
         shell: bash
         run: |
           mkdir -p exe
-          find build/electron/sortie -name '*.exe' -exec cp {} exe/ \;
+          # Les DEUX seuls livrables : l'installeur NSIS et le portable.
+          # Un balayage « -name '*.exe' » récupérait aussi les internes
+          # d'electron-builder — SpaceHub.exe (le stub décompressé, 246 Mo,
+          # inutilisable sans son resources/) et elevate.exe (son utilitaire
+          # d'élévation) — joints à la release v1.1.0 par erreur et retirés
+          # à la main.
+          find build/electron/sortie -maxdepth 1 \( -name '*-Setup-*.exe' -o -name '*-portable.exe' \) -exec cp {} exe/ \;
+          # Garde-fou : exactement deux livrables, rien de plus.
+          if [ "$(ls exe | wc -l)" -ne 2 ]; then
+            echo "::error::Attendu : installeur + portable. Trouvé :" >&2
+            ls -la exe/ >&2
+            exit 1
+          fi
           ls -la exe/
           for f in exe/*.exe; do sha256sum "$f" > "$f.sha256"; done
 

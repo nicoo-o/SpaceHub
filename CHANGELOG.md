@@ -93,6 +93,10 @@ the same commit.
 - Packaging: a bootstrap run (no signing secrets) now uploads its ephemeral
   keystore as a run artifact — previously the printed fingerprint pointed at
   a key that was deleted, making permanent signing impossible to bootstrap.
+- Packaging: the Windows gather step now collects only the NSIS installer
+  and the portable executable — the first run also attached two
+  electron-builder internals (the unpacked 246 MB stub and its elevation
+  helper) to the release.
 - Packaging: the Android splash-screen background now uses the `#RRGGBB`
   format Android resources require — the `0xARGB` value (valid for
   Cordova's runtime `BackgroundColor` preference) failed the resource
