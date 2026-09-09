@@ -93,6 +93,10 @@ the same commit.
 - Packaging: a bootstrap run (no signing secrets) now uploads its ephemeral
   keystore as a run artifact — previously the printed fingerprint pointed at
   a key that was deleted, making permanent signing impossible to bootstrap.
+- Packaging: the Android splash-screen background now uses the `#RRGGBB`
+  format Android resources require — the `0xARGB` value (valid for
+  Cordova's runtime `BackgroundColor` preference) failed the resource
+  link step (`expected color but got (raw string) 0xff101014`).
 - Dashboard widget registration no longer crashes at startup:
   `JellyseerrTrendingWidget` and the two qBittorrent widgets were
   registered in `core/SpaceHub.js` but never imported — every dashboard

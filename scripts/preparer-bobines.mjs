@@ -136,7 +136,12 @@ function preparerCordova() {
     <preference name="BackgroundColor" value="0xff101014" />
     <preference name="fullscreen" value="false" />
     <preference name="AndroidWindowSplashScreenAnimatedIcon" value="res/icon/android/ic_launcher_xxxhdpi.png" />
-    <preference name="AndroidWindowSplashScreenBackground" value="0xff101014" />
+    <!-- Format #RRGGBB OBLIGATOIRE ici : cette préférence est injectée
+         telle quelle dans les ressources Android (values.xml) par le
+         template gradle — le format 0xARGB de BackgroundColor y est
+         refusé (« expected color but got (raw string) 0xff101014 »,
+         premier run v1.1.0). -->
+    <preference name="AndroidWindowSplashScreenBackground" value="#101014" />
 
     <platform name="android">
         <!-- Android TV : sans uses-feature leanback (non requis, donc aussi
