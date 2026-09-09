@@ -48,7 +48,7 @@ nom de fichier que Vite ne produit jamais.
 | `npm run test:xss` | 512 interpolations, 140 gabarits | ✅ |
 | `npm run test:globals` | plafond de 20 accès | ✅ |
 | `npm run build` | bundle de production | ✅ |
-| `npm run test:e2e` | 26 scénarios, Chromium réel | ✅ |
+| `npm run test:e2e` | 27 scénarios, Chromium réel | ✅ |
 | **Recette sur téléviseur réel** | Tizen, webOS, Android TV | ❌ **jamais faite** |
 
 La dernière ligne est le seul vrai trou de validation, et c'est aujourd'hui le
@@ -129,6 +129,22 @@ pas de bug, mais une mémoire perdue. Un identifiant métier stable
 (`data-nav-key="jellyfin-item-12345"`) serait meilleur pour les listes très
 dynamiques. Non fait : à ce jour, aucune vue ne se rerender assez souvent pour
 que cela se voie.
+
+**Décision majors (9 septembre 2026) — vite 8 et vitest 5 pris ENSEMBLE.**
+Vitest 5 exige `vite >= 6` en dépendance homologue : les deux PR majeures de
+Dependabot (#6 vite 5→8, #8 vitest 2→5) formaient une seule migration, pas
+deux. Réalisée complète dans #8 (merge `c6331c2`) — les 47 déclarations CSS
+`transition` invalides que lightningcss refuse ont été réparées au passage
+(sonde Chromium : les navigateurs abandonnaient la déclaration entière, ces
+c transitions n'avaient jamais animé), `target: 'chrome69'` re-vérifié,
+plafond de poids relevé 258 → 270 ko avec justification dans
+`scripts/poids-check.mjs`. #6, dont le bump isolé devenait vide une fois
+absorbé, reste fermée (GitHub verrouille de toute façon la réouverture
+d'une PR Dependabot dont la branche a été recréée) — le diagnostic complet
+vit dans le commentaire du 9 septembre 2026 sur la PR #6. Le contraste de
+l'épisode : un miroir apt incohérent (dépôt google-chrome préconfiguré sur
+l'image des runners) a fait échouer la Verify sans qu'aucun test ne tourne —
+corrigé dans les workflows, cf. `CHANGELOG.md`.
 
 ---
 
