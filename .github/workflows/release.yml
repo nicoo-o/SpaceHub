@@ -65,11 +65,13 @@ jobs:
       - name: Contrat de poids
         run: npm run test:poids
 
-      # Même réessai que la CI : un miroir apt qui dérive (ex. « Hash Sum
-      # mismatch » sur dl.google.com) n'est pas un signal sur le code.
+      # Même traitement que la CI : le dépôt google-chrome préconfiguré sur
+      # l'image fait échouer apt quand son CDN dérive, et playwright n'y
+      # puise rien. Réessai conservé par prudence.
       - name: Installer Chromium pour l'e2e
         run: |
           for i in 1 2 3 4 5; do
+            sudo rm -f /etc/apt/sources.list.d/google-chrome.list* /etc/apt/sources.list.d/google-chrome.sources
             if npx -y playwright@1.62.1 install --with-deps chromium; then break; fi
             echo "Tentative $i échouée — nettoyage apt, nouvelle tentative dans 30 s" >&2
             sudo apt-get clean

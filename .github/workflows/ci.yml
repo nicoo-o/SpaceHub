@@ -82,13 +82,17 @@ jobs:
       # d'ajouter une dépendance au projet ; pour un cache plus rapide sur
       # beaucoup d'exécutions, remplacer par une dépendance de développement
       # `playwright@1.62.1` et le cache intégré de `setup-node`.
-      # --with-deps passe par apt : quand un miroir (ex. dl.google.com) sert
-      # des métadonnées périmées, l'installation échoue en « Hash Sum
-      # mismatch ». C'est un incident d'infrastructure, pas un échec du
-      # dépôt — on réessaie avec nettoyage apt entre les tentatives.
+      # --with-deps passe par apt : le dépôt google-chrome préconfiguré sur
+      # l'image des runners sert parfois des métadonnées incohérentes entre
+      # nœuds du CDN (« Hash Sum mismatch » sur dl.google.com) et fait
+      # échouer le moindre `apt-get update` — alors que playwright n'y puise
+      # RIEN (ses bibliothèques viennent des archives Ubuntu). On retire ce
+      # dépôt avant l'installation, et on réessaie par prudence : tout
+      # miroir peut dériver quelques minutes.
       - name: Installer Chromium épinglé
         run: |
           for i in 1 2 3 4 5; do
+            sudo rm -f /etc/apt/sources.list.d/google-chrome.list* /etc/apt/sources.list.d/google-chrome.sources
             if npx -y playwright@1.62.1 install --with-deps chromium; then exit 0; fi
             echo "Tentative $i échouée — nettoyage apt, nouvelle tentative dans 30 s" >&2
             sudo apt-get clean
@@ -143,11 +147,13 @@ jobs:
       - name: Construction
         run: npm run build
 
-      # Même logique de réessai que l'installation épinglée ci-dessus :
-      # un miroir apt qui dérive n'est pas un signal sur le code.
+      # Même traitement que l'installation épinglée : le dépôt google-chrome
+      # de l'image n'apporte rien à playwright et fait échouer apt quand son
+      # CDN dérive.
       - name: Installer le Playwright le plus récent
         run: |
           for i in 1 2 3 4 5; do
+            sudo rm -f /etc/apt/sources.list.d/google-chrome.list* /etc/apt/sources.list.d/google-chrome.sources
             if npx -y playwright@latest install --with-deps chromium; then exit 0; fi
             echo "Tentative $i échouée — nettoyage apt, nouvelle tentative dans 30 s" >&2
             sudo apt-get clean
