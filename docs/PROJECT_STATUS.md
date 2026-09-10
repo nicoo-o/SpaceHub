@@ -50,11 +50,11 @@ nom de fichier que Vite ne produit jamais.
 | `npm run test:globals` | plafond de 20 accès | ✅ |
 | `npm run build` | bundle de production | ✅ |
 | `npm run test:e2e` | 28 scénarios, Chromium réel | ✅ |
-| **Recette sur téléviseur réel** | Tizen, webOS, Android TV | ❌ **jamais faite** |
+| **Recette sur téléviseur réel** | Android TV : protocole prêt (`docs/ACCEPTATION_TV.md`), session v1.2.0 engagée ; Tizen et webOS : jamais tentés | 🟡 **démarrée** |
 
-La dernière ligne est le seul vrai trou de validation, et c'est aujourd'hui le
-point qui décide de la suite. Tout ce qui pouvait être vérifié sans matériel
-l'est ; rien de ce qui demande un téléviseur ne l'a été.
+L'Android TV n'est plus un trou blanc : le protocole d'acceptation existe,
+l'APK v1.2.0 est vérifié côté PC et la session attend la télévision. Tizen et
+webOS, eux, restent entiers — rien de ce qui demande ces matériels ne l'a été.
 
 ---
 

@@ -60,7 +60,9 @@ from the same codebase and the same verification chain.
 `SpaceHub-Setup-X.Y.Z.exe` (installer) / `SpaceHub-X.Y.Z-portable.exe`
 (no install) for Windows. SHA-256 checksums are attached next to each
 file. The APK embeds the whole app — point it at your Jellyfin server on
-first launch, nothing to serve or host. The Windows exe is unsigned:
+first launch, nothing to serve or host. For Android TV, the sideload,
+LEANBACK-launcher and remote-navigation acceptance protocol lives in
+[`docs/ACCEPTATION_TV.md`](docs/ACCEPTATION_TV.md). The Windows exe is unsigned:
 SmartScreen shows a one-time warning, choose « More info → Run anyway »
 (the path to signed builds and verified auto-updates is evaluated in
 [`docs/SIGNATURE_WINDOWS_ET_AUTO_UPDATE.md`](docs/SIGNATURE_WINDOWS_ET_AUTO_UPDATE.md)).
