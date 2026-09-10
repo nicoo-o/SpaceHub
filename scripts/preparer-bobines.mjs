@@ -196,6 +196,7 @@ function preparerElectron() {
     mkdirSync(join(ELECTRON, 'www'), { recursive: true });
     cpSync(EMBARQUE, join(ELECTRON, 'www'), { recursive: true });
     cpSync(join(RACINE, 'apps', 'electron', 'main.js'), join(ELECTRON, 'main.js'));
+    cpSync(join(RACINE, 'apps', 'electron', 'preload.cjs'), join(ELECTRON, 'preload.cjs'));
 
     const icone = join(ELECTRON, 'icon.ico');
     ecrireIco(icone, svg, [16, 24, 32, 48, 64, 128, 256]);
@@ -211,8 +212,16 @@ function preparerElectron() {
         version,
         description: pkg.description || 'SpaceHub — Media Center',
         main: 'main.js',
+        // main.js et preload.cjs sont respectivement ESM et CJS : le type est
+        // déclaré explicitement, l'extension .cjs impose le bon mode au preload.
+        type: 'module',
         author: typeof pkg.author === 'string' ? pkg.author : 'SpaceHub Team',
         license: pkg.license || 'GPL-3.0',
+        // Auto-update NSIS (docs/SIGNATURE_WINDOWS_ET_AUTO_UPDATE.md) :
+        // electron-updater est la SEULE dépendance d'exécution du paquet —
+        // le workflow Paquets installe `npm install --omit=dev` dans la
+        // bobine pour la matérialiser dans node_modules avant le build.
+        dependencies: { 'electron-updater': '^6.3.9' },
         // electron-builder lit ici la version d'Electron à embarquer —
         // aucune installation n'est nécessaire dans ce dossier.
         devDependencies: { electron: pkg.electronVersion || '44.3.0' },
@@ -220,7 +229,17 @@ function preparerElectron() {
             appId: 'io.spacehub.app',
             productName: 'SpaceHub',
             directories: { output: 'sortie' },
-            files: ['main.js', 'www/**/*', 'icon.ico', 'icon.png'],
+            // node_modules/**/* : les dépendances de production installées
+            // dans la bobine (electron-updater et ses transitives).
+            files: ['main.js', 'preload.cjs', 'www/**/*', 'icon.ico', 'icon.png', 'node_modules/**/*'],
+            // Canal de mise à jour : GitHub Releases — latest.yml et
+            // *.blockmap produits par le build sont joints à la release par
+            // le workflow Paquets (extension du motif de téléversement).
+            publish: {
+                provider: 'github',
+                owner: 'nicoo-o',
+                repo: 'SpaceHub',
+            },
             win: {
                 target: [
                     { target: 'nsis', arch: ['x64'] },

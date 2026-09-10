@@ -328,6 +328,10 @@ jobs:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: |
+          # electron-updater (dépendance d'exécution du paquet) : installé
+          # dans la bobine AVANT le build — electron-builder empaquette
+          # node_modules/ (dépendances de production uniquement).
+          npm install --omit=dev --no-audit --no-fund 2>&1 | tail -1
           npx --yes electron-builder@26 --win --x64 --publish never 2>&1 | tail -6
           ls -la sortie/
 
@@ -350,6 +354,15 @@ jobs:
           fi
           ls -la exe/
           for f in exe/*.exe; do sha256sum "$f" > "$f.sha256"; done
+
+          # Métadonnées d'auto-update (electron-updater) : latest.yml et les
+          # blockmaps accompagnent les exécutables à la release. Sans elles,
+          # le canal de mise à jour est muet. Générées par electron-builder
+          # dès que la config publish existe (--publish never n'empêche pas
+          # leur production, seulement leur envoi).
+          cp build/electron/sortie/latest.yml exe/ 2>/dev/null || true
+          cp build/electron/sortie/*.blockmap exe/ 2>/dev/null || true
+          ls -la exe/
 
       - name: Porte de signature — Get-AuthenticodeSignature
         # Ne s'arme QUE quand les secrets de signature sont présents : sans
@@ -396,8 +409,10 @@ jobs:
           VERSION: ${{ needs.verifier-conclusion.outputs.version }}
         run: |
           if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
-            gh release upload "$VERSION" exe/*.exe exe/*.exe.sha256 --repo "$GITHUB_REPOSITORY" --clobber
-            echo "Exécutables attachés à la release $VERSION"
+            # Tout le dossier exe/ : les deux exécutables, leurs sommes, et
+            # les métadonnées d'auto-update (latest.yml + blockmaps).
+            gh release upload "$VERSION" exe/* --repo "$GITHUB_REPOSITORY" --clobber
+            echo "Exécutables et métadonnées d'auto-update attachés à la release $VERSION"
           else
             echo "Release $VERSION absente — exécutables laissés en artefact de run uniquement."
           fi

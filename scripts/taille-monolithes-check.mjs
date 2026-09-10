@@ -53,7 +53,10 @@ const BUDGETS = {
     // au fil de l'eau.
     'jellyfin/player/VideoPlayer.js': 2529,
     'core/SpatialNavigation.js': 1750,
-    'ui/components/SettingsPanel.js': 1624,
+    // 1624 → 1643 le 10 septembre 2026 : +19 lignes — le réglage « mises à
+    // jour automatiques » (opt-out Windows) appartient aux réglages, pas à un
+    // module satellite ; la préférence et son pont sont documentés ailleurs.
+    'ui/components/SettingsPanel.js': 1643,
     'ui/components/CardBuilder.js': 1403,
     'jellyfin/search/UnifiedSearch.js': 1366,
     'ui/components/ModalSlideUpSheet.js': 1350,
