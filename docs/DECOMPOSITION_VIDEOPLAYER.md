@@ -33,6 +33,45 @@ par les gabarits `*.template.js`.
 | 2 | Helpers purs : formatage de temps, échappement HTML, assainissement d'URL, animation bouton → `jellyfin/player/UtilitairesLecteur.js`. Talons conservés : `_formatTime`, `_escape`, `_escapeUrl`, `_animateButtonSpring`. Budget : 2537 → **2524** | PR #20 | ✅ 2026-09-10 |
 | 7 | Chargement de la source : URL authentifiée (`api_key` sans doublon), plafond de débit (explicite, puis 75 % de l'estimation navigateur, rien sous 2 Mb/s), bascule sur le flux statique de repli, résolution des flux audio/sous-titres, rechargement aux options fusionnées → `jellyfin/player/ChargementSource.js` (191 lignes). Talons conservés : `_fallbackDirectStream`, `_initMediaStreams`, `_resolveMaxBitrate`, `_authoriseUrl`, `_reloadCurrentSourceWithOptions`. Budget : 2524 → **2476** | (branche `decomp/videoplayer-peel7`) | ✅ 2026-09-10 |
 
+## Bilan de la décomposition (10 septembre 2026)
+
+Le plan est terminé : **sept peaux, sept modules satellites, zéro membre
+public perdu** — le contrat de façade tient en entier à chaque étape.
+`VideoPlayer.js` est passé de 2578 lignes à un budget verrouillé de
+**2476**, et chaque peau a abaissé le plafond dans le même commit que
+la descente.
+
+| Peau | Module satellite | Lignes extraites |
+|---|---|---:|
+| 1 | `jellyfin/player/SegmentsMedia.js` | 192 |
+| 2 | `jellyfin/player/UtilitairesLecteur.js` | 86 |
+| 3 | `jellyfin/player/CompteAReboursEpisode.js` | 87 |
+| 4 | `jellyfin/player/PopoversContenu.js` | 275 |
+| 5 | `jellyfin/player/VisibiliteControles.js` | 134 |
+| 6 | `jellyfin/player/RapportSession.js` | 242 |
+| 7 | `jellyfin/player/ChargementSource.js` | 191 |
+| **Total** | | **1207** |
+
+*Lignes mesurées au commit de chaque peau.*
+
+**La descente du budget** : 2578 → 2537 (peau 1) → 2524 (peau 2) → 2518
+(peau 3) → 2374 (peau 4) → 2500 (peau 5) → 2435 (peau 6) → **2476
+(peau 7)**. Les peaux 3 à 7 sont parties de main (2524) ; une fois
+fusionnées dans l'ordre, le fichier se retrouve sous chaque plafond — la
+dernière valeur committée fait foi.
+
+**Ce que le monolithe fait encore, volontairement** :
+
+- **l'assemblage** — le constructeur, `_bindEvents` et `_createPlayerDOM`
+  restent dans la classe : c'est le rôle d'une façade de monter ses
+  modules (hors périmètre annoncé dès le départ) ;
+- **le transport de lecture** — `play()`, `_setupVideoSource` (câblage
+  HLS.js / flux natif / repli), et les poignées télécommande/clavier
+  (`handleNavAction`, `_onDirectShortcutKeyDown`, `_executerActionMedia`) ;
+- **les 36 talons de délégation** — chaque méthode d'origine reste en
+  place, surface publique inchangée ; si une future peau les retire, ce
+  sera en abaissant le contrat de façade d'abord.
+
 Note sur les références : les deux commits d'étape (`215b32f`, `f118ffa`)
 existent dans la branche de travail, supprimée après la fusion squash — la
 référence durable est le commit squashé `402979a` (PR #13), qui porte les deux
@@ -53,10 +92,10 @@ touche ni la session réseau ni le DOM du shell.
 | Ordre | Étape | Périmètre candidat | Pourquoi cet ordre |
 |---|---|---|---|
 | — | ~~2~~ **Formatage & petites puretés** | ~~`_formatTime`, `_escapeUrl`, `_animateButtonSpring`, `_triggerRippleSkip`, utilitaires de ticks~~ | ✅ **Atterrie (peau 2, PR #20)** — ajustée : `_triggerRippleSkip` reste dans la classe (comportement câblé, pas une pureté) ; `_escape` rejoint le lot. |
-| 3 | **Compte à rebours « épisode suivant »** | `_showNextEpCard`, `_startNextEpCountdown`, `_cancelNextEpCountdown`, `_hideNextEpCard` | Sous-système autonome avec un état local minuscule et une frontière d'événements nette ; la logique de minuterie se teste très bien hors classe. |
-| 4 | **Popovers & tirage du contenu** | `_togglePopover`, `_closeAllPopovers`, `_render*Popover` (audio/sous-titres, réglages, versions, épisodes) | Le plus gros gain de lignes, mais plus de surface DOM : à faire quand le filet a déjà servi deux fois. Le contenu lui-même (_renderAudioSubsPopover & co) peut se découper en deux sous-peaux si besoin. |
-| 5 | **OSD & visibilité des contrôles** | `_showFlashOSD`, `_onUserActivity`, `_showControls`, `_hideControls`, `_resetIdleTimer` | Cohésif (tout l'axe « activité/idle ») mais câblé aux mêmes événements que les popovers : après eux. |
-| 6 | **Rapport de session Jellyfin** | `_reportPlaybackStart`, `_startProgressReporting`, `_reportPlaybackStopped`, `_publierPosition`, `_brancherSessionMedia` | Dépend de l'auth et du réseau, pas de l'UI ; à extraire d'un bloc car ces méthodes se tiennent (cycle de vie complet d'une session). |
+| — | ~~3~~ **Compte à rebours « épisode suivant »** | ~~`_showNextEpCard`, `_startNextEpCountdown`, `_cancelNextEpCountdown`, `_hideNextEpCard`~~ | ✅ **Atterrie (peau 3, branche `decomp/videoplayer-peel3`)** — le minuteur (départ à 5, décrément par seconde, passage auto à zéro) est extrait en injections étroites (`surTick`, `surZero`), testé sur horloge fausse ; le titre SxxExx est une fonction pure. |
+| — | ~~4~~ **Popovers & tirage du contenu** | ~~`_togglePopover`, `_closeAllPopovers`, `_render*Popover` (audio/sous-titres, réglages, versions, épisodes)~~ | ✅ **Atterrie (peau 4, branche `decomp/videoplayer-peel4`)** — 150 lignes sorties du monolithe en une passe : l'usine `creerPopovers` ne reçoit que des accesseurs/actions, tout l'état et les effets restent sur le lecteur. Les sous-peaux annoncées n'ont pas été nécessaires. |
+| — | ~~5~~ **OSD & visibilité des contrôles** | ~~`_showFlashOSD`, `_onUserActivity`, `_showControls`, `_hideControls`, `_resetIdleTimer`~~ | ✅ **Atterrie (peau 5, branche `decomp/videoplayer-peel5`)** — le module détient les deux minuteurs et le drapeau de visibilité (seul détenteur, comme le minuteur de la peau 3) ; le lecteur ne garde que le DOM, la vidéo et le tiroir, passés en injections ; tests sur horloge fausse. |
+| — | ~~6~~ **Rapport de session Jellyfin** | ~~`_reportPlaybackStart`, `_startProgressReporting`, `_reportPlaybackStopped`, `_publierPosition`, `_brancherSessionMedia`~~ | ✅ **Atterrie (peau 6, branche `decomp/videoplayer-peel6`)** — l'intervalle de progression vit dans le module (seul détenteur, `nettoyer()` à la fermeture), l'état de session reste sur le lecteur lu en injections ; tests réseau/intervalle/boutons sur fakes (13 cas). |
 | — | ~~7~~ **Chargement de la source** | ~~`_fallbackDirectStream`, `_initMediaStreams`, `_resolveMaxBitrate`, `_authoriseUrl`, `_reloadCurrentSourceWithOptions`~~ | ✅ **Atterrie (peau 7, branche `decomp/videoplayer-peel7`)** — dernière peau du plan : `authoriserUrl` pure, débit/fallback/rechargement à injections, `resoudreFlux` REND l'état que le lecteur applique ; tests URL/débit/bascule/flux/rechargement sur fakes (15 cas). |
 | — | Hors périmètre | `_bindEvents`, `_createPlayerDOM`, le constructeur | L'assemblage reste dans la classe : c'est le rôle d'un façade. La décomposition s'arrête quand VideoPlayer ne fait plus que monter des modules. |
 
