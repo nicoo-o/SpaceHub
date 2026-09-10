@@ -141,7 +141,7 @@ describe('SyncPlay — la dérive', () => {
         sp = new SyncPlay({
             api: { post: vi.fn(async () => ({})), get: vi.fn(async () => ({})) },
             socket: { sur: () => () => {} },
-            lecteur: () => ({ _video: video }),
+            lecteur: () => ({ videoElement: video }),
         });
         // Référence : on devrait être à 100 s à cet instant serveur.
         sp._reference = { positionS: 100, instantServeur: sp._horloge.maintenantServeur() };
@@ -220,7 +220,7 @@ describe('SyncPlay — l\'oscillation', () => {
         const sp = new SyncPlay({
             api: { post: vi.fn(async () => ({})) },
             socket: { sur: () => () => {} },
-            lecteur: () => ({ _video: video }),
+            lecteur: () => ({ videoElement: video }),
         });
         sp._reference = { positionS: 100, instantServeur: sp._horloge.maintenantServeur() };
         video.currentTime = 100 + (SEUIL_SAUT_MS + 500) / 1000;
@@ -263,7 +263,7 @@ describe('SyncPlay — les ordres du serveur', () => {
         sp = new SyncPlay({
             api: { post: vi.fn(async () => ({})) },
             socket: { sur: () => () => {} },
-            lecteur: () => ({ _video: video, close: vi.fn() }),
+            lecteur: () => ({ videoElement: video, close: vi.fn() }),
         });
     });
     afterEach(() => vi.useRealTimers());

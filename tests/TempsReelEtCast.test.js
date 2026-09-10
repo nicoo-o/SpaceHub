@@ -351,7 +351,7 @@ describe('CibleDistante — les ordres reçus', () => {
     function fabriquerCible({ fiches = [] } = {}) {
         const video = { currentTime: 0, volume: 0.5, muted: false, pause: vi.fn(), play: vi.fn(() => Promise.resolve()) };
         const lecteur = {
-            _video: video,
+            videoElement: video,
             play: vi.fn(),
             close: vi.fn(),
             _togglePlayPause: vi.fn(),
@@ -492,10 +492,10 @@ describe('CibleDistante — les ordres reçus', () => {
 
         // Le chemin complet : message serveur → socket → cible → lecteur.
         FauxSocket.derniere().message({ MessageType: 'Playstate', Data: { Command: 'Pause' } });
-        expect(lecteur._video.pause).toHaveBeenCalled();
+        expect(lecteur.videoElement.pause).toHaveBeenCalled();
 
         FauxSocket.derniere().message({ MessageType: 'GeneralCommand', Data: { Name: 'ToggleMute' } });
-        expect(lecteur._video.muted).toBe(true);
+        expect(lecteur.videoElement.muted).toBe(true);
         socket.fermer();
     });
 

@@ -43,9 +43,15 @@ const BUDGETS = {
     // décomposition (segments médias → jellyfin/player/SegmentsMedia.js).
     // 2537 → 2524 le 10 septembre 2026 : peau 2 (helpers purs →
     // jellyfin/player/UtilitairesLecteur.js).
+    // 2524 → 2529 le 10 septembre 2026 : +5 lignes d'INTERFACE PURE — la
+    // paire d'accesseurs publics `queue` (get/set) et `videoElement` qui
+    // remplacent les tolérances documentées `_queue`/`_video` du contrat de
+    // façade. Décision committée : c'est la plus petite surface possible
+    // pour fermer deux trous du contrat ; les peaux 3 et 4 abaissent déjà
+    // le budget à 2374 de leur côté.
     // Le budget se baisse dans le commit qui prouve la descente, jamais
     // au fil de l'eau.
-    'jellyfin/player/VideoPlayer.js': 2524,
+    'jellyfin/player/VideoPlayer.js': 2529,
     'core/SpatialNavigation.js': 1750,
     'ui/components/SettingsPanel.js': 1624,
     'ui/components/CardBuilder.js': 1403,

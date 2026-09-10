@@ -19,7 +19,7 @@
 
 import { describe, it, expect } from 'vitest';
 import VideoPlayer from '../jellyfin/player/VideoPlayer.js';
-import { MEMBRES_APPELABLES, CHAMPS_TOLERES, CHAMPS_INJECTES } from '../jellyfin/player/ContratFacade.js';
+import { MEMBRES_APPELABLES, CHAMPS_TOLERES, PROPRIETES_PUBLIQUES } from '../jellyfin/player/ContratFacade.js';
 
 describe('Le contrat de façade de VideoPlayer', () => {
     it('expose tous les membres appelés de l extérieur', () => {
@@ -60,13 +60,32 @@ describe('Le contrat de façade de VideoPlayer', () => {
         }
     });
 
-    it('garde les champs injectés après construction hors de la liste des champs constructeur', () => {
-        // `_queue` n'existe pas sur une instance neuve : SpaceHub l'injecte
-        // après coup. La séparation évite que la méta-vérification du champ
-        // constructeur exige une fiction.
+    it('garde la file d attente hors des champs construits, mais accessible par l API publique', () => {
+        // `_queue` n'existe pas sur une instance neuve : la paire d'accesseurs
+        // publique `queue` (get/set) est l'API — SpaceHub l'alimente au
+        // démarrage, le miroir `_queue` a disparu.
         const p = new VideoPlayer();
-        for (const champ of CHAMPS_INJECTES) {
-            expect(champ in p, `${champ} devrait être injecté, pas construit`).toBe(false);
+        expect('_queue' in p).toBe(false);
+        expect('queue' in p).toBe(true);
+        p.queue = { marque: 'file-de-test' };
+        expect(p.queue.marque).toBe('file-de-test');
+    });
+
+    it('expose l élément vidéo par l accesseur public videoElement, en lecture seule', () => {
+        // `_video` n'est plus toléré : l'élément <video> se lit par l'API
+        // publique `videoElement` — jamais par un champ underscore.
+        const p = new VideoPlayer();
+        expect('videoElement' in p).toBe(true);
+        expect(p.videoElement).toBeNull();
+    });
+
+    it('déclare dans le contrat les propriétés publiques qu il possède', () => {
+        // Méta-garde : PROPRIETES_PUBLIQUES ne doit lister que des propriétés
+        // réellement portées par l'instance — sinon le contrat protège une
+        // fiction.
+        const p = new VideoPlayer();
+        for (const propriete of PROPRIETES_PUBLIQUES) {
+            expect(propriete in p, `propriété introuvable : ${propriete}`).toBe(true);
         }
     });
 });
