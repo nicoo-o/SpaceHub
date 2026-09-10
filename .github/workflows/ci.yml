@@ -112,7 +112,7 @@ jobs:
           echo "SPACEHUB_CHROMIUM=$CHEMIN" >> "$GITHUB_ENV"
           echo "Chromium épinglé : $CHEMIN"
 
-      # 28 scénarios dans le Chromium épinglé — la base validée. Un échec
+      # 30 scénarios dans le Chromium épinglé — la base validée. Un échec
       # est une régression de l'application, à corriger, jamais à abstendre.
       - name: E2E sur Chromium épinglé
         run: npm run test:e2e
@@ -126,6 +126,68 @@ jobs:
           name: spacehub-main
           path: dist/
           retention-days: 30
+
+  # Fumée packaging Android : la release construit déjà l'APK complet, mais
+  # attendre un tag pour découvrir une erreur config.xml est trop tard. Cette
+  # jambe prépare exactement la bobine et ajoute la plateforme Cordova sur
+  # chaque push/PR ; elle attrape les ressources, manifestes et versions
+  # invalides avant qu'un paquet ne soit publiable.
+  packaging-smoke:
+    name: Smoke packaging Android (Cordova)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Installer les dépendances web
+        run: npm ci
+
+      - name: Installer Cordova
+        run: |
+          mkdir -p build/outillage
+          cd build/outillage
+          npm init -y > /dev/null
+          npm install cordova@13 --no-audit --no-fund 2>&1 | tail -1
+
+      - name: Construire le web
+        run: npm run build
+
+      - name: Préparer la bobine Cordova
+        run: node scripts/preparer-bobines.mjs
+
+      - name: Ajouter la plateforme Android
+        working-directory: build/cordova
+        run: ../outillage/node_modules/.bin/cordova platform add android@15 --no-telemetry
+
+      - name: Vérifier la fusion TV
+        working-directory: build/cordova
+        shell: bash
+        run: |
+          test -f platforms/android/app/src/main/res/drawable-xhdpi/banner.png
+          test -f platforms/android/app/src/main/AndroidManifest.xml
+          grep -q 'android.intent.category.LEANBACK_LAUNCHER' platforms/android/app/src/main/AndroidManifest.xml
+          grep -q 'android:banner="@drawable/banner"' platforms/android/app/src/main/AndroidManifest.xml
+          echo "Bobine Cordova valide : bannière et entrée LEANBACK fusionnées."
+
+      - name: Conserver le journal Cordova en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cordova-packaging-smoke-log
+          path: |
+            build/cordova/*.log
+            build/cordova/platforms/android/**/*.log
+          if-no-files-found: ignore
+          retention-days: 7
 
   # La jambe « courant » : même suite, navigateur le plus récent. Rouge ici
   # ne bloque pas la publication de l'artefact — elle signale que le
