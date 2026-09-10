@@ -5,7 +5,7 @@ All notable changes to SpaceHub are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.3.0] - 2026-09-10
 
 ### Added
 - TV acceptance protocol (`docs/ACCEPTATION_TV.md`): the manual session
@@ -27,6 +27,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   technique as the widget scenario: computed declaration alive first,
   per-frame distinct-value sampling, final-state assertions. Suite is now
   30 scenarios.
+- Packaging smoke test in the CI chain: the Android bobine is built for
+  real and `cordova platform add android@15` runs with the banner and
+  LEANBACK checks against `config.xml`, so a packaging mistake now fails in
+  the CI chain instead of surfacing at release time.
+- Postmortem of the 47 dead transitions (`docs/POSTMORTEM_47_TRANSITIONS.md`):
+  how invalid CSS survived for months, why no test saw it, what vite 8
+  exposed, and the three guards that now prevent recurrence.
+- The CSS hygiene check is pinned by its own vitest suite: every rule is
+  exercised against fixture files — embedded style blocks, orphan sheets,
+  frozen shadows, GPU caps, keyframe orphans, loop tokens, and the
+  `!important` rule — so each rule runs in the unit chain instead of being
+  verified by hand.
+- Windows auto-update (Electron): electron-updater against the GitHub
+  provider, a check at startup then every 6 h with jitter, background
+  download and install on quit, `latest.yml` plus blockmaps attached to
+  each release, and a settings opt-out (“Mises à jour automatiques”).
+- Optional Authenticode signing for the Windows builds: the `win.sign`
+  Azure Artifact Signing profile is wired into the packaging bobine and the
+  workflow gained a `Get-AuthenticodeSignature` verification gate. With the
+  secrets absent the unsigned build keeps working; with them present a
+  NotSigned deliverable is an outright failure.
+- Real public APIs on VideoPlayer — `videoElement` and `queue` — replacing
+  the documented `_video`/`_queue` facade tolerances, which are demoted from
+  the contract to history.
+- Monolith reach-in audit (`docs/AUDIT_MONOLITHES.md`): SettingsPanel,
+  SpatialNavigation and ModalSlideUpSheet examined for callers reaching
+  past their surface, with a facade contract added only where one is
+  warranted (SpatialNavigation), backed by `tests/FacadeNav.test.js`.
+- `scripts/triage-tv.mjs`: one command to pull filtered logcat (ANR, fatal,
+  SpaceHub) and screencaps off a TV over ADB, so acceptance triage stops
+  being a manual ritual.
+- Bootstrap keystore routine, documented in `docs/PROMOTION_KEYSTORE.md` and
+  watched by `scripts/verifier-amorcage-keystore.mjs` plus a scheduled
+  `veille-keystore.yml` that warns when the artefact is within 7 days of its
+  30-day retention expiry.
+
+### Changed
+- The `!important` position rule now covers **every** property declaration,
+  not only `transition`: a mid-value `!important` in a `margin` is rejected
+  exactly like one in a `transition`, after first proving the codebase
+  contained zero legitimate non-terminal occurrences.
+- VideoPlayer decomposition completed. Steps 3 to 7 moved the next-episode
+  countdown, the popovers and content draw, control visibility (OSD), the
+  Jellyfin session reporting and the source loading into five satellite
+  modules, each with its own unit suite; the monolith drops from 2524 to
+  2212 lines, and one-line delegation stubs keep every public member and
+  call site unchanged.
+- SyncPlay and Cast tests follow the new public APIs instead of the removed
+  facade tolerances.
+
+### Fixed
+- The packaging workflow could not run at all: `secrets` is not an allowed
+  context in a workflow `if:`, which made the whole file invalid and turned
+  every trigger into a zero-job run. The signature gate and its companion
+  reminder now read the secrets through `env`.
+- The bootstrap keystore was copied outside the path the upload step was
+  watching, and `if-no-files-found: ignore` silenced it — two “green” runs
+  published a signing fingerprint without ever uploading the key, which is
+  how the v1.2.0 signing key became unrecoverable. The path is fixed and the
+  upload step now fails loudly (`if-no-files-found: error`) whenever a
+  bootstrap key is expected.
+- The `ANDROID_KEYSTORE` secret was never decoded: it only acted as a flag,
+  so once it was set the ephemeral key generation was skipped and the build
+  was handed a keystore file nobody had written. The documented promotion
+  path therefore could not work — it broke the build instead of signing with
+  the permanent key. The base64 is now decoded in the throwaway build
+  directory behind a `keytool -list` gate that fails with an actionable
+  message when the store is unreadable.
 
 ## [1.2.0] - 2026-09-10
 
