@@ -45,9 +45,11 @@ const BUDGETS = {
     // jellyfin/player/UtilitairesLecteur.js).
     // 2524 → 2518 le 10 septembre 2026 : peau 3 (compte à rebours « épisode
     // suivant » → jellyfin/player/CompteAReboursEpisode.js).
+    // 2524 → 2374 le 10 septembre 2026 : peau 4 (popovers et tirage du
+    // contenu → jellyfin/player/PopoversContenu.js).
     // Le budget se baisse dans le commit qui prouve la descente, jamais
     // au fil de l'eau.
-    'jellyfin/player/VideoPlayer.js': 2518,
+    'jellyfin/player/VideoPlayer.js': 2374,
     'core/SpatialNavigation.js': 1750,
     'ui/components/SettingsPanel.js': 1624,
     'ui/components/CardBuilder.js': 1403,

@@ -30,6 +30,7 @@ import { fetchAvecDelai } from '../../core/utils/reseau.js';
 import * as segmentsMedia from './SegmentsMedia.js';
 import * as utilitairesLecteur from './UtilitairesLecteur.js';
 import * as compteAReboursEpisode from './CompteAReboursEpisode.js';
+import * as popoversContenu from './PopoversContenu.js';
 class VideoPlayer {
     constructor() {
         this._log = new Logger('VideoPlayer');
@@ -119,6 +120,63 @@ class VideoPlayer {
         // Détection gestuelle
         this._lastTapTime = 0;
         this._lastTapSide = null;
+
+        // Peau 4 : le contenu des popovers vit dans PopoversContenu.js — les
+        // injections ne touchent l'état que par accesseurs et actions, jamais
+        // l'instance elle-même.
+        this._popovers = popoversContenu.creerPopovers({
+            obtenirEl: () => this._el,
+            echapper: (s) => this._escape(s),
+            echapperUrl: (s) => this._escapeUrl(s),
+            obtenirApi: () => this._api,
+            lireAudio: () => ({ flux: this._audioStreams, selection: this._selectedAudioIndex }),
+            choisirAudio: (index, titre) => {
+                this._selectedAudioIndex = index;
+                this._renderAudioSubsPopover();
+                this._showFlashOSD('🔊', titre);
+                this._reloadCurrentSourceWithOptions({ audioStreamIndex: index });
+            },
+            lireSousTitres: () => ({ flux: this._subStreams, selection: this._selectedSubIndex }),
+            choisirSousTitre: (index, titre) => {
+                this._selectedSubIndex = index;
+                this._renderAudioSubsPopover();
+                this._showFlashOSD('💬', `Sous-titres : ${titre}`);
+                this._reloadCurrentSourceWithOptions({ subtitleStreamIndex: index });
+            },
+            decalerSousTitres: (delta) => {
+                if (delta === 0) this._subOffset = 0;
+                else this._subOffset = Math.round((this._subOffset + delta) * 10) / 10;
+                this._applySubtitleOffset();
+                const label = this._el?.querySelector('#sh-popover-offset-val');
+                if (label) label.textContent = `${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s`;
+                this._showFlashOSD('⏱️', `Sous-titres ${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s`);
+            },
+            lireVitesse: () => this._playbackRate,
+            choisirVitesse: (spd) => {
+                this._playbackRate = spd;
+                this._video.playbackRate = spd;
+                localStorage.setItem('SpaceHub_playback_speed', String(spd));
+                this._showFlashOSD('⚡', `Vitesse : ${spd}x`);
+            },
+            lireAspect: () => this._aspectRatios,
+            choisirAspect: (index, libelle) => {
+                this._aspectRatioIndex = index;
+                this._video.style.objectFit = this._aspectRatios[index];
+                this._showFlashOSD('📐', libelle);
+            },
+            lireVersions: () => ({ versions: this._versions || [], sourceActive: this._mediaSourceId }),
+            choisirVersion: (id) => {
+                if (id === this._mediaSourceId) return;
+                this._showFlashOSD('🎞️', 'Changement de version…');
+                // Relance la lecture à la même position, sur l'autre source.
+                this._reloadCurrentSourceWithOptions({ mediaSourceId: id });
+            },
+            lireEpisodes: () => ({ episodes: this._seasonEpisodes, itemCourant: this._currentItem }),
+            choisirEpisode: (episode) => {
+                this._closeAllPopovers();
+                this.play(episode);
+            },
+        });
 
         this._injectStyles();
     }
@@ -1127,203 +1185,32 @@ class VideoPlayer {
     }
 
     _togglePopover(popoverId, triggerBtn) {
-        const popover = this._el?.querySelector(`#${popoverId}`);
-        if (!popover) return;
-
-        const isOpen = popover.classList.contains('open');
-
-        // Fermer tous les popovers ouverts
-        this._closeAllPopovers();
-
-        if (!isOpen) {
-            this._renderPopoversContent();
-            popover.classList.add('open');
-            triggerBtn?.classList.add('active');
-        }
+        // Peau 4 : bascule et contenu extraits vers PopoversContenu.js.
+        this._popovers.toggle(popoverId, triggerBtn);
     }
 
     _closeAllPopovers() {
-        this._el?.querySelectorAll('.sh-player-popover').forEach(p => p.classList.remove('open'));
-        this._el?.querySelectorAll('.sh-dock-pill-btn').forEach(b => b.classList.remove('active'));
+        this._popovers.fermerTous();
     }
 
     _renderPopoversContent() {
-        this._renderAudioSubsPopover();
-        this._renderSettingsPopover();
-        this._renderVersionsPopover();
-        this._renderEpisodesPopover();
+        this._popovers.rendreTous();
     }
 
     _renderAudioSubsPopover() {
-        const audioList = this._el?.querySelector('#sh-player-audio-list');
-        const subsList = this._el?.querySelector('#sh-player-subs-list');
-
-        // 1. Pistes Audio
-        if (audioList) {
-            if (!this._audioStreams || this._audioStreams.length === 0) {
-                audioList.innerHTML = '<div class="sh-popover-empty">Stéréo Standard</div>';
-            } else {
-                audioList.innerHTML = this._audioStreams.map(s => {
-                    const isSel = s.Index === this._selectedAudioIndex;
-                    const lang = (s.Language || 'und').toUpperCase();
-                    const codec = (s.Codec || 'AAC').toUpperCase();
-                    const channels = s.ChannelLayout || (s.Channels ? `${s.Channels} ch` : 'Stéréo');
-                    const title = s.DisplayTitle || s.Title || `${lang} · ${codec} ${channels}`;
-
-                    return `
-                        <div class="sh-popover-item ${isSel ? 'selected' : ''}" tabindex="0" data-nav-focusable="true" data-audio-idx="${s.Index}">
-                            <div class="sh-popover-item-name">${this._escape(title)}</div>
-                            <div class="sh-popover-item-badge">${codec} ${channels}</div>
-                        </div>
-                    `;
-                }).join('');
-
-                audioList.querySelectorAll('.sh-popover-item').forEach(el => {
-                    el.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const selectedIndex = parseInt(el.dataset.audioIdx, 10);
-                        this._selectedAudioIndex = selectedIndex;
-                        this._renderAudioSubsPopover();
-                        const title = el.querySelector('.sh-popover-item-name')?.textContent || 'Audio';
-                        this._showFlashOSD('🔊', title);
-                        this._reloadCurrentSourceWithOptions({ audioStreamIndex: selectedIndex });
-                    });
-                });
-            }
-        }
-
-        // 2. Sous-titres
-        if (subsList) {
-            let subsHtml = `
-                <div class="sh-popover-item ${this._selectedSubIndex === -1 ? 'selected' : ''}" tabindex="0" data-nav-focusable="true" data-sub-idx="-1">
-                    <div class="sh-popover-item-name">Désactivé</div>
-                </div>
-            `;
-
-            if (this._subStreams && this._subStreams.length > 0) {
-                subsHtml += this._subStreams.map(s => {
-                    const isSel = s.Index === this._selectedSubIndex;
-                    const lang = (s.Language || 'und').toUpperCase();
-                    const title = s.DisplayTitle || s.Title || `${lang} ${s.IsForced ? '(Forcé)' : ''}`;
-
-                    return `
-                        <div class="sh-popover-item ${isSel ? 'selected' : ''}" tabindex="0" data-nav-focusable="true" data-sub-idx="${s.Index}">
-                            <div class="sh-popover-item-name">${this._escape(title)}</div>
-                            ${s.IsForced ? '<span class="sh-popover-item-badge" tabindex="0" data-nav-focusable="true">FORCÉ</span>' : ''}
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            subsList.innerHTML = subsHtml;
-
-            subsList.querySelectorAll('.sh-popover-item').forEach(el => {
-                el.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const selectedIndex = parseInt(el.dataset.subIdx, 10);
-                    this._selectedSubIndex = selectedIndex;
-                    this._renderAudioSubsPopover();
-                    const title = el.querySelector('.sh-popover-item-name')?.textContent || 'Sous-titre';
-                    this._showFlashOSD('💬', `Sous-titres : ${title}`);
-                    this._reloadCurrentSourceWithOptions({ subtitleStreamIndex: selectedIndex });
-                });
-            });
-        }
-
-        // 3. Stepper de Synchronisation
-        const syncGrid = this._el?.querySelector('#sh-popover-audio-subs .sh-sync-grid');
-        syncGrid?.querySelectorAll('.sh-sync-btn').forEach(btn => {
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                const delta = parseFloat(btn.dataset.offset);
-                if (delta === 0) this._subOffset = 0;
-                else this._subOffset = Math.round((this._subOffset + delta) * 10) / 10;
-
-                this._applySubtitleOffset();
-                const label = this._el?.querySelector('#sh-popover-offset-val');
-                if (label) label.textContent = `${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s`;
-                this._showFlashOSD('⏱️', `Sous-titres ${this._subOffset > 0 ? '+' : ''}${this._subOffset.toFixed(1)}s`);
-            };
-        });
+        // Peau 4 : contenu extrait vers PopoversContenu.js.
+        this._popovers.rendreAudioSubs();
     }
 
     _renderSettingsPopover() {
-        const speedChips = this._el?.querySelector('#sh-player-speed-chips');
-        const aspectChips = this._el?.querySelector('#sh-player-aspect-chips');
-        const aspectLabels = { contain: '16:9 Adapté', cover: '21:9 Cinéma Scope', fill: 'Plein écran Étiré' };
-
-        if (speedChips) {
-            speedChips.querySelectorAll('[data-speed]').forEach(btn => {
-                btn.onclick = (e) => {
-                    e.stopPropagation();
-                    const spd = parseFloat(btn.dataset.speed);
-                    this._playbackRate = spd;
-                    this._video.playbackRate = spd;
-                    localStorage.setItem('SpaceHub_playback_speed', String(spd));
-                    const speedInd = this._el?.querySelector('#sh-speed-indicator');
-                    if (speedInd) speedInd.textContent = `${spd}x`;
-                    speedChips.querySelectorAll('[data-speed]').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.speed) === spd));
-                    this._showFlashOSD('⚡', `Vitesse : ${spd}x`);
-                };
-            });
-        }
-
-        if (aspectChips) {
-            aspectChips.querySelectorAll('[data-aspect-idx]').forEach(btn => {
-                btn.onclick = (e) => {
-                    e.stopPropagation();
-                    const idx = parseInt(btn.dataset.aspectIdx, 10);
-                    this._aspectRatioIndex = idx;
-                    const mode = this._aspectRatios[idx];
-                    this._video.style.objectFit = mode;
-                    aspectChips.querySelectorAll('[data-aspect-idx]').forEach(b => b.classList.toggle('active', parseInt(b.dataset.aspectIdx, 10) === idx));
-                    this._showFlashOSD('📐', aspectLabels[mode] || mode);
-                };
-            });
-        }
+        // Peau 4 : contenu extrait vers PopoversContenu.js.
+        this._popovers.rendreReglages();
     }
 
-    /**
-     * Propose les versions du média quand il y en a plusieurs.
-     *
-     * Avec le greffon « Merge Versions », un film peut exister en remux 4K de
-     * 40 Go et en 1080p de 6 Go. Le lecteur prenait toujours la première.
-     * Depuis l'extérieur du réseau, ce n'est pas le bon choix — et personne ne
-     * pouvait le corriger.
-     *
-     * La section reste masquée quand il n'y a qu'une version : proposer un
-     * « choix » d'une seule option est du bruit.
-     */
     _renderVersionsPopover() {
-        const section = this._el?.querySelector('#sh-player-versions-section');
-        const chips = this._el?.querySelector('#sh-player-versions-chips');
-        if (!section || !chips) return;
-
-        const versions = this._versions || [];
-        if (versions.length < 2) { section.style.display = 'none'; return; }
-        section.style.display = '';
-
-        chips.innerHTML = versions.map(v => {
-            const actif = v.id === this._mediaSourceId ? 'active' : '';
-            // Taille et débit sont ce qui décide réellement du choix.
-            const details = [
-                v.taille ? `${(v.taille / 1073741824).toFixed(1)} Go` : '',
-                v.debit ? `${Math.round(v.debit / 1000000)} Mb/s` : '',
-            ].filter(Boolean).join(' · ');
-            return `<button class="sh-chip-btn ${actif}" tabindex="0" data-nav-focusable="true"
-                        data-version-id="${this._escape(v.id)}">${this._escape(v.nom)}${details ? ` — ${details}` : ''}</button>`;
-        }).join('');
-
-        chips.querySelectorAll('[data-version-id]').forEach(btn => {
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                const id = btn.dataset.versionId;
-                if (id === this._mediaSourceId) return;
-                this._showFlashOSD('🎞️', 'Changement de version…');
-                // Relance la lecture à la même position, sur l'autre source.
-                this._reloadCurrentSourceWithOptions({ mediaSourceId: id });
-            };
-        });
+        // Peau 4 : contenu extrait vers PopoversContenu.js (la justification
+        // « Merge Versions » vit avec le code, dans le module).
+        this._popovers.rendreVersions();
     }
 
     /**
@@ -1387,45 +1274,8 @@ class VideoPlayer {
     }
 
     _renderEpisodesPopover() {
-        const epList = this._el?.querySelector('#sh-player-episodes-list');
-        if (!epList) return;
-
-        if (this._seasonEpisodes.length === 0) {
-            epList.innerHTML = '<div class="sh-popover-empty">Aucun épisode disponible.</div>';
-            return;
-        }
-
-        const currentId = this._currentItem.Id || this._currentItem.id;
-        epList.innerHTML = this._seasonEpisodes.map(ep => {
-            const isCur = ep.Id === currentId;
-            const sNum = String(ep.ParentIndexNumber || 1).padStart(2, '0');
-            const eNum = String(ep.IndexNumber || 1).padStart(2, '0');
-            const imgUrl = this._escapeUrl(this._api?.getImageUrl(ep.Id, 'Primary', { maxWidth: 200, maxHeight: 112 }) || '');
-
-            return `
-                <div class="sh-popover-episode-row ${isCur ? 'selected' : ''}" data-ep-id="${ep.Id}">
-                    <div class="sh-popover-ep-thumb">
-                        <img decoding="async" src="${imgUrl}" alt="${this._escape(ep.Name)}" onerror="this.style.display='none';"/>
-                        <span class="sh-popover-ep-tag">S${sNum}E${eNum}</span>
-                    </div>
-                    <div class="sh-popover-ep-meta">
-                        <div class="sh-popover-ep-name">${this._escape(ep.Name)}</div>
-                        <div class="sh-popover-ep-dur">${ep.RunTimeTicks ? Math.round(ep.RunTimeTicks / 600000000) + ' min' : ''}</div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        epList.querySelectorAll('.sh-popover-episode-row').forEach(row => {
-            row.addEventListener('click', () => {
-                const epId = row.dataset.epId;
-                const targetEp = this._seasonEpisodes.find(e => e.Id === epId);
-                if (targetEp) {
-                    this._closeAllPopovers();
-                    this.play(targetEp);
-                }
-            });
-        });
+        // Peau 4 : contenu extrait vers PopoversContenu.js.
+        this._popovers.rendreEpisodes();
     }
 
     /**
