@@ -29,6 +29,7 @@ import * as sousTitres from './ApparenceSousTitres.js';
 import { fetchAvecDelai } from '../../core/utils/reseau.js';
 import * as segmentsMedia from './SegmentsMedia.js';
 import * as utilitairesLecteur from './UtilitairesLecteur.js';
+import * as compteAReboursEpisode from './CompteAReboursEpisode.js';
 class VideoPlayer {
     constructor() {
         this._log = new Logger('VideoPlayer');
@@ -95,9 +96,18 @@ class VideoPlayer {
         this._seasonEpisodes = [];
         this._nextEpisode = null;
         this._prevEpisode = null;
-        this._nextEpCountdownInterval = null;
-        this._nextEpRemaining = 5;
         this._nextEpCancelled = false;
+        // Peau 3 : le minuteur du compte à rebours vit dans
+        // CompteAReboursEpisode.js, en injections étroites (DOM et lecture).
+        this._nextEpCompteARebours = compteAReboursEpisode.creerCompteARebours({
+            surTick: (restant) => {
+                const secTxt = this._el?.querySelector('#sh-next-ep-sec');
+                if (secTxt) secTxt.textContent = String(restant);
+            },
+            surZero: () => {
+                if (this._nextEpisode && !this._nextEpCancelled) this.play(this._nextEpisode);
+            },
+        });
 
         // Tiroir Latéral
         this._activeDrawerTab = 'audio';
@@ -242,9 +252,8 @@ class VideoPlayer {
         // s'efface d'elle-même — sinon la lecture repartirait, en fin de média,
         // sur un titre sans rapport avec ce que la personne vient de choisir.
         (this._queue || svc.queue())?.syncTo?.(item);
-        clearInterval(this._nextEpCountdownInterval);
-        this._nextEpCountdownInterval = null;
-        this._nextEpRemaining = 8;
+        // Un titre qui change doit tuer le minuteur de la carte précédente.
+        this._nextEpCompteARebours?.arreter();
         const itemId = item.Id || item.id;
         this._log.info(`🎬 Lancement Grand Cinema Ultra-Sleek pour "${item.Name || item.title}" (ID: ${itemId})`);
 
@@ -1744,7 +1753,7 @@ class VideoPlayer {
         if (momentVenu && this._nextEpisode) {
             this._showNextEpCard();
             // Le décompte reste calé sur la fin réelle du média.
-            if (rem <= 8 && !this._nextEpCancelled && !this._nextEpCountdownInterval) {
+            if (rem <= 8 && !this._nextEpCancelled && !this._nextEpCompteARebours?.actif) {
                 this._startNextEpCountdown();
             }
         } else {
@@ -1764,52 +1773,37 @@ class VideoPlayer {
     }
 
     _showNextEpCard() {
+        // Peau 3 : le formatage du titre vit dans CompteAReboursEpisode.js.
         const card = this._el?.querySelector('#sh-next-ep-card');
         if (!card || !this._nextEpisode || this._nextEpCancelled) return;
 
         card.classList.add('visible');
         const img = card.querySelector('#sh-next-ep-img');
         const title = card.querySelector('#sh-next-ep-title');
-        if (title) {
-            title.textContent = `S${String(this._nextEpisode.ParentIndexNumber || 1).padStart(2, '0')}E${String(this._nextEpisode.IndexNumber || 1).padStart(2, '0')} · « ${this._nextEpisode.Name || 'Épisode suivant'} »`;
-        }
+        if (title) title.textContent = compteAReboursEpisode.formaterTitreEpisode(this._nextEpisode);
         if (img && this._api) {
             img.src = this._api.getImageUrl(this._nextEpisode.Id, 'Primary', { maxWidth: 240, maxHeight: 135 });
         }
     }
 
     _startNextEpCountdown() {
+        // Peau 3 : la mécanique du minuteur vit dans CompteAReboursEpisode.js.
         const card = this._el?.querySelector('#sh-next-ep-card');
         if (!card || !this._nextEpisode || this._nextEpCancelled) return;
 
         this._showNextEpCard();
-        const secTxt = card.querySelector('#sh-next-ep-sec');
-        this._nextEpRemaining = 5;
-        secTxt.textContent = '5';
-
-        if (this._nextEpCountdownInterval) clearInterval(this._nextEpCountdownInterval);
-        this._nextEpCountdownInterval = setInterval(() => {
-            this._nextEpRemaining--;
-            if (secTxt) secTxt.textContent = String(this._nextEpRemaining);
-            if (this._nextEpRemaining <= 0) {
-                clearInterval(this._nextEpCountdownInterval);
-                this._nextEpCountdownInterval = null;
-                if (this._nextEpisode && !this._nextEpCancelled) this.play(this._nextEpisode);
-            }
-        }, 1000);
+        this._nextEpCompteARebours.demarrer();
     }
 
     _cancelNextEpCountdown() {
         this._nextEpCancelled = true;
-        if (this._nextEpCountdownInterval) clearInterval(this._nextEpCountdownInterval);
+        this._nextEpCompteARebours.arreter();
         this._hideNextEpCard();
     }
 
     _hideNextEpCard() {
-        if (this._nextEpCountdownInterval) {
-            clearInterval(this._nextEpCountdownInterval);
-            this._nextEpCountdownInterval = null;
-        }
+        // Peau 3 : l'arrêt du minuteur appartient au module, la carte au lecteur.
+        this._nextEpCompteARebours.arreter();
         this._el?.querySelector('#sh-next-ep-card')?.classList.remove('visible');
     }
 

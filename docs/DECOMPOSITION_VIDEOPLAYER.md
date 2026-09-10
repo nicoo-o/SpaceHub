@@ -31,6 +31,7 @@ par les gabarits `*.template.js`.
 | 0 | Filet de façade : `tests/FacadeLecteur.test.js` (3 tests — la liste exacte des membres appelés de l'extérieur, plus la sémantique d'état `_segmentsMedia` : `null` = pas encore interrogé) | PR #13, commit squashé `402979a` | ✅ 2026-09-09 |
 | 1 | Segments média : `MediaSegments` (typés Intro/Outro/Recap…), priorités, repli chapitres, skip actionnable → `jellyfin/player/SegmentsMedia.js` (192 lignes). Talons conservés : `_chargerSegmentsMedia`, `_segment`, `_segmentActionnableA`, `_passerSegment`, `_getIntroInterval`, `_performSkipIntro`. Budget : 2578 → **2537** | PR #13, commit squashé `402979a` | ✅ 2026-09-09 |
 | 2 | Helpers purs : formatage de temps, échappement HTML, assainissement d'URL, animation bouton → `jellyfin/player/UtilitairesLecteur.js`. Talons conservés : `_formatTime`, `_escape`, `_escapeUrl`, `_animateButtonSpring`. Budget : 2537 → **2524** | PR #20 | ✅ 2026-09-10 |
+| 3 | Compte à rebours « épisode suivant » : `formaterTitreEpisode` (titre SxxExx) et la mécanique du minuteur (départ à 5, décrément, passage auto à zéro, annulation, redémarrage sans intervalle fantôme) → `jellyfin/player/CompteAReboursEpisode.js` (93 lignes). Talons conservés : `_showNextEpCard`, `_startNextEpCountdown`, `_cancelNextEpCountdown`, `_hideNextEpCard`. Budget : 2524 → **2518** | (branche `decomp/videoplayer-peel3`) | ✅ 2026-09-10 |
 
 Note sur les références : les deux commits d'étape (`215b32f`, `f118ffa`)
 existent dans la branche de travail, supprimée après la fusion squash — la
@@ -42,6 +43,11 @@ Preuves de l'étape 1 : `tests/SegmentsMedia.test.js` (14 tests) passe
 chaîne complète verte (564 tests au total, 27/27 e2e à l'époque, plafond 2537
 verrouillé).
 
+Preuves de l'étape 3 : `tests/CompteAReboursEpisode.test.js` (9 tests) exerce
+la mécanique du minuteur sur une horloge fausse — aucun test existant n'a
+changé, le contrat de façade tient, budget 2518 verrouillé dans le même
+commit que la peau.
+
 ## Ordre d'extraction confirmé pour la suite
 
 Chaque peau ci-dessous est une responsabilité cohésive déjà repérable dans le
@@ -52,7 +58,7 @@ touche ni la session réseau ni le DOM du shell.
 | Ordre | Étape | Périmètre candidat | Pourquoi cet ordre |
 |---|---|---|---|
 | — | ~~2~~ **Formatage & petites puretés** | ~~`_formatTime`, `_escapeUrl`, `_animateButtonSpring`, `_triggerRippleSkip`, utilitaires de ticks~~ | ✅ **Atterrie (peau 2, PR #20)** — ajustée : `_triggerRippleSkip` reste dans la classe (comportement câblé, pas une pureté) ; `_escape` rejoint le lot. |
-| 3 | **Compte à rebours « épisode suivant »** | `_showNextEpCard`, `_startNextEpCountdown`, `_cancelNextEpCountdown`, `_hideNextEpCard` | Sous-système autonome avec un état local minuscule et une frontière d'événements nette ; la logique de minuterie se teste très bien hors classe. |
+| — | ~~3~~ **Compte à rebours « épisode suivant »** | ~~`_showNextEpCard`, `_startNextEpCountdown`, `_cancelNextEpCountdown`, `_hideNextEpCard`~~ | ✅ **Atterrie (peau 3, branche `decomp/videoplayer-peel3`)** — le minuteur (départ à 5, décrément par seconde, passage auto à zéro) est extrait en injections étroites (`surTick`, `surZero`), testé sur horloge fausse ; le titre SxxExx est une fonction pure. |
 | 4 | **Popovers & tirage du contenu** | `_togglePopover`, `_closeAllPopovers`, `_render*Popover` (audio/sous-titres, réglages, versions, épisodes) | Le plus gros gain de lignes, mais plus de surface DOM : à faire quand le filet a déjà servi deux fois. Le contenu lui-même (_renderAudioSubsPopover & co) peut se découper en deux sous-peaux si besoin. |
 | 5 | **OSD & visibilité des contrôles** | `_showFlashOSD`, `_onUserActivity`, `_showControls`, `_hideControls`, `_resetIdleTimer` | Cohésif (tout l'axe « activité/idle ») mais câblé aux mêmes événements que les popovers : après eux. |
 | 6 | **Rapport de session Jellyfin** | `_reportPlaybackStart`, `_startProgressReporting`, `_reportPlaybackStopped`, `_publierPosition`, `_brancherSessionMedia` | Dépend de l'auth et du réseau, pas de l'UI ; à extraire d'un bloc car ces méthodes se tiennent (cycle de vie complet d'une session). |
