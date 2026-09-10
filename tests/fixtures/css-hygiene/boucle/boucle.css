@@ -1,0 +1,9 @@
+/* Fixture fautive — une boucle mesurée en secondes sur un jeton --sh-dur-*.
+   L'échelle --sh-dur-* décrit des transitions ; une boucle doit utiliser
+   un jeton --sh-loop-* (tokens.css). */
+.sh-boucle { animation: sh-spin var(--sh-dur-3) linear infinite; }
+
+@keyframes sh-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}

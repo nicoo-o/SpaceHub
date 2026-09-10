@@ -240,7 +240,7 @@ export class SyncPlay {
 
     // ─── Interne ────────────────────────────────────────────────────────────
 
-    _video() { return this._lecteur()?._video || null; }
+    _video() { return this._lecteur()?.videoElement || null; }
 
     _demarrerA(positionS, { reprendre = true } = {}) {
         const video = this._video();

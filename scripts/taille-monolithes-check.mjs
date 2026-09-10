@@ -53,11 +53,20 @@ const BUDGETS = {
     // Jellyfin & session média système → jellyfin/player/RapportSession.js).
     // 2524 → 2476 le 10 septembre 2026 : peau 7 (chargement de la source →
     // jellyfin/player/ChargementSource.js) — dernière peau du plan.
+    // +5 lignes d'INTERFACE PURE : la paire d'accesseurs publics `queue`
+    // (get/set) et `videoElement` remplace les tolérances documentées
+    // `_queue`/`_video` du contrat de façade.
+    // Fusion des cinq peaux : le fichier mesure 2212 lignes — le plafond est
+    // recalé dessus (2578 → 2212), la fusion elle-même est la preuve de la
+    // descente.
     // Le budget se baisse dans le commit qui prouve la descente, jamais
     // au fil de l'eau.
-    'jellyfin/player/VideoPlayer.js': 2374,
+    'jellyfin/player/VideoPlayer.js': 2212,
     'core/SpatialNavigation.js': 1750,
-    'ui/components/SettingsPanel.js': 1624,
+    // 1624 → 1643 le 10 septembre 2026 : +19 lignes — le réglage « mises à
+    // jour automatiques » (opt-out Windows) appartient aux réglages, pas à un
+    // module satellite ; la préférence et son pont sont documentés ailleurs.
+    'ui/components/SettingsPanel.js': 1643,
     'ui/components/CardBuilder.js': 1403,
     'jellyfin/search/UnifiedSearch.js': 1366,
     'ui/components/ModalSlideUpSheet.js': 1350,

@@ -126,7 +126,9 @@ describe('Minuteur de sommeil', () => {
             removeEventListener(t, fn) { this._ecouteurs[t] = (this._ecouteurs[t] || []).filter(f => f !== fn); },
             emettre(t) { for (const fn of [...(this._ecouteurs[t] || [])]) fn(); },
         };
-        lecteur = { _video: video, close: vi.fn() };
+        // Le faux lecteur expose l'API PUBLIQUE : l'élément vidéo se lit par
+        // `videoElement`, la file par `queue` — plus jamais par un underscore.
+        lecteur = { videoElement: video, close: vi.fn() };
         toaster = { show: vi.fn() };
         minuteur = new MinuteurSommeil({ lecteur: () => lecteur, toaster });
     });
@@ -194,7 +196,7 @@ describe('Minuteur de sommeil', () => {
     });
 
     it('refuse le mode « fin du titre » quand rien ne joue', () => {
-        lecteur._video = null;
+        lecteur.videoElement = null;
         expect(minuteur.armer({ mode: Mode.FIN_TITRE })).toBe(false);
         expect(minuteur.actif).toBe(false);
     });

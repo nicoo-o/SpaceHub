@@ -556,8 +556,9 @@ async function init() {
         SpaceHub.player = new VideoPlayer();
         // File d'attente : vide au démarrage, donc sans effet tant que personne
         // n'y met rien. Le lecteur retombe alors sur l'enchaînement d'épisodes.
+        // L'affectation passe par le setter public `queue` de VideoPlayer :
+        // plus besoin du miroir `_queue` — l'API, c'est l'accesseur.
         SpaceHub.player.queue = new PlayQueue({ eventBus });
-        SpaceHub.player._queue = SpaceHub.player.queue;
         services.register('player.queue', SpaceHub.player.queue);
         // Lecture à distance : envoie un ordre à un autre client Jellyfin.
         // Aucun flux ne passe par ce navigateur, c'est le serveur qui relaie.
@@ -581,7 +582,7 @@ async function init() {
             api,
             // Le lecteur peut ne pas être ouvert : la fonction renvoie alors
             // null, et la boucle d'animation ne fait rien plutôt que de jeter.
-            media: () => SpaceHub.player?._video || null,
+            media: () => SpaceHub.player?.videoElement || null,
         });
         services.register('musique.paroles', SpaceHub.musique.paroles);
         services.register('musique.radio', SpaceHub.musique.radio);

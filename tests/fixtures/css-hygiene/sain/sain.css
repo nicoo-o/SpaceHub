@@ -1,0 +1,30 @@
+/* Fixture saine — chaque règle du contrôle d'hygiène doit l'accepter. */
+
+.sh-test {
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out);
+    animation: sh-test-in var(--sh-dur-3) var(--sh-ease-out) both;
+}
+
+.sh-test-loop {
+    animation: sh-test-spin var(--sh-loop-spin) linear infinite;
+}
+
+.sh-test-important {
+    /* Priorités terminales : les seules licites. */
+    transition: none !important;
+    margin: 0 !important;
+}
+
+.sh-test-ombre {
+    box-shadow: 0 4px 12px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5);
+}
+
+@keyframes sh-test-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes sh-test-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}

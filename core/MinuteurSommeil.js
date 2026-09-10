@@ -81,7 +81,7 @@ export class MinuteurSommeil {
         this.annuler();
 
         if (mode === Mode.FIN_TITRE) {
-            const video = this._lecteur()?._video;
+            const video = this._lecteur()?.videoElement;
             if (!video) {
                 this._dire("Rien ne joue : le minuteur « fin du titre » n'a rien à attendre.");
                 return false;
@@ -118,7 +118,7 @@ export class MinuteurSommeil {
             // Retirer l'écouteur même s'il est `once` : un titre qui ne se
             // termine jamais — parce qu'on a fermé le lecteur — laisserait
             // sinon une fermeture vivante sur un élément détaché.
-            this._lecteur()?._video?.removeEventListener?.('ended', this._surFinTitre);
+            this._lecteur()?.videoElement?.removeEventListener?.('ended', this._surFinTitre);
             this._surFinTitre = null;
         }
         const etait = this._mode !== null;
@@ -138,7 +138,7 @@ export class MinuteurSommeil {
      * d'exactitude que personne ne demande.
      */
     _echeance() {
-        const video = this._lecteur()?._video;
+        const video = this._lecteur()?.videoElement;
         const restantTitreMs = video && Number.isFinite(video.duration)
             ? Math.max(0, (video.duration - (video.currentTime || 0)) * 1000)
             : null;
@@ -161,7 +161,7 @@ export class MinuteurSommeil {
         const lecteur = this._lecteur();
         // On met en PAUSE avant de fermer : fermer d'abord laisserait le son
         // continuer une fraction de seconde sur certains navigateurs.
-        try { lecteur?._video?.pause?.(); } catch { /* sans effet */ }
+        try { lecteur?.videoElement?.pause?.(); } catch { /* sans effet */ }
         lecteur?.close?.();
         this._dire('Bonne nuit.');
     }

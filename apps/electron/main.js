@@ -21,10 +21,10 @@
  *     externes ne doivent jamais naviguer le shell.
  */
 
-import { app, BrowserWindow, Menu, shell } from 'electron';
+import { app, BrowserWindow, Menu, shell, ipcMain } from 'electron';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 const RACINE = dirname(fileURLToPath(import.meta.url));
 const INDEX = join(RACINE, 'www', 'index.html');
@@ -34,6 +34,77 @@ const INDEX = join(RACINE, 'www', 'index.html');
 app.commandLine.appendSwitch('disable-http-cache');
 
 let fenetre = null;
+
+// ─── Mises à jour automatiques (décision docs/SIGNATURE_WINDOWS_ET_AUTO_UPDATE.md) ─
+//
+// Étape 2 de la décision : electron-updater branché sur GitHub Releases
+// (latest.yml + blockmaps joints à la release par le workflow Paquets).
+// L'import est CONDITIONNEL : la dépendance n'existe que dans le paquet
+// Electron ; le shell doit démarrer sans elle (développement, paquets
+// assemblés à la main). Le canal est celui du build (latest pour les
+// versions stables), détecté par electron-updater lui-même.
+//
+// Ordre imposé par la décision : la signature Authenticode d'abord
+// (étape 1, docs/SIGNATURE_WINDOWS_ET_AUTO_UPDATE.md) — c'est la
+// vérification `verifyUpdateCodeSignature` qui rend ce canal sûr.
+let autoUpdater = null;
+let majActives = true;   // défaut : activées (opt-out dans les réglages)
+
+const FICHIER_MAJ = () => join(app.getPath('userData'), 'auto-update.json');
+
+function chargerPreferenceMaj() {
+    try {
+        const brut = readFileSync(FICHIER_MAJ(), 'utf8');
+        majActives = JSON.parse(brut).actif !== false;
+    } catch {
+        // Fichier absent ou illisible : on garde le défaut (activées).
+    }
+}
+
+function verifierMisesAJour() {
+    if (!majActives || !autoUpdater) return;
+    autoUpdater.checkForUpdates().catch((err) => {
+        // Échec réseau, release sans métadonnées : jamais un crash, jamais
+        // une fenêtre — la prochaine vérification repartira.
+        console.log('[SpaceHub:AutoUpdate] vérification impossible :', err?.message || err);
+    });
+}
+
+/** Planifie le prochain contrôle avec un jitter aléatoire (évite les pics). */
+function planifierControle(delaiMs) {
+    setTimeout(() => {
+        verifierMisesAJour();
+        planifierControle(6 * 60 * 60 * 1000 + Math.floor(Math.random() * 10 * 60 * 1000));
+    }, delaiMs);
+}
+
+function brancherAutoUpdate() {
+    import('electron-updater').then(({ autoUpdater: updater }) => {
+        autoUpdater = updater;
+        autoUpdater.autoDownload = true;          // télécharge en arrière-plan
+        autoUpdater.autoInstallOnAppQuit = true;  // installe à la fermeture, jamais pendant
+        autoUpdater.on('update-downloaded', () => {
+            console.log('[SpaceHub:AutoUpdate] mise à jour téléchargée — installation à la fermeture.');
+        });
+        // Première vérification au démarrage, décalée de 0 à 10 min pour ne
+        // pas percuter le lancement ; puis toutes les 6 h avec jitter.
+        planifierControle(Math.floor(Math.random() * 10 * 60 * 1000));
+    }).catch(() => {
+        // Dépendance absente : pas d'auto-update, rien de plus à faire.
+    });
+}
+
+// La page web (réglages) transmet l'opt-out par le pont préchargé.
+ipcMain.on('auto-update:definir-actif', (_event, actif) => {
+    majActives = actif === true;
+    try {
+        writeFileSync(FICHIER_MAJ(), JSON.stringify({ actif: majActives }));
+    } catch {
+        // userData illisible : la préférence vit en mémoire jusqu'à la fin.
+    }
+    console.log(`[SpaceHub:AutoUpdate] mises à jour automatiques ${majActives ? 'activées' : 'désactivées'}.`);
+    if (autoUpdater && majActives) verifierMisesAJour();
+});
 
 function creerFenetre() {
     fenetre = new BrowserWindow({
@@ -50,6 +121,8 @@ function creerFenetre() {
             nodeIntegrationInWorker: false,
             sandbox: true,
             spellcheck: false,
+            // Le SEUL pont (preload.cjs) : la préférence d'auto-update.
+            preload: join(RACINE, 'preload.cjs'),
         },
     });
 
@@ -90,6 +163,9 @@ if (!verrou) {
             fenetre.focus();
         }
     });
+
+    chargerPreferenceMaj();
+    brancherAutoUpdate();
 
     app.whenReady().then(creerFenetre);
 

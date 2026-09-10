@@ -1,0 +1,37 @@
+/* Fixture fautive — onze backdrop-filter (plafond : 10) et un « transition: all ». */
+.sh-a {
+    backdrop-filter: blur(2px);
+}
+.sh-b {
+    backdrop-filter: blur(2px);
+}
+.sh-c {
+    backdrop-filter: blur(2px);
+}
+.sh-d {
+    backdrop-filter: blur(2px);
+}
+.sh-e {
+    backdrop-filter: blur(2px);
+}
+.sh-f {
+    backdrop-filter: blur(2px);
+}
+.sh-g {
+    -webkit-backdrop-filter: blur(2px);
+}
+.sh-h {
+    -webkit-backdrop-filter: blur(2px);
+}
+.sh-i {
+    -webkit-backdrop-filter: blur(2px);
+}
+.sh-j {
+    -webkit-backdrop-filter: blur(2px);
+}
+.sh-k {
+    -webkit-backdrop-filter: blur(2px);
+}
+.sh-l {
+    transition: all 0.2s ease;
+}

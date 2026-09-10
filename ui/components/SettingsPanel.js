@@ -166,6 +166,19 @@ class SettingsPanel {
                             <p id="cfg-config-result" class="sh-form-hint" role="status" aria-live="polite"></p>
                         </div>
 
+                        <!-- Auto-update Windows (opt-out, transmis au processus
+                             principal par preload.cjs ; no-op en navigateur). -->
+                        <div class="sh-form-group">
+                            <label>
+                                <input type="checkbox" id="cfg-auto-update" ${s?.get('autoUpdate.enabled', true) !== false ? 'checked' : ''}/>
+                                Mises à jour automatiques (exécutable Windows)
+                            </label>
+                            <p class="sh-form-hint">
+                                Vérifie au démarrage puis toutes les 6 h ; téléchargement en
+                                arrière-plan, installation à la fermeture. Sans effet en navigateur.
+                            </p>
+                        </div>
+
                         <!-- C3 — Apparence des sous-titres.
                              C'est de l'accessibilité avant d'être du confort :
                              un sous-titre blanc sans fond sur une scène de
@@ -1593,6 +1606,12 @@ class SettingsPanel {
 
             s.set('notifications.enabled', el.querySelector('#cfg-notif-enabled')?.checked);
             s.set('notifications.browser', el.querySelector('#cfg-notif-browser')?.checked);
+
+            // Auto-update Windows : transmis au processus principal par
+            // preload.cjs — no-op en navigateur.
+            const autoUpdate = el.querySelector('#cfg-auto-update')?.checked !== false;
+            s.set('autoUpdate.enabled', autoUpdate);
+            window.spacehubAutoUpdate?.definirActif?.(autoUpdate);
             s.set('notifications.discord.enabled', el.querySelector('#cfg-notif-discord-enabled')?.checked);
             s.set('notifications.discord.webhookUrl', el.querySelector('#cfg-notif-discord-url')?.value?.trim());
             s.set('notifications.telegram.enabled', el.querySelector('#cfg-notif-telegram-enabled')?.checked);

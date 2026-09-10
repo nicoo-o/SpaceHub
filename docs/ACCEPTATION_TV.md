@@ -115,11 +115,11 @@ jouable. Chaque case se cochet devant l'écran — D-pad = croix directionnelle,
 | N11 | Veille TV puis réveil : l'app reste utilisable, session non perdue | ☐ |
 | N12 | Accueil TV puis retour dans l'app : reprise correcte (ni redémarrage lourd ni écran mort) | ☐ |
 
-Captures utiles si un doute doit être départagé plus tard :
+Captures utiles si un doute doit être départagé plus tard — en une commande :
 
 ```bash
-adb shell screencap -p /sdcard/acceptation.png && adb pull /sdcard/acceptation.png .
-adb logcat -d | grep -iE "anr|fatal|spacehub" | tail -40
+node scripts/triage-tv.mjs IP_DE_LA_TV
+# → build/triage-tv/AAAA-MM-JJ-HHmmss/ : logcat-filtre.txt (ANR/fatal/SpaceHub) + ecran.png
 ```
 
 ## ÉTAPE 5 — VERDICT ET CONSIGNATION

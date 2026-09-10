@@ -234,6 +234,12 @@ class VideoPlayer {
         return svc.auth();
     }
 
+    // API publiques (ContratFacade.js) : `queue` — paire get/set alimentée
+    // par SpaceHub au démarrage ; `videoElement` — lecture seule.
+    get queue() { return this._queue; }
+    set queue(valeur) { this._queue = valeur; }
+    get videoElement() { return this._video; }
+
     get _api() {
         return svc.jellyfinApi();
     }
@@ -2198,9 +2204,8 @@ handleNavAction(action) {
     }
 
     _injectStyles() {
-        // Les styles de ce composant vivent désormais dans VideoPlayer.css,
-        // importé en haut du fichier et empaqueté par Vite. Cette méthode est
-        // conservée en no-op pour ne casser aucun appelant existant.
+        // Les styles vivent dans VideoPlayer.css (importé en haut du fichier) ;
+        // no-op conservé pour ne casser aucun appelant.
     }
 }
 

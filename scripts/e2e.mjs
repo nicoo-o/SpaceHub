@@ -1297,18 +1297,44 @@ await scenario('La modale slide-up s\'anime réellement à l\'ouverture et à la
             requestAnimationFrame(boucle);
         });
 
-        const S_ = S;
-        window.__feuille = S_.ui.modalSlideUpSheet;
+        // Témoin jamais cassé (le soulèvement de .sh-card, déclaré propre
+        // dès l'origine) : si la feuille n'anime pas mais que le témoin
+        // anime, c'est la modale qui a régressé ; si le témoin ne répond
+        // pas non plus, c'est l'environnement — le harnais est en cause.
+        const temoin = document.createElement('div');
+        temoin.className = 'sh-card-grid';
+        temoin.style.cssText = 'position:fixed;top:120px;left:40px;z-index:5;';
+        temoin.innerHTML = '<div class="sh-card sh-card--poster" id="e2e-temoin-modal" style="width:196px;height:294px;"><div class="sh-card__image-wrap" style="height:100%;"></div></div>';
+        document.body.appendChild(temoin);
+        window.__echantillonner = (id, duree) => new Promise((resoudre) => {
+            const el = document.getElementById(id);
+            const valeurs = new Set();
+            const t0 = performance.now();
+            const boucle = () => {
+                const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
+                valeurs.add(`${Math.round(m.a * 1000)}/${Math.round(m.f * 1000)}`);
+                if (performance.now() - t0 < duree) requestAnimationFrame(boucle);
+                else resoudre(valeurs.size);
+            };
+            requestAnimationFrame(boucle);
+        });
+
+        window.__feuille = S.ui.modalSlideUpSheet;
         if (!window.__feuille) return { erreur: 'SpaceHub.ui.modalSlideUpSheet absent' };
         return { etat };
     });
     if (r.erreur) { await p.context().close(); return { ok: false, detail: r.erreur }; }
 
     // Ouverture : sampler d'abord, ouvrir ENSUITE par la vraie méthode —
-    // l'échantillonnage couvre ainsi le tout premier frame du mouvement.
+    // l'échantillonnage couvre ainsi le tout premier frame du mouvement. Le
+    // témoin .sh-card est survolé pendant la même fenêtre pour distinguer
+    // une régression de la modale d'un environnement incapable d'animer.
+    const promesseTemoin = p.evaluate(() => window.__echantillonner('e2e-temoin-modal', 700));
+    await p.hover('#e2e-temoin-modal');
     const promesseOuverture = p.evaluate(() => window.__echantillonnerFeuille(700));
     await p.evaluate(() => window.__feuille.open({ Id: '', title: 'E2E — Fable animée', Type: 'Movie' }));
     const nbOuverture = await promesseOuverture;
+    const nbTemoin = await promesseTemoin;
     await attendre(600);   // 360 ms de transform + marge
     const etatOuvert = await p.evaluate(() => ({
         ouverte: !!document.querySelector('.sh-slideup-sheet--open'),
@@ -1333,10 +1359,19 @@ await scenario('La modale slide-up s\'anime réellement à l\'ouverture et à la
         && animer(nbOuverture) && animer(nbFermeture)
         && etatOuvert.ouverte && etatOuvert.voile && etatOuvert.opacite > 0.9
         && !etatFerme.ouverte && etatFerme.opacite < 0.1;
+    if (!ok && !animer(nbTemoin)) {
+        // Le témoin ne répond pas non plus : c'est l'environnement qui ne
+        // sait pas animer ici — le harnais est en cause, pas la modale.
+        return { ok: false,
+                 detail: `HARNAIS EN CAUSE : le témoin .sh-card n'anime pas non plus (${nbTemoin} valeurs). `
+                    + `L'environnement ne peut pas animer — la modale n'est pas jugée. `
+                    + `déclaration calculée ${r.etat.propriete} ${r.etat.duree}s · ouverture ${nbOuverture} · fermeture ${nbFermeture}` };
+    }
     return {
         ok,
         detail: `déclaration calculée ${r.etat.propriete} ${r.etat.duree}s `
             + `· ouverture ${nbOuverture} valeurs distinctes · fermeture ${nbFermeture} `
+            + `· témoin .sh-card ${nbTemoin} `
             + `· états ouverte=${etatOuvert.ouverte}/voile=${etatOuvert.voile}/fermée=${!etatFerme.ouverte}`,
     };
 });
@@ -1388,6 +1423,30 @@ await scenario('L\'île dynamique s\'anime réellement au déploiement et au rep
             };
             requestAnimationFrame(boucle);
         });
+
+        // Témoin jamais cassé (le soulèvement de .sh-card), comme pour la
+        // modale : il sera survolé pendant la fenêtre de repli — le verdict
+        // distinguera une régression de l'île d'un environnement qui ne
+        // sait pas animer. z-index très haut : derrière une session, les
+        // couches du shell (dock, voiles) couvrent l'écran ; le témoin doit
+        // rester le destinataire du pointeur.
+        const temoin = document.createElement('div');
+        temoin.className = 'sh-card-grid';
+        temoin.style.cssText = 'position:fixed;top:120px;left:40px;z-index:2147483000;';
+        temoin.innerHTML = '<div class="sh-card sh-card--poster" id="e2e-temoin-ile" style="width:196px;height:294px;"><div class="sh-card__image-wrap" style="height:100%;"></div></div>';
+        document.body.appendChild(temoin);
+        window.__echantillonner = (id, duree) => new Promise((resoudre) => {
+            const el = document.getElementById(id);
+            const valeurs = new Set();
+            const t0 = performance.now();
+            const boucle = () => {
+                const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
+                valeurs.add(`${Math.round(m.a * 1000)}/${Math.round(m.f * 1000)}`);
+                if (performance.now() - t0 < duree) requestAnimationFrame(boucle);
+                else resoudre(valeurs.size);
+            };
+            requestAnimationFrame(boucle);
+        });
         return { etat };
     });
     if (r.erreur) { await p.context().close(); return { ok: false, detail: r.erreur }; }
@@ -1402,11 +1461,15 @@ await scenario('L\'île dynamique s\'anime réellement au déploiement et au rep
         largeur: Math.round(parseFloat(getComputedStyle(document.querySelector('.sh-dynamic-island')).width)),
     }));
 
-    // Repli : le pointeur quitte — le délai intentionnel de 240 ms précède
-    // la transition de retour ; 950 ms de fenêtre couvrent l'ensemble.
-    await p.mouse.move(720, 700);
+    // Repli : le pointeur quitte l'île POUR le témoin .sh-card — le délai
+    // intentionnel de 240 ms précède la transition de retour, et le témoin
+    // (jamais cassé) prouve que l'environnement sait animer pendant la même
+    // fenêtre ; 950 ms couvrent l'ensemble.
     const promesseRepli = p.evaluate(() => window.__echantillonnerIle(950));
+    const promesseTemoin = p.evaluate(() => window.__echantillonner('e2e-temoin-ile', 950));
+    await p.hover('#e2e-temoin-ile');
     const nbRepli = await promesseRepli;
+    const nbTemoin = await promesseTemoin;
     await attendre(500);
     const etatReplie = await p.evaluate(() => ({
         deployee: !!document.querySelector('.sh-island--expanded'),
@@ -1419,10 +1482,19 @@ await scenario('L\'île dynamique s\'anime réellement au déploiement et au rep
         && animer(nbDeploiement) && animer(nbRepli)
         && etatDeploye.deployee && etatDeploye.largeur > 400
         && !etatReplie.deployee;
+    if (!ok && !animer(nbTemoin)) {
+        // Le témoin ne répond pas non plus : c'est l'environnement qui ne
+        // sait pas animer ici — le harnais est en cause, pas l'île.
+        return { ok: false,
+                 detail: `HARNAIS EN CAUSE : le témoin .sh-card n'anime pas non plus (${nbTemoin} valeurs). `
+                    + `L'environnement ne peut pas animer — l'île n'est pas jugée. `
+                    + `déclaration calculée ${r.etat.propriete} ${r.etat.duree}s · déploiement ${nbDeploiement} · repli ${nbRepli}` };
+    }
     return {
         ok,
         detail: `déclaration calculée ${r.etat.propriete} ${r.etat.duree}s `
             + `· déploiement ${nbDeploiement} valeurs distinctes · repli ${nbRepli} `
+            + `· témoin .sh-card ${nbTemoin} `
             + `· largeur déployée ${etatDeploye.largeur}px · replié=${!etatReplie.deployee}`,
     };
 });

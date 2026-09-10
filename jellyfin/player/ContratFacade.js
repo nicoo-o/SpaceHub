@@ -39,37 +39,47 @@ export const MEMBRES_APPELABLES = Object.freeze([
 
 /**
  * Champs d'état que l'extérieur peut lire, présents dès le constructeur.
- * `_video` est une tolérance DOCUMENTÉE : des atteintes existantes que le
- * filet enregistre — candidates à une vraie API publique si la décomposition
- * les rend faciles à exposer proprement.
  */
 export const CHAMPS_TOLERES = Object.freeze([
     '_segmentsMedia',   // null = pas encore interrogé ; [] = interrogé, rien
     '_segmentsPourItem',
     '_intervalleIntro',
     '_segmentCourant',
-    '_video',           // élément <video> — CibleDistante, MinuteurSommeil, SpaceHub
     '_playbackOptions', // lecture de isTrailer — TrailerService
 ]);
 
 /**
- * Champs injectés APRÈS construction par l'intégrateur — absents d'une
- * instance neuve, ce qui est normal. `_queue` est le miroir de l'accesseur
- * public `queue`, affecté par core/SpaceHub.js au démarrage.
+ * Propriétés publiques (accesseurs) que l'extérieur peut lire/écrire.
+ * `videoElement` est en lecture seule (getter) : l'élément <video> appartient
+ * au lecteur, personne ne doit pouvoir le remplacer. `queue` est une paire
+ * get/set alimentée par core/SpaceHub.js au démarrage.
  */
-export const CHAMPS_INJECTES = Object.freeze([
-    '_queue',
-]);
-
-/** Propriétés publiques (accesseurs) que l'extérieur peut lire/écrire. */
 export const PROPRIETES_PUBLIQUES = Object.freeze([
     'queue',
+    'videoElement',
 ]);
+
+/**
+ * HISTORIQUE — ce qui n'est plus toléré, et pourquoi
+ * --------------------------------------------------
+ * `_video` et `_queue` étaient des tolérances DOCUMENTÉES : des atteintes
+ * existantes que le filet enregistrait en attendant mieux. Elles ont été
+ * remplacées par de vraies API publiques le 10 septembre 2026 :
+ *
+ *   - `_video` → accesseur `videoElement` (lecture seule).
+ *     CibleDistante, MinuteurSommeil, SpaceHub lisent l'élément <video> ;
+ *     personne n'a besoin de le remplacer.
+ *   - `_queue` → paire d'accesseurs `queue` (get/set). Le miroir
+ *     `player._queue = player.queue` posé par core/SpaceHub.js a disparu :
+ *     l'affectation publique `player.queue = …` passe par le setter.
+ *
+ * Toute nouvelle atteinte à ces noms underscore échoue au contrôle côté
+ * appelants : une API publique, ou rien.
+ */
 
 /** Tout ce qu'un appelant extérieur a le droit de toucher, réuni. */
 export const SURFACE_FACADE = Object.freeze([
     ...MEMBRES_APPELABLES,
     ...CHAMPS_TOLERES,
-    ...CHAMPS_INJECTES,
     ...PROPRIETES_PUBLIQUES,
 ]);

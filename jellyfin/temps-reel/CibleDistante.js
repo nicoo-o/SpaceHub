@@ -214,8 +214,8 @@ export class CibleDistante {
 
         switch (commande) {
             case 'Stop':          lecteur.close?.(); break;
-            case 'Pause':         lecteur._video?.pause?.(); break;
-            case 'Unpause':       lecteur._video?.play?.()?.catch?.(() => {}); break;
+            case 'Pause':         lecteur.videoElement?.pause?.(); break;
+            case 'Unpause':       lecteur.videoElement?.play?.()?.catch?.(() => {}); break;
             case 'PlayPause':     lecteur._togglePlayPause?.(); break;
             case 'NextTrack':     lecteur._executerActionMedia?.(ActionMedia.NEXT); break;
             case 'PreviousTrack': lecteur._executerActionMedia?.(ActionMedia.PREVIOUS); break;
@@ -223,8 +223,8 @@ export class CibleDistante {
             case 'FastForward':   lecteur._seekRelative?.(+30); break;
             case 'Seek': {
                 const ticks = Number(data?.SeekPositionTicks);
-                if (!Number.isFinite(ticks) || !lecteur._video) break;
-                lecteur._video.currentTime = ticks / TICKS_PAR_SECONDE;
+                if (!Number.isFinite(ticks) || !lecteur.videoElement) break;
+                lecteur.videoElement.currentTime = ticks / TICKS_PAR_SECONDE;
                 break;
             }
             default:
@@ -247,7 +247,7 @@ export class CibleDistante {
 
     _executerCommande(nom, args) {
         const lecteur = this._lecteur();
-        const video = lecteur?._video || null;
+        const video = lecteur?.videoElement || null;
 
         switch (nom) {
             case 'DisplayMessage':
@@ -349,7 +349,7 @@ export class CibleDistante {
     }
 
     _volume(delta) {
-        const video = this._lecteur()?._video;
+        const video = this._lecteur()?.videoElement;
         if (!video) return;
         video.volume = Math.min(1, Math.max(0, (video.volume || 0) + delta));
     }
