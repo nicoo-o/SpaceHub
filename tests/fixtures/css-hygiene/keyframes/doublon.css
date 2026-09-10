@@ -1,0 +1,10 @@
+/* Fixture fautive — le même nom défini deux fois : le dernier analysé gagne. */
+@keyframes sh-double-move {
+    from { transform: none; }
+    to   { transform: translateX(10px); }
+}
+@keyframes sh-double-move {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+.sh-double { animation: sh-double-move 1s ease; }

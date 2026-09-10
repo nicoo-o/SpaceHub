@@ -1,0 +1,34 @@
+/* Fixture fautive — des priorités placées au MILIEU de la valeur. Une
+   déclaration n'admet qu'UN !important, terminal ; le parseur (Rolldown,
+   vite 8) rejette sinon la déclaration entière, même ses parties valides. */
+
+.sh-a {
+    /* Règle 7 hors transition : du contenu suit la priorité. */
+    margin: 0 !important 10px;
+}
+
+.sh-b {
+    /* Le premier !important est au milieu (deux au total) : invalide. */
+    transition: transform .26s !important, opacity .2s !important;
+}
+
+.sh-c {
+    /* Un SEUL !important au milieu : tout aussi invalide (régression #23). */
+    transition: transform .26s !important, opacity .2s;
+}
+
+.sh-d {
+    /* Terminal : licite. */
+    transition: none !important;
+}
+
+.sh-e {
+    /* Priorité entre guillemets : du contenu, pas une priorité CSS. */
+    content: "!important au milieu";
+}
+
+.sh-f {
+    /* Un « ; » entre guillemets (data: URL) ne doit pas découper la déclaration. */
+    background: url("data:image/svg+xml;utf8,<svg fill='red'/>") no-repeat;
+    margin: 0 !important;
+}

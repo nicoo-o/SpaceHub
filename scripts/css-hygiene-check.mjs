@@ -210,12 +210,13 @@ function analyserImports(js, css, problems, cwd) {
 }
 
 function analyserOmbres(css, problems, cwd) {
-    const fixedShadow = /(?:box-shadow|text-shadow|drop-shadow)[^;{}]*?rgba\(\s*0\s*,\s*0\s*,\s*0\s*,/i;
+    const fixedShadow = /(box-shadow|text-shadow|drop-shadow)[^;{}]*?rgba\(\s*0\s*,\s*0\s*,\s*0\s*,/i;
     for (const file of css) {
         const source = fs.readFileSync(file, 'utf8');
         source.split('\n').forEach((lineText, index) => {
-            if (fixedShadow.test(lineText)) {
-                problems.push(`${relative(cwd, file)}:${index + 1} — ombre noire figée ; utilisez rgba(var(--sh-shadow-rgb, 0, 0, 0), …).`);
+            const match = fixedShadow.exec(lineText);
+            if (match) {
+                problems.push(`${relative(cwd, file)}:${index + 1} — ${match[1]} : ombre noire figée ; utilisez rgba(var(--sh-shadow-rgb, 0, 0, 0), …).`);
             }
         });
     }

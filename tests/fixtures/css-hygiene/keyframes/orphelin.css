@@ -1,0 +1,5 @@
+/* Fixture fautive — ce jeu d'images-clés n'est référencé par aucune animation. */
+@keyframes sh-orphan-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
