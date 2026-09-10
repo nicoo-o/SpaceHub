@@ -31,6 +31,7 @@ import * as segmentsMedia from './SegmentsMedia.js';
 import * as utilitairesLecteur from './UtilitairesLecteur.js';
 import * as compteAReboursEpisode from './CompteAReboursEpisode.js';
 import * as popoversContenu from './PopoversContenu.js';
+import * as visibiliteControles from './VisibiliteControles.js';
 class VideoPlayer {
     constructor() {
         this._log = new Logger('VideoPlayer');
@@ -77,8 +78,6 @@ class VideoPlayer {
         this._navHoldLastTick = 0;
         this._playbackOptions = {};
         this._progressInterval = null;
-        this._idleTimer = null;
-        this._isControlsVisible = true;
         this._isScrubbing = false;
         this._navHoldAction = null;
         this._navHoldStart = 0;
@@ -113,6 +112,15 @@ class VideoPlayer {
         // Tiroir Latéral
         this._activeDrawerTab = 'audio';
         this._isDrawerOpen = false;
+
+        // Visibilité des contrôles & OSD flash (peau 5 — module satellite).
+        // Les minuteurs et le drapeau de visibilité vivent dans le module ;
+        // le lecteur ne garde que le DOM et le tiroir, passés en injections.
+        this._visibilite = visibiliteControles.creerVisibiliteControles({
+            obtenirEl: () => this._el,
+            obtenirVideo: () => this._video,
+            estTiroirOuvert: () => this._isDrawerOpen,
+        });
         this._seekHoldStart = 0;
         this._seekHoldCount = 0;
         this._focusedHudEl = null;
@@ -1658,54 +1666,23 @@ class VideoPlayer {
     }
 
     _showFlashOSD(icon, text, progressPct = null) {
-        const osd = this._el?.querySelector('#sh-player-osd');
-        if (!osd) return;
-
-        osd.querySelector('#sh-osd-icon').textContent = icon;
-        osd.querySelector('#sh-osd-text').textContent = text;
-
-        const barWrap = osd.querySelector('#sh-osd-bar-wrap');
-        const barFill = osd.querySelector('#sh-osd-bar-fill');
-
-        if (progressPct !== null) {
-            barWrap.style.display = 'block';
-            barFill.style.width = `${Math.round(progressPct * 100)}%`;
-        } else {
-            barWrap.style.display = 'none';
-        }
-
-        osd.classList.remove('active');
-        void osd.offsetWidth;
-        osd.classList.add('active');
-
-        if (this._osdTimer) clearTimeout(this._osdTimer);
-        this._osdTimer = setTimeout(() => {
-            osd.classList.remove('active');
-        }, 1400);
+        this._visibilite.montrerFlashOSD(icon, text, progressPct);
     }
 
     _onUserActivity() {
-        this._showControls();
-        this._resetIdleTimer();
+        this._visibilite.surActivite();
     }
 
     _showControls() {
-        if (!this._isControlsVisible) {
-            this._isControlsVisible = true;
-            this._el?.classList.remove('hud-hidden');
-        }
+        this._visibilite.montrerControles();
     }
 
     _hideControls() {
-        if (this._video && !this._video.paused && !this._isDrawerOpen) {
-            this._isControlsVisible = false;
-            this._el?.classList.add('hud-hidden');
-        }
+        this._visibilite.cacherControles();
     }
 
     _resetIdleTimer() {
-        if (this._idleTimer) clearTimeout(this._idleTimer);
-        this._idleTimer = setTimeout(() => this._hideControls(), 3500);
+        this._visibilite.reinitialiserMinuterie();
     }
 
     _toggleFullscreen() {
@@ -1721,7 +1698,7 @@ class VideoPlayer {
 
         // ── TOUCHES MÉDIA DE LA TÉLÉCOMMANDE ────────────────────────────
         //
-        // Elles passent AVANT le garde `_isControlsVisible` : appuyer sur ⏯
+        // Elles passent AVANT le garde de visibilité du HUD : appuyer sur ⏯
         // quand les contrôles sont masqués doit mettre en pause, pas réveiller
         // le HUD. C'est le geste que fait tout le monde.
         //
@@ -1736,7 +1713,7 @@ class VideoPlayer {
             return;
         }
 
-        if (!this._isControlsVisible) return; // le réveil du HUD reste géré par handleNavAction
+        if (!this._visibilite.visibles()) return; // le réveil du HUD reste géré par handleNavAction
 
         switch (e.key) {
             case 'k':
@@ -2122,7 +2099,7 @@ handleNavAction(action) {
         if (!this._el) return;
 
         // Réveil du HUD si masqué (repris de l'ancien _onKeyDown)
-        if (!this._isControlsVisible) {
+        if (!this._visibilite.visibles()) {
             this._showControls();
             this._resetIdleTimer();
             this._el.querySelector('#sh-btn-play-pause')?.focus();
@@ -2264,9 +2241,8 @@ handleNavAction(action) {
         this._reportPlaybackStopped();
 
         if (this._progressInterval) clearInterval(this._progressInterval);
-        if (this._idleTimer) clearTimeout(this._idleTimer);
+        this._visibilite.nettoyer();
         if (this._nextEpCountdownInterval) clearInterval(this._nextEpCountdownInterval);
-        if (this._osdTimer) clearTimeout(this._osdTimer);
 
         // Lecture hors ligne : mémoriser où on s'est arrêté (le serveur ne peut
         // pas le savoir), puis révoquer l'object URL. Sans cette révocation le

@@ -47,6 +47,8 @@ const BUDGETS = {
     // suivant » → jellyfin/player/CompteAReboursEpisode.js).
     // 2524 → 2374 le 10 septembre 2026 : peau 4 (popovers et tirage du
     // contenu → jellyfin/player/PopoversContenu.js).
+    // 2524 → 2500 le 10 septembre 2026 : peau 5 (OSD & visibilité des
+    // contrôles → jellyfin/player/VisibiliteControles.js).
     // Le budget se baisse dans le commit qui prouve la descente, jamais
     // au fil de l'eau.
     'jellyfin/player/VideoPlayer.js': 2374,
