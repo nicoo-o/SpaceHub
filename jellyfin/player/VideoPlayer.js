@@ -29,6 +29,7 @@ import * as sousTitres from './ApparenceSousTitres.js';
 import { fetchAvecDelai } from '../../core/utils/reseau.js';
 import * as segmentsMedia from './SegmentsMedia.js';
 import * as utilitairesLecteur from './UtilitairesLecteur.js';
+import * as chargementSource from './ChargementSource.js';
 class VideoPlayer {
     constructor() {
         this._log = new Logger('VideoPlayer');
@@ -102,6 +103,25 @@ class VideoPlayer {
         // Tiroir Latéral
         this._activeDrawerTab = 'audio';
         this._isDrawerOpen = false;
+
+        // Chargement de la source (peau 7 — module satellite). L'état
+        // (item, vidéo, réglages, génération, options) reste sur le lecteur,
+        // lu en injections ; le module ne relance la lecture que par l'action.
+        this._chargement = chargementSource.creerChargementSource({
+            obtenirVideo: () => this._video,
+            obtenirItem: () => this._currentItem,
+            obtenirAuth: () => this._auth,
+            obtenirSettings: () => this._settings,
+            obtenirConnexion: () => (typeof navigator !== 'undefined'
+                ? (navigator.connection || navigator.mozConnection || navigator.webkitConnection)
+                : null),
+            lireGeneration: () => this._playGeneration,
+            lireVitesse: () => this._playbackRate,
+            lireVolume: () => this._volume,
+            lireOptions: () => this._playbackOptions,
+            relancerLecture: (item, positionTicks, options) => this.play(item, positionTicks, options),
+            journal: () => this._log,
+        });
         this._seekHoldStart = 0;
         this._seekHoldCount = 0;
         this._focusedHudEl = null;
@@ -121,62 +141,12 @@ class VideoPlayer {
         return svc.jellyfinApi();
     }
 
-    /**
-     * Plafond de débit à annoncer au serveur, en bits par seconde.
-     *
-     * Trois cas :
-     *   - un plafond explicite est réglé → on le respecte ;
-     *   - le mode automatique est actif et le navigateur expose une estimation
-     *     de débit descendant → on plafonne un peu en dessous, pour laisser de
-     *     la marge au reste du réseau ;
-     *   - sinon 0 : aucun plafond, le serveur reste libre de faire du DirectPlay.
-     *
-     * `navigator.connection` n'existe pas partout (absent sur Safari et sur
-     * plusieurs navigateurs de téléviseurs) : l'absence renvoie simplement 0,
-     * c'est-à-dire le comportement d'avant ce réglage.
-     */
-    /**
-     * Ajoute le jeton d'authentification à une URL de flux — et seulement quand
-     * il n'y a aucun autre moyen.
-     *
-     * Un élément <video> natif ne peut pas porter d'en-tête : pour une lecture
-     * directe (DirectPlay) ou pour le HLS natif de Safari, le paramètre `api_key`
-     * est le mécanisme officiel de Jellyfin, et c'est aussi ce que fait le client
-     * web officiel. Le chemin HLS.js, lui, envoie un en-tête `Authorization` et
-     * n'expose donc rien dans les URLs — c'est le cas le plus fréquent.
-     *
-     * À noter honnêtement : l'API Jellyfin **n'offre pas** de jeton de lecture à
-     * durée de vie courte distinct du jeton de session (les clés de `/Auth/Keys`
-     * sont permanentes et réservées aux administrateurs). Le remède théorique
-     * — faire passer le flux par un service worker qui ajoute l'en-tête — a été
-     * écarté : router une vidéo de plusieurs gigaoctets avec requêtes Range à
-     * travers un service worker met en jeu la lecture elle-même pour un gain
-     * marginal sur un serveur personnel. Le jeton reste donc visible dans les
-     * journaux d'accès du serveur pour ces deux cas précis.
-     */
     _authoriseUrl(url, token) {
-        if (!token) return url;
-        // Le serveur peut déjà avoir renvoyé une URL authentifiée : ne pas doubler.
-        if (/[?&]api_key=/.test(url)) return url;
-        return `${url}${url.includes('?') ? '&' : '?'}api_key=${encodeURIComponent(token)}`;
+        return chargementSource.authoriserUrl(url, token);
     }
 
     _resolveMaxBitrate() {
-        const explicite = Number(this._settings?.get?.('player.maxBitrate', 0)) || 0;
-        if (explicite > 0) return explicite;
-        if (this._settings?.get?.('player.maxBitrateAuto', true) !== true) return 0;
-        try {
-            const lien = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-            const mbps = Number(lien?.downlink);
-            if (!Number.isFinite(mbps) || mbps <= 0) return 0;
-            // 75 % du débit annoncé : au-delà, la moindre variation vide le tampon.
-            const plafond = Math.round(mbps * 0.75 * 1000000);
-            // En dessous de 2 Mb/s on ne plafonne pas : mieux vaut laisser le
-            // serveur choisir que d'imposer une qualité inregardable.
-            return plafond >= 2000000 ? plafond : 0;
-        } catch {
-            return 0;
-        }
+        return this._chargement.resoudreDebitMax();
     }
 
     async play(item, startPositionTicks = 0, options = {}) {
@@ -552,30 +522,15 @@ class VideoPlayer {
     }
 
     _fallbackDirectStream(startPositionSeconds, token, generation = this._playGeneration) {
-        if (generation !== this._playGeneration || !this._video) return;
-        const serverUrl = this._auth?.getServerUrl() || '';
-        const itemId = this._currentItem?.Id || this._currentItem?.id;
-        if (!serverUrl || !itemId) return;
-        // Le flux natif ne peut pas recevoir de header : api_key est le seul fallback
-        // compatible avec Safari lorsque Jellyfin n'a pas de cookie de session exploitable.
-        this._video.src = this._authoriseUrl(
-            `${serverUrl}/Videos/${encodeURIComponent(itemId)}/stream?static=true`, token);
-        this._video.currentTime = startPositionSeconds;
-        this._video.playbackRate = this._playbackRate;
-        this._video.volume = this._volume;
-        this._video.play().catch(e => this._log.warn('Auto-play direct:', e));
+        this._chargement.basculerFluxDirect(startPositionSeconds, token, generation);
     }
 
     _initMediaStreams(item) {
-        const streams = item.MediaStreams || [];
-        this._audioStreams = streams.filter(s => s.Type === 'Audio');
-        this._subStreams = streams.filter(s => s.Type === 'Subtitle');
-
-        const defaultAudio = this._audioStreams.find(s => s.IsDefault) || this._audioStreams[0];
-        this._selectedAudioIndex = defaultAudio ? defaultAudio.Index : (this._audioStreams[0]?.Index ?? 0);
-
-        const defaultSub = this._subStreams.find(s => s.IsForced || s.IsDefault);
-        this._selectedSubIndex = defaultSub ? defaultSub.Index : -1;
+        const etat = this._chargement.resoudreFlux(item);
+        this._audioStreams = etat.audioStreams;
+        this._subStreams = etat.subStreams;
+        this._selectedAudioIndex = etat.selectedAudioIndex;
+        this._selectedSubIndex = etat.selectedSubIndex;
     }
 
     async _prepareSeasonEpisodes(item) {
@@ -2137,10 +2092,7 @@ class VideoPlayer {
     }
 
     _reloadCurrentSourceWithOptions(partialOptions = {}) {
-        if (!this._currentItem || !this._video) return;
-        const positionTicks = Math.round((this._video.currentTime || 0) * 10000000);
-        const options = { ...this._playbackOptions, ...partialOptions };
-        this.play(this._currentItem, positionTicks, options);
+        this._chargement.rechargerAvecOptions(partialOptions);
     }
 
     _togglePlayPause() {
