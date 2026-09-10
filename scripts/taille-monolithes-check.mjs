@@ -51,6 +51,8 @@ const BUDGETS = {
     // contrôles → jellyfin/player/VisibiliteControles.js).
     // 2524 → 2435 le 10 septembre 2026 : peau 6 (rapport de session
     // Jellyfin & session média système → jellyfin/player/RapportSession.js).
+    // 2524 → 2476 le 10 septembre 2026 : peau 7 (chargement de la source →
+    // jellyfin/player/ChargementSource.js) — dernière peau du plan.
     // Le budget se baisse dans le commit qui prouve la descente, jamais
     // au fil de l'eau.
     'jellyfin/player/VideoPlayer.js': 2374,
