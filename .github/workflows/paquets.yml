@@ -280,7 +280,11 @@ jobs:
           APK=$(ls apk/*.apk | head -1)
           APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
           "$APKSIGNER" verify --print-certs "$APK" > /dev/null
-          for f in apk/*.apk; do sha256sum "$f" > "$f.sha256"; done
+          # Somme SANS chemin de build : `sha256sum apk/x.apk` écrit
+          # « apk/spacehub-v1.3.0.apk » dans le fichier, que le téléchargeur
+          # ne peut pas vérifier (`sha256sum -c` cherche apk/ chez lui).
+          # Le sous-shell garde la somme à côté du fichier, le nom reste nu.
+          for f in apk/*.apk; do (cd apk && sha256sum "$(basename "$f")") > "$f.sha256"; done
 
       - name: Artefact du run
         uses: actions/upload-artifact@v7
@@ -382,7 +386,9 @@ jobs:
             exit 1
           fi
           ls -la exe/
-          for f in exe/*.exe; do sha256sum "$f" > "$f.sha256"; done
+          # Nom nu, comme pour l'APK : le fichier publié doit se vérifier
+          # depuis le dossier de téléchargement, pas depuis la CI.
+          for f in exe/*.exe; do (cd exe && sha256sum "$(basename "$f")") > "$f.sha256"; done
 
           # Métadonnées d'auto-update (electron-updater) : latest.yml et les
           # blockmaps accompagnent les exécutables à la release. Sans elles,
