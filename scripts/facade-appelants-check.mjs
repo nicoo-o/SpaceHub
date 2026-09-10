@@ -35,9 +35,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { SURFACE_FACADE } from '../jellyfin/player/ContratFacade.js';
+import { SURFACE_NAV } from '../core/ContratSpatialNavigation.js';
 
 const RACINES = ['core', 'ui', 'jellyfin', 'integrations', 'plugins', 'api'];
-const SURFACE = new Set(SURFACE_FACADE);
+const SURFACE = new Set([...SURFACE_FACADE, ...SURFACE_NAV]);
 
 const problemes = [];
 
@@ -79,12 +80,13 @@ for (const f of fichiers) {
 
 /* ── 2. Atteintes de propriété sur un récepteur lecteur ─────────────────── */
 
-// Récepteurs reconnus : `lecteur`, `player`, `videoPlayer`, `vp`
-// (avec chaînage optionnel `?.`), et l'appel `this._lecteur()` retournant
+// Récepteurs reconnus : `lecteur`, `player`, `videoPlayer`, `vp` pour la
+// façade du lecteur, `nav`, `spatialNavigation` pour celle du moteur
+// (audit docs/AUDIT_MONOLITHES.md), et l'appel `this._lecteur()` retournant
 // l'instance. Ce qui précède le `._x` n'est pas borné à gauche : il faut
 // que la FIN du récepteur soit un de ces noms, d'où le groupement collé
 // au `._`.
-const ATTEINTE = /(?:\b(?:lecteur|player|videoPlayer|vp)|(?:\b|[\s$&(])_lecteur\(\)\s*\??)\s*\??\.\s*_([A-Za-z][A-Za-z0-9]*)/g;
+const ATTEINTE = /(?:\b(?:lecteur|player|videoPlayer|vp|nav|spatialNavigation)|(?:\b|[\s$&(])_lecteur\(\)\s*\??)\s*\??\.\s*_([A-Za-z][A-Za-z0-9]*)/g;
 
 for (const f of fichiers) {
     const src = fs.readFileSync(f, 'utf8');
