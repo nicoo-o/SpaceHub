@@ -369,7 +369,15 @@ jobs:
         # eux, le build non signé est un état attendu et documenté (la porte
         # doit rester silencieuse). Avec eux, un livrable NotSigned est un
         # ÉCHEC : la chaîne de signature a échoué sans le dire.
-        if: ${{ secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' && secrets.AZURE_CLIENT_SECRET != '' }}
+        # ATTENTION : le contexte `secrets` est INTERDIT dans un `if:` — le
+        # fichier devient invalide et TOUT le workflow tombe en run à zéro
+        # job (défaut trouvé au moment de sortir la v1.3.0). Les secrets
+        # passent donc par `env`, seul contexte lisible dans un `if:`.
+        if: ${{ env.AZURE_CLIENT_ID != '' && env.AZURE_TENANT_ID != '' && env.AZURE_CLIENT_SECRET != '' }}
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         shell: pwsh
         run: |
           $problemes = @()
@@ -387,7 +395,12 @@ jobs:
       - name: Rappel — build non signé (secrets absents)
         # Le pendant, pour que l'état « non signé » reste visible dans le
         # résumé du run au lieu d'être silencieux.
-        if: ${{ secrets.AZURE_CLIENT_ID == '' || secrets.AZURE_TENANT_ID == '' || secrets.AZURE_CLIENT_SECRET == '' }}
+        # Même règle que la porte ci-dessus : `secrets` interdit dans `if:`.
+        if: ${{ env.AZURE_CLIENT_ID == '' || env.AZURE_TENANT_ID == '' || env.AZURE_CLIENT_SECRET == '' }}
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         shell: bash
         run: |
           echo "::warning::Aucun secret de signature Azure — exécutables livrés NON signés (SmartScreen affichera l'avertissement). Voir docs/SIGNATURE_WINDOWS_ET_AUTO_UPDATE.md."
