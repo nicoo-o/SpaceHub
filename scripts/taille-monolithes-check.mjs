@@ -43,9 +43,11 @@ const BUDGETS = {
     // décomposition (segments médias → jellyfin/player/SegmentsMedia.js).
     // 2537 → 2524 le 10 septembre 2026 : peau 2 (helpers purs →
     // jellyfin/player/UtilitairesLecteur.js).
+    // 2524 → 2500 le 10 septembre 2026 : peau 5 (OSD & visibilité des
+    // contrôles → jellyfin/player/VisibiliteControles.js).
     // Le budget se baisse dans le commit qui prouve la descente, jamais
     // au fil de l'eau.
-    'jellyfin/player/VideoPlayer.js': 2524,
+    'jellyfin/player/VideoPlayer.js': 2500,
     'core/SpatialNavigation.js': 1750,
     'ui/components/SettingsPanel.js': 1624,
     'ui/components/CardBuilder.js': 1403,
