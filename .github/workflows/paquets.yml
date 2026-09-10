@@ -166,6 +166,24 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           cd build/cordova
+          # ANDROID_KEYSTORE vit en base64 — le seul format qui traverse un
+          # secret sans être abîmé (retours à la ligne, octets binaires).
+          # Il doit être DÉCODÉ ici : sans ce décodage, le secret ne servait
+          # que de drapeau — la génération d'amorçage était sautée (le secret
+          # existe) et gradle recevait --keystore sur un fichier inexistant.
+          # La promotion décrite dans docs/PROMOTION_KEYSTORE.md ne
+          # fonctionnait donc pas. Défaut trouvé en sortant la v1.3.0.
+          if [ -n "$KEYSTORE_B64" ]; then
+            printf '%s' "$KEYSTORE_B64" | base64 -d > spacehub.keystore
+            # Porte : un secret tronqué ou un mot de passe erroné doit
+            # échouer ICI, avec un message qui dit quoi corriger — pas dans
+            # les entrailles de gradle.
+            if ! keytool -list -keystore spacehub.keystore -storepass "$KEYSTORE_PASSWORD" > /dev/null 2>&1; then
+              echo "::error::ANDROID_KEYSTORE est illisible avec ANDROID_KEYSTORE_PASSWORD (base64 tronqué, mot de passe erroné, ou type de magasin inattendu)."
+              exit 1
+            fi
+            echo "Keystore permanent chargé depuis le secret ANDROID_KEYSTORE."
+          fi
           # « release » est une OPTION (--release), pas un argument de
           # plateforme — passé nu, Cordova le lit comme un nom de plateforme
           # inexistant et ne construit aucun APK. Les drapeaux de signature
