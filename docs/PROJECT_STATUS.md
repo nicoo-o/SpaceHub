@@ -49,7 +49,7 @@ nom de fichier que Vite ne produit jamais.
 | `npm run test:xss` | 512 interpolations, 140 gabarits | ✅ |
 | `npm run test:globals` | plafond de 20 accès | ✅ |
 | `npm run build` | bundle de production | ✅ |
-| `npm run test:e2e` | 28 scénarios, Chromium réel | ✅ |
+| `npm run test:e2e` | 30 scénarios, Chromium réel | ✅ |
 | **Recette sur téléviseur réel** | Android TV : protocole prêt (`docs/ACCEPTATION_TV.md`), session v1.2.0 engagée ; Tizen et webOS : jamais tentés | 🟡 **démarrée** |
 
 L'Android TV n'est plus un trou blanc : le protocole d'acceptation existe,

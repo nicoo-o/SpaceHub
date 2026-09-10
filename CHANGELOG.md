@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   closed by `}` without a final semicolon, and vendor-prefixed
   `-webkit-transition` were all invisible to the previous two-exclamation
   regex and are now rejected, per declaration.
+- Animation proof extended to the other repaired surfaces: two new e2e
+  scenarios assert the modal slide-up sheet animates on open *and* close
+  (panel transform + overlay opacity, driven by the real `open()`/`close()`
+  methods) and the app-layout dynamic island animates on deploy *and*
+  collapse (width + view opacity, triggered by real pointer hover) — same
+  technique as the widget scenario: computed declaration alive first,
+  per-frame distinct-value sampling, final-state assertions. Suite is now
+  30 scenarios.
 
 ## [1.2.0] - 2026-09-10
 
