@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ADB, the LEANBACK launcher entry and banner on the real TV home screen,
   and the 12-point remote-navigation checklist (D-pad focus, OK/Back
   behavior, playback keys, sleep/wake), with a dated session journal.
+- CSS hygiene check tightened: the transition rule now guarantees the
+  *position* of `!important`, not a count — a **single** mid-value
+  `!important` (equally declaration-killing under vite 8), a declaration
+  closed by `}` without a final semicolon, and vendor-prefixed
+  `-webkit-transition` were all invisible to the previous two-exclamation
+  regex and are now rejected, per declaration.
 
 ## [1.2.0] - 2026-09-10
 

@@ -15,7 +15,8 @@
  *   3. Les ombres portées passent par --sh-shadow-rgb et non par du noir figé,
  *      sans quoi elles cernent les cartes d'un halo sale en thème clair.
  *   6. Les déclarations `transition` portent au plus un `!important`, terminal
- *      — le motif du milieu de liste que vite 8 a révélé est refusé ici.
+ *      — tout `!important` non terminal (un ou plusieurs) est refusé ici,
+ *      avec ou sans point-virgule final, y compris en -webkit-transition.
  */
 
 import fs from 'node:fs';
@@ -49,23 +50,55 @@ const problemes = [];
  *   transition: transform .26s !important, opacity .2s !important, …
  * Ce n'est pas du CSS : une déclaration n'admet qu'UN `!important`, terminal.
  * Rolldown parse strictement et rejette le tout (donc TOUTES les propriétés
- * de la déclaration, même les parties valides) — et comme le CSS du dépôt
- * n'embarque jamais de `!important` légitime (règle 6 plus bas), le rejet
- * silencieux signifiait : zéro animation, sur des dizaines de widgets, sans
- * aucun test rouge. L'e2e « Les transitions réparées des widgets s'animent
- * réellement au survol » ferme désormais la boucle côté rendu.
+ * de la déclaration, même les parties valides) — le rejet silencieux
+ * signifiait : zéro animation, sur des dizaines de widgets, sans aucun test
+ * rouge. L'e2e « Les transitions réparées des widgets s'animent réellement
+ * au survol » ferme désormais la boucle côté rendu.
+ *
+ * La classe dangereuse n'est pas « deux !important » mais TOUT `!important`
+ * non terminal : un seul au milieu de la liste rejette la déclaration
+ * exactement comme deux. Le contrôle garantit donc la POSITION, pas un
+ * comptage : au plus un `!important`, et uniquement en toute fin de
+ * déclaration (les réductions de mouvement « transition: none !important »
+ * du dépôt restent licites).
  *
  * Détection PAR DÉCLARATION (et non par ligne) : une transition répartie
- * sur plusieurs lignes échapperait à une inspection ligne à ligne.
+ * sur plusieurs lignes, ou close par « } » sans point-virgule final,
+ * échapperait à une inspection ligne à ligne. Les préfixes vendeurs
+ * (-webkit-transition) sont soumis à la même règle : Rolldown les traite
+ * pareillement.
  */
-const MULTIPLE_IMPORTANT = /transition\s*:[^;{}]*![^;{}]*![^;{}]*;/g;
+const MARQUE_TRANSITION = /(?<![a-zA-Z-])(?:-webkit-)?transition\s*:/gi;
 for (const f of css) {
-    const src = fs.readFileSync(f, 'utf8');
+    const brut = fs.readFileSync(f, 'utf8');
+    // Commentaires neutralisés en préservant les sauts de ligne (numéros de
+    // ligne justes) : citer la pattern fautive dans un commentaire ne doit
+    // pas déclencher.
+    const src = brut.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
     const rel = f.split(path.sep).join('/');
-    for (const m of src.matchAll(MULTIPLE_IMPORTANT)) {
-        problemes.push(
-            `${rel}:${src.slice(0, m.index).split('\n').length} — déclaration « transition » avec plus d'un « !important » : un seul, terminal, est valide. Rolldown (vite 8) rejette la déclaration entière : aucune des propriétés n'anime. Retirez tous les « !important » de la liste — le dépôt n'en embarque jamais légitimement (voir la règle 6 ci-dessous).`
-        );
+    for (const t of src.matchAll(MARQUE_TRANSITION)) {
+        // Corps de la déclaration : jusqu'au premier « ; », « { » ou « } » —
+        // une déclaration finale sans point-virgule se termine au « } ».
+        const suite = src.slice(t.index + t[0].length);
+        const fin = suite.search(/[;{}]/);
+        const corps = fin === -1 ? suite : suite.slice(0, fin);
+        const points = [...corps.matchAll(/!/g)];
+        if (points.length === 0) continue;
+        const ligne = src.slice(0, t.index).split('\n').length;
+        if (points.length > 1) {
+            problemes.push(
+                `${rel}:${ligne} — déclaration « transition » avec ${points.length} « !important » : une déclaration n'en admet qu'UN, terminal. Rolldown (vite 8) rejette la déclaration entière : aucune des propriétés n'anime. Gardez au plus un « !important », en toute fin de déclaration.`
+            );
+            continue;
+        }
+        // Un seul « ! » : il n'est licite que s'il ouvre un « !important »
+        // terminal (« ! important » espacé compris — le CSS l'autorise).
+        const apres = corps.slice(points[0].index);
+        if (!/^!\s*important\s*$/i.test(apres)) {
+            problemes.push(
+                `${rel}:${ligne} — « !important » au MILIEU d'une déclaration « transition » (du contenu suit avant la fin de la déclaration). Position invalide : Rolldown (vite 8) rejette la déclaration entière, même ses parties valides — les autres propriétés de la liste cessent d'animer sans aucun test rouge. Un seul « !important », terminal, est acceptable.`
+            );
+        }
     }
 }
 
