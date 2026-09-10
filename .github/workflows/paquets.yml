@@ -311,7 +311,22 @@ jobs:
         # electron-builder télécharge l'Electron déclaré dans la bobine
         # (mis en cache par lui dans %LOCALAPPDATA%) et produit NSIS +
         # portable dans sortie/.
+        #
+        # SIGNATURE AZURE (décision docs/SIGNATURE_WINDOWS_ET_AUTO_UPDATE.md) :
+        # les variables AZURE_* du profil sont passées à la bobine (qui ne
+        # pose le bloc win.sign QUE si les trois variables du profil sont
+        # présentes) et à AzureSignTool (auth Entra ID par les trois
+        # variables d'identité). Secrets absents → build non signé, la CI
+        # continue ; la porte de vérification ci-dessous tranche.
         shell: bash
+        env:
+          AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
+          AZURE_CODE_SIGNING_ACCOUNT_NAME: ${{ secrets.AZURE_CODE_SIGNING_ACCOUNT_NAME }}
+          AZURE_CERTIFICATE_PROFILE_NAME: ${{ secrets.AZURE_CERTIFICATE_PROFILE_NAME }}
+          AZURE_PUBLISHER_NAME: ${{ secrets.AZURE_PUBLISHER_NAME }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: |
           npx --yes electron-builder@26 --win --x64 --publish never 2>&1 | tail -6
           ls -la sortie/
@@ -335,6 +350,34 @@ jobs:
           fi
           ls -la exe/
           for f in exe/*.exe; do sha256sum "$f" > "$f.sha256"; done
+
+      - name: Porte de signature — Get-AuthenticodeSignature
+        # Ne s'arme QUE quand les secrets de signature sont présents : sans
+        # eux, le build non signé est un état attendu et documenté (la porte
+        # doit rester silencieuse). Avec eux, un livrable NotSigned est un
+        # ÉCHEC : la chaîne de signature a échoué sans le dire.
+        if: ${{ secrets.AZURE_CLIENT_ID != '' && secrets.AZURE_TENANT_ID != '' && secrets.AZURE_CLIENT_SECRET != '' }}
+        shell: pwsh
+        run: |
+          $problemes = @()
+          Get-ChildItem exe/*.exe | ForEach-Object {
+              $statut = (Get-AuthenticodeSignature $_.FullName).Status
+              Write-Host "$($_.Name) : $statut"
+              if ($statut -eq 'NotSigned') { $problemes += $_.Name }
+          }
+          if ($problemes.Count -gt 0) {
+              Write-Error "Livrables NON signés alors que les secrets Azure sont présents : $($problemes -join ', ')"
+              exit 1
+          }
+          Write-Host "Tous les exécutables sont signés (Authenticode)."
+
+      - name: Rappel — build non signé (secrets absents)
+        # Le pendant, pour que l'état « non signé » reste visible dans le
+        # résumé du run au lieu d'être silencieux.
+        if: ${{ secrets.AZURE_CLIENT_ID == '' || secrets.AZURE_TENANT_ID == '' || secrets.AZURE_CLIENT_SECRET == '' }}
+        shell: bash
+        run: |
+          echo "::warning::Aucun secret de signature Azure — exécutables livrés NON signés (SmartScreen affichera l'avertissement). Voir docs/SIGNATURE_WINDOWS_ET_AUTO_UPDATE.md."
 
       - name: Artefact du run
         uses: actions/upload-artifact@v7

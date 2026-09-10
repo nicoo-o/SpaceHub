@@ -227,11 +227,25 @@ function preparerElectron() {
                     { target: 'portable', arch: ['x64'] },
                 ],
                 icon: 'icon.png',
-                // Pas de certificat de signature : l'installeur est non
-                // signé, Windows SmartScreen affiche un avertissement à la
-                // première exécution (« Exécuter quand même »). Le passage
-                // à un certificat de signature de code se branchera ici.
-                signAndEditExecutable: false,
+                // Signature Azure Artifact Signing (décision
+                // docs/SIGNATURE_WINDOWS_ET_AUTO_UPDATE.md) : le bloc `sign`
+                // n'existe que si les trois variables du profil sont
+                // présentes — sans elles, le build reste non signé et la CI
+                // ne casse pas. `publisherName` doit être le sujet EXACT du
+                // certificat (AZURE_PUBLISHER_NAME) : c'est lui que
+                // electron-updater comparera à chaque mise à jour.
+                ...(process.env.AZURE_ENDPOINT && process.env.AZURE_CODE_SIGNING_ACCOUNT_NAME && process.env.AZURE_CERTIFICATE_PROFILE_NAME
+                    ? {
+                        signAndEditExecutable: true,
+                        sign: {
+                            type: 'azure',
+                            publisherName: process.env.AZURE_PUBLISHER_NAME || 'CN=SpaceHub',
+                            endpoint: process.env.AZURE_ENDPOINT,
+                            codeSigningAccountName: process.env.AZURE_CODE_SIGNING_ACCOUNT_NAME,
+                            certificateProfileName: process.env.AZURE_CERTIFICATE_PROFILE_NAME,
+                        },
+                    }
+                    : { signAndEditExecutable: false }),
             },
             nsis: {
                 oneClick: false,
