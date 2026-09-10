@@ -29,6 +29,7 @@ import * as sousTitres from './ApparenceSousTitres.js';
 import { fetchAvecDelai } from '../../core/utils/reseau.js';
 import * as segmentsMedia from './SegmentsMedia.js';
 import * as utilitairesLecteur from './UtilitairesLecteur.js';
+import * as rapportSession from './RapportSession.js';
 class VideoPlayer {
     constructor() {
         this._log = new Logger('VideoPlayer');
@@ -74,7 +75,6 @@ class VideoPlayer {
         this._playMethod = 'DirectStream';
         this._navHoldLastTick = 0;
         this._playbackOptions = {};
-        this._progressInterval = null;
         this._idleTimer = null;
         this._isControlsVisible = true;
         this._isScrubbing = false;
@@ -102,6 +102,27 @@ class VideoPlayer {
         // Tiroir Latéral
         this._activeDrawerTab = 'audio';
         this._isDrawerOpen = false;
+
+        // Rapport de session Jellyfin & session média système (peau 6 —
+        // module satellite). L'état de session (PlaySessionId, MediaSourceId,
+        // PlayMethod, ticks de départ) reste sur le lecteur, lu en injections.
+        this._rapportSession = rapportSession.creerRapportSession({
+            obtenirVideo: () => this._video,
+            obtenirItem: () => this._currentItem,
+            obtenirAuth: () => this._auth,
+            obtenirApi: () => this._api,
+            obtenirSessionMedia: () => this._sessionMedia,
+            lireEtatSession: () => ({
+                mediaSourceId: this._mediaSourceId,
+                playSessionId: this._playSessionId,
+                playMethod: this._playMethod,
+                playbackStartTicks: this._playbackStartTicks,
+            }),
+            executerActionMedia: (action) => this._executerActionMedia(action),
+            seekRelative: (delta) => this._seekRelative(delta),
+            journal: () => this._log,
+            fetchAvecDelai,
+        });
         this._seekHoldStart = 0;
         this._seekHoldCount = 0;
         this._focusedHudEl = null;
@@ -2012,73 +2033,12 @@ class VideoPlayer {
         ecran.ouvrir(item).catch(() => { /* pas de paroles : ce n'est pas une panne */ });
     }
 
-    /**
-     * Publie la position courante auprès du système.
-     *
-     * Ne fait rien tant que la durée n'est pas connue : `SessionMedia` efface
-     * alors l'état plutôt que d'annoncer une durée nulle — un direct n'a pas de
-     * barre de progression, et en afficher une vide serait un mensonge.
-     */
     _publierPosition() {
-        if (!this._video) return;
-        this._sessionMedia.position({
-            duree: this._video.duration,
-            position: this._video.currentTime,
-            vitesse: this._video.playbackRate,
-        });
+        this._rapportSession.publierPosition();
     }
 
-    /**
-     * Décrit le titre en cours au système et pose les boutons de la
-     * notification.
-     *
-     * Toutes les actions retombent sur `_executerActionMedia` : le casque
-     * Bluetooth et la télécommande du téléviseur empruntent le même chemin, il
-     * n'y a donc qu'un seul comportement à vérifier.
-     *
-     * @param {object} item  le média lancé.
-     */
     _brancherSessionMedia(item) {
-        if (!this._sessionMedia.supporte) return;
-
-        const titre = item?.Name || item?.title || 'Lecture';
-        // Un épisode se lit « Série — S1E4 » : sur l'écran verrouillé, le seul
-        // nom d'épisode ne dit pas de quelle série il s'agit.
-        const saison = item?.ParentIndexNumber;
-        const episode = item?.IndexNumber;
-        let sousTitre = item?.SeriesName || '';
-        if (sousTitre && Number.isFinite(saison) && Number.isFinite(episode)) {
-            sousTitre += ` — S${saison}E${episode}`;
-        }
-        if (!sousTitre && item?.ProductionYear) sousTitre = String(item.ProductionYear);
-
-        const id = item?.SeriesId || item?.Id || item?.id;
-        const vignette = id ? (this._api?.getImageUrl?.(id, 'Primary') || '') : '';
-
-        this._sessionMedia.decrire({ titre, sousTitre, vignette });
-
-        this._sessionMedia.brancher({
-            play: () => this._executerActionMedia(ActionMedia.PLAY),
-            pause: () => this._executerActionMedia(ActionMedia.PAUSE),
-            stop: () => this._executerActionMedia(ActionMedia.STOP),
-            previoustrack: () => this._executerActionMedia(ActionMedia.PREVIOUS),
-            nexttrack: () => this._executerActionMedia(ActionMedia.NEXT),
-            // `seekOffset` est optionnel : sans lui, la convention du Web est
-            // dix secondes, pas les trente de la télécommande.
-            seekbackward: (d) => this._seekRelative(-(d?.seekOffset || 10)),
-            seekforward: (d) => this._seekRelative(d?.seekOffset || 10),
-            seekto: (d) => {
-                if (!this._video || !Number.isFinite(d?.seekTime)) return;
-                // `fastSeek` existe pour le glissement continu de la barre
-                // système : il évite un décodage complet à chaque position.
-                if (d.fastSeek && typeof this._video.fastSeek === 'function') {
-                    this._video.fastSeek(d.seekTime);
-                } else {
-                    this._video.currentTime = d.seekTime;
-                }
-                this._publierPosition();
-            },
-        });
+        this._rapportSession.brancher(item);
     }
 
     /**
@@ -2195,64 +2155,15 @@ class VideoPlayer {
     }
 
     _reportPlaybackStart() {
-        const itemId = this._currentItem.Id || this._currentItem.id;
-        const serverUrl = this._auth?.getServerUrl();
-        if (!serverUrl || !itemId) return;
-
-        fetchAvecDelai(`${serverUrl}/Sessions/Playing`, {
-            method: 'POST',
-            headers: this._auth?.getAuthHeaders(),
-            body: JSON.stringify({
-                ItemId: itemId,
-                MediaSourceId: this._mediaSourceId || itemId,
-                PlaySessionId: this._playSessionId || undefined,
-                PlayMethod: this._playMethod || 'DirectStream',
-                PositionTicks: this._playbackStartTicks || Math.round((this._video?.currentTime || 0) * 10000000)
-            })
-        }).catch(e => this._log.debug('Report play start failed:', e));
+        this._rapportSession.rapporterDebut();
     }
 
     _startProgressReporting() {
-        if (this._progressInterval) clearInterval(this._progressInterval);
-        this._progressInterval = setInterval(() => {
-            if (!this._video || this._video.paused) return;
-            const itemId = this._currentItem.Id || this._currentItem.id;
-            const serverUrl = this._auth?.getServerUrl();
-            if (!serverUrl || !itemId) return;
-
-            const ticks = Math.round((this._video.currentTime || 0) * 10000000);
-            fetchAvecDelai(`${serverUrl}/Sessions/Playing/Progress`, {
-                method: 'POST',
-                headers: this._auth?.getAuthHeaders(),
-                body: JSON.stringify({
-                    ItemId: itemId,
-                MediaSourceId: this._mediaSourceId || itemId,
-                PlaySessionId: this._playSessionId || undefined,
-                PlayMethod: this._playMethod || 'DirectStream',
-                    PositionTicks: ticks,
-                    IsPaused: this._video.paused
-                })
-            }).catch(() => {});
-        }, 10000);
+        this._rapportSession.demarrerProgres();
     }
 
     _reportPlaybackStopped() {
-        const itemId = this._currentItem?.Id || this._currentItem?.id;
-        const serverUrl = this._auth?.getServerUrl();
-        if (!serverUrl || !itemId || !this._video) return;
-
-        const ticks = Math.round((this._video.currentTime || 0) * 10000000);
-        fetchAvecDelai(`${serverUrl}/Sessions/Playing/Stopped`, {
-            method: 'POST',
-            headers: this._auth?.getAuthHeaders(),
-            body: JSON.stringify({
-                ItemId: itemId,
-                MediaSourceId: this._mediaSourceId || itemId,
-                PlaySessionId: this._playSessionId || undefined,
-                PlayMethod: this._playMethod || 'DirectStream',
-                PositionTicks: ticks
-            })
-        }).catch(() => {});
+        this._rapportSession.rapporterArret();
     }
 
     
@@ -2419,7 +2330,7 @@ handleNavAction(action) {
         this._navHoldAction = null;
         this._reportPlaybackStopped();
 
-        if (this._progressInterval) clearInterval(this._progressInterval);
+        this._rapportSession.nettoyer();
         if (this._idleTimer) clearTimeout(this._idleTimer);
         if (this._nextEpCountdownInterval) clearInterval(this._nextEpCountdownInterval);
         if (this._osdTimer) clearTimeout(this._osdTimer);
