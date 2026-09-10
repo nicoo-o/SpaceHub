@@ -1253,6 +1253,180 @@ await scenario('Les transitions réparées des widgets s\'animent réellement au
     };
 });
 
+await scenario('La modale slide-up s\'anime réellement à l\'ouverture et à la fermeture', async () => {
+    // L'HISTOIRE. Les transitions de la feuille (panneau .sh-slideup-sheet,
+    // voile .sh-slideup-overlay, halo .sh-modal-ambient-glow) comptaient parmi
+    // les 47 déclarations blessées par le « !important » au milieu de liste :
+    // réparées syntaxiquement (contrôle statique) et prouvées pour les
+    // widgets (scénario précédent) — mais pas encore prouvées pour CE
+    // composant, dans ses deux directions. Une modale qui saute de l'état
+    // fermé à l'état ouvert sans interpolation est exactement le symptôme
+    // qu'aucune suite statique ne peut voir.
+    // La mécanique est pilotée par classes : open() ajoute --open (panneau
+    // translate(-50%,-46%) scale(.95) → translate(-50%,-50%) scale(1), voile
+    // opacity 0 → 1) ; close() les retire. On appelle donc les VRAIES
+    // méthodes, et on échantillonne matrice + opacité image par image.
+    const p = await nouvellePage(navigateur, null, { reducedMotion: 'no-preference' });
+    const r = await p.evaluate(async () => {
+        const S = window.SpaceHub;
+        const feuille = document.querySelector('.sh-slideup-sheet');
+        if (!feuille) return { erreur: 'DOM de la feuille absent au démarrage' };
+
+        // La déclaration réparée est-elle VIVANTE dans le calculé ? (Le bug
+        // mort se lisait : propriété « all » et durée 0s — déclaration jetée
+        // entière.)
+        const s = getComputedStyle(feuille);
+        const durs = s.transitionDuration.split(',').map(v => parseFloat(v) || 0);
+        const props = s.transitionProperty.split(',').map(v => v.trim());
+        const etat = { propriete: props.includes('transform') ? 'transform' : (props[0] || 'all'), duree: Math.max(0, ...durs) };
+
+        // Échantillonne transform + opacité de la feuille pendant `duree` ms.
+        // Deux propriétés en une clé : l'une au moins doit passer par des
+        // valeurs intermédiaires si la transition vit.
+        window.__echantillonnerFeuille = (duree) => new Promise((resoudre) => {
+            const el = document.querySelector('.sh-slideup-sheet');
+            const valeurs = new Set();
+            const t0 = performance.now();
+            const boucle = () => {
+                const cs = getComputedStyle(el);
+                const m = new DOMMatrixReadOnly(cs.transform);
+                valeurs.add(`${Math.round(m.m41 * 100)}/${Math.round(m.m42 * 100)}/${cs.opacity}`);
+                if (performance.now() - t0 < duree) requestAnimationFrame(boucle);
+                else resoudre(valeurs.size);
+            };
+            requestAnimationFrame(boucle);
+        });
+
+        const S_ = S;
+        window.__feuille = S_.ui.modalSlideUpSheet;
+        if (!window.__feuille) return { erreur: 'SpaceHub.ui.modalSlideUpSheet absent' };
+        return { etat };
+    });
+    if (r.erreur) { await p.context().close(); return { ok: false, detail: r.erreur }; }
+
+    // Ouverture : sampler d'abord, ouvrir ENSUITE par la vraie méthode —
+    // l'échantillonnage couvre ainsi le tout premier frame du mouvement.
+    const promesseOuverture = p.evaluate(() => window.__echantillonnerFeuille(700));
+    await p.evaluate(() => window.__feuille.open({ Id: '', title: 'E2E — Fable animée', Type: 'Movie' }));
+    const nbOuverture = await promesseOuverture;
+    await attendre(600);   // 360 ms de transform + marge
+    const etatOuvert = await p.evaluate(() => ({
+        ouverte: !!document.querySelector('.sh-slideup-sheet--open'),
+        voile: !!document.querySelector('.sh-slideup-overlay--open'),
+        opacite: parseFloat(getComputedStyle(document.querySelector('.sh-slideup-sheet')).opacity),
+    }));
+
+    // Fermeture : le déclencheur est la vraie méthode close().
+    const promesseFermeture = p.evaluate(() => window.__echantillonnerFeuille(700));
+    await p.evaluate(() => window.__feuille.close());
+    const nbFermeture = await promesseFermeture;
+    await attendre(600);
+    const etatFerme = await p.evaluate(() => ({
+        ouverte: !!document.querySelector('.sh-slideup-sheet--open'),
+        opacite: parseFloat(getComputedStyle(document.querySelector('.sh-slideup-sheet')).opacity),
+    }));
+    await p.context().close();
+
+    const declarationVive = r.etat.duree >= 0.15 && r.etat.propriete === 'transform';
+    const animer = (n) => n >= 4;   // départ + arrivée + intermédiaires, sous charge CI
+    const ok = declarationVive
+        && animer(nbOuverture) && animer(nbFermeture)
+        && etatOuvert.ouverte && etatOuvert.voile && etatOuvert.opacite > 0.9
+        && !etatFerme.ouverte && etatFerme.opacite < 0.1;
+    return {
+        ok,
+        detail: `déclaration calculée ${r.etat.propriete} ${r.etat.duree}s `
+            + `· ouverture ${nbOuverture} valeurs distinctes · fermeture ${nbFermeture} `
+            + `· états ouverte=${etatOuvert.ouverte}/voile=${etatOuvert.voile}/fermée=${!etatFerme.ouverte}`,
+    };
+});
+
+await scenario('L\'île dynamique s\'anime réellement au déploiement et au repli', async () => {
+    // L'HISTOIRE. Les transitions de l'en-tête (île .sh-dynamic-island, vues
+    // compacte/déployée) ont partagé la même blessure que la modale : des
+    // déclarations rejetées entières par le parseur. La preuve rendue existe
+    // pour les widgets et la modale — celle-ci l'étend à l'en-tête, dont la
+    // particularité est de vivre DERRIÈRE UNE SESSION : AppLayout n'est monté
+    // que si auth.isAuthenticated(). Le scénario sème donc une session de
+    // test dans sessionStorage AVANT le démarrage de l'application (jamais de
+    // vrai jeton : un serveur fictif, une identité fictive) pour que le vrai
+    // AppLayout se monte, puis déclenche le déploiement par un survol RÉEL —
+    // c'est mouseenter qui pilote l'état, pas une classe posable à la main.
+    // Le repli, lui, suit mouseleave avec un délai intentionnel de 240 ms :
+    // la fenêtre d'échantillonnage le couvre.
+    const p = await nouvellePage(navigateur, () => {
+        sessionStorage.setItem('SpaceHub_jellyfin_auth', JSON.stringify({
+            AccessToken: 'e2e-jeton-non-productif',
+            ServerUrl: 'http://127.0.0.1:9',   // port discard : rien à joindre
+            User: { Id: 'e2e-utilisateur', Name: 'e2e' },
+        }));
+    }, { reducedMotion: 'no-preference' });
+    const r = await p.evaluate(async () => {
+        const ile = document.querySelector('.sh-dynamic-island');
+        if (!ile) return { erreur: 'AppLayout non monté — île absente (session non prise en compte ?)' };
+        const vueCompacte = ile.querySelector('.sh-island-compact-view');
+        if (!vueCompacte) return { erreur: 'vue compacte de l\'île absente' };
+
+        const s = getComputedStyle(ile);
+        const durs = s.transitionDuration.split(',').map(v => parseFloat(v) || 0);
+        const props = s.transitionProperty.split(',').map(v => v.trim());
+        const etat = { propriete: props.includes('width') ? 'width' : (props[0] || 'all'), duree: Math.max(0, ...durs) };
+
+        // Largeur de l'île + opacité de la vue compacte : les deux propriétés
+        // qui portent le déploiement. Une seule clé composite — si l'une est
+        // figée par une animation, l'autre témoigne encore.
+        window.__echantillonnerIle = (duree) => new Promise((resoudre) => {
+            const ile2 = document.querySelector('.sh-dynamic-island');
+            const vue = ile2.querySelector('.sh-island-compact-view');
+            const valeurs = new Set();
+            const t0 = performance.now();
+            const boucle = () => {
+                const cs = getComputedStyle(ile2);
+                valeurs.add(`${Math.round(parseFloat(cs.width))}/${getComputedStyle(vue).opacity}`);
+                if (performance.now() - t0 < duree) requestAnimationFrame(boucle);
+                else resoudre(valeurs.size);
+            };
+            requestAnimationFrame(boucle);
+        });
+        return { etat };
+    });
+    if (r.erreur) { await p.context().close(); return { ok: false, detail: r.erreur }; }
+
+    // Déploiement : le survol RÉEL de l'île (mouseenter → état expanded).
+    const promesseDeploiement = p.evaluate(() => window.__echantillonnerIle(700));
+    await p.hover('.sh-dynamic-island');
+    const nbDeploiement = await promesseDeploiement;
+    await attendre(650);   // 550 ms de largeur + marge
+    const etatDeploye = await p.evaluate(() => ({
+        deployee: !!document.querySelector('.sh-island--expanded'),
+        largeur: Math.round(parseFloat(getComputedStyle(document.querySelector('.sh-dynamic-island')).width)),
+    }));
+
+    // Repli : le pointeur quitte — le délai intentionnel de 240 ms précède
+    // la transition de retour ; 950 ms de fenêtre couvrent l'ensemble.
+    await p.mouse.move(720, 700);
+    const promesseRepli = p.evaluate(() => window.__echantillonnerIle(950));
+    const nbRepli = await promesseRepli;
+    await attendre(500);
+    const etatReplie = await p.evaluate(() => ({
+        deployee: !!document.querySelector('.sh-island--expanded'),
+    }));
+    await p.context().close();
+
+    const declarationVive = r.etat.duree >= 0.15 && r.etat.propriete === 'width';
+    const animer = (n) => n >= 4;
+    const ok = declarationVive
+        && animer(nbDeploiement) && animer(nbRepli)
+        && etatDeploye.deployee && etatDeploye.largeur > 400
+        && !etatReplie.deployee;
+    return {
+        ok,
+        detail: `déclaration calculée ${r.etat.propriete} ${r.etat.duree}s `
+            + `· déploiement ${nbDeploiement} valeurs distinctes · repli ${nbRepli} `
+            + `· largeur déployée ${etatDeploye.largeur}px · replié=${!etatReplie.deployee}`,
+    };
+});
+
 await page.context().close();
 await navigateur.close();
 serveur.close();
