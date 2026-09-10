@@ -156,6 +156,9 @@ jobs:
         run: ../outillage/node_modules/.bin/cordova platform add android@15 --no-telemetry 2>&1 | tail -3
 
       - name: Signature de l'APK
+        # id : permet à l'étape d'artefact de savoir si ce run est un run
+        # d'amorçage (clé éphémère) ou un run signé par le secret.
+        id: signature
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -175,6 +178,7 @@ jobs:
           if [ -z "$KEYSTORE_B64" ]; then
             # Pas de secret : amorçage — clé éphémère, documentée dans le
             # résumé du run pour devenir permanente à l'étape suivante.
+            echo "amorcage=oui" >> "$GITHUB_OUTPUT"
             keytool -genkeypair -v -keystore spacehub.keystore \
               -alias spacehub -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass spacehub-ephemere -keypass spacehub-ephemere \
@@ -204,8 +208,13 @@ jobs:
             # désignerait une clé déjà perdue : impossible de construire
             # dessus. Le run n'est conservé que 30 jours : la promotion en
             # secret doit suivre la première version signée.
-            mkdir -p ../keystore-amorcage
-            cp spacehub.keystore ../keystore-amorcage/spacehub-ephemere.keystore
+            # CHEMIN EXACT attendu par l'étape d'upload ci-dessous (racine du
+            # workspace). Depuis build/cordova, `../../` remonte de DEUX crans :
+            # `../` seul donnait build/keystore-amorcage — l'upload ne trouvait
+            # rien, se contentait de « ignore », et la clé était détruite avec
+            # le runner. C'est ainsi que la clé v1.2.0 a été perdue.
+            mkdir -p ../../keystore-amorcage
+            cp spacehub.keystore ../../keystore-amorcage/spacehub-ephemere.keystore
           fi
           rm -f spacehub.keystore
 
@@ -218,13 +227,15 @@ jobs:
           retention-days: 7
 
       - name: Artefact du keystore d'amorçage
-        if: success()
+        # Armé UNIQUEMENT quand la clé éphémère vient d'être créée.
+        # `if-no-files-found: error` (et non « ignore ») : en amorçage, une
+        # clé manquante est un ÉCHEC BRUYANT. Un « ignore » ici avait laissé
+        # passer deux runs verts sans keystore — l'empreinte affichée désignait
+        # alors une clé déjà perdue. Plus jamais silencieux.
+        if: success() && steps.signature.outputs.amorcage == 'oui'
         uses: actions/upload-artifact@v7
         with:
-          # Présent uniquement en amorçage (pas de secrets configurés) —
-          # « ignore » : avec secrets, ce dossier n'existe pas et l'étape
-          # ne doit PAS échouer pour autant.
-          if-no-files-found: ignore
+          if-no-files-found: error
           name: keystore-amorcage-a-promouvoir-en-secret
           path: keystore-amorcage/spacehub-ephemere.keystore
           retention-days: 30
