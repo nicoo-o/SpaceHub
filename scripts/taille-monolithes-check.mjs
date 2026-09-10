@@ -43,7 +43,6 @@ const BUDGETS = {
     // décomposition (segments médias → jellyfin/player/SegmentsMedia.js).
     // 2537 → 2524 le 10 septembre 2026 : peau 2 (helpers purs →
     // jellyfin/player/UtilitairesLecteur.js).
-<<<<<<< HEAD
     // 2524 → 2518 le 10 septembre 2026 : peau 3 (compte à rebours « épisode
     // suivant » → jellyfin/player/CompteAReboursEpisode.js).
     // 2524 → 2374 le 10 septembre 2026 : peau 4 (popovers et tirage du
