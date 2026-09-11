@@ -69,8 +69,13 @@ const PLAFONDS = {
      * L'alternative (différer `integrations`, 17,6 ko) est documentée
      * plus bas : tentée, annulée, bloquée par registerWidget — pas une
      * monnaie disponible pour financer une migration.
+     *
+     * 270 → 276 le 11 septembre 2026 : coquille GSM (BarreNavigation,
+     * EnTeteCompact + feuille GsmNav.css) — deux variantes d'interface de
+     * ~4 ko gzip, chargées au démarrage pour que le marqueur html.sh-gsm
+     * trouve sa coquille dès le premier rendu sans flash d'interface PC.
      */
-    demarrage: 270 * 1024,
+    demarrage: 276 * 1024,
     /** La feuille de style unique, bloquante au rendu. */
     style: 46 * 1024,
 };
