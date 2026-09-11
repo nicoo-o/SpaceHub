@@ -5,6 +5,49 @@ All notable changes to SpaceHub are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Mobile (GSM) shell for the Android APK: a device-profile module detects
+  phone/tablet/desktop (TV first — the Android TV UA contains "Android")
+  and tags the document root; the app shell swaps to an explicit mobile
+  variant — a Material 3 bottom navigation bar (3 destinations reusing the
+  existing views) plus a compact header whose avatar opens the user menu
+  in a bottom-sheet modal. Desktop and TV rendering are unchanged.
+- Android back button now walks the same layer stack as the TV remote's
+  Back key (media sheet, settings, search, …) instead of killing the app;
+  with no layer open, a warned double-press exits. The bridge
+  (`core/PontAndroid.js`) is silent outside the APK — the web and Electron
+  builds ship without `cordova.js` and without any listener.
+- Mobile e2e pass: six scenarios run the critical path in a 412×915
+  touch viewport (profile tag, no keyboard zoom, shell rendered with the
+  desktop dock hidden, real bottom-bar navigation, bridge inert without
+  Cordova). Desktop scenarios unchanged — 36/36 green.
+- Static GSM invariants check (`npm run test:gsm`, part of `npm test`):
+  viewport must not disable pinch-zoom, every GSM CSS class must be emitted
+  by the JS, the anti-sticky-hover guard must exist, root must use `dvh`,
+  and 48 px touch targets must cover the whole mobile shell.
+- Documentation: `docs/UI_MOBILE.md` (decisions + on-device acceptance
+  checklist) and `docs/PLAN_UI_MOBILE_GSM.md` (the original plan, kept for
+  its reasoning).
+
+### Changed
+- Viewport meta no longer disables zoom (`user-scalable=no`/
+  `maximum-scale` were a listed anti-pattern; pinch-zoom is an
+  accessibility need) and adds `viewport-fit=cover` for notches.
+- All modals render as full-width bottom sheets with contained internal
+  scrolling on touch-pointer devices — the native phone gesture.
+- APK: `cordova.js` is injected into the packaged `www/` only (no web
+  impact, guarded in CI), and the keyboard now resizes the WebView
+  (`adjustResize`) instead of panning the page.
+
+### Fixed
+- Inputs under 16 px made Android zoom the page on focus; touch-target
+  expansion (48 px) now also covers sidebar items, settings rows, the user
+  dropdown and the whole mobile shell.
+- `100vh` included the area reserved by the Android gesture bar; the root
+  container now uses `100dvh` so splash and shell no longer overflow.
+
 ## [1.3.0] - 2026-09-10
 
 ### Added

@@ -1500,6 +1500,124 @@ await scenario('L\'île dynamique s\'anime réellement au déploiement et au rep
 });
 
 await page.context().close();
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PASSE GSM — la même application dans un téléphone.
+//
+// Le profil d'appareil (core/ProfilAppareil.js) pose html.sh-gsm quand le
+// pointeur est tactile et l'UA un Android : la coquille change (barre basse
+// Material 3 + en-tête compact), pas l'application. Ces scénarios rejouent
+// le chemin critique DANS ce profil — un écran de connexion rendu mais
+// une barre morte serait exactement le défaut que cette passe existe pour
+// attraper : vert sur le bureau, cassé dans la poche.
+// ═════════════════════════════════════════════════════════════════════════════
+const pageGsm = await nouvellePage(navigateur, null, {
+    // Le triple qui fait un téléphone aux yeux de l'application : petit
+    // viewport, pointeur grossier, média tactile. L'UA Android déclenche
+    // ensuite le profil GSM dans ProfilAppareil.
+    viewport: { width: 412, height: 915 },
+    hasTouch: true,
+    isMobile: true,
+    userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36',
+});
+
+await scenario('GSM — le profil d\'appareil pose html.sh-gsm', async () => {
+    const r = await pageGsm.evaluate(() => ({
+        gsm: document.documentElement.classList.contains('sh-gsm'),
+        profil: window.SpaceHub?.core?.profilAppareil?.profil?.() ?? null,
+    }));
+    return { ok: r.gsm && r.profil === 'gsm', detail: `profil=${r.profil}, marqueur=${r.gsm}` };
+});
+
+await scenario('GSM — l\'écran de connexion rend et les champs ne zoomeront pas', async () => {
+    const r = await pageGsm.evaluate(() => {
+        const champ = document.querySelector('.sh-login-input');
+        return {
+            login: !!document.querySelector('.sh-login-card'),
+            taille: champ ? getComputedStyle(champ).fontSize : null,
+            viewport: document.querySelector('meta[name=viewport]')?.content || '',
+        };
+    });
+    // < 16 px = zoom correctif du clavier Android au focus (comportement
+    // natif). Le viewport ne doit plus non plus contenir d'anti-pattern.
+    const ok = r.login && parseFloat(r.taille) >= 16 && !/user-scalable=no|maximum-scale/.test(r.viewport);
+    return { ok, detail: `${r.taille}, viewport « ${r.viewport} »` };
+});
+
+await scenario('GSM — aucune erreur JavaScript au démarrage', async () => {
+    const vraies = pageGsm.__erreurs.filter(e => !/fonts\.googleapis|ERR_CONNECTION|Failed to fetch/.test(e));
+    return { ok: vraies.length === 0, detail: vraies.length ? vraies.slice(0, 2).join(' | ') : 'aucune' };
+});
+
+// Session de test semée AVANT le démarrage — même mécanisme que le scénario
+// île de la passe bureau : AppLayout ne se monte que si auth.isAuthenticated(),
+// et un serveur fictif (port discard) suffit à le faire monter.
+const pageGsmCoquille = await nouvellePage(navigateur, () => {
+    sessionStorage.setItem('SpaceHub_jellyfin_auth', JSON.stringify({
+        AccessToken: 'e2e-jeton-non-productif',
+        ServerUrl: 'http://127.0.0.1:9',
+        User: { Id: 'e2e-utilisateur', Name: 'e2e', Policy: { IsAdministrator: false } },
+    }));
+}, {
+    viewport: { width: 412, height: 915 },
+    hasTouch: true,
+    isMobile: true,
+    userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36',
+});
+
+await scenario('GSM — coquille : barre basse rendue, en-tête présent, dock PC masqué', async () => {
+    await attendre(2500);
+    const r = await pageGsmCoquille.evaluate(() => ({
+        barre: !!document.querySelector('.sh-tab-bar'),
+        onglets: [...document.querySelectorAll('.sh-tabbar-btn')].map(b => b.dataset.view),
+        entete: !!document.querySelector('.sh-gsm-header'),
+        dockMasque: (() => {
+            const el = document.querySelector('.sh-island-nav-wrapper');
+            return !el || getComputedStyle(el).display === 'none';
+        })(),
+        vues: typeof window.SpaceHub?.ui?.appLayout?.navigate === 'function',
+    }));
+    const ok = r.barre && r.onglets.length === 3 && r.entete && r.dockMasque && r.vues;
+    return { ok, detail: ok ? `barre [${r.onglets.join(', ')}], en-tête présent, dock PC masqué`
+                            : `barre=${r.barre}, onglets=${r.onglets.length}, en-tête=${r.entete}, dockMasque=${r.dockMasque}, navigate=${r.vues}` };
+});
+
+await scenario('GSM — la barre basse navigue réellement entre les vues', async () => {
+    const r = await pageGsmCoquille.evaluate(async () => {
+        const layout = window.SpaceHub?.ui?.appLayout;
+        if (!layout) return { navigue: false };
+        const vueInitiale = layout._currentView;
+        const bouton = document.querySelector('.sh-tabbar-btn[data-view="library"]');
+        bouton?.click();
+        await new Promise(r => setTimeout(r, 1200));
+        return {
+            navigue: layout._currentView === 'library' && vueInitiale !== 'library',
+            actif: document.querySelector('.sh-tabbar-btn.active')?.dataset.view,
+            contenu: !!document.querySelector('.sh-library-view, .sh-library-explorer, #sh-main-view-container > *'),
+        };
+    });
+    const ok = r.navigue && r.actif === 'library' && r.contenu;
+    return { ok, detail: ok ? 'tap Bibliothèques → vue rendue, onglet actif synchronisé' : `navigue=${r.navigue}, actif=${r.actif}` };
+});
+
+await pageGsmCoquille.context().close();
+
+await scenario('GSM — retour système : le pont est inactif sur le web SANS casser la page', async () => {
+    // Hors APK il n'y a pas de window.cordova : le pont ne doit rien écouter.
+    // On vérifie l'invariant qui compte : la propagation d'un backbutton
+    // factice ne lève pas et ne ferme pas l'application (rien à fermer).
+    const r = await pageGsm.evaluate(async () => {
+        const pont = window.SpaceHub?.core?.pontAndroid;
+        try {
+            document.dispatchEvent(new Event('backbutton'));
+            return { inactif: pont ? !pont.estActif() : true, erreur: false };
+        } catch { return { inactif: true, erreur: true }; }
+    });
+    return { ok: r.inactif && !r.erreur, detail: `pont inactif=${r.inactif}, sans erreur=${!r.erreur}` };
+});
+
+await pageGsm.context().close();
+
 await navigateur.close();
 serveur.close();
 

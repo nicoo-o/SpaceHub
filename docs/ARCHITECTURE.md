@@ -37,6 +37,24 @@ d'amorçage de Vite, qui utilise lui-même `Array.at`.
 Un scénario de `npm run test:e2e` démarre l'application avec ces quatre API
 retirées, pour que la régression soit détectée et non supposée.
 
+## Les profils d'appareil
+
+L'application tourne sur trois usages — ordinateur, téléviseur, mobile — et
+ne les confond pas : `core/ProfilAppareil.js` détecte le profil au démarrage
+(TV d'abord : l'UA d'Android TV contient « Android » ; puis pointeur tactile
++ UA Android pour le GSM) et pose un marqueur déclaratif sur l'élément racine :
+
+| Profil | Marqueur | Coquille de navigation |
+|---|---|---|
+| TV / bureau | (aucun) | dock « Dynamic Island » + tiroir latéral (survol/focus) |
+| GSM (`html.sh-gsm`) | `sh-gsm` | barre basse Material 3 + en-tête compact + menu en feuille |
+
+Le CSS écrit le reste : tout style GSM est scopé sous `html.sh-gsm` ou gardé
+par `(hover: none) and (pointer: coarse)`. Le rendu PC et TV est inchangé.
+Les décisions et la grille d'acceptation sur vrai téléphone vivent dans
+`docs/UI_MOBILE.md` ; le pont Android (bouton retour système) dans
+`core/PontAndroid.js`.
+
 ## Les couches
 
 ```
