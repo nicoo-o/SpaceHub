@@ -54,6 +54,7 @@ import SpatialNavigation from './SpatialNavigation.js';
 import inputRouter from './InputRouter.js';
 import RatingCacheService from './RatingCacheService.js';
 import TvModeManager    from './TvModeManager.js';
+import ProfilAppareil   from './ProfilAppareil.js';
 import TrailerService   from './TrailerService.js';
 import ServiceRegistry  from './ServiceRegistry.js';
 import ErrorBoundary    from './ErrorBoundary.js';
@@ -242,6 +243,14 @@ async function init() {
         log.info(`Plateforme détectée : ${tv.plateforme}.`);
     }
 
+    // Profil d'appareil — AVANT toute interface : le marqueur html.sh-gsm
+    // doit être posé avant le premier render pour que le CSS GSM s'applique
+    // sans flash d'interface PC. La détection TV réutilise TelecommandeTv.
+    const profilAppareil = new ProfilAppareil({ settings: null });
+    profilAppareil.init();
+    SpaceHub.core.profilAppareil = profilAppareil;
+    services.register('profil.appareil', profilAppareil);
+
     const touchEngine = new TouchEngine();
     const audioFeedback = new AudioFeedback();
     const spatialNav = new SpatialNavigation();
@@ -332,6 +341,11 @@ async function init() {
         'parental.maxRank': 1,
         'parental.allowUnrated': false,
         'ui.tvMode': 'auto',
+        // Forçage du profil d'appareil ('' | 'gsm' | 'bureau') — même esprit
+        // que ui.tvMode : le réglage prime sur la détection. Vide = détecter.
+        // Voir core/ProfilAppareil.js ; le forçage est appliqué via
+        // profilAppareil.appliquerForcage() quand le réglage change.
+        'ui.forceProfil': '',
         // Mode TV : l'échelle et la marge de sûreté dépendent du salon et du
         // téléviseur (distance de vision, rognage des bords). Sans effet hors
         // mode TV. Voir core/TvModeManager.js.
@@ -367,6 +381,9 @@ async function init() {
     const tvMode = new TvModeManager({ settings, eventBus });
     SpaceHub.core.tvMode = tvMode;
     services.register('tvMode', tvMode);
+    // Le forçage par réglage n'était pas branchable à la création du profil :
+    // SettingsManager n'existait pas encore. C'est branché maintenant.
+    profilAppareil.brancherReglage(eventBus);
     // Drapeaux de fonctionnalité — créés tôt : plusieurs services consultent
     // leur état au moment de s'initialiser.
     const features = new FeatureFlags({ settings });
