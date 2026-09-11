@@ -394,6 +394,42 @@ body::-webkit-scrollbar, #app::-webkit-scrollbar { display: none; width: 0; heig
 }
 .sh-input:focus-visible { outline: none; }
 
+/* ── Confort tactile (Web Interface Guidelines) ─────────────────────────
+   Posé globalement, intentionnellement :
+   - `-webkit-tap-highlight-color: transparent` : le surlignage gris natif
+     Android double chaque état visuel déjà géré par les composants ; le
+     clic n'est pas pour autant sans retour (états :active des composants).
+   - `overscroll-behavior-y: contain` sur body : le pull-to-refresh est
+     déjà implémenté côté application (TouchEngine) — le natif ne doit pas
+     entrer en concurrence, et l'effet « rebond de fin de page » tirait
+     l'URL barre en web et la vue hors de son cadre en APK.
+   Ces règles ne changent rien à la souris ni au clavier. */
+html {
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: contain;
+}
+
+/* Clavier virtuel : un champ de moins de 16 px fait ZOOMER Android au focus
+   (comportement natif, indépendant du viewport). Sous GSM, tous les champs
+   passent à 16 px — la taille de lecture reste gérée par les composants
+   pour les libellés, seule la SAISIE grandit. */
+@media (hover: none) and (pointer: coarse) {
+    .sh-input,
+    input.sh-gsm-16,
+    .sh-spotlight-input,
+    .sh-search-input,
+    input[type="text"],
+    input[type="password"],
+    input[type="url"],
+    input[type="email"],
+    input[type="number"],
+    input[type="search"],
+    textarea,
+    select {
+        font-size: 16px;
+    }
+}
+
 /* ── Apple Toggle Switch ──────────────────────────────────────── */
 .sh-toggle {
     position: relative;
