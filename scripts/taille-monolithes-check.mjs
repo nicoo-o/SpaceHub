@@ -62,7 +62,12 @@ const BUDGETS = {
     // Le budget se baisse dans le commit qui prouve la descente, jamais
     // au fil de l'eau.
     'jellyfin/player/VideoPlayer.js': 2212,
-    'core/SpatialNavigation.js': 1750,
+    // 1750 → 1775 le 11 septembre 2026 : +25 lignes — l'API publique
+    // demandeRetour() (pipeline Retour partagé TV/bouton système Android) et
+    // le marqueur de fermeture vivante dans _handleBack. Le pont Android
+    // (core/PontAndroid.js) ne peut pas appeler une méthode _privée : l'audit
+    // des façades impose une vraie API publique, testée.
+    'core/SpatialNavigation.js': 1775,
     // 1624 → 1643 le 10 septembre 2026 : +19 lignes — le réglage « mises à
     // jour automatiques » (opt-out Windows) appartient aux réglages, pas à un
     // module satellite ; la préférence et son pont sont documentés ailleurs.
