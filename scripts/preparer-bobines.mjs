@@ -87,6 +87,22 @@ function preparerCordova() {
     mkdirSync(join(CORDOVA, 'res', 'screen', 'android'), { recursive: true });
     cpSync(EMBARQUE, join(CORDOVA, 'www'), { recursive: true });
 
+    // PONT CORDOVA — injecté dans www/ SEULEMENT. Le build web (dist/) et la
+    // bobine Electron n'ont ni la balise ni le script : aucune 404, aucun
+    // comportement différent. Cordova exige que ce script soit présent dans
+    // la page AVANT l'ouverture de la WebView : c'est lui qui définit
+    // window.cordova et relaie deviceready/backbutton vers le JS (voir
+    // core/PontAndroid.js). Une balise pointant un script ABSENT rend
+    // window.cordova undefined : PontAndroid reste silencieux, l'app tourne
+    // mais le bouton système tue l'app — c'est la régression que la garde CI
+    // (étape « Vérifier la fusion TV » du smoke, enrichie) empêche.
+    const indexEmbarque = join(CORDOVA, 'www', 'index.html');
+    let html = readFileSync(indexEmbarque, 'utf8');
+    if (!html.includes('cordova.js')) {
+        html = html.replace('<script', '    <script src="cordova.js"></script>\n    <script');
+        writeFileSync(indexEmbarque, html);
+    }
+
     // Icônes de lanceur — une par densité, générées depuis le SVG source.
     const densites = [
         ['ldpi', 36], ['mdpi', 48], ['hdpi', 72], ['xhdpi', 96],
@@ -142,6 +158,11 @@ function preparerCordova() {
          refusé (« expected color but got (raw string) 0xff101014 »,
          premier run v1.1.0). -->
     <preference name="AndroidWindowSplashScreenBackground" value="#101014" />
+    <!-- Clavier virtuel : redimensionne la WebView au lieu de masquer le
+         champ en cours de saisie (comportement par défaut « pan » qui
+         décalait toute la page sous GSM). Le redimensionnement suit
+         visualViewport, que TouchEngine écoute déjà. -->
+    <preference name="AndroidWindowSoftInputMode" value="adjustResize" />
 
     <platform name="android">
         <!-- Icônes : sans déclaration <icon>, cordova-android embarque son

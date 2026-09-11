@@ -1461,6 +1461,9 @@ export class SpatialNavigation {
             e?.preventDefault?.();
             this._layerStack.splice(i, 1);
             this._closeLayer(layer, el);
+            // Marqueur pour demandeRetour() : une couche VIVANTE a été
+            // fermée par CET appel (voir la doc de demandeRetour).
+            this._derniereFermeture = (this._derniereFermeture ?? 0) + 1;
             return;
         }
 
@@ -1470,6 +1473,7 @@ export class SpatialNavigation {
             if (!el) continue;
             e?.preventDefault?.();
             this._closeLayer(layer, el);
+            this._derniereFermeture = (this._derniereFermeture ?? 0) + 1;
             return;
         }
 
@@ -1478,6 +1482,27 @@ export class SpatialNavigation {
         //    aucune confirmation ne doit bloquer la sortie. Ne rien faire ici
         //    donne l'impression d'une application coincée.
         this._quitterApplication(e);
+    }
+
+    /**
+     * API publique de Retour — le bouton SYSTÈME Android (pont Cordova) et
+     * la touche du téléviseur passent par le même pipeline : fermer la
+     * couche du dessus, rien sinon. Le pont interprète la valeur de retour :
+     * `true` = une couche a été fermée (rien d'autre à faire) ; `false` =
+     * aucune couche, le pont gère sa confirmation de sortie.
+     *
+     * Public parce que le pont ne peut pas appeler une méthode `_privée`
+     * — l'audit des façades interdit les atteintes hors contrat.
+     *
+     * @returns {boolean} vrai si une couche a été fermée
+     */
+    demandeRetour() {
+        this._derniereFermeture = 0;
+        this._handleBack(null);
+        // Une couche VIVANTE a été fermée par CET appel — les entrées de pile
+        // fantômes (couche fermée par un autre chemin) sont nettoyées par
+        // _handleBack sans poser le marqueur.
+        return this._derniereFermeture > 0;
     }
 
     /**
