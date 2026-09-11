@@ -55,6 +55,7 @@ import inputRouter from './InputRouter.js';
 import RatingCacheService from './RatingCacheService.js';
 import TvModeManager    from './TvModeManager.js';
 import ProfilAppareil   from './ProfilAppareil.js';
+import PontAndroid      from './PontAndroid.js';
 import TrailerService   from './TrailerService.js';
 import ServiceRegistry  from './ServiceRegistry.js';
 import ErrorBoundary    from './ErrorBoundary.js';
@@ -251,6 +252,16 @@ async function init() {
     SpaceHub.core.profilAppareil = profilAppareil;
     services.register('profil.appareil', profilAppareil);
 
+    // Pont Android — SILENCIEUX hors APK : sans `window.cordova` (web,
+    // Electron, TV) il ne branche rien. En APK, il attend `deviceready` puis
+    // route le bouton retour système vers le même pipeline que la touche
+    // Retour TV (couche du dessus fermée, sinon confirmation de sortie).
+    // Injecté TÔT : le geste retour peut arriver pendant le démarrage.
+    const pontAndroid = new PontAndroid({ logger: new Logger('PontAndroid') });
+    pontAndroid.init();
+    SpaceHub.core.pontAndroid = pontAndroid;
+    services.register('pont.android', pontAndroid);
+
     const touchEngine = new TouchEngine();
     const audioFeedback = new AudioFeedback();
     const spatialNav = new SpatialNavigation();
@@ -259,6 +270,11 @@ async function init() {
     SpaceHub.gamepad = spatialNav.getGamepad ? spatialNav.getGamepad() : spatialNav._gamepad;
     SpaceHub.core.spatialNavigation = spatialNav;
     services.register('nav.spatial', spatialNav);
+    // Le pont a besoin du moteur pour son pipeline Retour — branché ici,
+    // après sa création (le pont lui-même est créé avant, le geste pouvant
+    // arriver tôt ; sans moteur attaché il répondra `false` = confirmation
+    // de sortie, jamais un blocage).
+    pontAndroid.brancherMoteur?.(spatialNav);
     // Le routeur d'entrée est exposé pour pouvoir INSPECTER l'ordre de
     // distribution du clavier — c'est tout l'intérêt de l'avoir rendu
     // explicite : un ordre qu'on ne peut pas lire n'est pas vérifiable.
