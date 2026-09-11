@@ -8,7 +8,11 @@
     }
 }
 
-/* ── CIBLES TACTILES ÉTENDUES (MIN 48×48px SANS CHANGER LE DESIGN) ── */
+/* ── CIBLES TACTILES ÉTENDUES (MIN 48×48px SANS CHANGER LE DESIGN) ──
+    La liste couvre ce qui s'atteinte AU DOIGT sur GSM : onglets et chips,
+    mais aussi les items du tiroir latéral, du menu GSM, des réglages et des
+    rangées de listes (Modale) — les surfaces où une cible trop petite
+    provoquait des taps ratés. */
 @media (hover: none) and (pointer: coarse) {
     .sh-genre-chip,
     .sh-tab-btn,
@@ -18,7 +22,15 @@
     .sh-admin-mini-action-btn,
     .sh-lib-alpha-btn,
     .sh-sync-btn,
-    .sh-chip-btn {
+    .sh-chip-btn,
+    .sh-sidebar-item,
+    .sh-sidebar-btn,
+    .sh-sidebar-footer-btn,
+    .sh-gsm-menu__item,
+    .sh-tabbar-btn,
+    .sh-gsm-header__btn,
+    .sh-settings-nav__item,
+    .sh-user-dropdown__item {
         position: relative;
         min-height: 38px;
         touch-action: manipulation;
