@@ -84,6 +84,11 @@ export const CHROME_PERSISTANT = [
     '.sh-dynamic-island #sh-user-menu-btn',
     '.sh-dynamic-island .sh-user-avatar-btn',
     '.sh-user-dropdown.open .sh-user-dropdown__item',
+    // Coquille GSM (BarreNavigation/EnTeteCompact) : mêmes rôles que le dock
+    // — chrome permanent au-dessus des vues. Hors GSM, ces éléments
+    // n'existent pas dans le DOM, la requête ne renvoie rien : aucun effet.
+    '.sh-tab-bar .sh-tabbar-btn',
+    '.sh-gsm-header .sh-gsm-header__btn',
 ].join(', ');
 
 /** Conteneurs à défilement horizontal réellement générés par l'application. */

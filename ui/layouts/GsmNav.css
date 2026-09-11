@@ -1,0 +1,312 @@
+/**
+ * SpaceHub — Styles de la coquille GSM
+ *
+ * Tout ce qui suit est scopé sous `html.sh-gsm` — posé par
+ * core/ProfilAppareil.js avant le premier render. Hors GSM, ces règles
+ * n'existent pas : le rendu PC et TV est inchangé.
+ *
+ * Choix conforme aux Web Interface Guidelines :
+ *   - cibles ≥ 48 px, touch-action: manipulation ;
+ *   - icônes seules porteuses d'un aria-label (posé dans les gabarits JS) ;
+ *   - animations en transform/opacity uniquement, interruptions possibles,
+ *     repli sous prefers-reduced-motion ;
+ *   - safe-areas en amélioration, jamais en seule source de vérité (les
+ *     insets Android WebView sont incohérents : repli px fixe systématique).
+ */
+
+/* ── Barre de navigation basse (Material 3 « navigation bar ») ──────────── */
+.sh-tab-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10002;                     /* sous le dock PC (10003) : jamais les deux */
+    display: flex;
+    align-items: stretch;
+    justify-content: space-around;
+    height: calc(64px + 24px + env(safe-area-inset-bottom, 0px));
+    padding: 0 8px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    background: color-mix(in srgb, var(--sh-bg-base, #101014) 88%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+    border-top: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08);
+    touch-action: manipulation;
+}
+
+.sh-tabbar-btn {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 48px;
+    min-height: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    border: none;
+    background: none;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.62);
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.sh-tabbar-btn__icon {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 30px;
+    border-radius: 15px;
+    transition: background-color 220ms ease, color 220ms ease;
+}
+
+.sh-tabbar-btn__label {
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    line-height: 1;
+}
+
+.sh-tabbar-btn.active {
+    color: var(--sh-text-primary, #f0f0f8);
+}
+
+.sh-tabbar-btn.active .sh-tabbar-btn__icon {
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.13);
+}
+
+/* L'indicateur Material 3 : une pilule sous l'onglet actif, déplacée en
+   transform par BarreNavigation.js. */
+.sh-tabbar-pill {
+    position: absolute;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px) + 6px);
+    left: 0;
+    width: 34px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--sh-color-primary, #7c6aff);
+    transform: translateX(-50%);
+    opacity: 0;
+    pointer-events: none;
+    will-change: transform, opacity;
+}
+
+/* ── En-tête compact fixe ────────────────────────────────────────────────── */
+.sh-gsm-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10002;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: calc(54px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) 12px 0 16px;
+    background: color-mix(in srgb, var(--sh-bg-base, #101014) 82%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+    border-bottom: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.07);
+    touch-action: manipulation;
+}
+
+.sh-gsm-header__brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--sh-text-primary, #f0f0f8);
+    min-width: 0;
+}
+
+.sh-gsm-header__title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sh-gsm-header__actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.sh-gsm-header__btn {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--sh-text-primary, #f0f0f8);
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Cible tactile effective 48 px sans agrandir le dessin 44 px — même
+   technique que TouchEngine.css. */
+.sh-gsm-header__btn::before {
+    content: '';
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    pointer-events: auto;
+}
+.sh-gsm-header__btn {
+    position: relative;
+}
+
+.sh-gsm-header__avatar {
+    padding: 0;
+    overflow: hidden;
+}
+
+.sh-gsm-avatar-img,
+.sh-gsm-avatar-initiale {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: rgba(var(--sh-ink, 255, 255, 255), 0.14);
+    background-size: cover;
+    background-position: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--sh-text-primary, #f0f0f8);
+}
+
+/* ── Menu utilisateur en feuille (classe Modal, habillée GSM) ───────────── */
+html.sh-gsm .sh-modal#sh-modal-gsm-user-menu .sh-modal__container {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    max-width: none;
+    max-height: 80vh;
+    margin: 0;
+    border-radius: 22px 22px 0 0;
+    border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.10);
+    border-bottom: none;
+    background: var(--sh-bg-elevated, #17171d);
+    /* WIG : les feuilles contiennent leur défilement. */
+    overscroll-behavior: contain;
+    animation: sh-gsm-sheet-in 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html.sh-gsm .sh-modal#sh-modal-gsm-user-menu .sh-modal__body {
+    padding: 6px 10px calc(20px + env(safe-area-inset-bottom, 0px));
+    max-height: 72vh;
+    overflow-y: auto;
+}
+
+@keyframes sh-gsm-sheet-in {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html.sh-gsm .sh-modal#sh-modal-gsm-user-menu .sh-modal__container {
+        animation: none;
+    }
+}
+
+.sh-gsm-menu__identite {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 14px 12px 12px;
+    border-bottom: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08);
+    margin-bottom: 6px;
+}
+
+.sh-gsm-menu__identite strong {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.sh-gsm-menu__serveur {
+    font-size: 12px;
+    color: rgba(var(--sh-ink, 255, 255, 255), 0.55);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sh-gsm-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 52px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 14px;
+    background: none;
+    color: var(--sh-text-primary, #f0f0f8);
+    font: inherit;
+    font-size: 14.5px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.sh-gsm-menu__item:active {
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.09);
+}
+
+.sh-gsm-menu__item--danger {
+    color: #ff6b6b;
+}
+
+/* ── Compensation du chrome GSM dans le flux ────────────────────────────── */
+/* La barre et l'en-tête sont fixes : le contenu défile sous, pas derrière. */
+html.sh-gsm .sh-app-main {
+    padding-top: calc(54px + env(safe-area-inset-top, 0px) + 6px);
+    padding-bottom: calc(64px + 24px + env(safe-area-inset-bottom, 0px) + 6px);
+}
+
+/* Le scroll-padding historique (96/88) visait le dock PC ; sous GSM, ce sont
+   l'en-tête et la barre qui ne doivent jamais masquer un élément focalisé. */
+html.sh-gsm {
+    scroll-padding-top: calc(54px + env(safe-area-inset-top, 0px) + 12px);
+    scroll-padding-bottom: calc(64px + 24px + env(safe-area-inset-bottom, 0px) + 12px);
+}
+
+/* Le dock PC et son halo n'existent pas sur GSM : il est remplacé par
+   l'en-tête compact. display:none évite tout focus résiduel. */
+html.sh-gsm .sh-island-nav-wrapper {
+    display: none;
+}
+
+/* ── Garde anti sticky-hover ─────────────────────────────────────────────── */
+/* Les règles :hover de la coquille collent après un tap sur écran tactile
+   (l'état hover reste posé jusqu'au tap suivant). La garde (hover: hover)
+   réserve ces effets aux pointeurs fins. */
+@media (hover: none) {
+    .sh-dynamic-island:hover,
+    .sh-dynamic-island:hover .sh-luminous-dot,
+    .sh-nav-brand:hover,
+    .sh-island-compact-view:hover,
+    .sh-nav-tab-btn:hover,
+    .sh-nav-action-btn:hover,
+    .sh-avatar-pill:hover,
+    .sh-user-dropdown__item:hover,
+    .sh-user-dropdown__item.sh-danger:hover {
+        /* Valeurs neutres = l'état de repos. Le tap ne « colle » plus rien. */
+        border-color: rgba(var(--sh-ink, 255, 255, 255), 0.14);
+        box-shadow: none;
+        background: rgba(var(--sh-ink, 255, 255, 255), 0.05);
+        transform: none;
+    }
+}

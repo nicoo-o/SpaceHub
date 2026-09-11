@@ -16,6 +16,8 @@ import AnalyticsModal from '../components/AnalyticsModal.js';
 import SpatialNavigation  from '../../core/SpatialNavigation.js';
 
 import './AppLayout.css';
+import { creerBarreNavigation } from './BarreNavigation.js';
+import { creerEnTeteCompact } from './EnTeteCompact.js';
 import * as svc from '../../core/services.js';
 import { chargerConsoleAdmin } from '../views/chargerConsoleAdmin.js';
 import { ouvrirReglages } from '../components/chargerReglages.js';
@@ -238,6 +240,7 @@ class AppLayout {
 
         this._bindHeaderEvents(container);
         this._sidebar.render(document.body);
+        this._rendreVarianteGsm(container);
         this.navigate(this._currentView);
         this._spatialNav = svc.nav() || svc.nav();
         if (window.SpaceHub) {
@@ -621,6 +624,99 @@ class AppLayout {
      * @param {Object} [params]
      */
 
+    // ── Variante GSM (ProfilAppareil) ─────────────────────────────────────
+
+    /**
+     * La coquille GSM existe-t-elle ? Lit le profil d'appareil détecté.
+     * Un appelant sans ProfilAppareil (tests) vaut bureau : aucun variant.
+     */
+    _estGsm() {
+        const profil = SpaceHub?.core?.profilAppareil;
+        return Boolean(profil?.estGsm?.());
+    }
+
+    /**
+     * Pose la coquille GSM — barre basse + en-tête compact — quand le profil
+     * d'appareil dit GSM. VARIANT explicite sélectionné ici : le dock PC
+     * reste rendu (il est masqué en CSS sous html.sh-gsm), la logique des
+     * vues ne voit aucun changement. Idempotent : render() peut repasser.
+     */
+    _rendreVarianteGsm(container) {
+        if (!this._estGsm()) return;
+        if (this._barreGsm) this._barreGsm.nettoyer();
+        if (this._enteteGsm) this._enteteGsm.nettoyer();
+
+        this._barreGsm = creerBarreNavigation({
+            onOnglet: (view) => this.navigate(view),
+            vueActive: () => this._currentView,
+        });
+        this._enteteGsm = creerEnTeteCompact({
+            onRecherche: () => svc.search()?.open?.(),
+            onMenu: () => this._ouvrirMenuGsm(),
+            titre: () => 'SpaceHub',
+            initialeUtilisateur: () => (this._auth?.getUser()?.Name || 'U').charAt(0).toUpperCase(),
+            avatarUrl: () => {
+                const user = this._auth?.getUser();
+                const serverUrl = this._auth?.getServerUrl();
+                return (user?.PrimaryImageTag && user?.Id && serverUrl)
+                    ? `${serverUrl}/Users/${encodeURIComponent(user.Id)}/Images/Primary?quality=90`
+                    : null;
+            },
+            estAdmin: () => this._auth?.getUser()?.Policy?.IsAdministrator === true,
+            fonctionActive: (cle) => svc.features()?.isEnabled?.(cle),
+        });
+        this._enteteGsm.render(container);
+        this._barreGsm.render(document.body);
+    }
+
+    /**
+     * Menu utilisateur GSM : le dropdown PC vit au survol souris ; ici le
+     * tap ouvre le même contenu dans une modale-feuille (classe Modal :
+     * confinement du focus, Retour et aria déjà gérés — GsmNav.css la
+     * habille en feuille). Les entrées ferment la modale PUIS déclenchent
+     * la même action que le dropdown.
+     */
+    _ouvrirMenuGsm() {
+        const modalClass = svc.modalClass();
+        if (!modalClass || !this._enteteGsm) return;
+        const user = this._auth?.getUser();
+        this._menuModalGsm = this._enteteGsm.ouvrirMenu({
+            modalClass,
+            utilisateur: user?.Name || 'Utilisateur',
+            serveur: this._auth?.getServerUrl() || '',
+            actions: {
+                theme: () => {
+                    const themes = svc.themes();
+                    if (themes) {
+                        themes.next();
+                        const currentId = themes.getCurrent();
+                        const disponible = themes.getAvailable().find(t => t.id === currentId);
+                        svc.toaster()?.info?.(`Thème actif : ${disponible?.name || currentId}`);
+                    }
+                },
+                personnaliser: () => ouvrirReglages('dashboard'),
+                actualiser: () => {
+                    svc.dashboard()?.render?.();
+                    svc.toaster()?.success?.('Affichage et widgets actualisés !');
+                },
+                analytics: () => { const analyticsModal = new AnalyticsModal(); analyticsModal.open(); },
+                admin: async () => {
+                    const adminView = svc.adminDashboard() || await chargerConsoleAdmin();
+                    if (!adminView) {
+                        svc.toaster()?.error?.("La console d'administration n'a pas pu être chargée.");
+                        return;
+                    }
+                    adminView.open();
+                },
+                reglages: () => ouvrirReglages(),
+                deconnexion: () => {
+                    svc.toaster()?.info?.('Déconnexion en cours…');
+                    Promise.resolve(this._auth?.logout()).catch(() => {});
+                },
+            },
+        });
+    }
+
     _unbindEvents() {
         this._documentHandlers.forEach(([event, handler]) => document.removeEventListener(event, handler));
         this._documentHandlers = [];
@@ -643,6 +739,11 @@ class AppLayout {
         }
         Object.values(this._views).forEach(view => view?.destroy?.());
         this._sidebar?.destroy?.();
+        this._barreGsm?.nettoyer?.();
+        this._barreGsm = null;
+        this._enteteGsm?.nettoyer?.();
+        this._enteteGsm = null;
+        this._menuModalGsm = null;
         this._spatialNav = null; // Déréférencement local pur sans détruire le singleton
         window.SpaceHub && delete window.SpaceHub.appLayout;
     }
@@ -688,6 +789,10 @@ class AppLayout {
         if (activeBtn && this._updateTabPill) {
             this._updateTabPill(activeBtn, true);
         }
+
+        // Synchroniser l'onglet actif de la barre GSM (aucun effet hors GSM :
+        // la barre n'existe pas dans le DOM).
+        this._barreGsm?.definirActif?.(normalizedView, true);
 
         // Synchroniser la capsule animée dans la Side Bar
         this._sidebar?.setActive(normalizedView, params);
