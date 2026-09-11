@@ -182,15 +182,21 @@ jobs:
       # window.cordova undefined — PontAndroid reste silencieux, l'app tourne,
       # mais le bouton retour système TUE l'application au lieu de fermer la
       # couche ouverte. Défaut silencieux de la même famille que l'artefact
-      # keystore jamais téléversé (v1.2.0) : la CI doit le voir, pas l'utilisateur.
+      # keystore jamais téléversé (v1.2.0) : la CI doit le voir, pas
+      # l'utilisateur.
+      # Le FICHIER cordova.js lui-même est écrit par `cordova platform add`
+      # (étape précédente) dans platform_www et copié vers www/ à la
+      # préparation — on ne vérifie donc que la BALISE : sa présence dans
+      # index.html embarqué est ce que preparer-bobines.mjs maîtrise, et
+      # sans elle window.cordova serait undefined même avec le fichier.
       - name: Vérifier le pont Android
         working-directory: build/cordova
         shell: bash
         run: |
-          test -f www/cordova.js || { echo "::error::cordova.js absent de www/ — le pont Android ne montera pas."; exit 1; }
+          test -f platforms/android/platform_www/cordova.js || { echo "::error::cordova.js absent de platform_www — 'cordova platform add' n'a pas livré le pont natif."; exit 1; }
           grep -q 'src="cordova.js"' www/index.html || { echo "::error::la balise <script src=cordova.js> n'a pas été injectée dans www/index.html."; exit 1; }
           grep -q 'AndroidWindowSoftInputMode' config.xml || { echo "::error::AndroidWindowSoftInputMode=adjustResize absent de config.xml — le clavier masque les champs."; exit 1; }
-          echo "Pont Android valide : cordova.js injecté, clavier adjustResize."
+          echo "Pont Android valide : balise injectée, pont natif livré, clavier adjustResize."
 
       - name: Conserver le journal Cordova en cas d'échec
         if: failure()
