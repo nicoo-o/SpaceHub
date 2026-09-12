@@ -39,6 +39,24 @@ n'importe dans les tests, et `scripts/fraicheur-dist.mjs` refuse de mesurer un
 que celui qu'on venait d'écrire, et rendaient un verdict faux dans les deux
 sens. La couverture a désormais des planchers déclarés (21 / 17 / 20 / 21) et
 échoue si elle descend. Chaque cliquet a été vu mordre avant d'être committé.
+- Le cliquet du système de design dit maintenant **où en est chaque chantier** :
+  `npm run test:design -- --rapport` rend une ligne par compteur — son DÉPART, sa
+  valeur du JOUR, ce qui reste — groupés par axe (typographie, capitales,
+  couleurs et rayons, courbes, ombres, survol, états et sources de vérité). Le
+  départ ne se mesure pas, un instrument ne lit que l'arbre qu'il a sous les
+  yeux : il se DÉCLARE avec son origine, l'audit du 11 septembre ou la valeur
+  relevée par le cliquet à sa création (marquée d'un `°`). Trois départs portent
+  leur exception ÉCRITE, parce que la taire ferait un chiffre faux : les 447
+  rayons de l'audit en comptaient 202 déjà convertis, les 10 `ease-in` de l'audit
+  n'existaient pas (le motif comptait `ease-in-out`, légitime), et `presseAnimee`
+  a changé de définition en route — des règles, puis des sélecteurs, donc 18 →
+  102 n'est pas un gain de 84 surfaces à lui seul. Ce que le rapport déclare est
+  vérifié avec les compteurs : un compteur sans axe, rangé dans deux axes, ou
+  dont le départ contredit le sens du compteur échoue la chaîne (six mutations
+  vues mordre avant ce commit). État du jour : **quatre chantiers atterris, deux
+  en cours — 942 écritures à convertir, 183 en typographie et 759 en teintes et
+  rayons** — et un chantier de garde, dont les compteurs tiennent un niveau au
+  lieu de descendre à zéro.
 
 ### Changed
 - Les listes `transition` ne nomment plus une propriété qui ne change jamais.

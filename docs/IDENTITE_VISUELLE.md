@@ -222,7 +222,7 @@ plus :
 | Chantier | Mesure du jour | Pourquoi il n'est pas fait |
 |---|---|---|
 | Verre | **10 `backdrop-filter`** (plafond 10, saturé) | C'est un changement de surface, avec un coût GPU à mesurer sur le parc |
-| Teintes intermédiaires | **530 hexadécimaux**, **243 rayons**, **100 tailles**, **83 graisses** | Chaque valeur est un choix entre deux paliers, sur une mise en page qu'il faut regarder |
+| Teintes intermédiaires | **516 hexadécimaux**, **243 rayons**, **100 tailles**, **83 graisses** | Chaque valeur est un choix entre deux paliers, sur une mise en page qu'il faut regarder |
 | Budget de démarrage | **275,0 ko gzip pour 276 ko** | Un kilo de marge : c'est LUI qui a refusé la police auto-hébergée, et toute fonctionnalité qui ajoute du JavaScript au démarrage demande désormais une décision explicite |
 
 ### View Transitions : bloquées par le parc, et documentées comme telles
@@ -244,3 +244,25 @@ de lisibilité, familles de police déclarées (0), origines de police externes 
 sources de vérité des jetons (3 sites nommés), vocabulaire des états (22 noms, aucun
 hors liste). C'est la seule façon connue dans ce dépôt de faire tenir un vert qui
 décrit vraiment ce que l'écran affiche.
+
+**Et il dit maintenant d'où l'on vient.** Un cliquet ne dit que « c'est vert
+taujourd'hui » ; la question qu'on repose à chaque relecture est « 516 hexadécimaux qui
+restent, est-ce peu ou beaucoup ? ». `npm run test:design -- --rapport` répond par axe :
+le départ du chantier, la valeur du jour, et le chemin qui reste — **quatre chantiers
+atterris, deux en cours (942 écritures à convertir : 183 en typographie, 759 en teintes
+et en rayons), un de garde**, dont les compteurs tiennent un niveau au lieu de
+descendre à zéro (une boucle qui dit « ça travaille » n'est pas une dette).
+
+Le départ ne se mesure pas — un instrument ne lit que l'arbre qu'il a sous les yeux —,
+il se DÉCLARE, et le rapport dit d'où il vient : l'audit du 11 septembre, ou la valeur
+relevée par le cliquet à sa création, marquée d'un `°`. Trois départs portent leur
+exception écrite, parce que la taire ferait un chiffre faux : les 447 rayons de l'audit
+en comptaient 202 déjà convertis, les 10 `ease-in` n'existaient pas, et `presseAnimee` a
+changé de définition en route. Ce que le rapport déclare est vérifié avec les
+compteurs : un compteur sans axe, rangé dans deux axes, ou dont le départ contredit le
+sens du compteur échoue la chaîne — six mutations vues **mordre** avant ce commit.
+
+Le rapport nomme aussi ce qu'il ne tient PAS, et où c'est tenu : le verre
+(`test:css`), le budget de démarrage (`test:poids`), les View Transitions
+(`test:plancher`). Un rapport de progression qui laisse croire qu'il couvre tout le
+sujet est le défaut que ce dépôt appelle un vert qui ment.

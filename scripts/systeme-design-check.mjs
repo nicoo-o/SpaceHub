@@ -487,7 +487,7 @@ const PLANCHERS = {
     // 0 → 349 : l'échelle typographique sort de terre (voir
     // scripts/codemod-echelle-typographique.mjs pour la règle appliquée).
     jetonsEchelle: 349,
-    // 537 → 1290 (11 septembre), puis 1290 → 1067 (12 septembre).
+    // 537 → 1290 (11 septembre), puis 1290 → 1069 (12 septembre).
     //
     // Le chiffre du 11 septembre mesurait les 753 `ease` nus devenus des jetons
     // (scripts/codemod-courbes.mjs). Il a baissé deux fois le 12, en deux
@@ -520,6 +520,129 @@ const PLANCHERS = {
     presseAnimee: 102,
 };
 
+/* ══════════════════════════════════════════════════════════════════════
+   OÙ EN EST CHAQUE CHANTIER — le départ, le jour, ce qui reste
+   ══════════════════════════════════════════════════════════════════════
+
+   Un cliquet dit « c'est vert aujourd'hui ». Il ne dit pas d'où l'on vient, et
+   c'est pourtant la question qu'on repose à chaque relecture : 516 hexadécimaux
+   qui restent, est-ce peu ou beaucoup ? La réponse est dans le DÉPART — et le
+   départ ne se mesure pas, il se DÉCLARE : un instrument ne lit que l'arbre
+   qu'il a sous les yeux.
+
+   Trois origines, et elles ne se mélangent pas :
+
+     'audit'   le chiffre vient de l'audit qui a ouvert le chantier, avant que
+               ce contrôle existe (docs/IDENTITE_VISUELLE.md).
+     'relevé'  le chiffre est ce que CE compteur mesurait à la création du
+               cliquet (branche main, 12 septembre) — comparable à lui, à la
+               définition près. Le rapport les marque d'un `°`.
+     'garde'   il n'y a pas de descente à décrire : le compteur TIENT un niveau
+               (14 boucles légitimes, 22 noms d'états) ou interdit une écriture
+               (0). Lui donner un « départ » égal au jour laisserait croire
+               qu'une progression a eu lieu.
+
+   Trois départs portent une exception NOMMÉE, parce que la taire ferait un
+   chiffre faux : les 447 rayons de l'audit en comptaient 202 déjà convertis
+   (le vrai départ est 445), les 10 `ease-in` de l'audit n'existaient pas (le
+   motif comptait `ease-in-out`, qui est légitime), et `presseAnimee` a changé
+   de DÉFINITION en route (des règles, puis des sélecteurs) — 18 → 102 n'est
+   donc pas un gain de 84 surfaces à lui seul.
+
+   Ce que ces départs déclarent est vérifié plus bas, avec les compteurs : un
+   compteur sans axe, un compteur rangé deux fois, un départ qui contredit le
+   sens du compteur font échouer la chaîne. Un rapport incomplet est un rapport
+   qu'on croit complet.
+*/
+const DEPARTS = {
+    hexLitteraux: { depart: 613, origine: 'audit' },
+    taillesLitterales: { depart: 448, origine: 'audit' },
+    graissesLitterales: { depart: 316, origine: 'audit' },
+    rayonsLitteraux: {
+        depart: 445, origine: 'audit',
+        note: "l'audit annonçait 447 : 202 d'entre eux étaient déjà des jetons, comptés comme des littéraux par un motif faux",
+    },
+    capitalesMetadonnees: { depart: 27, origine: 'audit' },
+    courbesNues: { depart: 753, origine: 'audit' },
+    courbesEaseIn: {
+        depart: 0, origine: 'garde',
+        note: "l'audit en annonçait 10 : son motif comptait `ease-in-out`, qui est légitime au déplacement",
+    },
+    animationsInfinies: {
+        depart: 14, origine: 'garde',
+        note: "six boucles d'ambiance sont parties ; les 14 qui restent disent « ça travaille »",
+    },
+    ombresAnimees: { depart: 145, origine: 'relevé' },
+    filtresAnimes: { depart: 79, origine: 'relevé' },
+    hoverNonGardes: { depart: 230, origine: 'relevé' },
+    vhResiduels: { depart: 0, origine: 'garde' },
+    famillesDeclarees: { depart: 1, origine: 'audit' },
+    policesExternes: { depart: 1, origine: 'audit' },
+    taillesSousPlancher: { depart: 196, origine: 'audit' },
+    jetonsHorsSites: { depart: 0, origine: 'garde' },
+    etatsDistincts: {
+        depart: 22, origine: 'garde',
+        note: 'le vocabulaire est RELEVÉ, pas visé : un synonyme de plus échoue, et chaque unification fait baisser le chiffre',
+    },
+    etatsHorsVocabulaire: { depart: 0, origine: 'garde' },
+    jetonsEchelle: { depart: 0, origine: 'audit' },
+    jetonsCourbes: {
+        depart: 537, origine: 'audit',
+        note: 'il est DESCENDU deux fois (1290 → 1069) parce qu\'un prune juste a retiré 223 déclarations qui le consommaient — un plancher d\'usages est sensible à ce qui disparaît',
+    },
+    jetonsRayons: { depart: 3, origine: 'audit' },
+    jetonsCouleurs: { depart: 11, origine: 'audit' },
+    jetonsAccent: { depart: 2, origine: 'relevé' },
+    presseAnimee: {
+        depart: 18, origine: 'relevé', redefini: true,
+        note: 'comptait des RÈGLES, compte des SÉLECTEURS : la couverture est bien passée de 17 à 102 surfaces, mais le saut de 18 à 102 mélange la mesure et le travail',
+    },
+};
+
+/**
+ * Les axes — chaque compteur appartient à un et un seul chantier.
+ *
+ * Les six premiers suivent l'ordre du chantier de docs/IDENTITE_VISUELLE.md
+ * (§ Le chantier, et son ordre). Le septième ne vient d'aucune étape : c'est la
+ * cohérence qu'on ne range nulle part — le vocabulaire des états et les sources
+ * de vérité des jetons.
+ */
+const AXES = [
+    {
+        etape: '1', nom: 'Typographie',
+        compteurs: ['taillesLitterales', 'graissesLitterales', 'taillesSousPlancher',
+                    'famillesDeclarees', 'policesExternes', 'jetonsEchelle'],
+    },
+    { etape: '2', nom: 'Capitales', compteurs: ['capitalesMetadonnees'] },
+    {
+        etape: '3', nom: 'Couleurs et rayons',
+        compteurs: ['hexLitteraux', 'rayonsLitteraux', 'jetonsCouleurs', 'jetonsAccent', 'jetonsRayons'],
+    },
+    {
+        etape: '4', nom: 'Courbes et boucles',
+        compteurs: ['courbesNues', 'courbesEaseIn', 'animationsInfinies', 'jetonsCourbes'],
+    },
+    { etape: '5', nom: 'Ombres et flous animés', compteurs: ['ombresAnimees', 'filtresAnimes'] },
+    { etape: '6', nom: 'Survol et toucher', compteurs: ['hoverNonGardes', 'presseAnimee', 'vhResiduels'] },
+    {
+        etape: '7', nom: 'États et sources de vérité',
+        compteurs: ['etatsDistincts', 'etatsHorsVocabulaire', 'jetonsHorsSites'],
+    },
+];
+
+/**
+ * Ce que ce contrôle ne tient PAS, et où c'est tenu.
+ *
+ * Un rapport de progression qui laisse croire qu'il couvre tout le sujet est le
+ * défaut que ce dépôt appelle un vert qui ment : ces trois-là sont mesurés, mais
+ * ailleurs — et l'audit les nomme comme des chantiers.
+ */
+const HORS_CONTROLE = [
+    'le verre — 10 `backdrop-filter` pour un plafond de 10, saturé · scripts/css-hygiene-check.mjs',
+    'le budget de démarrage — un kilo de marge gzip · scripts/poids-check.mjs',
+    "View Transitions — l'API est au-delà du plancher du parc (Chromium 108) · scripts/plancher-navigateur-check.mjs",
+];
+
 const LIBELLES = {
     hexLitteraux: 'hexadécimaux écrits en clair',
     taillesLitterales: 'font-size littéraux',
@@ -536,7 +659,7 @@ const LIBELLES = {
     famillesDeclarees: 'familles de police déclarées hors du fichier de jetons',
     policesExternes: 'références à une origine de police externe',
     taillesSousPlancher: 'tailles de texte sous le plancher de 12 px',
-    jetonsHorsSites: 'jetons redéclarés hors du fichier des jetons et des modes',
+    jetonsHorsSites: 'jetons redéclarés hors des trois sites autorisés',
     etatsDistincts: 'noms de classes d\'état distincts',
     etatsHorsVocabulaire: 'états hors du vocabulaire fermé',
     presseAnimee: 'retours au toucher animés',
@@ -551,9 +674,123 @@ const mesures = mesurer();
 const problemes = [];
 const progres = [];
 
-/* `--rapport` : la table complète, pour caler un plafond ou un plancher dans le
-   commit qui prouve la descente. Sans lui, on ne saurait pas de combien. */
+/* ── Le rapport est un compteur, et il se vérifie.
+
+   Quatre façons de le rendre faux, refusées ici plutôt que dans la tête du
+   lecteur : un compteur mesuré que nul axe ne range (il disparaît du rapport),
+   un compteur rangé deux fois (il est compté double dans le reste), un départ
+   qui contredit le sens annoncé (un plafond dont le « départ » serait sous la
+   valeur du jour décrit une descente qui n'a pas eu lieu), et — le sens même
+   de cette famille de contrôles — un compteur SANS point de départ déclaré, qui
+   ne peut pas dire s'il progresse. */
+const TOUS = { ...PLAFONDS, ...PLANCHERS };
+const GARDES = new Set(Object.keys(DEPARTS).filter(c => DEPARTS[c].origine === 'garde'));
+{
+    const ranges = new Set();
+    for (const axe of AXES) {
+        for (const cle of axe.compteurs) {
+            if (!(cle in TOUS)) {
+                problemes.push(`Axe « ${axe.nom} » : « ${cle} » n'est pas un compteur mesuré.`);
+                continue;
+            }
+            if (ranges.has(cle)) {
+                problemes.push(`« ${cle} » est rangé dans deux axes : le reste de l'un des deux serait compté double.`);
+            }
+            ranges.add(cle);
+        }
+    }
+    for (const cle of Object.keys(TOUS)) {
+        if (!ranges.has(cle)) {
+            problemes.push(`« ${cle} » est mesuré mais n'est rangé dans aucun axe : il manquerait au rapport.`);
+        }
+        if (!DEPARTS[cle]) {
+            problemes.push(`« ${cle} » n'a pas de point de départ déclaré : on ne saurait pas s'il progresse.`);
+        }
+    }
+    for (const [cle, dep] of Object.entries(DEPARTS)) {
+        if (!(cle in TOUS)) {
+            problemes.push(`Un départ est déclaré pour « ${cle} », qui n'est mesuré nulle part.`);
+            continue;
+        }
+        const jour = mesures[cle];
+        if (cle in PLAFONDS && dep.depart < jour) {
+            problemes.push(
+                `« ${cle} » : départ ${dep.depart}, aujourd'hui ${jour}. Un plafond ne remonte pas — ` +
+                `c'est le DÉPART déclaré qui est faux, pas la mesure.`
+            );
+        }
+        if (cle in PLANCHERS && dep.depart > jour) {
+            problemes.push(
+                `« ${cle} » : départ ${dep.depart}, aujourd'hui ${jour}. Une consommation ne baisse pas ` +
+                `toute seule — soit un composant a cessé de consommer le jeton, soit le DÉPART déclaré est faux.`
+            );
+        }
+    }
+}
+
+/* `--rapport` : où en est chaque chantier — le départ, le jour, ce qui reste —
+   puis la table brute, pour caler un plafond ou un plancher dans le commit qui
+   prouve la descente. Sans lui, on ne saurait pas de combien baisser. */
 if (process.argv.includes('--rapport')) {
+    console.log('OÙ EN EST CHAQUE CHANTIER');
+    console.log('=========================\n');
+
+    let atterris = 0;
+    let deGarde = 0;
+    let restantTotal = 0;
+    const enCours = [];
+
+    for (const axe of AXES) {
+        const aConvertir = axe.compteurs.filter(c => c in PLAFONDS && !GARDES.has(c));
+        const reste = aConvertir.reduce((n, c) => n + mesures[c], 0);
+        let etat;
+        if (!aConvertir.length) { etat = 'garde — ce chantier tient un niveau'; deGarde += 1; }
+        else if (reste === 0) { etat = 'atterri'; atterris += 1; }
+        else { etat = `${reste} à convertir`; enCours.push({ nom: axe.nom, reste }); restantTotal += reste; }
+
+        console.log(`  ${axe.etape} · ${axe.nom} — ${etat}`);
+
+        for (const cle of axe.compteurs) {
+            const dep = DEPARTS[cle];
+            const jour = mesures[cle];
+            const estPlafond = cle in PLAFONDS;
+            const sens = `${estPlafond ? 'plafond' : 'plancher'} ${estPlafond ? PLAFONDS[cle] : PLANCHERS[cle]}`;
+            const marque = dep.origine === 'relevé' ? '°' : ' ';
+            /* Les deux formes font la MÊME largeur, sinon la colonne des
+               valeurs se décale exactement sur les compteurs de garde — et un
+               rapport dont les colonnes sautent se relit deux fois. */
+            const debut = dep.origine === 'garde'
+                ? `niveau`.padEnd(6) + marque + '  '
+                : String(dep.depart).padStart(6) + marque + ' →';
+            const suite = [];
+            if (dep.redefini) suite.push('compteur redéfini');
+            if (estPlafond && !GARDES.has(cle)) suite.push(jour ? `reste ${jour}` : 'atterri');
+            else if (!estPlafond) suite.push(dep.depart === jour ? 'aucun mouvement' : `+${jour - dep.depart} usages`);
+            else suite.push('niveau tenu');
+            console.log(
+                '      ' + LIBELLES[cle].padEnd(56) + debut +
+                String(jour).padStart(7) + '   ' + sens.padEnd(13) +
+                '  ' + suite.join(' · ')
+            );
+            if (dep.note) console.log('          ↳ ' + dep.note);
+        }
+        console.log('');
+    }
+
+    console.log(`  Bilan : ${atterris} chantiers atterris · ${deGarde} de garde · ${enCours.length} en cours — ` +
+                `${restantTotal} écritures à convertir :`);
+    for (const e of enCours) console.log(`    · ${e.nom} : ${e.reste}`);
+    console.log(`\n  ${GARDES.size} des ${Object.keys(TOUS).length} compteurs sont des gardes : ils tiennent un niveau,`);
+    console.log("  ils ne descendent pas à zéro — une boucle qui dit « ça travaille » n'est pas une dette.\n");
+    console.log("  Les départs viennent de l'audit qui a ouvert chaque chantier (docs/IDENTITE_VISUELLE.md) ;");
+    console.log('  ° marque ceux relevés par ce cliquet à sa création. Départ corrigé ou compteur redéfini :');
+    console.log('  la raison est écrite sous le compteur.\n');
+    console.log('  Hors de ce contrôle :');
+    for (const h of HORS_CONTROLE) console.log('    · ' + h);
+    console.log('');
+
+    /* ── La table brute, pour caler un chiffre dans le commit qui le change. ── */
+    console.log('TABLE BRUTE');
     console.log('compteur'.padEnd(32), 'valeur'.padStart(7), '  sens');
     for (const [cle, plafond] of Object.entries(PLAFONDS)) {
         const v = mesures[cle];
@@ -607,3 +844,6 @@ if (progres.length) {
     console.log('\nDes compteurs ont bougé — baissez le plafond (ou relevez le plancher) dans ce commit :');
     for (const p of progres) console.log('  ↘ ' + p);
 }
+/* Une ligne de sortie, pas une phrase : le rapport par axe existe, et personne
+   ne le trouve s'il faut lire le script pour savoir qu'il est là. */
+console.log('Où en est chaque chantier (départ, jour, reste) : npm run test:design -- --rapport');
