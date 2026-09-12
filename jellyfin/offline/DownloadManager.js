@@ -64,6 +64,14 @@ class DownloadManager {
         this._encours = null;      // { id, titre, recus, total, controleur }
         this._traite = false;
         /**
+         * Identifiants réservés : posés dès l'entrée dans `telecharger()`,
+         * avant toute attente, et levés quand la tâche est terminée ou
+         * refusée. C'est ce qui rend le dédoublonnage indépendant de l'ordre
+         * des attentes — voir le commentaire de `telecharger()`.
+         * @type {Set<string>}
+         */
+        this._reserves = new Set();
+        /**
          * Résultat de la demande de persistance : `null` tant qu'elle n'a pas
          * été faite. Elle ne l'est qu'une fois par session — sur Firefox elle
          * ouvre une invite système, qu'il serait inacceptable de rouvrir à
@@ -125,17 +133,59 @@ class DownloadManager {
 
     /**
      * Met un média en file de téléchargement.
+     *
+     * LA RÉSERVATION EST POSÉE AVANT TOUTE ATTENTE, et c'est le seul point
+     * délicat de cette méthode.
+     *
+     * L'ordre précédent était : `await this._store.existe(id)` — un vrai
+     * aller-retour IndexedDB — PUIS le dédoublonnage en mémoire. Deux appuis
+     * rapprochés sur « Télécharger » glissaient donc tous les deux dans la
+     * fenêtre ouverte par cette attente.
+     *
+     * Ça ne produisait pourtant pas de doublon, et la raison n'était écrite
+     * nulle part : `_transferer()` renseigne `this._encours` AVANT son
+     * premier `await`, si bien que le second appel, en reprenant la main,
+     * trouvait toujours quelque chose à voir. L'invariant tenait — suspendu
+     * à un détail d'implémentation d'une autre méthode, à trois cents lignes
+     * de là, que rien n'obligeait à rester vrai.
+     *
+     * Une seule ligne d'attente ajoutée en tête de `_transferer()` (lire les
+     * sources du média, demander un profil d'appareil…) et le second appel
+     * ne voit plus rien : ni `_encours`, pas encore posé, ni la file, déjà
+     * vidée par `_traiterFile()`. Le média part deux fois, deux écritures
+     * IndexedDB se marchent dessus, et les deux transferts réussissent —
+     * aucune erreur, aucun avertissement, juste le double du temps et du
+     * disque.
+     *
+     * Déplacer le dédoublonnage avant l'attente n'aurait pas suffi : les
+     * deux appels franchiraient le test avant que le premier n'ait rien
+     * inscrit. Il faut RÉSERVER l'identifiant, de façon synchrone, dans le
+     * même tour de boucle que l'appel.
+     *
      * @returns {Promise<{ok: boolean, raison?: string}>} résolue à la fin du transfert
      */
     async telecharger(item) {
         const id = item?.Id || item?.id;
         if (!id) return { ok: false, raison: 'Média sans identifiant.' };
 
-        if (await this._store.existe(id)) {
-            return { ok: false, raison: 'Déjà téléchargé.' };
-        }
-        if (this._encours?.id === id || this._file.some(t => (t.item?.Id || t.item?.id) === id)) {
+        if (this._reserves.has(id)
+            || this._encours?.id === id
+            || this._file.some(t => (t.item?.Id || t.item?.id) === id)) {
             return { ok: false, raison: 'Déjà en file d\'attente.' };
+        }
+        this._reserves.add(id);
+
+        try {
+            if (await this._store.existe(id)) {
+                this._reserves.delete(id);
+                return { ok: false, raison: 'Déjà téléchargé.' };
+            }
+        } catch (err) {
+            // Magasin illisible : on ne garde pas une réservation orpheline,
+            // sinon le média deviendrait untéléchargeable jusqu'au
+            // rechargement de la page.
+            this._reserves.delete(id);
+            throw err;
         }
 
         // Avant de remplir le disque, obtenir — ou pas — le droit de le garder.
@@ -144,7 +194,7 @@ class DownloadManager {
         this._assurerPersistance().catch(() => {});
 
         const promesse = new Promise((resolve, reject) => {
-            this._file.push({ item, resolve, reject });
+            this._file.push({ id, item, resolve, reject });
         });
         this._emettre();
         this._traiterFile();
@@ -160,6 +210,7 @@ class DownloadManager {
         const i = this._file.findIndex(t => (t.item?.Id || t.item?.id) === id);
         if (i !== -1) {
             const [t] = this._file.splice(i, 1);
+            this._reserves.delete(t.id ?? id);
             t.resolve({ ok: false, raison: 'Annulé.' });
             this._emettre();
             return true;
@@ -177,6 +228,11 @@ class DownloadManager {
                 tache.resolve(res);
             } catch (err) {
                 tache.resolve({ ok: false, raison: err?.message || 'Échec du téléchargement.' });
+            } finally {
+                // La réservation tombe quoi qu'il arrive : une tâche en échec
+                // doit pouvoir être relancée, et un `finally` est le seul
+                // endroit qui couvre aussi le cas où `resolve` lève.
+                this._reserves.delete(tache.id ?? (tache.item?.Id || tache.item?.id));
             }
         }
         this._traite = false;
