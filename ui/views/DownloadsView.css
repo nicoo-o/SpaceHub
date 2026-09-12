@@ -39,7 +39,7 @@
     border-radius: 9999px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     font-weight: 750;
     letter-spacing: 0.08em;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.9);
@@ -63,7 +63,7 @@
 
 .sh-downloads-hero__title {
     font-size: 34px;
-    font-weight: 800;
+    font-weight: var(--sh-font-extrabold);
     letter-spacing: -0.03em;
     color: var(--sh-ink-solid, #ffffff);
     margin: 0 0 8px 0;
@@ -118,7 +118,7 @@
 }
 
 .sh-metric-card__label {
-    font-size: 10.5px;
+    font-size: var(--sh-text-xs);
     font-weight: 750;
     letter-spacing: 0.06em;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
@@ -126,10 +126,10 @@
 }
 
 .sh-metric-card__val {
-    font-size: 17px;
-    font-weight: 800;
+    font-size: var(--sh-text-md);
+    font-weight: var(--sh-font-extrabold);
     color: var(--sh-ink-solid, #ffffff);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    font-family: var(--sh-font-family);
 }
 
 /* ── Navigation Track & Tabs ── */
@@ -198,7 +198,7 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     color: var(--sh-ink-solid, #ffffff);
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
     font-weight: 650;
     cursor: pointer;
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
@@ -250,7 +250,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    font-size: 17px;
+    font-size: var(--sh-text-md);
     font-weight: 750;
     color: var(--sh-ink-solid, #ffffff);
     letter-spacing: -0.3px;
@@ -278,8 +278,8 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12) !important;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85) !important;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-semibold);
     cursor: pointer;
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
@@ -320,7 +320,7 @@
 
 .sh-downloads-view .sh-widget-empty p {
     font-size: 14px;
-    font-weight: 500;
+    font-weight: var(--sh-font-medium);
     margin: 0;
     max-width: 450px;
     line-height: 1.5;
@@ -429,8 +429,8 @@
     padding: 4px 8px !important;
     border-radius: 8px !important;
     background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.75) !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
+    font-size: var(--sh-text-xs) !important;
+    font-weight: var(--sh-font-bold) !important;
     text-align: center !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12) !important;
@@ -481,7 +481,7 @@
     border: 1px solid rgba(100, 210, 255, 0.3) !important;
     border-radius: 6px !important;
     padding: 2px 6px !important;
-    font-size: 10px !important;
+    font-size: var(--sh-text-xs) !important;
     font-weight: 750 !important;
 }
 
@@ -537,9 +537,8 @@
 .sh-bazarr-type-badge {
     padding: 3px 8px !important;
     border-radius: 6px !important;
-    font-size: 10.5px !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
+    font-size: var(--sh-text-xs) !important;
+    font-weight: var(--sh-font-bold) !important;
 }
 
 .sh-bazarr-type-badge--movie {
@@ -560,8 +559,8 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
+    font-size: var(--sh-text-xs) !important;
+    font-weight: var(--sh-font-semibold) !important;
     cursor: pointer !important;
     transition: transform var(--sh-dur-3) ease , opacity var(--sh-dur-3) ease , background-color var(--sh-dur-3) ease , background var(--sh-dur-3) ease , border-color var(--sh-dur-3) ease , box-shadow var(--sh-dur-3) ease , color var(--sh-dur-3) ease !important;
 }
@@ -608,8 +607,8 @@
     border: none;
     outline: none;
     color: var(--sh-ink-solid, #ffffff);
-    font-size: 15px;
-    font-weight: 500;
+    font-size: var(--sh-text-base);
+    font-weight: var(--sh-font-medium);
     padding: 8px 0;
     font-family: inherit;
 }
@@ -626,7 +625,7 @@
     height: 22px;
     border-radius: 50%;
     cursor: pointer;
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -687,9 +686,9 @@
 .sh-jellyseerr-year-badge,
 .sh-jellyseerr-rating-badge {
     padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 9.5px;
-    font-weight: 700;
+    border-radius: var(--sh-radius-xs);
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
 }
 
 .sh-jellyseerr-type-badge {
@@ -717,7 +716,7 @@
 
 .sh-jellyseerr-card__title {
     font-size: 14.5px;
-    font-weight: 700;
+    font-weight: var(--sh-font-bold);
     color: var(--sh-ink-solid, #ffffff);
     margin: 0 0 4px 0;
     white-space: nowrap;
@@ -726,7 +725,7 @@
 }
 
 .sh-jellyseerr-card__overview {
-    font-size: 11.5px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.55);
     margin: 0 0 8px 0;
     line-height: 1.35;
@@ -763,8 +762,8 @@
     display: inline-block;
     padding: 4px 10px;
     border-radius: 6px;
-    font-size: 11px;
-    font-weight: 700;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
 }
 
 .sh-jellyseerr-status-pill.status-available {
@@ -895,7 +894,7 @@
     padding: 3px 8px !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
     border-radius: 100px !important;
-    font-size: 10px !important;
+    font-size: var(--sh-text-xs) !important;
     font-weight: 750 !important;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.8) !important;
     letter-spacing: 0.8px !important;
@@ -912,7 +911,7 @@
 
 .sh-cal-main-title {
     font-size: 20px !important;
-    font-weight: 700 !important;
+    font-weight: var(--sh-font-bold) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     margin: 0 !important;
     letter-spacing: -0.3px !important;
@@ -940,8 +939,8 @@
     color: rgba(var(--sh-ink, 255, 255, 255),  0.65) !important;
     padding: 6px 14px !important;
     border-radius: 100px !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
+    font-size: var(--sh-text-xs) !important;
+    font-weight: var(--sh-font-semibold) !important;
     cursor: pointer !important;
     transition: transform var(--sh-dur-2) ease , opacity var(--sh-dur-2) ease , background-color var(--sh-dur-2) ease , background var(--sh-dur-2) ease , border-color var(--sh-dur-2) ease , box-shadow var(--sh-dur-2) ease , color var(--sh-dur-2) ease !important;
     display: flex !important;
@@ -993,9 +992,9 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     padding: 4px 10px !important;
-    border-radius: 8px !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
+    border-radius: var(--sh-radius-sm) !important;
+    font-size: var(--sh-text-xs) !important;
+    font-weight: var(--sh-font-semibold) !important;
     cursor: pointer !important;
     transition: transform var(--sh-dur-2) ease , opacity var(--sh-dur-2) ease , background-color var(--sh-dur-2) ease , background var(--sh-dur-2) ease , border-color var(--sh-dur-2) ease , box-shadow var(--sh-dur-2) ease , color var(--sh-dur-2) ease !important;
 }
@@ -1020,8 +1019,8 @@
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
-    font-size: 12px !important;
-    transition: transform var(--sh-dur-2) ease , opacity var(--sh-dur-2) ease , background-color var(--sh-dur-2) ease , background var(--sh-dur-2) ease , border-color var(--sh-dur-2) ease , box-shadow var(--sh-dur-2) ease , color var(--sh-dur-2) ease !important;
+    font-size: var(--sh-text-xs) !important;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out) , opacity var(--sh-dur-2) var(--sh-ease-out) , background-color var(--sh-dur-2) var(--sh-ease-out) , background var(--sh-dur-2) var(--sh-ease-out) , border-color var(--sh-dur-2) var(--sh-ease-out) , box-shadow var(--sh-dur-2) var(--sh-ease-out) , color var(--sh-dur-2) var(--sh-ease-out) !important;
 }
 
 .sh-cal-arrow-btn:hover {
@@ -1034,8 +1033,8 @@
     grid-template-columns: repeat(7, 1fr) !important;
     gap: 8px !important;
     text-align: center !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
+    font-size: var(--sh-text-xs) !important;
+    font-weight: var(--sh-font-bold) !important;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.45) !important;
     letter-spacing: 0.8px !important;
     padding-bottom: 6px !important;
@@ -1090,8 +1089,8 @@
 }
 
 .sh-cal-cell-num {
-    font-size: 12px !important;
-    font-weight: 700 !important;
+    font-size: var(--sh-text-xs) !important;
+    font-weight: var(--sh-font-bold) !important;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.7) !important;
     width: 22px !important;
     height: 22px !important;
@@ -1108,7 +1107,7 @@
 }
 
 .sh-cal-cell-count {
-    font-size: 9.5px !important;
+    font-size: var(--sh-text-xs) !important;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.4) !important;
 }
 
@@ -1137,8 +1136,8 @@
     gap: 4px !important;
     padding: 3px 6px !important;
     border-radius: 6px !important;
-    font-size: 10.5px !important;
-    font-weight: 600 !important;
+    font-size: var(--sh-text-xs) !important;
+    font-weight: var(--sh-font-semibold) !important;
     cursor: pointer !important;
     white-space: nowrap !important;
     overflow: hidden !important;
@@ -1167,7 +1166,7 @@
 }
 
 .sh-cal-chip-icon {
-    font-size: 10px !important;
+    font-size: var(--sh-text-xs) !important;
     flex-shrink: 0 !important;
 }
 
@@ -1180,9 +1179,9 @@
 }
 
 .sh-cal-chip-dispo {
-    font-size: 9px !important;
+    font-size: var(--sh-text-xs) !important;
     color: #30d158 !important;
-    font-weight: 800 !important;
+    font-weight: var(--sh-font-extrabold) !important;
     flex-shrink: 0 !important;
 }
 
@@ -1208,14 +1207,14 @@
 }
 
 .sh-cal-day-title {
-    font-size: 15px !important;
-    font-weight: 700 !important;
+    font-size: var(--sh-text-base) !important;
+    font-weight: var(--sh-font-bold) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     margin: 0 !important;
 }
 
 .sh-cal-day-counter {
-    font-size: 11px !important;
+    font-size: var(--sh-text-xs) !important;
     padding: 2px 8px !important;
     border-radius: 100px !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
@@ -1281,7 +1280,7 @@
 }
 
 .sh-cal-badge-type {
-    font-size: 9px !important;
+    font-size: var(--sh-text-xs) !important;
     font-weight: 750 !important;
     padding: 2px 6px !important;
     border-radius: 4px !important;
@@ -1298,14 +1297,14 @@
 }
 
 .sh-cal-badge-dispo {
-    font-size: 9px !important;
+    font-size: var(--sh-text-xs) !important;
     color: #30d158 !important;
     font-weight: 750 !important;
 }
 
 .sh-cal-card-name {
     display: block !important;
-    font-size: 13px !important;
+    font-size: var(--sh-text-sm) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     white-space: nowrap !important;
     overflow: hidden !important;
@@ -1314,7 +1313,7 @@
 
 .sh-cal-card-sub {
     display: block !important;
-    font-size: 11px !important;
+    font-size: var(--sh-text-xs) !important;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.55) !important;
     white-space: nowrap !important;
     overflow: hidden !important;
@@ -1358,6 +1357,6 @@
 .sh-dl-skel__label {
     margin: 6px 0 0;
     text-align: center;
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
     color: rgba(var(--sh-ink, 255, 255, 255), 0.42);
 }

@@ -1,6 +1,6 @@
 
 .sh-jellyseerr-search-badge {
-    font-size: 10px !important;
+    font-size: var(--sh-text-xs) !important;
     font-weight: 750 !important;
     text-transform: uppercase !important;
     padding: 2px 6px !important;
@@ -92,8 +92,8 @@
     border: none;
     outline: none;
     color: var(--sh-ink-solid, #ffffff);
-    font-size: 15px;
-    font-weight: 500;
+    font-size: var(--sh-text-base);
+    font-weight: var(--sh-font-medium);
     font-family: inherit;
 }
 .sh-spotlight-input::placeholder {
@@ -110,7 +110,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: var(--sh-text-xs);
     cursor: pointer;
     transition: background var(--sh-dur-2) ease;
 }
@@ -132,8 +132,8 @@
     color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
     padding: 4px 9px;
     border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-semibold);
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
 }
@@ -144,12 +144,12 @@
 .sh-spotlight-tab-btn.active {
     color: var(--sh-ink-solid-inv, #000000);
     background: var(--sh-ink-solid, #ffffff);
-    font-weight: 700;
+    font-weight: var(--sh-font-bold);
 }
 
 .sh-spotlight-esc-pill {
-    font-size: 9.5px;
-    font-weight: 700;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.35);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
     padding: 2px 6px;
@@ -195,7 +195,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 10px;
+    font-size: var(--sh-text-xs);
     font-weight: 750;
     letter-spacing: 0.6px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.35);
@@ -207,7 +207,7 @@
     background: none;
     border: none;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
-    font-size: 10px;
+    font-size: var(--sh-text-xs);
     cursor: pointer;
     transition: color var(--sh-dur-2) ease;
 }
@@ -227,7 +227,7 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.75);
-    font-size: 11.5px;
+    font-size: var(--sh-text-xs);
     font-weight: 550;
     padding: 4px 10px;
     border-radius: 8px;
@@ -369,7 +369,7 @@
 }
 
 .sh-spotlight-item-sub {
-    font-size: 11.5px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
     white-space: nowrap;
     overflow: hidden;
@@ -377,8 +377,8 @@
 }
 
 .sh-spotlight-action-hint {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-semibold);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
     opacity: 0;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
@@ -394,7 +394,7 @@
 .sh-spotlight-highlight {
     background: rgba(56, 189, 248, 0.25);
     color: #38bdf8;
-    font-weight: 700;
+    font-weight: var(--sh-font-bold);
     padding: 0 2px;
     border-radius: 3px;
 }
@@ -408,14 +408,14 @@
     text-align: center;
     padding: 40px 20px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
     gap: 6px;
 }
 .sh-spotlight-empty strong {
     color: var(--sh-ink-solid, #ffffff);
 }
 .sh-spotlight-empty span {
-    font-size: 11.5px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.30);
 }
 
@@ -440,7 +440,7 @@
     padding: 8px 18px;
     border-top: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.05);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.015);
-    font-size: 10.5px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.35);
 }
 
@@ -454,13 +454,13 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.70);
     padding: 1px 5px;
-    border-radius: 4px;
-    font-size: 9.5px;
+    border-radius: var(--sh-radius-xs);
+    font-size: var(--sh-text-xs);
     margin-right: 3px;
 }
 
 .sh-spotlight-brand-badge {
-    font-size: 10px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.25);
-    font-weight: 600;
+    font-weight: var(--sh-font-semibold);
 }

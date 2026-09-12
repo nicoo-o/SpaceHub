@@ -208,7 +208,7 @@
 }
 
 .sh-sidebar-item-loading {
-    font-size: 12px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.35);
     padding: 8px 14px;
 }
@@ -256,7 +256,7 @@
     border-radius: 11px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.75);
     font-size: 12.5px;
-    font-weight: 600;
+    font-weight: var(--sh-font-semibold);
     cursor: pointer;
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
@@ -284,7 +284,7 @@
 
 .sh-sidebar-footer-btn kbd {
     margin-left: auto;
-    font-size: 10px;
+    font-size: var(--sh-text-xs);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     padding: 2px 5px;
@@ -343,8 +343,8 @@
 }
 
 .sh-sidebar-modal-badge {
-    font-size: 9px;
-    font-weight: 800;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-extrabold);
     letter-spacing: 0.10em;
     text-transform: uppercase;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.6);
@@ -359,7 +359,7 @@
 }
 
 .sh-sidebar-modal-subtitle {
-    font-size: 12px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.50);
     margin: 0;
     line-height: 1.35;
@@ -372,7 +372,7 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.07);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.10);
     color: var(--sh-ink-solid, #ffffff);
-    font-size: 12px;
+    font-size: var(--sh-text-xs);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -409,14 +409,14 @@
 }
 
 .sh-ambilight-card-sub {
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
     margin-top: 2px;
 }
 
 .sh-ambilight-section-label {
-    font-size: 9.5px;
-    font-weight: 800;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-extrabold);
     letter-spacing: 0.10em;
     text-transform: uppercase;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
@@ -460,8 +460,8 @@
 }
 
 .sh-preset-name {
-    font-size: 10.5px;
-    font-weight: 600;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-semibold);
     color: var(--sh-ink-solid, #ffffff);
     text-align: center;
 }
@@ -486,7 +486,7 @@
     border-radius: 9999px;
     color: var(--sh-ink-solid-inv, #000000);
     font-size: 12.5px;
-    font-weight: 700;
+    font-weight: var(--sh-font-bold);
     padding: 7px 20px;
     cursor: pointer;
     box-shadow: 0 4px 14px rgba(var(--sh-ink, 255, 255, 255),  0.25);
@@ -524,8 +524,8 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.05);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.72);
-    font-size: 13px;
-    font-weight: 600;
+    font-size: var(--sh-text-sm);
+    font-weight: var(--sh-font-semibold);
     cursor: pointer;
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
     white-space: nowrap;

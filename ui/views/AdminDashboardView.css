@@ -61,8 +61,8 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
     border-radius: 100px;
-    font-size: 10px;
-    font-weight: 700;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     color: var(--sh-ink-solid, #ffffff);
     letter-spacing: 0.8px;
     margin-bottom: 8px;
@@ -70,14 +70,14 @@
 
 .sh-admin-modal-title {
     font-size: 24px;
-    font-weight: 700;
+    font-weight: var(--sh-font-bold);
     color: var(--sh-ink-solid, #ffffff);
     margin: 0;
     letter-spacing: -0.5px;
 }
 
 .sh-admin-modal-subtitle {
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.55);
     margin: 4px 0 0 0;
 }
@@ -96,9 +96,9 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
     color: var(--sh-ink-solid, #ffffff);
     padding: 8px 14px;
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 600;
+    border-radius: var(--sh-radius-md);
+    font-size: var(--sh-text-sm);
+    font-weight: var(--sh-font-semibold);
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
 }
@@ -119,8 +119,8 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 15px;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
+    font-size: var(--sh-text-base);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-admin-modal-close:hover {
@@ -197,13 +197,13 @@
 
 .sh-admin-card-title {
     font-size: 16px;
-    font-weight: 600;
+    font-weight: var(--sh-font-semibold);
     color: var(--sh-ink-solid, #ffffff);
     margin: 0;
 }
 
 .sh-admin-card-tag {
-    font-size: 12px;
+    font-size: var(--sh-text-xs);
     padding: 3px 10px;
     border-radius: 100px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
@@ -256,15 +256,15 @@
 }
 
 .sh-session-user {
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.9);
 }
 
 .sh-session-badge {
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     padding: 2px 8px;
     border-radius: 6px;
-    font-weight: 600;
+    font-weight: var(--sh-font-semibold);
 }
 
 .sh-badge-direct {
@@ -279,7 +279,7 @@
 
 .sh-session-title {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: var(--sh-font-semibold);
     color: var(--sh-ink-solid, #ffffff);
     margin: 0;
 }
@@ -302,7 +302,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
 }
 
@@ -317,8 +317,8 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     color: var(--sh-ink-solid, #ffffff);
     padding: 4px 10px;
-    border-radius: 8px;
-    font-size: 11px;
+    border-radius: var(--sh-radius-sm);
+    font-size: var(--sh-text-xs);
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
 }
@@ -340,7 +340,7 @@
 }
 
 .sh-admin-empty-icon {
-    font-size: 28px;
+    font-size: var(--sh-text-xl);
     margin-bottom: 8px;
 }
 
@@ -362,7 +362,7 @@
 }
 
 .sh-admin-metric-icon {
-    font-size: 22px;
+    font-size: var(--sh-text-lg);
 }
 
 .sh-admin-metric-data strong {
@@ -372,7 +372,7 @@
 }
 
 .sh-admin-metric-data small {
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
 }
 
@@ -385,8 +385,8 @@
     color: var(--sh-ink-solid, #ffffff);
     padding: 6px 12px;
     border-radius: 10px;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-semibold);
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
 }
@@ -422,13 +422,13 @@
 
 .sh-admin-health-info strong {
     display: block;
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
     color: var(--sh-ink-solid, #ffffff);
 }
 
 .sh-admin-health-info span {
     display: block;
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
     margin-top: 2px;
 }
@@ -438,9 +438,9 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     color: var(--sh-ink-solid, #ffffff);
     padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 600;
+    border-radius: var(--sh-radius-sm);
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-semibold);
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
 }
@@ -450,10 +450,10 @@
 }
 
 .sh-admin-card-badge-health {
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     padding: 3px 10px;
     border-radius: 100px;
-    font-weight: 600;
+    font-weight: var(--sh-font-semibold);
 }
 
 /* ── Services Grid ── */
@@ -493,8 +493,8 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 10px;
-    font-weight: 600;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-semibold);
     padding: 2px 6px;
     border-radius: 100px;
 }
@@ -512,8 +512,8 @@
 }
 
 .sh-svc-name {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-semibold);
     color: var(--sh-ink-solid, #ffffff);
     white-space: nowrap;
     overflow: hidden;
@@ -521,7 +521,7 @@
 }
 
 .sh-svc-port {
-    font-size: 10px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
 }
 
@@ -541,8 +541,8 @@
     background: transparent;
     border: none;
     color: var(--sh-color-primary, #64d2ff);
-    font-size: 13px;
-    font-weight: 600;
+    font-size: var(--sh-text-sm);
+    font-weight: var(--sh-font-semibold);
     cursor: pointer;
     padding: 6px 0;
     transition: opacity var(--sh-dur-2) ease;
@@ -559,8 +559,8 @@
     color: var(--sh-ink-solid-inv, #000000);
     padding: 10px 24px;
     border-radius: 14px;
-    font-size: 13px;
-    font-weight: 700;
+    font-size: var(--sh-text-sm);
+    font-weight: var(--sh-font-bold);
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
 }

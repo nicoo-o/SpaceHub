@@ -259,11 +259,31 @@
     --sh-space-12:               48px;
     --sh-space-16:               64px;
 
-    /* ─── Typographie — SF Pro Style ─────────────────────────── */
-    --sh-font-family:            'SF Pro Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --sh-font-family-mono:       'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+    /* ─── Typographie — la police DE LA PLATEFORME ──────────────
 
-    --sh-text-xs:                11px;
+       Elle déclarait `'SF Pro Display', 'Inter', …` : deux noms dont AUCUN
+       n'était disponible partout. SF Pro n'est jamais chargée (aucun
+       @font-face, aucune police embarquée), et la seule police réellement
+       chargée — Inter, par une feuille Google — coûtait une requête tierce
+       bloquante au démarrage. Résultat : la typographie changeait avec le
+       système d'exploitation SANS que rien ne le dise.
+
+       Le jeton nomme maintenant ce qui existe sur chaque cible :
+       Segoe UI Variable (Windows), SF Pro (Apple), Roboto (Android/TV),
+       Noto Sans (Linux). `system-ui` en tête — c'est la seule entrée qui
+       désigne la bonne police partout, y compris sur un téléviseur. */
+    --sh-font-family:            system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Arial, sans-serif;
+    --sh-font-family-mono:       ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+
+    /* Le barème commence à 12 px, et c'est un PLANCHER, pas un avis.
+
+       Il déclarait 11 px, alors que les feuilles descendaient à 7 px (une
+       étiquette de codec : 9 px, graisse 800, capitales et interlettrage — le
+       texte le plus difficile à lire de l'application, posé sur une affiche,
+       sur l'appareil qu'on regarde à trois mètres). Un barème dont le premier
+       échelon est déjà illisible ne peut pas servir d'argument contre le
+       suivant. */
+    --sh-text-xs:                12px;
     --sh-text-sm:                13px;
     --sh-text-base:              15px;
     --sh-text-md:                17px;
@@ -278,6 +298,12 @@
     --sh-font-medium:            500;
     --sh-font-semibold:          600;
     --sh-font-bold:              700;
+    /* 800 manquait, et quarante et une déclarations l'employaient : la
+       marche existait dans les composants avant d'exister dans le barème.
+       Avec une police de plateforme, les graisses intermédiaires (750, 650,
+       550) n'existent plus nulle part — le moteur les ramène à la plus
+       proche. Les nommer ici rend le rendu réel lisible dans le barème. */
+    --sh-font-extrabold:         800;
     --sh-font-black:             900;
 
     --sh-leading-tight:          1.15;
@@ -345,6 +371,14 @@ body, #app {
     margin: 0;
     padding: 0;
     font-family: var(--sh-font-family);
+    /* CHIFFRES ALIGNÉS — tabular-nums sur tout l'arbre.
+
+       Une barre de progression, un code temporel, un compteur d'épisodes et
+       une horloge changent de largeur à chaque chiffre en chiffres
+       proportionnels : le texte autour saute d'un pixel à chaque seconde.
+       Dans une interface de média — où presque tout ce qui bouge est un
+       nombre — l'alignement vaut mieux que la finesse du « 1 ». */
+    font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
@@ -472,8 +506,10 @@ html {
     gap: 4px;
     padding: 3px 9px;
     border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
+    /* Le composant du système obéit au système : 11 px était sous son propre
+       plancher, et 700 était écrit au lieu du jeton qui vaut 700. */
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     letter-spacing: 0.02em;
     text-transform: uppercase;
 }

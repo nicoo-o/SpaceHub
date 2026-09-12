@@ -158,8 +158,8 @@
     align-items: center;
     gap: 10px;
     color: var(--sh-ink-solid, #ffffff);
-    font-size: 12px;
-    font-weight: 700;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     pointer-events: none;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease;
     opacity: 0;

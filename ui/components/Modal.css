@@ -108,7 +108,7 @@
 .sh-modal__title {
     margin: 0;
     font-size: 18px;
-    font-weight: 700;
+    font-weight: var(--sh-font-bold);
     color: var(--sh-ink-solid, #ffffff);
 }
 .sh-modal__close {
@@ -166,7 +166,7 @@
     border-radius: 8px;
     font-family: inherit;
     font-size: 12.5px;
-    font-weight: 600;
+    font-weight: var(--sh-font-semibold);
     border: none; cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
 }

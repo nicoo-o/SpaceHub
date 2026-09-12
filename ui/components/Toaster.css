@@ -24,8 +24,8 @@
         inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.10);
     color: var(--sh-ink-solid, #ffffff);
     font-family: var(--sh-font-family, sans-serif);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: var(--sh-text-sm);
+    font-weight: var(--sh-font-medium);
     pointer-events: all;
     opacity: 0;
     transform: translateX(calc(100% + 24px));
@@ -60,8 +60,8 @@
     color: var(--sh-ink-solid, #ffffff);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14);
     cursor: pointer;
-    font-size: 11px;
-    font-weight: 700;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     font-family: inherit;
     letter-spacing: 0.02em;
     transition: background var(--sh-dur-2) ease;

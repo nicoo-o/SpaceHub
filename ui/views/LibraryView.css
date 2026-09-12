@@ -52,7 +52,7 @@
 .sh-lib-badge-pill {
     display: inline-flex;
     align-self: flex-start;
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     font-weight: 750;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -65,7 +65,7 @@
 
 .sh-lib-main-title {
     font-size: 38px;
-    font-weight: 800;
+    font-weight: var(--sh-font-extrabold);
     letter-spacing: -0.03em;
     color: var(--sh-ink-solid, #ffffff);
     margin: 0;
@@ -125,8 +125,8 @@
     padding: 8px 18px;
     border-radius: 9999px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.72);
-    font-size: 13px;
-    font-weight: 600;
+    font-size: var(--sh-text-sm);
+    font-weight: var(--sh-font-semibold);
     cursor: pointer;
     white-space: nowrap;
     transition: color var(--sh-dur-2) ease;
@@ -166,7 +166,7 @@
 
 .sh-lib-tabs-loading, .sh-lib-tabs-empty {
     padding: 8px 16px;
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
 }
 
@@ -219,8 +219,8 @@
     border-radius: 12px;
     padding: 0 34px 0 36px;
     color: var(--sh-ink-solid, #ffffff);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: var(--sh-text-sm);
+    font-weight: var(--sh-font-medium);
     outline: none;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
 }
@@ -244,7 +244,7 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.18);
     border: none;
     color: var(--sh-ink-solid, #ffffff);
-    font-size: 10px;
+    font-size: var(--sh-text-xs);
     align-items: center;
     justify-content: center;
     cursor: pointer;
@@ -271,8 +271,8 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     border-radius: 12px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
-    font-size: 13px;
-    font-weight: 600;
+    font-size: var(--sh-text-sm);
+    font-weight: var(--sh-font-semibold);
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
 }
@@ -284,7 +284,7 @@
 }
 
 .sh-lib-chevron {
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     opacity: 0.6;
 }
 
@@ -338,7 +338,7 @@
     padding: 8px 12px;
     border-radius: 8px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.75);
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
     font-weight: 550;
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
@@ -413,8 +413,8 @@
     border-radius: 9999px;
     padding: 5px 14px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.65);
-    font-size: 12px;
-    font-weight: 600;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-semibold);
     cursor: pointer;
     white-space: nowrap;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
@@ -452,8 +452,8 @@
     background: transparent;
     border: none;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
-    font-size: 11px;
-    font-weight: 700;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     padding: 3px 6px;
     border-radius: 4px;
     cursor: pointer;
@@ -609,7 +609,7 @@
 
 .sh-lib-backdrop-title {
     font-size: 14px;
-    font-weight: 700;
+    font-weight: var(--sh-font-bold);
     color: var(--sh-ink-solid, #ffffff);
     white-space: nowrap;
     overflow: hidden;
@@ -620,13 +620,13 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.55);
 }
 
 .sh-lib-meta-score {
     color: #facc15;
-    font-weight: 700;
+    font-weight: var(--sh-font-bold);
 }
 
 .sh-lib-meta-dot {
@@ -634,7 +634,7 @@
 }
 
 .sh-lib-meta-badge {
-    font-size: 10px;
+    font-size: var(--sh-text-xs);
     padding: 1px 5px;
     border-radius: 4px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
@@ -657,7 +657,7 @@
 
 .sh-lib-table th {
     padding: 14px 16px;
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     font-weight: 750;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -678,7 +678,7 @@
 .sh-lib-table td {
     padding: 10px 16px;
     vertical-align: middle;
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
 }
 
 .sh-lib-td-thumb img {
@@ -696,12 +696,12 @@
 }
 
 .sh-lib-table-item-name {
-    font-weight: 700;
+    font-weight: var(--sh-font-bold);
     color: var(--sh-ink-solid, #ffffff);
 }
 
 .sh-lib-table-item-sub {
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
 }
 
@@ -715,7 +715,7 @@
 }
 
 .sh-lib-quality-badge {
-    font-size: 10px;
+    font-size: var(--sh-text-xs);
     font-weight: 750;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.90);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
@@ -734,7 +734,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: var(--sh-text-xs);
     cursor: pointer;
     margin-left: 4px;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
@@ -763,7 +763,7 @@
 
 .sh-lib-empty-card h3 {
     font-size: 18px;
-    font-weight: 700;
+    font-weight: var(--sh-font-bold);
     margin: 0 0 6px;
 }
 
@@ -778,7 +778,7 @@
     border: none;
     border-radius: 9999px;
     color: var(--sh-ink-solid-inv, #000000);
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
     font-weight: 750;
     padding: 8px 22px;
     cursor: pointer;
@@ -846,7 +846,7 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     border-radius: 9999px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.75);
-    font-size: 12px;
+    font-size: var(--sh-text-xs);
     font-weight: 650;
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
@@ -909,8 +909,8 @@
 }
 
 .sh-lib-modal-badge {
-    font-size: 10px;
-    font-weight: 800;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-extrabold);
     letter-spacing: 0.10em;
     text-transform: uppercase;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.7);
@@ -925,7 +925,7 @@
 }
 
 .sh-lib-modal-subtitle {
-    font-size: 12px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.55);
     margin: 0;
     line-height: 1.4;
@@ -938,7 +938,7 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     color: var(--sh-ink-solid, #ffffff);
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1034,7 +1034,7 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     border-radius: 4px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
-    font-size: 8px;
+    font-size: var(--sh-text-xs);
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
     padding: 0;
@@ -1085,7 +1085,7 @@
 }
 
 .sh-lib-manage-type {
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
 }
 
@@ -1151,8 +1151,8 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14);
     border-radius: 9999px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
-    font-size: 13px;
-    font-weight: 600;
+    font-size: var(--sh-text-sm);
+    font-weight: var(--sh-font-semibold);
     padding: 8px 18px;
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
@@ -1168,7 +1168,7 @@
     border: none;
     border-radius: 9999px;
     color: var(--sh-ink-solid-inv, #000000);
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
     font-weight: 750;
     padding: 8px 22px;
     cursor: pointer;
@@ -1194,7 +1194,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.6);
 }
 

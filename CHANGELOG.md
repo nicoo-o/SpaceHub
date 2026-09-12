@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   jamais proposer de sortir), pur, borné à 20 entrées, et testé par sept cas.
 
 ### Changed
+- L'échelle typographique déclarée est enfin consommée : les `font-size` et
+  `font-weight` littéraux passent de 448 et 316 à **100 et 83**, et le cliquet
+  refuse les 348 autres. Deux règles mécaniques, aucune mise en page revue :
+  un littéral qui vaut EXACTEMENT un échelon devient ce jeton (152 tailles,
+  233 graisses — aucun pixel ne bouge), et tout ce qui est sous le plancher de
+  12 px remonte à `--sh-text-xs` (196 déclarations, de 7 à 11,5 px). Le barème
+  lui-même commence désormais à 12 px — il déclarait 11 — et gagne la marche
+  800, absente alors que 41 déclarations l'employaient. Les valeurs
+  intermédiaires restantes (12,5 · 13,5 · 14 · 16 · 18 · 20…) demandent un
+  arbitrage par mise en page : elles sont comptées, pas devinées.
 - Le retour système essaie désormais trois choses DANS CET ORDRE : fermer une
   couche ouverte, revenir à l'onglet précédent, puis proposer la sortie
   (deux appuis en 2 s pour confirmer). `AppLayout.retourVue()` est publique
@@ -33,6 +43,24 @@ rien mis à la place. Dix-sept familles répondent en 120 ms
 rend la presse physique), la barre d'état d'Android prend la couleur de
 l'application (`theme-color`, `color-scheme`), et les modales se mesurent en
 `dvh`, que la barre gestuelle du téléphone ne mange plus.
+- La typographie vient de la plateforme, et le jeton le dit enfin.
+  `--sh-font-family` déclarait `'SF Pro Display', 'Inter'` : SF Pro n'était
+  chargée nulle part (aucun `@font-face`) et Inter venait d'une feuille Google
+  bloquante au démarrage. Le retrait est décidé par la mesure — le démarrage
+  est à 274,4 ko gzip pour un plafond de 276 ko, et une police d'interface
+  auto-hébergée en pèse trente à soixante. Ce qui part avec elle : une requête
+  tierce bloquante, deux origines ouvertes dans la CSP, et une dépendance
+  réseau dans une application qui doit démarrer sans DNS (APK, téléviseur).
+  Le harnais e2e filtrait déjà ses échecs comme du bruit attendu.
+- Chiffres alignés (`font-variant-numeric: tabular-nums`) sur tout l'arbre :
+  dans une interface où presque tout ce qui bouge est un nombre — durées,
+  compteurs, pourcentages, horloge — les chiffres proportionnels font sauter
+  le texte d'un pixel à chaque seconde.
+- Six feuilles réécrivaient leur propre pile de polices à côté du jeton, dont
+  une avec un `!important` ; elles consomment `--sh-font-family` ou
+  `--sh-font-family-mono`. Deux compteurs les gardent : familles déclarées
+  hors du fichier de jetons (0) et références à une origine de police externe
+  (0).
 
 ## [1.4.0] - 2026-09-11
 

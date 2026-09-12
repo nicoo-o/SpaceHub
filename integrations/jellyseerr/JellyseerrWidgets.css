@@ -140,7 +140,7 @@
 
 .sh-ep-title {
     font-size: 14.5px !important;
-    font-weight: 700 !important;
+    font-weight: var(--sh-font-bold) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     margin: 0 !important;
     white-space: normal !important;
@@ -242,7 +242,7 @@
 
 .sh-jellyseerr-panorama-title {
     font-size: 26px !important;
-    font-weight: 800 !important;
+    font-weight: var(--sh-font-extrabold) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     letter-spacing: -0.02em !important;
     margin: 0 0 12px 0 !important;
@@ -326,7 +326,7 @@
 
 .sh-ep-title {
     font-size: 14px !important;
-    font-weight: 700 !important;
+    font-weight: var(--sh-font-bold) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     margin: 0 !important;
 }
@@ -403,7 +403,7 @@
     background: rgba(var(--sh-ink-inv, 0, 0, 0.16), 0.7) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.25) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
-    font-size: 15px !important;
+    font-size: var(--sh-text-base) !important;
     cursor: pointer !important;
     z-index: 10 !important;
     display: flex !important;
@@ -425,9 +425,8 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.06) !important;
 }
 .sh-jellyseerr-section-header {
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
+    font-size: var(--sh-text-xs) !important;
+    font-weight: var(--sh-font-bold) !important;
     letter-spacing: 0.05em !important;
     color: #a1a1aa !important;
     margin-bottom: 4px !important;
@@ -463,8 +462,8 @@
     background: none !important;
     border: none !important;
     color: #818cf8 !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
+    font-size: var(--sh-text-xs) !important;
+    font-weight: var(--sh-font-semibold) !important;
     cursor: pointer !important;
     padding: 0 !important;
 }
@@ -473,7 +472,7 @@
 }
 .sh-quick-sep {
     color: rgba(var(--sh-ink, 255, 255, 255), 0.3) !important;
-    font-size: 10px !important;
+    font-size: var(--sh-text-xs) !important;
 }
 .sh-jellyseerr-seasons-accordion-list {
     display: flex !important;
@@ -501,12 +500,12 @@
     cursor: pointer !important;
 }
 .sh-season-title-text {
-    font-size: 13px !important;
-    font-weight: 600 !important;
+    font-size: var(--sh-text-sm) !important;
+    font-weight: var(--sh-font-semibold) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
 }
 .sh-season-badge {
-    font-size: 11px !important;
+    font-size: var(--sh-text-xs) !important;
     color: rgba(var(--sh-ink, 255, 255, 255), 0.5) !important;
     background: rgba(var(--sh-ink, 255, 255, 255), 0.06) !important;
     padding: 2px 8px !important;
@@ -525,7 +524,7 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.1) !important;
     border-radius: 8px !important;
     padding: 3px 8px !important;
-    font-size: 11px !important;
+    font-size: var(--sh-text-xs) !important;
     color: #d4d4d8 !important;
     cursor: pointer !important;
 }
@@ -622,16 +621,15 @@
     justify-content: center !important;
 }
 .sh-jellyseerr-modal-type-tag {
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
+    font-size: var(--sh-text-xs) !important;
+    font-weight: var(--sh-font-bold) !important;
     letter-spacing: 0.06em !important;
     color: #a1a1aa !important;
     margin-bottom: 4px !important;
 }
 .sh-jellyseerr-modal-title {
     font-size: 20px !important;
-    font-weight: 700 !important;
+    font-weight: var(--sh-font-bold) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     margin: 0 0 10px 0 !important;
     line-height: 1.25 !important;
@@ -644,8 +642,8 @@
     background: rgba(99, 102, 241, 0.3) !important;
     border: 1px solid rgba(99, 102, 241, 0.28) !important;
     border-radius: 20px !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
+    font-size: var(--sh-text-xs) !important;
+    font-weight: var(--sh-font-semibold) !important;
     color: #a5b4fc !important;
     width: fit-content !important;
 }
@@ -661,7 +659,7 @@
     background: currentColor !important;
 }
 .sh-jellyseerr-modal-desc {
-    font-size: 13px !important;
+    font-size: var(--sh-text-sm) !important;
     line-height: 1.5 !important;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.72) !important;
     margin-bottom: 18px !important;
@@ -673,8 +671,8 @@
 }
 .sh-jellyseerr-form-label {
     display: block !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
+    font-size: var(--sh-text-xs) !important;
+    font-weight: var(--sh-font-semibold) !important;
     color: #e4e4e7 !important;
     margin-bottom: 6px !important;
 }
@@ -686,7 +684,7 @@
     background: var(--sh-bg-surface-2, #181824) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
-    font-size: 13px !important;
+    font-size: var(--sh-text-sm) !important;
     outline: none !important;
     cursor: pointer !important;
     color-scheme: dark !important;
@@ -712,7 +710,7 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12) !important;
     border-radius: 20px !important;
-    font-size: 12px !important;
+    font-size: var(--sh-text-xs) !important;
     color: #e4e4e7 !important;
     cursor: pointer !important;
 }
@@ -732,7 +730,7 @@
     border-radius: 14px !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     font-size: 14px !important;
-    font-weight: 600 !important;
+    font-weight: var(--sh-font-semibold) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -857,7 +855,7 @@
 .sh-jellyseerr-pill-badge {
     padding: 3px 7px !important;
     border-radius: 6px !important;
-    font-size: 10.5px !important;
+    font-size: var(--sh-text-xs) !important;
     font-weight: 750 !important;
     letter-spacing: 0.02em !important;
 }
@@ -892,8 +890,8 @@
 }
 
 .sh-jellyseerr-bento-card__year {
-    font-size: 11px !important;
-    font-weight: 600 !important;
+    font-size: var(--sh-text-xs) !important;
+    font-weight: var(--sh-font-semibold) !important;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.45) !important;
 }
 

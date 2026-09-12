@@ -57,10 +57,9 @@
 
 
 
-.sh-hero-series-tag { display: inline-flex; color: rgba(var(--sh-ink, 255, 255, 255), 0.7); font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; background: rgba(var(--sh-ink, 255, 255, 255), 0.1); padding: 4px 12px; border-radius: 4px; margin-bottom: 12px; }
 .sh-hero-title {
     font-size: clamp(32px, 4.4vw, 54px);
-    font-weight: 900;
+    font-weight: var(--sh-font-black);
     color: var(--sh-ink-solid, #ffffff);
     margin: 0 0 16px 0;
     line-height: 1.15;
@@ -79,9 +78,9 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.15);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 700;
+    border-radius: var(--sh-radius-xs);
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     color: var(--sh-ink-solid, #ffffff);
     display: inline-flex;
     align-items: center;
@@ -98,8 +97,8 @@
     border-radius: 4px !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.15) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14) !important;
-    font-weight: 700 !important;
-    font-size: 12px !important;
+    font-weight: var(--sh-font-bold) !important;
+    font-size: var(--sh-text-xs) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     user-select: none !important;
     transform: translateZ(0);
@@ -144,9 +143,9 @@
 }
 .sh-hero-overview { color: rgba(var(--sh-ink, 255, 255, 255), 0.8); line-height: 1.6; margin-bottom: 30px; }
 .sh-hero-actions { display: flex; gap: 16px; }
-.sh-hero-btn-play { display: inline-flex; align-items: center; gap: 10px; background: var(--sh-ink-solid, #ffffff); color: var(--sh-ink-solid-inv, #000000); border: none; padding: 12px 30px; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; transition: transform 180ms ease; }
+.sh-hero-btn-play { display: inline-flex; align-items: center; gap: 10px; background: var(--sh-ink-solid, #ffffff); color: var(--sh-ink-solid-inv, #000000); border: none; padding: 12px 30px; border-radius: var(--sh-radius-md); font-size: var(--sh-text-base); font-weight: var(--sh-font-extrabold); cursor: pointer; transition: transform 180ms var(--sh-ease-out); }
 .sh-hero-btn-play:hover { transform: scale(1.03); }
-.sh-hero-btn-glass { display: inline-flex; align-items: center; gap: 8px; background: rgba(var(--sh-ink, 255, 255, 255), 0.1); color: var(--sh-ink-solid, #ffffff); border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.2); padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 180ms ease, transform 180ms ease; }
+.sh-hero-btn-glass { display: inline-flex; align-items: center; gap: 8px; background: rgba(var(--sh-ink, 255, 255, 255), 0.1); color: var(--sh-ink-solid, #ffffff); border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.2); padding: 12px 24px; border-radius: var(--sh-radius-md); font-size: 14px; font-weight: var(--sh-font-semibold); cursor: pointer; transition: background 180ms var(--sh-ease-out), transform 180ms var(--sh-ease-out); }
 .sh-hero-btn-glass:hover { background: rgba(var(--sh-ink, 255, 255, 255), 0.18); transform: scale(1.02); }
 .sh-hero-edge-btn {
     position: absolute;
@@ -365,8 +364,8 @@
     border-radius: 9999px;
     padding: 6px 14px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
-    font-size: 11px;
-    font-weight: 700;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     letter-spacing: 0.8px;
     text-transform: uppercase;
     cursor: pointer;

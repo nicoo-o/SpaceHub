@@ -471,16 +471,16 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     padding: 2px 7px;
-    border-radius: 9999px;
-    font-size: 11px;
-    font-weight: 700;
+    border-radius: var(--sh-radius-full);
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
     letter-spacing: -0.2px;
 }
 
 .sh-clock-pulse-dot {
     color: rgba(var(--sh-ink, 255, 255, 255),  0.90);
-    font-weight: 800;
+    font-weight: var(--sh-font-extrabold);
     animation: sh-clock-dot-blink var(--sh-loop-pulse) ease-in-out infinite;
 }
 
@@ -490,7 +490,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 }
 
 .sh-island-label {
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
     font-weight: 750;
     color: var(--sh-ink-solid, #ffffff);
     letter-spacing: -0.2px;
@@ -527,8 +527,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 }
 
 .sh-nav-brand-txt {
-    font-size: 15px;
-    font-weight: 800;
+    font-size: var(--sh-text-base);
+    font-weight: var(--sh-font-extrabold);
     letter-spacing: -0.4px;
     color: var(--sh-ink-solid, #ffffff);
     user-select: none !important;
@@ -632,8 +632,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     padding: 7px 18px;
     border-radius: 9999px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.65);
-    font-size: 13px;
-    font-weight: 600;
+    font-size: var(--sh-text-sm);
+    font-weight: var(--sh-font-semibold);
     cursor: pointer;
     transition: color var(--sh-dur-3) ease;
 }
@@ -696,8 +696,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.18);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.24);
     color: var(--sh-ink-solid, #ffffff);
-    font-weight: 700;
-    font-size: 13px;
+    font-weight: var(--sh-font-bold);
+    font-size: var(--sh-text-sm);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -767,7 +767,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 
 .sh-user-server {
     display: block;
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
     margin-top: 2px;
 }
@@ -783,8 +783,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     padding: 10px 12px;
     border-radius: 10px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: var(--sh-text-sm);
+    font-weight: var(--sh-font-medium);
     font-family: inherit;
     cursor: pointer;
     transition: background var(--sh-dur-1) ease;

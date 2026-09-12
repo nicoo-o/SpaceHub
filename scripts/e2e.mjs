@@ -131,7 +131,11 @@ await scenario('L\'application démarre et rend l\'écran de connexion', async (
 });
 
 await scenario('Aucune erreur JavaScript au démarrage', async () => {
-    const vraies = page.__erreurs.filter(e => !/fonts\.googleapis|ERR_CONNECTION|Failed to fetch/.test(e));
+    // `fonts.googleapis` n'est PLUS toléré : la feuille Google a été retirée
+    // (index.html) et l'application ne charge plus aucune ressource tierce au
+    // démarrage. Tolérer ses échecs masquerait le retour d'une dépendance
+    // réseau — exactement le bruit qu'on a supprimé.
+    const vraies = page.__erreurs.filter(e => !/ERR_CONNECTION|Failed to fetch/.test(e));
     return { ok: vraies.length === 0, detail: vraies.length ? vraies.slice(0, 2).join(' | ') : 'aucune' };
 });
 
@@ -1545,7 +1549,7 @@ await scenario('GSM — l\'écran de connexion rend et les champs ne zoomeront p
 });
 
 await scenario('GSM — aucune erreur JavaScript au démarrage', async () => {
-    const vraies = pageGsm.__erreurs.filter(e => !/fonts\.googleapis|ERR_CONNECTION|Failed to fetch/.test(e));
+    const vraies = pageGsm.__erreurs.filter(e => !/ERR_CONNECTION|Failed to fetch/.test(e));
     return { ok: vraies.length === 0, detail: vraies.length ? vraies.slice(0, 2).join(' | ') : 'aucune' };
 });
 

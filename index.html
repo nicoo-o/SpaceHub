@@ -23,6 +23,11 @@
            • `style-src` accepte 'unsafe-inline' : l'application pose des
              styles en ligne (positions calculées, variables de thème). Le
              style en ligne ne permet pas d'exécuter du code.
+           • `style-src` et `font-src` n'ouvrent PLUS d'origine tierce : la
+             feuille Google Fonts a été retirée (voir le commentaire de
+             POLICES ci-dessous). Aucune feuille ni police ne vient d'ailleurs
+             — l'application démarre donc entièrement hors ligne, ce qui est
+             la condition d'un APK et d'un téléviseur sans DNS.
            • `img-src` et `media-src` acceptent http: et https: — le serveur
              Jellyfin de l'utilisateur est sur son réseau local, en clair, à
              une adresse qu'on ne connaît pas à l'avance.
@@ -33,8 +38,8 @@
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
         script-src 'self';
-        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-        font-src 'self' https://fonts.gstatic.com data:;
+        style-src 'self' 'unsafe-inline';
+        font-src 'self' data:;
         img-src 'self' data: blob: https: http:;
         media-src 'self' blob: https: http:;
         connect-src 'self' blob: https: http: ws: wss:;
@@ -85,17 +90,26 @@
     <meta name="apple-mobile-web-app-title" content="SpaceHub" />
     <link rel="apple-touch-icon" href="/icone.svg" />
 
-    <!-- POLICE INTER — un seul fichier, axe variable.
-         La demande était `wght@300;400;500;600;700;800`, c'est-à-dire SIX
-         fichiers statiques. Or les feuilles de style déclarent `font-weight:
-         750` cent quatre fois, et 750 ne figurait pas dans cette liste : le
-         navigateur retombait sur 700 ou synthétisait la graisse. Cent quatre
-         déclarations qui ne produisaient pas ce qu'elles disaient.
-         `wght@300..800` demande l'AXE : un seul fichier, toutes les graisses
-         intermédiaires, et 750 rend enfin juste. -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..800&display=swap" rel="stylesheet" />
+    <!-- POLICES — la plateforme prête la sienne, aucune n'est téléchargée.
+
+         La feuille Google Fonts a été retirée, et c'est le budget qui l'a
+         décidé : le démarrage est mesuré à 274,4 ko gzip pour un plafond de
+         276 ko (scripts/poids-check.mjs), soit 1,6 ko de marge. Une seule
+         police d'interface auto-hébergée en pèse trente à soixante.
+
+         Ce qui est retiré avec elle, et qui comptait davantage : une requête
+         tierce BLOQUANTE au démarrage, deux origines ouvertes dans la CSP, et
+         une dépendance réseau dans une application qui doit démarrer sans DNS
+         (APK, téléviseur). Le harnais e2e filtrait déjà ses échecs comme du
+         bruit attendu (`fonts.googleapis` dans scripts/e2e.mjs) — un défaut
+         connu, toléré, jamais corrigé.
+
+         L'application se rend donc avec la police du système : SF Pro sur
+         Apple, Segoe UI Variable sur Windows, Roboto sur Android, celle du
+         téléviseur sur Tizen/webOS. C'est la convention des deux plateformes
+         que cette application imite déjà (Material 3 sur GSM, Apple TV sur
+         grand écran), et le jeton `--sh-font-family` DIT désormais cela au
+         lieu de nommer une police qui n'était chargée nulle part. -->
 
     <!-- Design Tokens — servis tels quels depuis public/ (jamais empaquetés).
          C'est volontaire : ce lien doit précéder la feuille générée par Vite,
@@ -116,7 +130,7 @@
             padding: 0;
             background-color: var(--sh-bg-base, #000000);
             color: var(--sh-text-primary, #f0f0f8);
-            font-family: var(--sh-font-family, 'Inter', sans-serif);
+            font-family: var(--sh-font-family, system-ui, sans-serif);
             overflow-x: hidden;
             overflow-y: auto !important;
             -webkit-font-smoothing: antialiased;

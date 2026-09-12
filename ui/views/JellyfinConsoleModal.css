@@ -61,7 +61,7 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14);
     border-radius: 100px;
-    font-size: 10px;
+    font-size: var(--sh-text-xs);
     font-weight: 750;
     color: var(--sh-ink-solid, #ffffff);
     letter-spacing: 0.8px;
@@ -69,7 +69,7 @@
 }
 
 .sh-console-brand-badge.small {
-    font-size: 9px;
+    font-size: var(--sh-text-xs);
     padding: 2px 8px;
     margin-bottom: 6px;
 }
@@ -84,7 +84,7 @@
 
 .sh-console-title {
     font-size: 20px;
-    font-weight: 700;
+    font-weight: var(--sh-font-bold);
     color: var(--sh-ink-solid, #ffffff);
     margin: 0;
     letter-spacing: -0.4px;
@@ -109,8 +109,8 @@
     color: rgba(var(--sh-ink, 255, 255, 255),  0.60);
     padding: 6px 14px;
     border-radius: 100px;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-semibold);
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
 }
@@ -168,20 +168,20 @@
 
 .sh-console-section-title {
     font-size: 16px;
-    font-weight: 700;
+    font-weight: var(--sh-font-bold);
     color: var(--sh-ink-solid, #ffffff);
     margin: 0;
 }
 
 .sh-console-section-sub {
-    font-size: 12px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
     margin: 2px 0 0 0;
 }
 
 .sh-console-subsection-title {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: var(--sh-font-semibold);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.9);
     margin: 12px 0 6px 0;
 }
@@ -196,9 +196,9 @@
     border: none;
     color: var(--sh-ink-solid-inv, #000000);
     padding: 7px 16px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 700;
+    border-radius: var(--sh-radius-md);
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease;
 }
@@ -212,9 +212,9 @@
     border: 1px solid rgba(255, 69, 58, 0.35);
     color: #ff453a;
     padding: 7px 16px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
+    border-radius: var(--sh-radius-md);
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-semibold);
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
 }
@@ -237,8 +237,8 @@
 }
 
 .sh-console-label {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-semibold);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.8);
 }
 
@@ -248,7 +248,7 @@ select.sh-console-select {
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
     border-radius: 12px !important;
     padding: 10px 14px !important;
-    font-size: 13px !important;
+    font-size: var(--sh-text-sm) !important;
     outline: none !important;
     appearance: none !important;
     -webkit-appearance: none !important;
@@ -271,7 +271,7 @@ input.sh-console-input {
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
     border-radius: 12px !important;
     padding: 10px 14px !important;
-    font-size: 13px !important;
+    font-size: var(--sh-text-sm) !important;
     outline: none !important;
     box-sizing: border-box !important;
 }
@@ -304,13 +304,13 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 
 .sh-console-switch-text strong {
     display: block;
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
     color: var(--sh-ink-solid, #ffffff);
 }
 
 .sh-console-switch-text small {
     display: block;
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
     margin-top: 2px;
 }
@@ -337,14 +337,14 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 }
 
 .sh-console-stat-label {
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
 }
 
 .sh-console-stat-val {
-    font-size: 15px;
+    font-size: var(--sh-text-base);
     color: var(--sh-ink-solid, #ffffff);
-    font-weight: 700;
+    font-weight: var(--sh-font-bold);
 }
 
 .sh-console-paths-list {
@@ -364,17 +364,17 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 }
 
 .sh-console-path-tag {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.7);
     width: 140px;
     flex-shrink: 0;
 }
 
 .sh-console-path-item code {
-    font-family: monospace;
-    font-size: 12px;
-    color: #64d2ff;
+    font-family: var(--sh-font-family-mono);
+    font-size: var(--sh-text-xs);
+    color: var(--sh-color-info);
     word-break: break-all;
 }
 
@@ -406,7 +406,7 @@ input.sh-console-input:focus, select.sh-console-select:focus {
     border-radius: 12px;
     color: var(--sh-ink-solid, #ffffff);
     padding: 8px 14px;
-    font-size: 12px;
+    font-size: var(--sh-text-xs);
     min-width: 220px;
     outline: none;
 }
@@ -416,9 +416,9 @@ input.sh-console-input:focus, select.sh-console-select:focus {
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
     color: var(--sh-ink-solid, #ffffff);
     padding: 8px 16px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
+    border-radius: var(--sh-radius-md);
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-semibold);
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
 }
@@ -432,8 +432,8 @@ input.sh-console-input:focus, select.sh-console-select:focus {
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.10);
     border-radius: 16px;
     padding: 16px;
-    font-family: 'SF Mono', Consolas, monospace;
-    font-size: 11px;
+    font-family: var(--sh-font-family-mono);
+    font-size: var(--sh-text-xs);
     line-height: 1.6;
     height: 480px;
     overflow-y: auto;
@@ -448,7 +448,7 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 
 .log-line-info { color: #d0d0d8; }
 .log-line-warn { color: #ffd60a; }
-.log-line-error { color: #ff453a; font-weight: bold; background: rgba(255, 69, 58, 0.24); }
+.log-line-error { color: var(--sh-color-danger); font-weight: bold; background: rgba(var(--sh-color-danger-rgb), 0.24); }
 .log-line-fatal { color: #bf5af2; font-weight: bold; }
 
 .sh-console-users-grid {
@@ -483,8 +483,8 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 }
 
 .sh-user-badge {
-    font-size: 10px;
-    font-weight: 700;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     padding: 2px 8px;
     border-radius: 6px;
 }
@@ -502,7 +502,7 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 .sh-console-user-meta {
     display: flex;
     flex-direction: column;
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
     gap: 2px;
     margin-top: 4px;
@@ -532,7 +532,7 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 }
 
 .sh-console-task-cat {
-    font-size: 10px;
+    font-size: var(--sh-text-xs);
     padding: 2px 6px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
     border-radius: 4px;
@@ -541,14 +541,14 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 
 .sh-console-task-desc {
     display: block;
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
     margin-top: 4px;
 }
 
 .sh-console-task-badge.running {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     color: #30d158;
     display: inline-flex;
     align-items: center;
@@ -572,9 +572,9 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 
 .sh-console-task-btn {
     padding: 8px 18px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
+    border-radius: var(--sh-radius-md);
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-semibold);
     border: none;
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
@@ -623,7 +623,7 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 }
 
 .sh-console-plugin-icon {
-    font-size: 22px;
+    font-size: var(--sh-text-lg);
 }
 
 .sh-console-plugin-info {
@@ -632,18 +632,18 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 
 .sh-console-plugin-info strong {
     display: block;
-    font-size: 13px;
+    font-size: var(--sh-text-sm);
     color: var(--sh-ink-solid, #ffffff);
 }
 
 .sh-console-plugin-info code {
-    font-size: 10px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
 }
 
 .sh-plugin-status-badge {
-    font-size: 10px;
-    font-weight: 700;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     padding: 3px 8px;
     border-radius: 6px;
 }
@@ -659,7 +659,7 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 }
 
 .sh-console-plugin-desc {
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.55);
     margin: 0;
 }
@@ -673,7 +673,7 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 }
 
 .sh-console-footer-status {
-    font-size: 12px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
 }
 
@@ -682,9 +682,9 @@ input.sh-console-input:focus, select.sh-console-select:focus {
     border: none;
     color: var(--sh-ink-solid-inv, #000000);
     padding: 8px 22px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 700;
+    border-radius: var(--sh-radius-md);
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     cursor: pointer;
     transition: transform var(--sh-dur-2) ease;
 }

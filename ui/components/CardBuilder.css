@@ -130,7 +130,7 @@
     border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.14) !important;
     border-radius: 9999px;
     padding: 2px 5px;
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     font-weight: 750;
     color: var(--sh-on-media-solid, #ffffff);
     box-shadow: 0 4px 10px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.40);
@@ -163,8 +163,8 @@
 }
 
 .sh-score-val {
-    font-size: 11px;
-    font-weight: 800;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-extrabold);
     letter-spacing: -0.2px;
 }
 .sh-score-rt {
@@ -173,7 +173,7 @@
 }
 .sh-score-sep {
     opacity: 0.30;
-    font-size: 9px;
+    font-size: var(--sh-text-xs);
     pointer-events: none;
     margin: 0 -1px;
 }
@@ -188,7 +188,7 @@
 .sh-score-mc {
     color: #54c96a !important;
     font-weight: 750 !important;
-    font-size: 10px !important;
+    font-size: var(--sh-text-xs) !important;
 }
 
 .sh-rt-svg {
@@ -240,7 +240,7 @@
     pointer-events: none !important;
     transition: opacity var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-2) ease, visibility var(--sh-dur-2) !important;
     text-align: left !important;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif !important;
+    font-family: var(--sh-font-family) !important;
 }
 .sh-global-popover.visible {
     opacity: 1 !important;
@@ -251,9 +251,8 @@
 }
 
 .sh-popover-tag {
-    font-size: 10px;
-    font-weight: 800;
-    text-transform: uppercase;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-extrabold);
     letter-spacing: 0.6px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
     margin-top: -2px;
@@ -273,20 +272,20 @@
     gap: 6px;
 }
 .sh-rt-popover__title {
-    font-size: 11px;
-    font-weight: 800;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-extrabold);
     letter-spacing: 0.4px;
     color: #ff5252;
 }
 .sh-rt-popover__audience {
-    font-size: 10.5px;
-    font-weight: 700;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
 }
 .sh-rt-popover__consensus {
     margin: 0;
-    font-size: 11px;
-    font-weight: 500;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-medium);
     line-height: 1.4;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.9);
 }
@@ -294,8 +293,8 @@
     padding: 7px 9px;
     border-radius: 8px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.05);
-    border-left: 2px solid #ff9f0a;
-    font-size: 10.5px;
+    border-left: 2px solid var(--sh-focus-ring);
+    font-size: var(--sh-text-xs);
     font-style: italic;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
     line-height: 1.35;
@@ -303,10 +302,10 @@
 .sh-rt-popover__author {
     display: block;
     margin-top: 3px;
-    font-size: 9.5px;
+    font-size: var(--sh-text-xs);
     font-style: normal;
-    font-weight: 700;
-    color: #ff9f0a;
+    font-weight: var(--sh-font-bold);
+    color: var(--sh-focus-ring);
     text-align: right;
 }
 .sh-rt-popover__footer {
@@ -315,8 +314,8 @@
     gap: 6px;
     padding-top: 4px;
     border-top: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
-    font-size: 10px;
-    font-weight: 700;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.7);
 }
 .sh-meta-tag { color: #30d158; }
@@ -338,25 +337,25 @@
 .sh-imdb-badge {
     background: #f5c518;
     color: var(--sh-ink-solid-inv, #000000);
-    font-size: 10px;
-    font-weight: 900;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-black);
     padding: 1px 4px;
     border-radius: 4px;
     letter-spacing: 0.5px;
 }
 .sh-imdb-score {
-    font-size: 13px;
-    font-weight: 800;
+    font-size: var(--sh-text-sm);
+    font-weight: var(--sh-font-extrabold);
     color: #ffd600;
 }
 .sh-imdb-score small {
-    font-size: 10px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.5);
-    font-weight: 500;
+    font-weight: var(--sh-font-medium);
 }
 .sh-imdb-stars-row {
     color: #ffd600;
-    font-size: 11px;
+    font-size: var(--sh-text-xs);
     letter-spacing: 1px;
 }
 .sh-imdb-breakdown {
@@ -369,10 +368,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 10px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.75);
 }
-.sh-imdb-bar-row span { width: 85px; flex-shrink: 0; font-size: 10px; }
+.sh-imdb-bar-row span { width: 85px; flex-shrink: 0; font-size: var(--sh-text-xs); }
 .sh-imdb-bar {
     flex: 1;
     height: 4px;
@@ -388,9 +387,9 @@
 .sh-imdb-footer {
     padding-top: 5px;
     border-top: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
-    font-size: 10px;
-    font-weight: 700;
-    color: #ff9f0a;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
+    color: var(--sh-focus-ring);
 }
 
 /* ── Bouton Favoris Rapide (Quick Bookmark Pill) ─────────── */
@@ -467,8 +466,8 @@
     border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.14);
     padding: 3px 7px;
     border-radius: 6px;
-    font-size: 9px;
-    font-weight: 800;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-extrabold);
     letter-spacing: 0.7px;
     color: rgba(var(--sh-on-media, 255, 255, 255),  0.90);
     text-transform: uppercase;
@@ -494,8 +493,8 @@
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.95);
     color: var(--sh-ink-solid-inv, #000000);
     padding: 7px 16px;
-    border-radius: 9999px;
-    font-size: 12px;
+    border-radius: var(--sh-radius-full);
+    font-size: var(--sh-text-xs);
     font-weight: 750;
     box-shadow: 0 8px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.60);
     transition: transform var(--sh-dur-3) var(--sh-ease-spring), opacity var(--sh-dur-3) var(--sh-ease-spring), background-color var(--sh-dur-3) var(--sh-ease-spring), background var(--sh-dur-3) var(--sh-ease-spring), border-color var(--sh-dur-3) var(--sh-ease-spring), box-shadow var(--sh-dur-3) var(--sh-ease-spring), color var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-3) var(--sh-ease-spring);
@@ -516,7 +515,7 @@
     opacity: 1;
 }
 .sh-pill-duration {
-    font-weight: 500;
+    font-weight: var(--sh-font-medium);
     color: rgba(0,0,0,0.65);
 }
 
@@ -541,8 +540,8 @@
 }
 .sh-card__title {
     margin: 0;
-    font-size: 15px; 
-    font-weight: 700;
+    font-size: var(--sh-text-base);
+    font-weight: var(--sh-font-bold);
     color: var(--sh-ink-solid, #ffffff);
     letter-spacing: -0.3px;
 }
@@ -553,13 +552,13 @@
     margin-top: 4px;
 }
 .sh-card__subtitle {
-    font-size: 12px; 
-    font-weight: 500;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-medium);
     color: rgba(var(--sh-ink, 255, 255, 255), 0.50);
 }
 .sh-card__remaining-time {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-semibold);
     color: rgba(var(--sh-ink, 255, 255, 255), 0.80);
 }
 
@@ -598,8 +597,8 @@
 }
 .sh-context-menu__header {
     padding: 6px 10px;
-    font-size: 12px;
-    font-weight: 800;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-extrabold);
     color: rgba(var(--sh-ink, 255, 255, 255), 0.50);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -616,8 +615,8 @@
     padding: 8px 10px;
     border-radius: 8px;
     color: var(--sh-on-media-solid, #ffffff);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: var(--sh-text-sm);
+    font-weight: var(--sh-font-medium);
     text-align: left;
     cursor: pointer;
     display: flex;
@@ -720,8 +719,8 @@
 
 .sh-cast-picker__title {
     margin: 0 0 8px;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: var(--sh-text-sm);
+    font-weight: var(--sh-font-semibold);
     color: rgba(var(--sh-ink, 255, 255, 255), 0.70);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -753,12 +752,12 @@
 
 .sh-cast-picker__name {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: var(--sh-font-semibold);
     color: var(--sh-ink-solid, #ffffff);
 }
 
 .sh-cast-picker__state {
-    font-size: 11.5px;
+    font-size: var(--sh-text-xs);
     color: rgba(var(--sh-ink, 255, 255, 255), 0.55);
 }
 

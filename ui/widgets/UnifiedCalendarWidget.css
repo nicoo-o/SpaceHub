@@ -16,8 +16,8 @@
 }
 
 .sh-cal-day-badge {
-    font-size: 9px;
-    font-weight: 700;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     padding: 2px 6px;
     border-radius: 6px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
@@ -38,8 +38,8 @@
 }
 
 .sh-cal-type-pill {
-    font-size: 9px;
-    font-weight: 700;
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     padding: 2px 6px;
     border-radius: 6px;
 }

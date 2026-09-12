@@ -75,7 +75,7 @@
 .sh-musique__titre {
     margin: 24px 0 4px;
     font-size: clamp(20px, 2.2vw, 34px);
-    font-weight: 700;
+    font-weight: var(--sh-font-bold);
     line-height: 1.2;
 }
 
@@ -100,7 +100,7 @@
 .sh-musique__ligne {
     margin: 0 0 0.55em;
     font-size: clamp(18px, 2vw, 32px);
-    font-weight: 600;
+    font-weight: var(--sh-font-semibold);
     line-height: 1.35;
     color: rgba(var(--sh-ink-inv, 255, 255, 255), 0.34);
     transition: color 220ms linear, opacity 220ms linear;
