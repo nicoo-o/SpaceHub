@@ -22,6 +22,7 @@
 
 import Logger from '../../core/Logger.js';
 import { fetchAvecDelai } from '../../core/utils/reseau.js';
+import { enteteAutorisation } from '../../core/utils/identiteClient.js';
 
 const log = new Logger('DeviceProfile');
 
@@ -171,8 +172,24 @@ export async function negotiatePlayback({ serverUrl, token, userId, deviceId, it
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Emby-Token': token,
-                'X-Emby-Authorization': `MediaBrowser Client="SpaceHub", Device="SpaceHub Web", DeviceId="${deviceId || 'sh_web'}", Version="1.0.0", Token="${token}"`,
+                // AUTORISATION. Cet appel n'émettait QUE des en-têtes dépréciés
+                // — `X-Emby-Token` et `X-Emby-Authorization` —, jamais
+                // `Authorization`. Sur un serveur 12.0, où les mécanismes
+                // dépréciés sont désactivés par défaut, la négociation aurait
+                // répondu 401 : le `catch` juste en dessous aurait avalé
+                // l'erreur, et la lecture serait retombée EN SILENCE sur le
+                // flux HLS générique — sans piste audio choisie, sans sélection
+                // de version, et sans que rien ne le signale.
+                //
+                // C'est le défaut le plus coûteux qu'un contrat d'API pouvait
+                // trouver : il ne casse rien aujourd'hui et casse tout le jour
+                // de la mise à jour du serveur.
+                //
+                // On émet la forme supportée, et on garde `X-Emby-Authorization`
+                // en second pour les serveurs anciens : il est déprécié, pas
+                // encore refusé, et ne porte rien que `Authorization` n'ait déjà.
+                'Authorization': enteteAutorisation(deviceId || 'sh_web', token),
+                'X-Emby-Authorization': enteteAutorisation(deviceId || 'sh_web', token),
             },
             body: JSON.stringify(body),
         });

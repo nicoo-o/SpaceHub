@@ -61,7 +61,17 @@ const BUDGETS = {
     // descente.
     // Le budget se baisse dans le commit qui prouve la descente, jamais
     // au fil de l'eau.
-    'jellyfin/player/VideoPlayer.js': 2212,
+    // 2212 → 2222 le 12 septembre 2026 : +10 lignes — les trois injections
+    // du minuteur de sommeil (lireSommeil / armerSommeil / annulerSommeil).
+    // La règle du contrat est « nouvelle fonctionnalité = nouveau module »,
+    // et elle est respectée : la fonctionnalité vit dans
+    // core/MinuteurSommeil.js, écrit et testé depuis la vague précédente.
+    // Ce qui s'ajoute ici est le CÂBLAGE, et il ne peut pas vivre ailleurs :
+    // l'objet d'injections de PopoversContenu est construit dans ce
+    // constructeur. Le module existait sans qu'aucune interface ne l'appelle
+    // — zéro occurrence de « sommeil » dans ui/ — donc ces dix lignes sont
+    // ce qui transforme un module mort en fonctionnalité.
+    'jellyfin/player/VideoPlayer.js': 2222,
     // 1750 → 1775 le 11 septembre 2026 : +25 lignes — l'API publique
     // demandeRetour() (pipeline Retour partagé TV/bouton système Android) et
     // le marqueur de fermeture vivante dans _handleBack. Le pont Android
@@ -72,10 +82,22 @@ const BUDGETS = {
     // jour automatiques » (opt-out Windows) appartient aux réglages, pas à un
     // module satellite ; la préférence et son pont sont documentés ailleurs.
     'ui/components/SettingsPanel.js': 1643,
-    'ui/components/CardBuilder.js': 1403,
+    // 1403 → 1410 le 12 septembre 2026 : +7 lignes — le garde de
+    // `getRtIconSvg()` et son explication. `Number(null)` vaut zéro et zéro
+    // est fini : le garde précédent laissait passer `null`, c'est-à-dire le
+    // cas normal d'un titre sans note presse, et affichait un tomate pourri
+    // à côté du texte « Aucune note presse disponible pour ce titre ». Une
+    // note fabriquée montrée à l'utilisateur. Ces lignes-là ne se négocient
+    // pas contre un budget.
+    'ui/components/CardBuilder.js': 1410,
     'jellyfin/search/UnifiedSearch.js': 1366,
     'ui/components/ModalSlideUpSheet.js': 1350,
-    'jellyfin/api/JellyfinAPI.js': 1291,
+    // 1291 → 1298 le 12 septembre 2026 : +7 lignes — l'import de
+    // `enteteAutorisation` et l'en-tête d'autorisation de `getLogFile()`,
+    // qui envoyait `X-Emby-Token` : déprécié, et refusé par défaut par un
+    // serveur Jellyfin 12.0. Correction de conformité, pas d'ajout de
+    // fonctionnalité (cf. scripts/api-jellyfin-check.mjs).
+    'jellyfin/api/JellyfinAPI.js': 1298,
 };
 
 /** Tout fichier applicatif sans budget explicite passe sous ce plafond. */

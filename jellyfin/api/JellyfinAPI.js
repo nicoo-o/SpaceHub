@@ -13,6 +13,7 @@ import Logger from '../../core/Logger.js';
 
 import * as svc from '../../core/services.js';
 import { fetchAvecDelai } from '../../core/utils/reseau.js';
+import { enteteAutorisation } from '../../core/utils/identiteClient.js';
 class JellyfinAPI {
     constructor() {
         this._log = new Logger('JellyfinAPI');
@@ -1169,8 +1170,14 @@ class JellyfinAPI {
             const token = client?._apiKey || svc.auth()?.getToken?.() || '';
             const url = `${baseUrl.replace(/\/+$/, '')}/System/Logs/Log?name=${encodeURIComponent(logName)}`;
 
+            // AUTORISATION — deux défauts : `X-Emby-Token`, déprécié et refusé
+            // par défaut en 12.0 ; et un `Authorization` reconstruit à la main
+            // sans `Device`, `DeviceId` ni `Version`, alors que le serveur
+            // choisit des comportements d'après ces champs.
             const res = await fetchAvecDelai(url, {
-                headers: token ? { 'Authorization': `MediaBrowser Client="SpaceHub", Token="${token}"`, 'X-Emby-Token': token } : {}
+                headers: token
+                    ? { 'Authorization': enteteAutorisation(svc.auth()?.getDeviceId?.() || '', token) }
+                    : {}
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return await res.text();
