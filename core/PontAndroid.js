@@ -89,9 +89,24 @@ class PontAndroid {
 
         // cordova-android achemine le geste/g bouton vers `backbutton` dès le
         // démarrage ; par défaut la plateforme FERME l'activité — on ne peut
-        // l'empêcher qu'en s'abonnant. Un seul abonnement, jamais retiré :
-        // le pont vit autant que l'application.
-        document.addEventListener('backbutton', (e) => this._surRetour(e), false);
+        // l'empêcher qu'en s'abonnant.
+        //
+        // L'abonnement garde sa propre fermeture de retrait. La version
+        // précédente posait une flèche anonyme ici et tentait de la retirer
+        // dans `detruire()` via `this._surRetourArme` — un champ JAMAIS
+        // affecté, nulle part dans le dépôt. `removeEventListener` recevait
+        // donc `(() => {})`, une fonction neuve à chaque appel, qui ne
+        // correspond à aucun abonnement : le retrait ne pouvait pas réussir.
+        //
+        // Rien ne le signalait, parce que `detruire()` ne sert qu'aux tests et
+        // que les tests vérifiaient l'ANNULATION DU MINUTEUR, pas le silence
+        // de l'écouteur. Un `detruire()` qui ne détruit rien laisse, entre deux
+        // cas de test, un pont qui répond encore aux `backbutton` du cas
+        // suivant — et le premier symptôme est un test voisin qui échoue sans
+        // raison apparente.
+        const surRetour = (e) => this._surRetour(e);
+        document.addEventListener('backbutton', surRetour, false);
+        this._offRetour = () => document.removeEventListener('backbutton', surRetour, false);
     }
 
     /**
@@ -165,14 +180,19 @@ class PontAndroid {
         this._retourVue = vues?.retourVue?.bind(vues) || this._retourVue;
     }
 
-    /** Retire l'écouteur retour (utile aux tests ; l'app ne l'appelle pas). */
+    /**
+     * Retire l'écouteur retour (utile aux tests ; l'app ne l'appelle pas).
+     *
+     * Un seul mécanisme : la fermeture posée par `_surPret()`. Deux voies de
+     * retrait — un champ `_surRetourArme` et un `_offRetour` — laissaient
+     * croire à deux abonnements possibles alors qu'aucune des deux ne
+     * fonctionnait.
+     */
     detruire() {
         this._annulerSortie();
-        if (this._pret && typeof document !== 'undefined') {
-            document.removeEventListener('backbutton', this._surRetourArme || (() => {}));
-        }
         this._offRetour?.();
         this._offRetour = null;
+        this._pret = false;
     }
 }
 

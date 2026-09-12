@@ -159,3 +159,92 @@ describe('PontAndroid — en APK (cordova présent)', () => {
         expect(() => ecouteurCourant({ preventDefault: vi.fn() })).not.toThrow();
     });
 });
+
+/**
+ * detruire() — CE BLOC NE PASSE PAS PAR `ecouteurCourant`, ET C'EST TOUT SON
+ * INTÉRÊT.
+ *
+ * Les cas ci-dessus capturent la fonction posée sur `backbutton` et l'appellent
+ * à la main. C'est commode, et c'est précisément ce qui a laissé passer le
+ * défaut : appeler soi-même la fonction capturée donne le même résultat que
+ * l'écouteur soit encore abonné ou non. `detruire()` retirait donc
+ * `this._surRetourArme` — un champ jamais affecté — c'est-à-dire rien, et
+ * aucun test ne pouvait s'en apercevoir.
+ *
+ * Ici on répartit un VRAI événement sur `document`. C'est le seul protocole qui
+ * distingue « l'abonnement a été retiré » de « la fonction existe encore ».
+ */
+describe('PontAndroid — detruire() retire vraiment l\'écouteur', () => {
+    let demandeRetour;
+
+    // TOUT PONT CRÉÉ ICI EST DÉTRUIT APRÈS LE CAS. Ce n'est pas de
+    // l'hygiène décorative : puisque ces cas répartissent de VRAIS
+    // événements, un pont laissé abonné par un cas précédent répond aux
+    // événements du suivant. C'est arrivé en écrivant ce bloc — deux appels
+    // pour une seule répartition — et c'est exactement le symptôme que le
+    // défaut corrigé produisait en production de test.
+    const ponts = [];
+    const creer = (deps) => {
+        const pont = new PontAndroid().init(deps);
+        ponts.push(pont);
+        document.dispatchEvent(new Event('deviceready'));
+        return pont;
+    };
+
+    beforeEach(() => {
+        window.cordova = { version: '13.0.0' };
+        demandeRetour = vi.fn(() => true);   // « une couche a été fermée » : pas de sortie
+        window.navigator.app = { exitApp: vi.fn() };
+    });
+
+    afterEach(() => {
+        while (ponts.length) ponts.pop().detruire();
+        delete window.cordova;
+        delete window.navigator.app;
+    });
+
+    function pontPret() {
+        return creer({ demandeRetour: () => demandeRetour() });
+    }
+
+    it('avant detruire(), un backbutton réel atteint le pont', () => {
+        pontPret();
+        document.dispatchEvent(new CustomEvent('backbutton'));
+        expect(demandeRetour).toHaveBeenCalledTimes(1);
+    });
+
+    it('après detruire(), un backbutton réel ne l\'atteint plus', () => {
+        const pont = pontPret();
+        document.dispatchEvent(new CustomEvent('backbutton'));
+        expect(demandeRetour).toHaveBeenCalledTimes(1);
+
+        pont.detruire();
+
+        document.dispatchEvent(new CustomEvent('backbutton'));
+        document.dispatchEvent(new CustomEvent('backbutton'));
+        // Toujours UN seul appel : les deux derniers ne doivent aller nulle part.
+        expect(demandeRetour).toHaveBeenCalledTimes(1);
+        expect(pont.estActif()).toBe(false);
+    });
+
+    it('deux ponts successifs : le premier détruit ne répond plus pour le second', () => {
+        // Le symptôme réel du défaut : entre deux cas de test, un pont
+        // « détruit » restait abonné et traitait les événements du suivant.
+        const premier = pontPret();
+        premier.detruire();
+
+        const appelsDuSecond = vi.fn(() => true);
+        creer({ demandeRetour: appelsDuSecond });
+
+        document.dispatchEvent(new CustomEvent('backbutton'));
+
+        expect(appelsDuSecond).toHaveBeenCalledTimes(1);
+        expect(demandeRetour).not.toHaveBeenCalled();   // le premier s'est tu
+    });
+
+    it('detruire() sans deviceready (hors APK) ne lève pas', () => {
+        delete window.cordova;
+        const pont = new PontAndroid().init({ demandeRetour: () => true });
+        expect(() => pont.detruire()).not.toThrow();
+    });
+});
