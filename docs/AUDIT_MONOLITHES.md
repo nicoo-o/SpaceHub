@@ -58,14 +58,32 @@ le seul des trois monolithes où il l'est.
 **Livrables :**
 
 - `core/ContratSpatialNavigation.js` — source de vérité unique : méthodes
-  publiques réellement appelées (`setFocus`, `getFocusables`, `focusFirst`,
-  `onModalOpened`, `onModalClosed`, `dernierDiagnostic`) + internes atteints
-  par les harnais.
+  publiques réellement appelées (17 au 12 septembre 2026, de `setFocus` à
+  `handleAction`) + internes atteints par les harnais.
 - `tests/FacadeNav.test.js` — filet côté classe : chaque membre du contrat
   existe sur une instance neuve.
 - `scripts/facade-appelants-check.mjs` — étendu aux récepteurs
   `nav` / `spatialNavigation` : toute atteinte `nav._x` hors contrat échoue
   la chaîne.
+
+### Suite (12 septembre 2026) — la surface DÉCLARÉE ne suffisait pas
+
+Les trois garde-fous ci-dessus disent tous la même chose sous trois angles :
+ce que le monde extérieur a le **droit** de toucher. Aucun ne disait ce qui est
+**atteint** — et c'est la question qui décide d'une extraction : un membre
+déclaré que rien n'atteint est du poids mort, un membre atteint qui n'est pas
+déclaré est un trou qu'une extraction ouvrirait en silence.
+
+La peau 0 de la décomposition a comblé cet angle mort :
+`scripts/sonde-surface-nav.mjs` mesure l'atteint pendant la course e2e entière
+et le croise avec ce que les sources référencent. Elle a trouvé que
+`handleAction` n'était **ni déclaré, ni mort, ni atteint** (absent du contrat,
+non compté comme mort car le moteur se l'appelle, jamais atteint par la course) :
+il est entré au contrat. Et elle a montré que le premier balayage manquait la
+forme chaînée `svc.nav().membre` — trois membres vivants passaient pour morts.
+
+Le registre de la décomposition, la mesure complète et l'ordre d'extraction
+sont dans `docs/DECOMPOSITION_SPATIALNAVIGATION.md`.
 
 ## Limites du balayage (rappel)
 

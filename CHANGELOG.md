@@ -21,6 +21,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/identite-visuelle/planche.html` : la planche de revue autonome — déclaré
   contre livré, les deux températures, trois distances de lecture, l'élévation sur
   noir. Hors de toute chaîne de contrôle, comme le reste de `docs/`.
+- `docs/DECOMPOSITION_SPATIALNAVIGATION.md` : le registre de l'approfondissement
+  du moteur de navigation. Il porte la mesure de la surface réellement atteinte
+  (17/23 méthodes publiques, contrat prouvé 17/17, aucun trou, deux privés de
+  fait, quatre morts tolérés), ce que cette décomposition a de DIFFÉRENT du
+  lecteur vidéo — son filet de tests existait déjà, c'est la preuve de sa PORTÉE
+  qui manquait —, et l'ordre d'extraction confirmé par la mesure, du plus pur au
+  plus enchevêtré : moteur spatial 2D (~390 lignes), répétition des touches,
+  registre des focusables (où vivent deux des quatre morts tolérés), contrôleur
+  de focus, retour et couches, et l'entrée en dernier — le harnais e2e pilote
+  cinq de ses membres à la main, donc tant que la sonde ne prouve pas qu'ils
+  peuvent être privatisés, ils restent en talon.
 - `core/HistoriqueVues.js` : la mémoire du bouton retour système. Le pont
   Android ne connaissait que deux issues — fermer une couche, ou proposer de
   **quitter** l'application. Retour depuis l'onglet Flux demandait donc
