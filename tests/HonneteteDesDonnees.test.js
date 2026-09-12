@@ -221,3 +221,58 @@ describe('SDK — ne pas confirmer ce qui n\'a pas eu lieu', () => {
         expect(mm.register({}), 'module sans id accepté').toBe(false);
     });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Note presse — une icône est une AFFIRMATION', () => {
+    /**
+     * LE DÉFAUT, ET POURQUOI IL A SURVÉCU À CE FICHIER.
+     *
+     * `getRtIconSvg` gardait avec `!Number.isFinite(Number(score))`. Or
+     * `Number(null)` vaut ZÉRO, et zéro est fini : le garde ne se déclenchait
+     * donc jamais pour `null`, c'est-à-dire pour le cas normal d'un titre sans
+     * note presse. L'exécution tombait dans la branche finale et rendait le
+     * tomate POURRI.
+     *
+     * Sur la fiche média, l'ironie était complète : le badge, le score, la
+     * phrase et la source étaient tous correctement conditionnés — la phrase
+     * disait même « Aucune note presse disponible pour ce titre » — et seule
+     * l'icône restait allumée, juste à côté.
+     *
+     * C'est exactement la règle que ce fichier existe pour tenir, appliquée à
+     * une icône plutôt qu'à un nombre : une image de tomate pourrie est une
+     * affirmation sur la qualité d'un film, au même titre qu'un pourcentage.
+     */
+    const rendre = async (score) => {
+        const { default: CardBuilder } = await import('../ui/components/CardBuilder.js');
+        return new CardBuilder().getRtIconSvg(score);
+    };
+
+    it('ne rend AUCUNE icône quand la note est absente', async () => {
+        for (const absent of [null, undefined, '', NaN]) {
+            const html = await rendre(absent);
+            expect(html, String(absent)).toContain('sh-score-placeholder');
+            expect(html, String(absent)).not.toContain('<svg');
+        }
+    });
+
+    it('ne rend pas un tomate POURRI pour une note absente', async () => {
+        // La contre-épreuve précise du défaut : `null` tombait dans la branche
+        // « score < 60 », celle du splat rouge.
+        const html = await rendre(null);
+        expect(html).not.toMatch(/svg/i);
+    });
+
+    it('rend bien une icône quand la note existe', async () => {
+        for (const [note, attendu] of [[92, true], [65, true], [12, true], [0, true]]) {
+            const html = await rendre(note);
+            expect(html.includes('<svg'), `note ${note}`).toBe(attendu);
+        }
+    });
+
+    it('distingue une note de zéro d\'une note absente', async () => {
+        // Zéro pour cent EST une note : un film unanimement éreinté. Il doit
+        // s'afficher. C'est `null` qui ne doit rien afficher.
+        expect(await rendre(0)).toContain('<svg');
+        expect(await rendre(null)).toContain('sh-score-placeholder');
+    });
+});

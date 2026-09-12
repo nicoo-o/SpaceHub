@@ -77,7 +77,15 @@ class CardBuilder {
     // ─── SVG Icons Officielles ───────────────────────────────────────────────────
 
     getRtIconSvg(score) {
-        if (!Number.isFinite(Number(score))) {
+        // `Number(null)` VAUT ZÉRO, ET ZÉRO EST FINI. Le garde ne testait que
+        // `Number.isFinite(Number(score))` : `null` — le cas NORMAL d'un titre
+        // sans note presse — tombait dans la branche finale et rendait le
+        // tomate pourri, à côté du texte « Aucune note presse disponible pour
+        // ce titre » que le gabarit conditionne correctement, lui. Badge,
+        // score, phrase et source éteints, seule l'icône restait allumée : une
+        // note FABRIQUÉE, montrée sous un commentaire qui l'interdit.
+        if (score === null || score === undefined || score === ''
+            || !Number.isFinite(Number(score))) {
             // Aucun score critique Jellyfin : ne pas afficher d'icône ou de statut inventé.
             return '<span class="sh-score-placeholder" aria-hidden="true"></span>';
         }
