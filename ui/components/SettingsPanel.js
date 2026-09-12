@@ -17,7 +17,7 @@ import * as sousTitres from '../../jellyfin/player/ApparenceSousTitres.js';
 class SettingsPanel {
     constructor() {
         // Confirmation du scope settings dans le Focus Registry
-        const spatialNav = svc.nav() || svc.nav();
+        const spatialNav = svc.nav();
         // Ce fournisseur ÉCRASAIT le scope du moteur, et sa garde ne servait
         // à rien : `getFocusables` appelle le fournisseur avec `this._root`,
         // c'est-à-dire `document`. Or `document` est truthy, donc
@@ -69,13 +69,13 @@ class SettingsPanel {
             `,
             onOpen: (m) => {
                 this._bindEvents(m);
-                const spatialNav = svc.nav() || svc.nav();
+                const spatialNav = svc.nav();
                 if (spatialNav && m?._el) {
                     spatialNav.onModalOpened(m._el, m._el.querySelector('.sh-settings-nav__item.active') || m._el.querySelector('.sh-settings-nav__item'));
                 }
             },
             onClose: () => {
-                const spatialNav = svc.nav() || svc.nav();
+                const spatialNav = svc.nav();
                 if (spatialNav) spatialNav.onModalClosed();
             }
         });
@@ -88,7 +88,7 @@ class SettingsPanel {
      */
     close() {
         this._modal?.close?.();
-        const spatialNav = svc.nav() || svc.nav();
+        const spatialNav = svc.nav();
         if (spatialNav && typeof spatialNav.onModalClosed === "function") spatialNav.onModalClosed();
     }
 

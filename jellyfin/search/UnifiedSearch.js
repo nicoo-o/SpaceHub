@@ -22,7 +22,7 @@ import { ouvrirReglages } from '../../ui/components/chargerReglages.js';
 class UnifiedSearch {
     constructor() {
         // Confirmation du scope search dans le Focus Registry
-        const spatialNav = svc.nav() || svc.nav();
+        const spatialNav = svc.nav();
         // Ce fournisseur ÉCRASAIT le scope du moteur, et sa garde ne servait
         // à rien : `getFocusables` appelle le fournisseur avec `this._root`,
         // c'est-à-dire `document`. Or `document` est truthy, donc

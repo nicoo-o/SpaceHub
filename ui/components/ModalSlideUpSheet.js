@@ -388,7 +388,7 @@ class ModalSlideUpSheet {
         this._currentItem = null;
         document.body.style.overflow = '';
 
-        const spatialNav = svc.nav() || svc.nav();
+        const spatialNav = svc.nav();
         if (spatialNav && typeof spatialNav.onModalClosed === 'function') {
             spatialNav.onModalClosed(closedItem);
         }
@@ -1296,7 +1296,7 @@ class ModalSlideUpSheet {
             audioBtn.classList.toggle('active', this._audioPopoverOpen);
 
             if (this._audioPopoverOpen) {
-                const spatialNav = svc.nav() || svc.nav();
+                const spatialNav = svc.nav();
                 if (spatialNav) {
                     setTimeout(() => {
                         const activeItem = audioMenu?.querySelector('.sh-popover-item.selected') || audioMenu?.querySelector('.sh-popover-item');

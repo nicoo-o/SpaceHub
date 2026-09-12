@@ -160,7 +160,7 @@ class DownloadsView {
         // Les contrôles propres à cette vue s'AJOUTENT au scope du moteur.
         // Écraser le scope en enracinant la requête sur `.sh-downloads-view`
         // faisait disparaître le dock supérieur, qui est un frère de la vue.
-        const spatialNav = svc.nav() || svc.nav();
+        const spatialNav = svc.nav();
         if (spatialNav?.extendFocusables) {
             spatialNav.extendFocusables('downloads', () => {
                 const root = document.querySelector('.sh-downloads-view');

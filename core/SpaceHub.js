@@ -364,8 +364,15 @@ async function init() {
         'ui.tvMode': 'auto',
         // Forçage du profil d'appareil ('' | 'gsm' | 'bureau') — même esprit
         // que ui.tvMode : le réglage prime sur la détection. Vide = détecter.
-        // Voir core/ProfilAppareil.js ; le forçage est appliqué via
-        // profilAppareil.appliquerForcage() quand le réglage change.
+        //
+        // Voir core/ProfilAppareil.js : `brancherReglage()` écoute
+        // `settings:changed` et rappelle `_appliquer()` dès que cette clé
+        // bouge, ce qui repose le marqueur `html.sh-gsm` sans rechargement.
+        //
+        // (Ce commentaire renvoyait à `profilAppareil.appliquerForcage()`,
+        // une méthode qui n'a jamais existé. Le comportement décrit était
+        // juste, le nom ne l'était pas — et un lecteur qui cherche une API
+        // inexistante finit par douter du reste du commentaire.)
         'ui.forceProfil': '',
         // Mode TV : l'échelle et la marge de sûreté dépendent du salon et du
         // téléviseur (distance de vision, rognage des bords). Sans effet hors

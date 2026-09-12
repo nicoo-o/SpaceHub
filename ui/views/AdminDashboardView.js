@@ -187,7 +187,7 @@ export class AdminDashboardView {
         document.body.appendChild(modal);
         requestAnimationFrame(() => {
             modal.classList.add('open');
-            const spatialNav = svc.nav() || svc.nav();
+            const spatialNav = svc.nav();
             if (spatialNav) spatialNav.onModalOpened(modal, modal.querySelector('#sh-admin-btn-refresh'));
         });
 
@@ -198,7 +198,7 @@ export class AdminDashboardView {
                 this._refreshTimer = null;
             }
             modal.classList.remove('open');
-            const spatialNav = svc.nav() || svc.nav();
+            const spatialNav = svc.nav();
             if (spatialNav) spatialNav.onModalClosed();
             if (this._closeTimer) clearTimeout(this._closeTimer);
             this._closeTimer = setTimeout(() => {

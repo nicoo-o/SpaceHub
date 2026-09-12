@@ -29,7 +29,7 @@ class AppSidebarDrawer {
         this._ambilightPrefs = this._loadAmbilightPrefs();
         this._injectStyles();
 
-        const spatialNav = svc.nav() || svc.nav();
+        const spatialNav = svc.nav();
         if (spatialNav?.registerFocusables) {
             spatialNav.registerFocusables('sidebar', () => {
                 // Le panneau ouvert est #sh-sidebar-panel.open (cf. DomContracts.LAYERS.sidebar).
@@ -190,7 +190,7 @@ class AppSidebarDrawer {
 
         if (this._isOpen) {
             this._closePanel?.();
-            const spatialNav = svc.nav() || svc.nav();
+            const spatialNav = svc.nav();
             spatialNav?.restorePreviousFocus?.();
             return;
         }
@@ -199,7 +199,7 @@ class AppSidebarDrawer {
         panel.removeAttribute('inert');
         this._isOpen = true;
         const firstItem = panel.querySelector('.sh-sidebar-item.active, .sh-sidebar-item:not(.sh-sidebar-item-loading), .sh-sidebar-footer-btn');
-        const spatialNav = svc.nav() || svc.nav();
+        const spatialNav = svc.nav();
         if (firstItem) {
             spatialNav?.setFocus?.(firstItem, { reason: 'sidebar-open', instantScroll: true });
         }
@@ -618,13 +618,13 @@ class AppSidebarDrawer {
         document.body.appendChild(modal);
         requestAnimationFrame(() => {
             modal.classList.add('open');
-            const spatialNav = svc.nav() || svc.nav();
+            const spatialNav = svc.nav();
             spatialNav?.onModalOpened?.(modal, modal.querySelector('#sh-ambilight-toggle'));
         });
 
         const closeModal = () => {
             modal.classList.remove('open');
-            const spatialNav = svc.nav() || svc.nav();
+            const spatialNav = svc.nav();
             spatialNav?.onModalClosed?.();
             apresSortie(() => modal.remove());
         };
@@ -710,13 +710,13 @@ class AppSidebarDrawer {
         document.body.appendChild(modal);
         requestAnimationFrame(() => {
             modal.classList.add('open');
-            const spatialNav = svc.nav() || svc.nav();
+            const spatialNav = svc.nav();
             spatialNav?.onModalOpened?.(modal, modal.querySelector('.sh-hub-tab-btn.active'));
         });
 
         const closeModal = () => {
             modal.classList.remove('open');
-            const spatialNav = svc.nav() || svc.nav();
+            const spatialNav = svc.nav();
             spatialNav?.onModalClosed?.();
             apresSortie(() => modal.remove());
         };

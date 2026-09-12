@@ -98,9 +98,18 @@ class LoginView {
                                 <!-- Pas d'autofocus : sur un téléphone, le charger ouvre
                                      le clavier virtuel d'office et masque la moitié de
                                      l'écran avant que l'utilisateur ait rien demandé.
-                                     Le focus est posé explicitement quand un profil est
-                                     choisi (voir _choisirProfil), là où il suit une
-                                     intention. -->
+                                     Ce champ n'est JAMAIS focalisé automatiquement :
+                                     choisir un profil (_brancherProfils) y écrit le
+                                     nom puis envoie le focus au mot de passe — ou
+                                     soumet directement si le compte n'en a pas.
+                                     _preremplirDepuisDerniereSession fait de même
+                                     pour la session précédente. Le focus suit donc
+                                     toujours une intention, et toujours vers le champ
+                                     qui reste à remplir.
+                                     (Aucun accent grave dans ce commentaire : il vit
+                                     à l'intérieur d'un gabarit de chaîne, où un seul
+                                     suffit à la couper — le build échoue alors sur
+                                     une erreur d'analyse à quarante lignes de là.) -->
                                 <input type="text" id="username" class="sh-input sh-login-input" placeholder="Votre identifiant" required spellcheck="false" autocapitalize="none" autocomplete="username" />
                             </div>
                         </div>

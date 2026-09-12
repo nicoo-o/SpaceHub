@@ -30,7 +30,7 @@ class LibraryView {
         // supérieur, frère de la vue et non descendant. extendFocusables
         // compose : le moteur garde la barre permanente, la vue ajoute ses
         // boutons.
-        const spatialNav = svc.nav() || svc.nav();
+        const spatialNav = svc.nav();
         if (spatialNav?.extendFocusables) {
             spatialNav.extendFocusables('library', () => {
                 const root = document.querySelector('.sh-library-view');
@@ -286,7 +286,7 @@ class LibraryView {
         document.body.appendChild(modal);
         requestAnimationFrame(() => {
             modal.classList.add('open');
-            const spatialNav = svc.nav() || svc.nav();
+            const spatialNav = svc.nav();
             spatialNav?.onModalOpened?.(modal, modal.querySelector('#sh-lib-modal-close'));
         });
 
@@ -441,7 +441,7 @@ class LibraryView {
 
         const closeModal = () => {
             modal.classList.remove('open');
-            const spatialNav = svc.nav() || svc.nav();
+            const spatialNav = svc.nav();
             spatialNav?.onModalClosed?.();
             apresSortie(() => modal.remove());
         };

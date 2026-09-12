@@ -252,7 +252,7 @@ export class OnboardingWizard {
             if (previous) previous.disabled = this._index === 0;
             if (next) next.textContent = this._index === this._steps.length - 1 ? 'Terminer' : 'Suivant';
             const focusTarget = next?.disabled ? previous : next;
-            const spatialNav = svc.nav() || svc.nav();
+            const spatialNav = svc.nav();
             if (focusTarget) {
                 spatialNav?.onModalOpened?.(root, focusTarget);
                 focusTarget.focus?.();

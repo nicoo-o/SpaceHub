@@ -42,10 +42,18 @@ class AppLayout {
         };
         this._sidebar = new AppSidebarDrawer();
         this._clockInterval = null;
-        this._spatialNav = svc.nav() || svc.nav() || null;
+        // Une seule affectation. Il y en avait DEUX ici, identiques, séparées
+        // par `_injectStyles()`, et toutes deux écrites comme un « ou » entre
+        // le même appel répété — une forme qui laisse croire à deux sources
+        // possibles alors qu'il n'y en a qu'une : si l'appel rend `null`, le
+        // second membre rend `null` aussi. La seconde affectation recopiait la
+        // première.
+        //
+        // Le moteur de navigation naît APRÈS la coquille : c'est `render()`
+        // qui relit `svc.nav()` une fois le moteur en place, et c'est là que
+        // la valeur devient utile. Ici, `null` est l'état normal.
+        this._spatialNav = svc.nav() || null;
         this._injectStyles();
-
-        this._spatialNav = svc.nav() || svc.nav();
         // Le dock n'a plus de scope à lui.
         //
         // Il en avait un, réenregistré ici, qui renvoyait « le dock PUIS la
@@ -247,7 +255,7 @@ class AppLayout {
         this._sidebar.render(document.body);
         this._rendreVarianteGsm(container);
         this.navigate(this._currentView);
-        this._spatialNav = svc.nav() || svc.nav();
+        this._spatialNav = svc.nav();
         if (window.SpaceHub) {
             window.SpaceHub.spatialNav = this._spatialNav;
             if (!window.SpaceHub.core) window.SpaceHub.core = {};
@@ -843,7 +851,7 @@ class AppLayout {
             return;
         }
 
-        const spatialNav = this._spatialNav || svc.nav() || svc.nav();
+        const spatialNav = this._spatialNav || svc.nav();
         spatialNav?.focusFirst?.(normalizedView === 'flux' ? 'downloads' : normalizedView);
     }
 

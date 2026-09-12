@@ -130,7 +130,7 @@ export class JellyfinConsoleModal {
                 this._taskPollTimer = null;
             }
             modal.classList.remove('open');
-            const spatialNav = svc.nav() || svc.nav();
+            const spatialNav = svc.nav();
             if (spatialNav) spatialNav.onModalClosed();
             this._closeTimer = setTimeout(() => {
                 modal.remove();
@@ -158,7 +158,7 @@ export class JellyfinConsoleModal {
 
         await this._renderActiveTab(modal);
 
-        const spatialNav = svc.nav() || svc.nav();
+        const spatialNav = svc.nav();
         if (spatialNav) {
             spatialNav.onModalOpened(modal, modal.querySelector('.sh-console-nav-tab.active'));
         }

@@ -64,7 +64,7 @@ class Modal {
 
         this._injectStyles();
 
-        const spatialNav = svc.nav() || svc.nav();
+        const spatialNav = svc.nav();
         if (spatialNav?.extendFocusables) {
             // Deux défauts corrigés ici.
             //
@@ -126,7 +126,7 @@ class Modal {
             // bord, derrière l'overlay, de reprendre le focus.
             this._el.dataset.navContainer = 'strict';
             this._focusFirstElement();
-            const spatialNav = svc.nav() || svc.nav();
+            const spatialNav = svc.nav();
             spatialNav?.onModalOpened?.(this._el, this._el.querySelector('.sh-modal__close, [data-nav-focusable="true"], button:not([disabled]), input:not([disabled]), select:not([disabled])'));
         });
 
@@ -163,7 +163,7 @@ class Modal {
 
         // Restaure le focus et informe le moteur TV quel contexte reprendre.
         this._prevFocus?.focus?.();
-        const spatialNav = svc.nav() || svc.nav();
+        const spatialNav = svc.nav();
         spatialNav?.onModalClosed?.();
 
         this._el.addEventListener('transitionend', () => {
