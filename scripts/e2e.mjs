@@ -24,6 +24,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { exigerDistAJour } from './fraicheur-dist.mjs';
+import { PREFIXE as PREFIXE_SURFACE, creerAccumulateur, membresDeclares,
+         sondeSurfaceNav, verdictSurface } from './sonde-surface-nav.mjs';
 
 const RACINE = path.resolve('dist');
 const PORT = Number(process.env.SPACEHUB_E2E_PORT || 4399);
@@ -79,7 +81,18 @@ async function lancerNavigateur() {
 
 // ─── Cadre de test ───────────────────────────────────────────────────────────
 const resultats = [];
+
+/* La sonde de surface du moteur (scripts/sonde-surface-nav.mjs).
+
+   Le contrat dit quelle surface le monde extérieur a le DROIT de toucher, et
+   `facade-appelants-check` le vérifie dans les sources. La sonde dit ce qui est
+   réellement ATTEINT pendant la course — l'autre moitié, celle qu'aucun
+   balayage statique ne peut produire. Chaque page publie son relevé par la
+   console ; le libellé du scénario courant dit QUI atteint quoi. */
+const surface = creerAccumulateur();
+let scenarioCourant = 'hors scénario';
 async function scenario(nom, fn) {
+    scenarioCourant = nom;
     try {
         const detail = await fn();
         const ok = detail === true || detail?.ok === true;
@@ -103,6 +116,15 @@ async function nouvellePage(navigateur, avantChargement, options = {}) {
     const page = await ctx.newPage();
     page.__erreurs = [];
     page.on('pageerror', e => page.__erreurs.push(e.message));
+    // Le relevé de surface arrive par la console. La sonde s'installe avant tout
+    // script de la page : elle se pose sur l'affectation du moteur, pas après.
+    page.on('console', message => {
+        const texte = message.text();
+        if (!texte.startsWith(PREFIXE_SURFACE)) return;
+        try { surface.noter(scenarioCourant, JSON.parse(texte.slice(PREFIXE_SURFACE.length))); }
+        catch { /* un relevé illisible ne fait pas échouer la course */ }
+    });
+    await page.addInitScript(sondeSurfaceNav, membresDeclares());
     if (avantChargement) await page.addInitScript(avantChargement);
     await page.goto(URL_BASE, { waitUntil: 'networkidle' }).catch(() => {});
     await attendre(1400);
@@ -1666,6 +1688,106 @@ await scenario('GSM — retour système : le pont est inactif sur le web SANS ca
 });
 
 await pageGsm.context().close();
+
+// ═════════════════════════════════════════════════════════════════════════════
+// LA SURFACE DU MOTEUR, MESURÉE
+//
+// Peau 0 de l'approfondissement de SpatialNavigation
+// (docs/DECOMPOSITION_SPATIALNAVIGATION.md) : avant d'extraire quoi que ce soit
+// d'un monolithe, il faut savoir quelle surface est RÉELLEMENT atteinte. Un
+// membre déclaré que rien n'atteint est du poids mort ; un membre atteint qui
+// n'est pas déclaré est un trou dans le contrat, donc une extraction qui casse
+// en silence.
+// ═════════════════════════════════════════════════════════════════════════════
+await scenario('Moteur de navigation : la surface DÉCLARÉE est réellement atteinte', async () => {
+    // ─── Les gestes qui manquaient ───────────────────────────────────────────
+    // La première mesure a désigné deux chemins que la course ne touchait pas :
+    // le point de retour du tiroir (F10 l'ouvre, F10 le referme — c'est la
+    // fermeture qui restaure) et l'activation au clavier (Entrée sur l'élément
+    // focalisé). Ce sont des gestes d'utilisateur : on les JOUE, on n'appelle
+    // rien du moteur à la main — sinon la sonde mesurerait le harnais.
+    const banc = await nouvellePage(navigateur, () => {
+        sessionStorage.setItem('SpaceHub_jellyfin_auth', JSON.stringify({
+            AccessToken: 'e2e-jeton-non-productif',
+            ServerUrl: 'http://127.0.0.1:9',   // port discard : rien à joindre
+            User: { Id: 'e2e-utilisateur', Name: 'e2e' },
+        }));
+    }, { reducedMotion: 'no-preference' });
+    await banc.keyboard.press('F10');        // ouvre le tiroir latéral
+    await attendre(700);
+    await banc.keyboard.press('F10');        // le referme : le point de retour se restaure
+    await attendre(700);
+    await banc.keyboard.press('ArrowDown');  // un vrai déplacement de focus
+    await attendre(250);
+    await banc.keyboard.press('Enter');      // active l'élément focalisé
+    await attendre(900);
+    try {
+        const charge = await banc.evaluate(() => {
+            const e = window.__sondeSurfaceNav;
+            return e ? {
+                appels: e.appels, premierNiveau: e.premierNiveau,
+                inconnus: e.inconnus, installe: e.installe, motif: e.motif,
+            } : null;
+        });
+        if (charge) surface.noter('les gestes du banc', charge);
+    } catch { /* page illisible : les relevés publiés couvrent déjà */ }
+    await banc.context().close();
+
+    // Dernier relevé des pages encore ouvertes : les relevés publiés couvrent
+    // déjà la course entière, celui-ci rattrape la dernière fraction de seconde.
+    for (const [libelle, p] of [['téléphone', pageGsm], ['fil principal', page]]) {
+        try {
+            const charge = await p.evaluate(() => {
+                const e = window.__sondeSurfaceNav;
+                return e ? {
+                    appels: e.appels, premierNiveau: e.premierNiveau,
+                    inconnus: e.inconnus, installe: e.installe, motif: e.motif,
+                } : null;
+            });
+            if (charge) surface.noter(libelle, charge);
+        } catch { /* page déjà fermée : le relevé publié suffit */ }
+    }
+
+    const v = verdictSurface(surface.lire());
+
+    if (process.env.SPACEHUB_SURFACE) {
+        const statut = m => v.trous.includes(m) ? 'TROU — hors contrat et référencé'
+            : v.prives.includes(m) ? 'privé de fait (appel différé du moteur)'
+            : v.morts.includes(m) ? 'MORT — référencé nulle part'
+            : v.declares.includes(m) ? 'au contrat'
+            : 'hors contrat';
+        console.log('\n── surface du moteur : déclaré, atteint, référencé ──');
+        for (const m of v.publics) {
+            const appels = v.releve.appels[m] || 0;
+            const haut = v.releve.premierNiveau[m] || 0;
+            const refs = (v.references.get(m) || []).length;
+            console.log(`   ${appels ? '✔' : '·'} ${m.padEnd(22)}` +
+                        `${String(appels).padStart(5)} appel(s) · ${String(haut).padStart(4)} au 1er niveau` +
+                        ` · ${String(refs).padStart(2)} réf. · ${statut(m)}`);
+        }
+        console.log(`   déclarés non atteints : ${v.manquants.length ? v.manquants.join(', ') : 'aucun'}`);
+        console.log(`   exemptés (décision)   : ${v.exemptions.length ? v.exemptions.join(', ') : 'aucun'}`);
+        console.log(`   privés de fait        : ${v.prives.length ? v.prives.join(', ') : 'aucun'}`);
+        console.log(`   morts tolérés         : ${v.morts.length ? v.morts.join(', ') : 'aucun'}`);
+    }
+
+    // Le verdict tient dans les deux sens, et le gisement est un cliquet : un
+    // membre mort NOUVEAU échoue (ajouter du vide public est une décision), un
+    // membre mort TOLÉRÉ qui reprend vie aussi (la liste doit redescendre).
+    const ok = v.trous.length === 0 && v.manquants.length === 0
+        && v.mortsNouveaux.length === 0 && v.mortsReparés.length === 0;
+    const detail = [
+        `${v.atteints.length}/${v.publics.length} méthodes publiques atteintes, ` +
+            `contrat prouvé ${v.declares.length - v.manquants.length}/${v.declares.length}`,
+        v.trous.length ? `TROU : ${v.trous.join(', ')}` : 'aucun trou de contrat',
+        v.manquants.length ? `DÉCLARÉ NON ATTEINT : ${v.manquants.join(', ')}` : null,
+        v.mortsNouveaux.length ? `MORT NOUVEAU : ${v.mortsNouveaux.join(', ')}` : null,
+        v.mortsReparés.length ? `MORT RÉPARÉ (à retirer de la liste) : ${v.mortsReparés.join(', ')}` : null,
+        v.prives.length ? `privés de fait : ${v.prives.join(', ')}` : null,
+        v.morts.length ? `morts tolérés : ${v.morts.length}` : null,
+    ].filter(Boolean).join(' · ');
+    return { ok, detail };
+});
 
 await navigateur.close();
 serveur.close();

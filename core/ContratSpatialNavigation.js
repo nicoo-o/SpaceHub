@@ -73,7 +73,31 @@ export const MEMBRES_APPELABLES = Object.freeze([
     // ── Périphériques et retour ───────────────────────────────────────────
     'getGamepad',           // SpaceHub (démarrage)
     'demandeRetour',        // PontAndroid (pipeline Retour TV + bouton système)
+    'handleAction',         // GamepadInput (rappel `onAction` : manette, télécommande)
 ]);
+
+/*
+ * POURQUOI `handleAction` A REJOINT CETTE LISTE LE 12 SEPTEMBRE 2026
+ * -----------------------------------------------------------------
+ * Il en était absent, et l'absence ne se voyait pas : aucune course e2e web
+ * n'atteint ce membre (un navigateur n'a pas de manette), et il n'était pas
+ * compté comme mort parce que le moteur SE le rappelle (`onAction: (action) =>
+ * this.handleAction(action)`). Il tombait donc entre les deux classements —
+ * ni atteint, ni mort — et c'est `scripts/sonde-surface-nav.mjs` qui l'a montré
+ * en croisant l'atteint avec le référencé : la sonde le classe « hors contrat »,
+ * une catégorie qu'aucun des contrôles précédents ne nommait.
+ *
+ * Or c'est bien un point d'entrée de périphérique : le moteur enregistre ce
+ * membre comme rappel `onAction` de `GamepadInput` (`new GamepadInput({
+ * onAction: (action) => this.handleAction(action) })`), et c'est par là qu'arrive
+ * un bouton non directionnel de manette ou de télécommande. Il appartient donc
+ * au contrat, avec la même exemption que `demandeRetour` : un chemin qu'une
+ * course web ne peut pas jouer (un navigateur n'a pas de manette), et dont la
+ * traversée est prouvée par tests/SpatialNavigation.test.js
+ * (§ Parité clavier / manette) — le test part du rappel réellement enregistré,
+ * jamais d'un appel direct à `handleAction`, sans quoi il ne prouverait que
+ * lui-même.
+ */
 
 /**
  * Internes atteints par les harnais — à protéger comme la surface publique.
