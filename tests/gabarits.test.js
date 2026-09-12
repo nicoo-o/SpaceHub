@@ -23,7 +23,7 @@ import { gabaritFeuille } from '../ui/components/ModalSlideUpSheet.template.js';
 import { gabaritConsoleModules } from '../ui/views/JellyfinConsoleModal.template.js';
 
 describe('Gabarits extraits — le HTML n\'a pas bougé d\'un octet', () => {
-    it('VideoPlayer.template.js — identique, aux quatre ajouts nommés près', () => {
+    it('VideoPlayer.template.js — identique, aux cinq ajouts nommés près', () => {
         // Une seule divergence voulue depuis l'empreinte : le bouton
         // « bande-annonce suivante », ajouté au dock en remplacement du menu de
         // choix flottant que TrailerService affichait avant la lecture.
@@ -117,10 +117,51 @@ describe('Gabarits extraits — le HTML n\'a pas bougé d\'un octet', () => {
         expect(diagnostic, 'le bouton de statistiques doit être atteignable à la télécommande')
             .toContain('data-nav-focusable="true"');
 
+        // CINQUIÈME divergence voulue : la section « Minuteur de Sommeil »
+        // dans le panneau des réglages du lecteur. `core/MinuteurSommeil.js`
+        // existait, complet et testé, sans qu'aucune interface ne l'appelle —
+        // cette section est sa seule porte d'entrée.
+        //
+        // Même méthode, pour la même raison : on extrait le bloc du HTML
+        // produit et on l'applique à la référence. Régénérer l'empreinte
+        // reviendrait à ne plus rien prouver du reste du gabarit.
+        const MARQUE_SOMMEIL = '\n\n                                    <!-- Minuteur de sommeil.';
+        const debutSommeil = html.indexOf(MARQUE_SOMMEIL);
+        expect(debutSommeil, 'la section « Minuteur de Sommeil » doit être présente')
+            .toBeGreaterThan(0);
+        const finSommeil = html.indexOf('\n                                </div>', debutSommeil);
+        expect(finSommeil).toBeGreaterThan(debutSommeil);
+        const sommeil = html.slice(debutSommeil, finSommeil);
+
+        // Ce que l'insertion doit garantir, et que l'égalité seule ne dirait
+        // pas — voir la remarque ci-dessus sur les trous de la preuve.
+        expect(sommeil).toContain('id="sh-player-sommeil-chips"');
+        expect(sommeil).toContain('id="sh-player-sommeil-etat"');
+        expect(sommeil).toContain('data-sommeil="fin-titre"');
+        expect(sommeil).toContain('data-sommeil="aucun"');
+        expect(sommeil, 'la ligne d\'état doit être annoncée aux lecteurs d\'écran')
+            .toContain('aria-live="polite"');
+        // Chaque pastille doit être atteignable à la télécommande : une
+        // commande qu'un téléviseur ne peut pas viser n'existe pas.
+        const pastilles = sommeil.match(/<button[^>]*data-sommeil="[^"]*"/g) || [];
+        expect(pastilles.length).toBeGreaterThanOrEqual(3);
+        for (const p of pastilles) {
+            expect(p).toContain('data-nav-focusable="true"');
+            expect(p).toContain('tabindex="0"');
+        }
+
+        // L'ancre est la fin du bloc extrait lui-même : on réinsère le bloc
+        // là où il commence dans la référence, c'est-à-dire juste après la
+        // section « Format d'Image ».
+        const ANCRE_SOMMEIL = html.slice(finSommeil, finSommeil + 200);
+        expect(attendu.html, 'la fin du tiroir « Réglages » doit exister dans la référence')
+            .toContain(ANCRE_SOMMEIL);
+
         const corrigee = attendu.html
             .replace(ANCRE, insere + ANCRE)
             .replace(ANCRE_TOOLTIP, apercu + ANCRE_TOOLTIP)
-            .replace(ANCRE_DIAG, diagnostic + ANCRE_DIAG);
+            .replace(ANCRE_DIAG, diagnostic + ANCRE_DIAG)
+            .replace(ANCRE_SOMMEIL, sommeil + ANCRE_SOMMEIL);
         expect(html).toBe(corrigee);
     });
 

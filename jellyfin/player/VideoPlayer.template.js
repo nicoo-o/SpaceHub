@@ -334,6 +334,32 @@ export function gabaritLecteur(ctx) {
                                             <button class="sh-chip-btn ${ctx._aspectRatioIndex === 2 ? 'active' : ''}" tabindex="0" data-nav-focusable="true" data-aspect-idx="2">Plein écran Étiré</button>
                                         </div>
                                     </div>
+
+                                    <!-- Minuteur de sommeil. core/MinuteurSommeil.js
+                                         existait, complet et testé, depuis la vague
+                                         précédente — et aucune vue ne l'appelait :
+                                         zéro occurrence de « sommeil » dans ui/. Un
+                                         module fini qu'aucun bouton ne joint n'est pas
+                                         une fonctionnalité, c'est du code mort qui
+                                         passe les tests.
+
+                                         Ici et pas dans les réglages généraux : on
+                                         programme un arrêt pendant qu'on regarde, pas
+                                         en traversant un panneau de configuration. -->
+                                    <div class="sh-popover-section" style="margin-top: 12px;">
+                                        <div class="sh-popover-section-title">Minuteur de Sommeil</div>
+                                        <div class="sh-settings-chips" id="sh-player-sommeil-chips">
+                                            <button class="sh-chip-btn" tabindex="0" data-nav-focusable="true" data-sommeil="fin-titre">Fin du titre</button>
+                                            <button class="sh-chip-btn" tabindex="0" data-nav-focusable="true" data-sommeil="15">15 min</button>
+                                            <button class="sh-chip-btn" tabindex="0" data-nav-focusable="true" data-sommeil="30">30 min</button>
+                                            <button class="sh-chip-btn" tabindex="0" data-nav-focusable="true" data-sommeil="45">45 min</button>
+                                            <button class="sh-chip-btn" tabindex="0" data-nav-focusable="true" data-sommeil="60">60 min</button>
+                                            <button class="sh-chip-btn" tabindex="0" data-nav-focusable="true" data-sommeil="90">1 h 30</button>
+                                            <button class="sh-chip-btn" tabindex="0" data-nav-focusable="true" data-sommeil="120">2 h</button>
+                                            <button class="sh-chip-btn" tabindex="0" data-nav-focusable="true" data-sommeil="aucun">Aucun</button>
+                                        </div>
+                                        <div class="sh-player-sommeil-etat" id="sh-player-sommeil-etat" aria-live="polite"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

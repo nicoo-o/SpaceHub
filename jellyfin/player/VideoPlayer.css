@@ -1204,3 +1204,24 @@ body.sh-cinema-active .dialogBackdrop {
 .sh-timeline-apercu.disponible.visible {
     display: block;
 }
+
+/* ── Minuteur de sommeil, dans le panneau des réglages du lecteur ────────
+ *
+ * Une seule règle, et elle porte sur la LIGNE D'ÉTAT — pas sur les
+ * pastilles, qui réutilisent `.sh-chip-btn` comme la vitesse et le format
+ * d'image. Ajouter une variante de pastille pour cette section aurait
+ * créé une troisième apparence pour le même geste.
+ *
+ * La ligne d'état est vide quand aucun arrêt n'est programmé, et le
+ * sélecteur `:empty` retire alors sa marge : une ligne d'espace sans
+ * texte, sous des boutons, se lit comme un défaut d'alignement.
+ */
+.sh-player-sommeil-etat {
+    padding: 8px 4px 0;
+    font-size: var(--sh-text-xs);
+    color: rgba(var(--sh-on-media, 255, 255, 255), 0.62);
+}
+
+.sh-player-sommeil-etat:empty {
+    padding: 0;
+}

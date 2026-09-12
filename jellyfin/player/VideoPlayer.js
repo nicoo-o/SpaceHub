@@ -225,6 +225,16 @@ class VideoPlayer {
                 this._closeAllPopovers();
                 this.play(episode);
             },
+            // Minuteur de sommeil : on rend son ÉTAT, jamais une copie. Il
+            // bascule seul en « fin du titre » près de la fin, et une copie
+            // divergerait en silence. `null` = pas de service, et le panneau
+            // masque alors sa section plutôt que d'offrir des boutons morts.
+            lireSommeil: () => {
+                const m = svc.sommeil();
+                return m ? { actif: m.actif, mode: m.mode, restantMs: m.restantMs } : null;
+            },
+            armerSommeil: (options) => svc.sommeil()?.armer?.(options) === true,
+            annulerSommeil: () => svc.sommeil()?.annuler?.() === true,
         });
 
         this._injectStyles();
@@ -758,7 +768,7 @@ class VideoPlayer {
         this._bindEvents();
 
         // Enregistrement officiel dans le Focus Registry
-        const spatialNav = svc.nav() || svc.nav();
+        const spatialNav = svc.nav();
         if (spatialNav?.registerFocusables) {
             spatialNav.registerFocusables('player', (container) => {
                 const root = this._el || container;

@@ -48,6 +48,9 @@ export function creerPopovers(injections) {
         choisirVersion,     // (id) => void
         lireEpisodes,       // () => { episodes, itemCourant }
         choisirEpisode,     // (episode) => void
+        lireSommeil,        // () => { actif, mode, restantMs } | null
+        armerSommeil,       // ({ mode, minutes }) => boolean
+        annulerSommeil,     // () => boolean
     } = injections;
 
     return {
@@ -189,6 +192,72 @@ export function creerPopovers(injections) {
                         aspectChips.querySelectorAll('[data-aspect-idx]').forEach((b) => b.classList.toggle('active', parseInt(b.dataset.aspectIdx, 10) === idx));
                     };
                 });
+            }
+
+            this.rendreSommeil();
+        },
+
+        /**
+         * Minuteur de sommeil — la seule porte d'entrée du module
+         * `core/MinuteurSommeil.js`, qui n'en avait aucune.
+         *
+         * L'ÉTAT AFFICHÉ EST LU, JAMAIS SUPPOSÉ. Le panneau est reconstruit à
+         * chaque ouverture : il doit donc montrer ce que le minuteur dit de
+         * lui-même, y compris quand le minuteur a basculé tout seul de
+         * « durée » à « fin du titre » (ce qu'il fait quand l'échéance tombe à
+         * moins de cinq minutes de la fin). Deviner l'état depuis la pastille
+         * cliquée en dernier afficherait « 30 min » alors que l'arrêt est déjà
+         * programmé à la fin du titre.
+         *
+         * `restantMs` vaut `null` en mode « fin du titre », et ce `null` a un
+         * sens : la durée est INCONNUE, pas nulle. On n'écrit donc pas
+         * « 0 min » — le piège habituel de ce dépôt, où `Number(null)` vaut
+         * zéro et zéro est fini.
+         */
+        rendreSommeil() {
+            const el = obtenirEl();
+            const chips = el?.querySelector('#sh-player-sommeil-chips');
+            const etat = el?.querySelector('#sh-player-sommeil-etat');
+            if (!chips) return;
+
+            const courant = lireSommeil?.() ?? null;
+
+            // Sans minuteur disponible, la section disparaît au lieu de
+            // proposer des boutons morts.
+            const section = chips.closest('.sh-popover-section');
+            if (!courant) {
+                if (section) section.hidden = true;
+                return;
+            }
+            if (section) section.hidden = false;
+
+            const actifDuree = courant.actif && courant.mode === 'duree';
+            const minutesRestantes = actifDuree && typeof courant.restantMs === 'number'
+                ? Math.max(1, Math.round(courant.restantMs / 60000))
+                : null;
+
+            chips.querySelectorAll('[data-sommeil]').forEach((btn) => {
+                const valeur = btn.dataset.sommeil;
+                const choisi = valeur === 'aucun'
+                    ? !courant.actif
+                    : (valeur === 'fin-titre'
+                        ? courant.mode === 'fin-titre'
+                        : false);
+                btn.classList.toggle('active', choisi);
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (valeur === 'aucun') annulerSommeil?.();
+                    else if (valeur === 'fin-titre') armerSommeil?.({ mode: 'fin-titre' });
+                    else armerSommeil?.({ mode: 'duree', minutes: parseInt(valeur, 10) });
+                    this.rendreSommeil();
+                };
+            });
+
+            if (etat) {
+                if (!courant.actif) etat.textContent = '';
+                else if (courant.mode === 'fin-titre') etat.textContent = 'Arrêt à la fin de ce titre.';
+                else if (minutesRestantes !== null) etat.textContent = `Arrêt dans ${minutesRestantes} min.`;
+                else etat.textContent = 'Arrêt programmé.';
             }
         },
 
