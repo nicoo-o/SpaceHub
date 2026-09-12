@@ -115,9 +115,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-console-nav-tab:hover {
+@media (hover: hover) {
+    .sh-console-nav-tab:hover {
     color: var(--sh-ink-solid, #ffffff);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    }
 }
 
 .sh-console-nav-tab.active {
@@ -141,9 +143,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-console-close-btn:hover {
+@media (hover: hover) {
+    .sh-console-close-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.20);
     transform: scale(1.08);
+    }
 }
 
 .sh-console-body {
@@ -203,8 +207,10 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-console-primary-btn:hover {
+@media (hover: hover) {
+    .sh-console-primary-btn:hover {
     transform: scale(1.04);
+    }
 }
 
 .sh-console-danger-btn {
@@ -219,8 +225,10 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-console-danger-btn:hover {
+@media (hover: hover) {
+    .sh-console-danger-btn:hover {
     background: rgba(var(--sh-color-danger-rgb), 0.46);
+    }
 }
 
 .sh-console-danger-btn.outline {
@@ -423,8 +431,10 @@ input.sh-console-input:focus, select.sh-console-select:focus {
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-console-action-btn:hover {
+@media (hover: hover) {
+    .sh-console-action-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.2);
+    }
 }
 
 .sh-console-terminal {

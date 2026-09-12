@@ -113,45 +113,57 @@
                 border-color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
-.sh-hero-badge--rt:hover {
+@media (hover: hover) {
+    .sh-hero-badge--rt:hover {
     transform: scale(1.18) translateY(-2px) translateZ(0) !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.22) !important;
     border-color: rgba(250, 50, 10, 0.85) !important;
     box-shadow: 0 0 18px rgba(250, 50, 10, 0.85), 0 4px 12px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5) !important;
     z-index: 50 !important;
+    }
 }
 .sh-hero-badge--rt .sh-rt-svg {
     width: 13px;
     height: 13px;
     transition: transform var(--sh-dur-3) var(--sh-ease-spring);
 }
-.sh-hero-badge--rt:hover .sh-rt-svg {
+@media (hover: hover) {
+    .sh-hero-badge--rt:hover .sh-rt-svg {
     transform: scale(1.25) rotate(-12deg);
     filter: drop-shadow(0 0 6px #fa320a) !important;
+    }
 }
 
-.sh-hero-badge--imdb:hover {
+@media (hover: hover) {
+    .sh-hero-badge--imdb:hover {
     transform: scale(1.18) translateY(-2px) translateZ(0) !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.22) !important;
     border-color: rgba(245, 197, 24, 0.85) !important;
     box-shadow: 0 0 18px rgba(245, 197, 24, 0.85), 0 4px 12px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5) !important;
     z-index: 50 !important;
+    }
 }
 .sh-hero-badge--imdb .sh-imdb-star-svg {
     width: 13px;
     height: 13px;
     transition: transform var(--sh-dur-3) var(--sh-ease-spring);
 }
-.sh-hero-badge--imdb:hover .sh-imdb-star-svg {
+@media (hover: hover) {
+    .sh-hero-badge--imdb:hover .sh-imdb-star-svg {
     transform: scale(1.25) rotate(14deg);
     filter: drop-shadow(0 0 6px #f5c518) !important;
+    }
 }
 .sh-hero-overview { color: rgba(var(--sh-ink, 255, 255, 255), 0.8); line-height: 1.6; margin-bottom: 30px; }
 .sh-hero-actions { display: flex; gap: 16px; }
 .sh-hero-btn-play { display: inline-flex; align-items: center; gap: 10px; background: var(--sh-ink-solid, #ffffff); color: var(--sh-ink-solid-inv, #000000); border: none; padding: 12px 30px; border-radius: var(--sh-radius-md); font-size: var(--sh-text-base); font-weight: var(--sh-font-extrabold); cursor: pointer; transition: transform 180ms var(--sh-ease-out); }
-.sh-hero-btn-play:hover { transform: scale(1.03); }
+@media (hover: hover) {
+    .sh-hero-btn-play:hover { transform: scale(1.03); }
+}
 .sh-hero-btn-glass { display: inline-flex; align-items: center; gap: 8px; background: rgba(var(--sh-ink, 255, 255, 255), 0.1); color: var(--sh-ink-solid, #ffffff); border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.2); padding: 12px 24px; border-radius: var(--sh-radius-md); font-size: 14px; font-weight: var(--sh-font-semibold); cursor: pointer; transition: background 180ms var(--sh-ease-out), transform 180ms var(--sh-ease-out); }
-.sh-hero-btn-glass:hover { background: rgba(var(--sh-ink, 255, 255, 255), 0.18); transform: scale(1.02); }
+@media (hover: hover) {
+    .sh-hero-btn-glass:hover { background: rgba(var(--sh-ink, 255, 255, 255), 0.18); transform: scale(1.02); }
+}
 .sh-hero-edge-btn {
     position: absolute;
     top: 50%;
@@ -209,7 +221,8 @@
     transform: translateY(-50%) scale(1);
 }
 
-.sh-hero-edge-btn:hover {
+@media (hover: hover) {
+    .sh-hero-edge-btn:hover {
     opacity: 1;
     pointer-events: auto !important;
     transform: translateY(-50%) scale(1.08) !important;
@@ -217,6 +230,7 @@
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28);
     color: var(--sh-ink-solid, #ffffff);
     box-shadow: 0 12px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.8), 0 0 12px rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    }
 }
 .sh-hero-edge-btn:active {
     transform: translateY(-50%) scale(0.94) !important;
@@ -239,9 +253,11 @@
     transition: background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out);
 }
 
-.sh-hero-progress-track:hover {
+@media (hover: hover) {
+    .sh-hero-progress-track:hover {
     background: rgba(var(--sh-ink-inv, 10, 10, 16),  0.75);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.22);
+    }
 }
 
 .sh-hero-progress-bar {
@@ -274,10 +290,12 @@
     z-index: 10;
 }
 
-.sh-hero-progress-bar:hover {
+@media (hover: hover) {
+    .sh-hero-progress-bar:hover {
     width: 36px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.65);
     box-shadow: 0 0 10px rgba(var(--sh-ink, 255, 255, 255),  0.85), 0 0 18px rgba(var(--sh-ink, 255, 255, 255),  0.40);
+    }
 }
 
 .sh-hero-progress-bar.active {
@@ -285,9 +303,11 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.30);
 }
 
-.sh-hero-progress-bar.active:hover {
+@media (hover: hover) {
+    .sh-hero-progress-bar.active:hover {
     width: 54px;
     box-shadow: 0 0 12px rgba(var(--sh-ink, 255, 255, 255),  0.95), 0 0 22px rgba(var(--sh-ink, 255, 255, 255),  0.50);
+    }
 }
 
 .sh-hero-progress-bar:active {
@@ -347,7 +367,9 @@
     height: 16px;
     flex-shrink: 0;
 }
-.sh-trailer-close:hover { background: rgba(var(--sh-on-media, 255, 255, 255),  0.25); transform: scale(1.1); }
+@media (hover: hover) {
+    .sh-trailer-close:hover { background: rgba(var(--sh-on-media, 255, 255, 255),  0.25); transform: scale(1.1); }
+}
 .sh-trailer-content { width: 100%; height: 100%; }
 
 /* ── Indicateur de Défilement Découvrir (Scroll Hint) ── */
@@ -381,12 +403,20 @@
    l'emporte sur la cascade) : le bouton ne grossissait donc jamais, et l'échelle
    était passée par une variable que les images-clés consommaient. Sans l'animation,
    l'indirection devient inutile — et la transformée directe dit la même chose. */
-.sh-hero-scroll-hint:hover,
 .sh-hero-scroll-hint.sh-focus-active {
     background: rgba(var(--sh-ink-inv, 26, 26, 36),  0.85);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28);
     color: var(--sh-ink-solid, #ffffff);
     transform: translateX(-50%) scale(1.06);
+    }
+
+@media (hover: hover) {
+    .sh-hero-scroll-hint:hover {
+    background: rgba(var(--sh-ink-inv, 26, 26, 36),  0.85);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28);
+    color: var(--sh-ink-solid, #ffffff);
+    transform: translateX(-50%) scale(1.06);
+    }
 }
 
 /* ── Logo du titre à la place du texte ─────────────────────────────────────

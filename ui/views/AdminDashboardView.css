@@ -103,9 +103,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-admin-header-btn:hover {
+@media (hover: hover) {
+    .sh-admin-header-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.20);
     transform: translateY(-1px);
+    }
 }
 
 .sh-admin-modal-close {
@@ -123,9 +125,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-admin-modal-close:hover {
+@media (hover: hover) {
+    .sh-admin-modal-close:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.22);
     transform: scale(1.08);
+    }
 }
 
 /* ── Bento Grid ── */
@@ -323,14 +327,18 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-session-btn-msg:hover {
+@media (hover: hover) {
+    .sh-session-btn-msg:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.18);
+    }
 }
 
-.sh-session-btn-stop:hover {
+@media (hover: hover) {
+    .sh-session-btn-stop:hover {
     background: rgba(var(--sh-color-danger-rgb), 0.41);
     border-color: rgba(var(--sh-color-danger-rgb), 0.4);
     color: var(--sh-color-danger);
+    }
 }
 
 .sh-admin-empty-state {
@@ -391,8 +399,10 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-admin-mini-action-btn:hover {
+@media (hover: hover) {
+    .sh-admin-mini-action-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.20);
+    }
 }
 
 /* ── Health List ── */
@@ -445,8 +455,10 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-admin-health-btn:hover {
+@media (hover: hover) {
+    .sh-admin-health-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.18);
+    }
 }
 
 .sh-admin-card-badge-health {
@@ -474,9 +486,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-admin-service-card:hover {
+@media (hover: hover) {
+    .sh-admin-service-card:hover {
     transform: translateY(-2px);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.20);
+    }
 }
 
 .sh-svc-top {
@@ -548,9 +562,11 @@
     transition: opacity var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-admin-console-link-btn:hover {
+@media (hover: hover) {
+    .sh-admin-console-link-btn:hover {
     opacity: 0.8;
     text-decoration: underline;
+    }
 }
 
 .sh-admin-close-btn-main {
@@ -565,7 +581,9 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-admin-close-btn-main:hover {
+@media (hover: hover) {
+    .sh-admin-close-btn-main:hover {
     transform: scale(1.04);
     box-shadow: 0 6px 20px rgba(var(--sh-ink, 255, 255, 255),  0.35);
+    }
 }

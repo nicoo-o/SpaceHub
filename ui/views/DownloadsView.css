@@ -95,11 +95,13 @@
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
 
-.sh-metric-card:hover {
+@media (hover: hover) {
+    .sh-metric-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.18);
     transform: translateY(-2px);
     box-shadow: 0 10px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.45);
+    }
 }
 
 .sh-metric-card__icon {
@@ -172,9 +174,11 @@
     white-space: nowrap;
 }
 
-.sh-dl-tab-btn:hover {
+@media (hover: hover) {
+    .sh-dl-tab-btn:hover {
     color: var(--sh-ink-solid, #ffffff);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    }
 }
 
 .sh-dl-tab-btn.active {
@@ -204,11 +208,13 @@
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
 
-.sh-dl-action-btn:hover {
+@media (hover: hover) {
+    .sh-dl-action-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.15);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28);
     transform: translateY(-1px);
     box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.3);
+    }
 }
 
 /* ── Content Slots & Bento Glass Card System ── */
@@ -232,9 +238,11 @@
     transition: border-color var(--sh-dur-3) var(--sh-ease-out);
 }
 
-.sh-downloads-view .sh-widget:hover {
+@media (hover: hover) {
+    .sh-downloads-view .sh-widget:hover {
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.14) !important;
     box-shadow: 0 24px 60px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.7), inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
+    }
 }
 
 .sh-downloads-view .sh-widget__header {
@@ -284,13 +292,14 @@
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
 
-.sh-downloads-view .sh-widget__refresh-btn:hover,
-.sh-downloads-view .sh-widget__sync-btn:hover {
+@media (hover: hover) {
+    .sh-downloads-view .sh-widget__refresh-btn:hover, .sh-downloads-view .sh-widget__sync-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.15) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.25) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     transform: translateY(-1px);
     box-shadow: 0 4px 14px rgba(var(--sh-ink, 255, 255, 255),  0.1);
+    }
 }
 
 /* ── High-End Empty States ── */
@@ -360,11 +369,13 @@
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
-.sh-qbit-row:hover {
+@media (hover: hover) {
+    .sh-qbit-row:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.45);
+    }
 }
 
 .sh-qbit-row > div:nth-child(2) {
@@ -374,7 +385,7 @@
 }
 
 .sh-qbit-row > div:nth-child(2) > div {
-    background: linear-gradient(90deg, #38bdf8, var(--sh-color-info), #a78bfa) !important;
+    background: linear-gradient(90deg, var(--sh-color-hint), var(--sh-color-info), #a78bfa) !important;
     box-shadow: 0 0 10px rgba(var(--sh-color-info-rgb), 0.5) !important;
     border-radius: var(--sh-radius-full) !important;
 }
@@ -396,11 +407,13 @@
     padding: 8px !important;
 }
 
-.sh-radarr-movie-card:hover {
+@media (hover: hover) {
+    .sh-radarr-movie-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.07) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.2) !important;
     transform: translateY(-4px) !important;
     box-shadow: 0 12px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.55) !important;
+    }
 }
 
 .sh-radarr-movie-card__image-wrap {
@@ -417,8 +430,10 @@
     transition: transform var(--sh-dur-4) var(--sh-ease-out) !important;
 }
 
-.sh-radarr-movie-card:hover .sh-radarr-movie-card__image-wrap img {
+@media (hover: hover) {
+    .sh-radarr-movie-card:hover .sh-radarr-movie-card__image-wrap img {
     transform: scale(1.05) !important;
+    }
 }
 
 .sh-radarr-movie-card__date {
@@ -454,11 +469,13 @@
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
-.sh-sonarr-episode-card:hover {
+@media (hover: hover) {
+    .sh-sonarr-episode-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.18) !important;
     transform: translateY(-2px) !important;
     box-shadow: 0 8px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.45) !important;
+    }
 }
 
 .sh-sonarr-episode-card__image-wrap {
@@ -495,11 +512,12 @@
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
-.sh-sonarr-queue-row:hover,
-.sh-radarr-queue-row:hover {
+@media (hover: hover) {
+    .sh-sonarr-queue-row:hover, .sh-radarr-queue-row:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
     transform: translateY(-2px) !important;
+    }
 }
 
 /* ── Bazarr Styles ── */
@@ -528,10 +546,12 @@
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
-.sh-bazarr-item:hover {
+@media (hover: hover) {
+    .sh-bazarr-item:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
     transform: translateY(-1px) !important;
+    }
 }
 
 .sh-bazarr-type-badge {
@@ -565,11 +585,13 @@
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
-.sh-bazarr-search-btn:hover {
+@media (hover: hover) {
+    .sh-bazarr-search-btn:hover {
     background: var(--sh-color-info) !important;
     border-color: var(--sh-color-info) !important;
     color: var(--sh-ink-solid-inv, #000000) !important;
     box-shadow: 0 4px 12px rgba(var(--sh-color-info-rgb), 0.4) !important;
+    }
 }
 
 /* ── Jellyseerr Search & Requests ── */
@@ -632,9 +654,11 @@
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
 
-.sh-jellyseerr-clear-btn:hover {
+@media (hover: hover) {
+    .sh-jellyseerr-clear-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.25);
     color: var(--sh-ink-solid, #ffffff);
+    }
 }
 
 .sh-jellyseerr-results-grid {
@@ -655,11 +679,13 @@
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
 
-.sh-jellyseerr-card:hover {
+@media (hover: hover) {
+    .sh-jellyseerr-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.07);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.16);
     transform: translateY(-2px);
     box-shadow: 0 10px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.45);
+    }
 }
 
 .sh-jellyseerr-card__poster {
@@ -752,10 +778,12 @@
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
 
-.sh-jellyseerr-req-btn:hover {
+@media (hover: hover) {
+    .sh-jellyseerr-req-btn:hover {
     background: var(--sh-color-info);
     color: var(--sh-ink-solid-inv, #000000);
     box-shadow: 0 4px 14px rgba(var(--sh-color-info-rgb), 0.4);
+    }
 }
 
 .sh-jellyseerr-status-pill {
@@ -790,10 +818,12 @@
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
-.sh-jellyseerr-request-card:hover {
+@media (hover: hover) {
+    .sh-jellyseerr-request-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
     transform: translateY(-2px) !important;
+    }
 }
 
 .sh-jellyseerr-request-card__poster {
@@ -825,11 +855,13 @@
     padding: 8px !important;
 }
 
-.sh-jellyseerr-trend-card:hover {
+@media (hover: hover) {
+    .sh-jellyseerr-trend-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.07) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.2) !important;
     transform: translateY(-4px) !important;
     box-shadow: 0 12px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.55) !important;
+    }
 }
 
 .sh-dl-loading {
@@ -948,9 +980,11 @@
     gap: 6px !important;
 }
 
-.sh-cal-pill-btn:hover {
+@media (hover: hover) {
+    .sh-cal-pill-btn:hover {
     color: var(--sh-ink-solid, #ffffff) !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
+    }
 }
 
 .sh-cal-pill-btn.active {
@@ -999,8 +1033,10 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out) !important;
 }
 
-.sh-cal-jump-today-btn:hover {
+@media (hover: hover) {
+    .sh-cal-jump-today-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.18) !important;
+    }
 }
 
 .sh-cal-month-arrows {
@@ -1023,9 +1059,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out) !important;
 }
 
-.sh-cal-arrow-btn:hover {
+@media (hover: hover) {
+    .sh-cal-arrow-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.18) !important;
     transform: scale(1.06) !important;
+    }
 }
 
 .sh-cal-weekdays-header {
@@ -1066,9 +1104,11 @@
     pointer-events: none !important;
 }
 
-.sh-cal-grid-cell:hover:not(.empty) {
+@media (hover: hover) {
+    .sh-cal-grid-cell:hover:not(.empty) {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.05) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.15) !important;
+    }
 }
 
 .sh-cal-grid-cell.has-events {
@@ -1148,9 +1188,11 @@
     transition: transform var(--sh-dur-1) var(--sh-ease-out), opacity var(--sh-dur-1) var(--sh-ease-out) !important;
 }
 
-.sh-cal-event-chip:hover {
+@media (hover: hover) {
+    .sh-cal-event-chip:hover {
     transform: scale(1.02) !important;
     opacity: 0.9 !important;
+    }
 }
 
 .sh-cal-event-chip.episode {
@@ -1238,10 +1280,12 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out) !important;
 }
 
-.sh-cal-timeline-card:hover {
+@media (hover: hover) {
+    .sh-cal-timeline-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.07) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.2) !important;
     transform: translateY(-2px) !important;
+    }
 }
 
 .sh-cal-card-img {

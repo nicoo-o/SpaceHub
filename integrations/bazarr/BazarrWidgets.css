@@ -15,12 +15,14 @@
     box-shadow: 0 2px 8px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.3) !important;
 }
 
-.sh-widget__refresh-btn:hover {
+@media (hover: hover) {
+    .sh-widget__refresh-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.14) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     transform: rotate(45deg) scale(1.08) !important;
     box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5) !important;
+    }
 }
 
 .sh-widget__refresh-btn:active {
@@ -54,11 +56,13 @@
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
-.sh-widget__sync-btn:hover {
+@media (hover: hover) {
+    .sh-widget__sync-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.15) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.30) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     transform: translateY(-1px) !important;
+    }
 }
 
 .sh-widget__sync-btn svg {
@@ -102,9 +106,11 @@
     gap: 10px;
     transition: background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-bazarr-item:hover {
+@media (hover: hover) {
+    .sh-bazarr-item:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.14);
+    }
 }
 
 .sh-bazarr-item__details {

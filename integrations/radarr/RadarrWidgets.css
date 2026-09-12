@@ -42,11 +42,13 @@
     }
 }
 
-.sh-radarr-bento-card:hover {
+@media (hover: hover) {
+    .sh-radarr-bento-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.07) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.20) !important;
     transform: translateY(-4px) !important;
     box-shadow: 0 14px 35px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.65) !important;
+    }
 }
 
 .sh-radarr-bento-card__poster-wrap {
@@ -127,6 +129,8 @@
     gap: 8px;
     transition: background var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-radarr-queue-row:hover {
+@media (hover: hover) {
+    .sh-radarr-queue-row:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
+    }
 }

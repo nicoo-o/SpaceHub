@@ -21,12 +21,14 @@
         color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-quick-btn-icon:hover {
+@media (hover: hover) {
+    .sh-quick-btn-icon:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.15);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28);
     color: var(--sh-ink-solid, #ffffff);
     transform: scale(1.08);
     box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5);
+    }
 }
 
 .sh-quick-btn-icon:active {

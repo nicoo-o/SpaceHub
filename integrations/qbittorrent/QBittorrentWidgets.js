@@ -199,7 +199,7 @@ class QBittorrentActiveWidget {
                                     </div>
                                 </div>
                                 <div style="height:6px; background:rgba(var(--sh-ink, 255, 255, 255), 0.08); border-radius:9999px; overflow:hidden; margin:4px 0;">
-                                    <div style="width:${progress}%; height:100%; background:linear-gradient(90deg, #38bdf8, ${stateColor}); border-radius:9999px; box-shadow:0 0 10px ${stateColor}88; transition:width 0.3s ease;"></div>
+                                    <div style="width:${progress}%; height:100%; background:linear-gradient(90deg, var(--sh-color-hint), ${stateColor}); border-radius:9999px; box-shadow:0 0 10px ${stateColor}88; transition:width 0.3s ease;"></div>
                                 </div>
                                 <div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:rgba(var(--sh-ink, 255, 255, 255), 0.5);">
                                     <span><strong>${progress}%</strong> complété ${t.num_seeds !== undefined ? `• ${t.num_seeds} pairs` : ''}</span>

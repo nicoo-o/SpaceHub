@@ -243,9 +243,11 @@ body.sh-cinema-active .dialogBackdrop {
     cursor: pointer;
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
-.sh-back-btn:hover {
+@media (hover: hover) {
+    .sh-back-btn:hover {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.18);
     transform: scale(1.03);
+    }
 }
 
 .sh-capsule-divider {
@@ -314,10 +316,12 @@ body.sh-cinema-active .dialogBackdrop {
     cursor: pointer;
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
-.sh-top-icon-btn:hover {
+@media (hover: hover) {
+    .sh-top-icon-btn:hover {
     color: var(--sh-on-media-solid, #ffffff);
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.16);
     transform: scale(1.08);
+    }
 }
 
 /* ── Flash OSD Jauge ─────────────────────────────────────────────────── */
@@ -389,10 +393,12 @@ body.sh-cinema-active .dialogBackdrop {
     pointer-events: auto;
     transform: translateY(0);
 }
-.sh-smart-skip-pill:hover {
+@media (hover: hover) {
+    .sh-smart-skip-pill:hover {
     background: rgba(var(--sh-focus-ring-rgb), 0.41);
     border-color: var(--sh-focus-ring);
     transform: scale(1.04);
+    }
 }
 
 .sh-next-ep-card {
@@ -454,7 +460,9 @@ body.sh-cinema-active .dialogBackdrop {
     box-shadow: 0 4px 15px rgba(var(--sh-focus-ring-rgb), 0.4);
     transition: transform var(--sh-dur-3) var(--sh-ease-spring);
 }
-.sh-next-ep-play-btn:hover { transform: scale(1.06); }
+@media (hover: hover) {
+    .sh-next-ep-play-btn:hover { transform: scale(1.06); }
+}
 .sh-next-ep-close-btn {
     width: 26px;
     height: 26px;
@@ -534,9 +542,11 @@ body.sh-cinema-active .dialogBackdrop {
     transition: transform var(--sh-dur-3) var(--sh-ease-spring);
     flex-shrink: 0;
 }
-.sh-pearl-play-btn:hover {
+@media (hover: hover) {
+    .sh-pearl-play-btn:hover {
     transform: scale(1.08);
     box-shadow: 0 6px 20px rgba(var(--sh-on-media, 255, 255, 255),  0.65), 0 0 20px rgba(var(--sh-focus-ring-rgb), 0.45);
+    }
 }
 .sh-pearl-play-btn:active { transform: scale(0.94); }
 
@@ -556,10 +566,12 @@ body.sh-cinema-active .dialogBackdrop {
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
     flex-shrink: 0;
 }
-.sh-micro-btn:hover {
+@media (hover: hover) {
+    .sh-micro-btn:hover {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.14);
     color: var(--sh-on-media-solid, #ffffff);
     transform: scale(1.06);
+    }
 }
 .sh-micro-num {
     position: absolute;
@@ -605,7 +617,9 @@ body.sh-cinema-active .dialogBackdrop {
     border-radius: var(--sh-radius-full);
     transition: height var(--sh-dur-2) var(--sh-ease-spring);
 }
-.sh-ribbon-timeline:hover .sh-ribbon-timeline-bg { height: 6px; }
+@media (hover: hover) {
+    .sh-ribbon-timeline:hover .sh-ribbon-timeline-bg { height: 6px; }
+}
 
 .sh-ribbon-timeline-buffered {
     position: absolute;
@@ -617,7 +631,9 @@ body.sh-cinema-active .dialogBackdrop {
     pointer-events: none;
     transition: height var(--sh-dur-2);
 }
-.sh-ribbon-timeline:hover .sh-ribbon-timeline-buffered { height: 6px; }
+@media (hover: hover) {
+    .sh-ribbon-timeline:hover .sh-ribbon-timeline-buffered { height: 6px; }
+}
 
 .sh-ribbon-timeline-played {
     position: absolute;
@@ -630,7 +646,9 @@ body.sh-cinema-active .dialogBackdrop {
     box-shadow: 0 0 10px rgba(var(--sh-focus-ring-rgb), 0.85);
     transition: height var(--sh-dur-2);
 }
-.sh-ribbon-timeline:hover .sh-ribbon-timeline-played { height: 6px; }
+@media (hover: hover) {
+    .sh-ribbon-timeline:hover .sh-ribbon-timeline-played { height: 6px; }
+}
 
 .sh-ribbon-timeline-thumb {
     position: absolute;
@@ -649,7 +667,9 @@ body.sh-cinema-active .dialogBackdrop {
     pointer-events: none;
     transition: transform var(--sh-dur-2) var(--sh-ease-spring), opacity var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-ribbon-timeline:hover .sh-ribbon-timeline-thumb { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+@media (hover: hover) {
+    .sh-ribbon-timeline:hover .sh-ribbon-timeline-thumb { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+}
 
 .sh-timeline-tooltip {
     position: absolute;
@@ -669,7 +689,9 @@ body.sh-cinema-active .dialogBackdrop {
     transition: opacity var(--sh-dur-2) var(--sh-ease-out);
     box-shadow: 0 6px 18px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.7);
 }
-.sh-ribbon-timeline:hover .sh-timeline-tooltip { opacity: 1; }
+@media (hover: hover) {
+    .sh-ribbon-timeline:hover .sh-timeline-tooltip { opacity: 1; }
+}
 
 .sh-time-remaining-label {
     font-size: var(--sh-text-xs);
@@ -715,8 +737,10 @@ body.sh-cinema-active .dialogBackdrop {
     border: none;
     transition: transform var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-volume-range:hover::-webkit-slider-thumb {
+@media (hover: hover) {
+    .sh-volume-range:hover::-webkit-slider-thumb {
     transform: scale(1.25);
+    }
 }
 .sh-volume-range::-moz-range-thumb {
     width: 7px;
@@ -745,12 +769,20 @@ body.sh-cinema-active .dialogBackdrop {
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
     white-space: nowrap;
 }
-.sh-dock-pill-btn:hover,
 .sh-dock-pill-btn.active {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.18);
     border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.28);
     color: var(--sh-on-media-solid, #ffffff);
     transform: scale(1.03);
+    }
+
+@media (hover: hover) {
+    .sh-dock-pill-btn:hover {
+    background: rgba(var(--sh-on-media, 255, 255, 255),  0.18);
+    border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.28);
+    color: var(--sh-on-media-solid, #ffffff);
+    transform: scale(1.03);
+    }
 }
 .sh-popover-chevron {
     font-size: var(--sh-text-xs);
@@ -871,11 +903,13 @@ body.sh-cinema-active .dialogBackdrop {
     color: rgba(var(--sh-on-media, 255, 255, 255),  0.85);
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-popover-item:hover {
+@media (hover: hover) {
+    .sh-popover-item:hover {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.14);
     border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.22);
     color: var(--sh-on-media-solid, #ffffff);
     transform: scale(1.02);
+    }
 }
 .sh-popover-item.selected {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.18);
@@ -930,11 +964,13 @@ body.sh-cinema-active .dialogBackdrop {
     cursor: pointer;
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-sync-btn:hover {
+@media (hover: hover) {
+    .sh-sync-btn:hover {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.20);
     border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.30);
     color: var(--sh-on-media-solid, #ffffff);
     transform: scale(1.04);
+    }
 }
 .sh-sync-btn--reset { font-size: var(--sh-text-xs); }
 .sh-sync-label {
@@ -960,11 +996,13 @@ body.sh-cinema-active .dialogBackdrop {
     cursor: pointer;
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-chip-btn:hover {
+@media (hover: hover) {
+    .sh-chip-btn:hover {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.16);
     border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.25);
     color: var(--sh-on-media-solid, #ffffff);
     transform: scale(1.03);
+    }
 }
 .sh-chip-btn.active {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.22);
@@ -993,10 +1031,12 @@ body.sh-cinema-active .dialogBackdrop {
     cursor: pointer;
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-popover-episode-row:hover {
+@media (hover: hover) {
+    .sh-popover-episode-row:hover {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.14);
     border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.22);
     transform: scale(1.02);
+    }
 }
 .sh-popover-episode-row.selected {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.20);

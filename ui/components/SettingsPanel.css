@@ -40,11 +40,15 @@
     transition: opacity var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-settings-nav__item:hover {
+@media (hover: hover) {
+    .sh-settings-nav__item:hover {
     color: var(--sh-ink-solid, #ffffff);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
+    }
 }
-.sh-settings-nav__item:hover svg { opacity: 1; }
+@media (hover: hover) {
+    .sh-settings-nav__item:hover svg { opacity: 1; }
+}
 
 /* L'entrée active passait par l'encre pleine : blanche sur fond sombre, donc
    NOIRE sur fond clair — un pavé noir au milieu d'une page claire. Le jeton de
@@ -184,10 +188,12 @@ select.sh-input option {
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-theme-choice:hover {
+@media (hover: hover) {
+    .sh-theme-choice:hover {
     transform: translateY(-2px);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    }
 }
 
 .sh-theme-choice.selected {
@@ -248,9 +254,11 @@ select.sh-input option {
     cursor: default;
 }
 
-.sh-settings-lib-row:hover {
+@media (hover: hover) {
+    .sh-settings-lib-row:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    }
 }
 
 .sh-drag-handle {
@@ -267,9 +275,11 @@ select.sh-input option {
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-drag-handle:hover {
+@media (hover: hover) {
+    .sh-drag-handle:hover {
     color: var(--sh-ink-solid, #ffffff);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    }
 }
 
 .sh-settings-lib-row:active .sh-drag-handle {

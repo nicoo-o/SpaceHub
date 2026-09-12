@@ -228,7 +228,21 @@ function mesurer() {
         );
         hoverNonGardes += (nu.match(/:hover\b/g) || []).length;
     }
-    const presseAnimee = compte(/:active[^{]*\{[^}]*transform/g, horsJetons);
+    /* Le retour à la presse, compté par SÉLECTEUR et non par règle.
+
+       Le motif précédent comptait les règles : une liste groupée de soixante
+       sélecteurs valait UN. Ce plancher-là ne pouvait donc pas dire la
+       couverture — et c'est la couverture qui compte, parce que c'est elle qui
+       décide si un tap produit quelque chose de visible. Un plancher au nombre
+       de règles aurait laissé passer une règle unique couvrant zéro surface. */
+    let presseAnimee = 0;
+    for (const [f, t] of toutesLesFeuilles()) {
+        if (!horsJetons(f)) continue;
+        for (const m of t.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+            if (!/(?:^|;)\s*transform\s*:/.test(m[2])) continue;
+            for (const sel of m[1].split(',')) if (/:active\b/.test(sel)) presseAnimee += 1;
+        }
+    }
     const vhResiduels = (() => {
         let n = 0;
         for (const [f, t] of toutesLesFeuilles()) {
@@ -373,7 +387,12 @@ const PLAFONDS = {
     // CONTREDISAIT le jeton (le jeton vaut #ff453a). Un repli qui n'est pas la
     // valeur du jeton n'est pas une sécurité, c'est une deuxième vérité qui ne
     // se déclenche jamais — jusqu'au jour où elle se déclenche.
-    hexLitteraux: 530,
+    // 530 → 516 : deux teintes de la marque deviennent des jetons — l'étoile de
+    // notation (`#ffd600`, 8 hexadécimaux et 3 triplets alpha) et l'indice
+    // d'action (`#38bdf8`, 13 et 11). Le plafond baisse de 35 littéraux et
+    // remonte de 21 écritures de jeton du même coup — c'est le mouvement
+    // attendu, et non une amélioration nette de 35.
+    hexLitteraux: 516,
     // 448 → 100 : 152 tailles valaient EXACTEMENT un échelon (jeton, aucun
     // pixel ne bouge) et 196 étaient sous le plancher de 12 px (elles
     // remontent à `--sh-text-xs`). Les 100 qui restent sont les valeurs
@@ -427,7 +446,13 @@ const PLAFONDS = {
        console) restent : ils ne coûtent rien par image puisqu'ils ne bougent
        pas. */
     filtresAnimes: 0,
-    hoverNonGardes: 230,
+    /* 230 → 0 : chaque règle `:hover` du dépôt est désormais dans un
+       `@media (hover: hover)`. Un survol non gardé ne fait pas que ne pas
+       s'appliquer sur un téléphone : il COLLE après un tap — l'élément garde
+       son état de survol jusqu'au tap suivant — et il promet une affordance
+       qui n'existe pas. Les seules règles laissées dehors sont celles d'un
+       bloc `(hover: none)`, qui NEUTRALISE exprès (le doigt n'a pas de survol). */
+    hoverNonGardes: 0,
     vhResiduels: 0,
     // 1 → 0 : la famille est déclarée UNE fois (public/design-system/tokens.css)
     // et les six feuilles qui réécrivaient leur propre pile (dont une avec un
@@ -475,7 +500,7 @@ const PLANCHERS = {
     // qu'un nombre de déclarations existe. Le laisser à 1 290 ferait échouer la
     // chaîne sur une simplification juste — et un contrôle qui échoue sur du
     // bon travail est un contrôle qu'on apprend à contourner.
-    jetonsCourbes: 1067,
+    jetonsCourbes: 1069,
     // 3 → 205 : les paliers de rayon sont désormais consommés. Ce plancher-là
     // était le plus bas du dépôt, et c'était le symptôme : le barème existait,
     // il était juste, et personne ne s'en servait.
@@ -483,9 +508,16 @@ const PLANCHERS = {
     // 11 → 115 : les 80 teintes système ci-dessus, plus les triplets -rgb qui
     // donnent enfin un chemin à l'alpha (quarante-neuf `rgba(255, 159, 10, …)`
     // écrits à la main).
-    jetonsCouleurs: 115,
+    // 115 → 116 → 151 : les teintes système, puis les deux teintes de la marque
+    // (l'étoile de notation et l'indice d'action, 35 littéraux remplacés).
+    jetonsCouleurs: 151,
     jetonsAccent: 2,
-    presseAnimee: 18,
+    // 18 → 102 : le compteur est passé des RÈGLES aux SÉLECTEURS (voir plus
+    // haut), et la couverture est montée de 17 à 102 surfaces pressables — la
+    // coquille GSM était couverte, tout le CONTENU qu'on touche (cartes,
+    // rangées, boutons de média) ne l'était pas. Maintenant que le survol est
+    // gardé, ces surfaces n'auraient plus aucun retour au doigt.
+    presseAnimee: 102,
 };
 
 const LIBELLES = {

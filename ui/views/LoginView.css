@@ -107,8 +107,10 @@
     color: var(--sh-ink-solid, #ffffff);
     transition: transform var(--sh-dur-4) var(--sh-ease-spring);
 }
-.sh-login-brand:hover .sh-login-rocket {
+@media (hover: hover) {
+    .sh-login-brand:hover .sh-login-rocket {
     transform: translateY(-3px) rotate(-10deg) scale(1.15);
+    }
 }
 
 .sh-login-brand-name {
@@ -224,9 +226,11 @@
     animation: sh-fadeInUp var(--sh-dur-4) var(--sh-ease-out) 300ms both;
     overflow: hidden;
 }
-.sh-login-btn:hover:not(:disabled) {
+@media (hover: hover) {
+    .sh-login-btn:hover:not(:disabled) {
     transform: scale(1.03);
     box-shadow: 0 8px 32px rgba(var(--sh-ink, 255, 255, 255),  0.32);
+    }
 }
 .sh-login-btn:active:not(:disabled) {
     transform: scale(0.97);
@@ -280,9 +284,11 @@
                 transform var(--sh-dur-1) var(--sh-ease-out);
 }
 
-.sh-login-profile:hover {
+@media (hover: hover) {
+    .sh-login-profile:hover {
     background: rgba(var(--sh-ink, 255, 255, 255), 0.06);
     transform: translateY(-2px);
+    }
 }
 
 .sh-login-profile.selected {

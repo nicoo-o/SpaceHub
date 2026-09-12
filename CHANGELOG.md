@@ -67,6 +67,22 @@ sens. La couverture a désormais des planchers déclarés (21 / 17 / 20 / 21) et
   verrouillée, console) ne sont pas touchés — ils ne coûtent rien par image
   puisqu'ils ne bougent pas. Les deux règles sont écrites dans
   `docs/IDENTITE_VISUELLE.md` (§ Règles de l'identité, 6).
+- Les 230 règles `:hover` du dépôt passent derrière `@media (hover: hover)`, et
+  ce que le doigt ne peut pas survoler reçoit un vrai retour à la **presse** :
+  **17 → 102 surfaces** (cartes, rangées, boutons de média — jusqu'ici muettes au
+  tap). Le survol n'était pas seulement inopérant sur un téléphone : il **collait**
+  après un tap, l'élément gardant son état jusqu'au tap suivant, et il promettait
+  une affordance qui n'existe pas. `GsmNav.css` portait un `@media (hover: none)`
+  qui réécrivait les valeurs de repos de NEUF sélecteurs pour annuler après coup
+  un survol déjà appliqué ; il est retiré, la garde est à la source. Le contrôle
+  GSM suit : il mesure désormais « **zéro survol à découvert** » au lieu de « la
+  neutralisation existe », et son inventaire de classes s'étend de `GsmNav.css` à
+  toute la coquille — **20 → 50 classes** vérifiées, zéro fantôme.
+- `#ffd600` (l'étoile de notation) et `#38bdf8` (l'indice d'action) deviennent
+  `--sh-color-star` et `--sh-color-hint`, triplets alpha compris : **35 littéraux
+  en moins**. Ce ne sont pas des teintes de passage — elles disent quelque chose,
+  la note et l'action à faire — et une couleur qui dit quelque chose et s'écrit à
+  la main finit par diverger.
 - Les courbes d'animation déclarées remplacent le `ease` nu du navigateur :
   **753 → 0**. 747 transitions consomment `var(--sh-ease-out)` — plus franche
   au départ que `cubic-bezier(0.25, 0.1, 0.25, 1)`, celle qui étire exactement

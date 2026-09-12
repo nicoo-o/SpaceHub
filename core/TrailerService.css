@@ -66,11 +66,20 @@
     cursor: pointer;
     transition: background var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-trailer-window__close:hover, .sh-trailer-window__close:focus-visible {
+.sh-trailer-window__close:focus-visible {
     background: rgba(var(--sh-color-danger-rgb), 0.51);
     outline: 2px solid rgba(var(--sh-focus-ring-rgb), 0.55);
     outline-offset: -2px;
     transform: scale(1.06);
+    }
+
+@media (hover: hover) {
+    .sh-trailer-window__close:hover {
+    background: rgba(var(--sh-color-danger-rgb), 0.51);
+    outline: 2px solid rgba(var(--sh-focus-ring-rgb), 0.55);
+    outline-offset: -2px;
+    transform: scale(1.06);
+    }
 }
 /* Bande-annonce suivante — visible seulement s'il y en a réellement une. */
 .sh-trailer-window__next {
@@ -89,10 +98,16 @@
     cursor: pointer;
     transition: background var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-trailer-window__next:hover,
 .sh-trailer-window__next:focus-visible {
     background: rgba(var(--sh-focus-ring-rgb), 0.34);
     transform: scale(1.04);
+    }
+
+@media (hover: hover) {
+    .sh-trailer-window__next:hover {
+    background: rgba(var(--sh-focus-ring-rgb), 0.34);
+    transform: scale(1.04);
+    }
 }
 .sh-trailer-window__rang {
     opacity: 0.65;

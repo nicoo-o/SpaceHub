@@ -66,7 +66,9 @@
     letter-spacing: 0.02em;
     transition: background var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-toast__action:hover { background: rgba(var(--sh-ink, 255, 255, 255),  0.20); }
+@media (hover: hover) {
+    .sh-toast__action:hover { background: rgba(var(--sh-ink, 255, 255, 255),  0.20); }
+}
 
 /* Bouton Fermer */
 .sh-toast__close {
@@ -83,7 +85,9 @@
     color: rgba(var(--sh-ink, 255, 255, 255),  0.50);
     transition: background var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-toast__close:hover { background: rgba(var(--sh-ink, 255, 255, 255),  0.14); color: var(--sh-ink-solid, #ffffff); }
+@media (hover: hover) {
+    .sh-toast__close:hover { background: rgba(var(--sh-ink, 255, 255, 255),  0.14); color: var(--sh-ink-solid, #ffffff); }
+}
 
 /* Barre de progression */
 .sh-toast__progress {

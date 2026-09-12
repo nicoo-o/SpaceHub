@@ -166,7 +166,11 @@ pour une vraie séquence, jamais pour du décor.
 4. **Un écran montre au plus trois surfaces ; on n'encadre pas du contenu qui est déjà
    du contenu.**
 5. **Le mouvement répond à un geste ; seul le direct respire.**
-6. **Une ombre est un ÉTAT, pas un mouvement ; un flou d'apparition n'est pas un
+6. **Le survol est une affordance de pointeur fin, jamais une promesse.** Un
+   `:hover` vit dans `@media (hover: hover)` ; ce que le doigt ne peut pas
+   survoler reçoit un retour à la PRESSE (`:active`, 0,97, 120 ms). Un survol non
+   gardé ne fait pas que ne pas s'appliquer : il colle après un tap.
+7. **Une ombre est un ÉTAT, pas un mouvement ; un flou d'apparition n'est pas un
    mouvement du tout.** L'ombre change AVEC l'état, sans fondu — le déplacement dit
    « ça se lève », l'ombre dit « cette surface est levée », et le repaint de la zone
    floutée à chaque image ne se paie pas pour redire ce que le déplacement raconte.
@@ -204,11 +208,19 @@ plus :
    restaient étaient tous le même motif — un élément invisible qui se défloute en
    apparaissant — et ils ont été retirés, pas remplacés.
 
+6. **Le survol — FAIT.** 230 → 0 : chaque règle `:hover` est dans un
+   `@media (hover: hover)`, et les 18 règles qui n'avaient qu'un survol pour
+   afforance ont leur retour à la presse. La couverture du retour à la presse passe
+   de **17 à 102 surfaces** : la coquille GSM était couverte, tout le CONTENU qu'on
+   touche (cartes, rangées, boutons de média) ne l'était pas — et maintenant que le
+   survol est gardé, ces surfaces n'auraient plus rien dit du tout. La neutralisation
+   `@media (hover: none)` de `GsmNav.css`, qui corrigeait neuf sélecteurs APRÈS
+   COUP, est retirée : la garde est à la source.
+
 ### Ce qui reste, mesuré
 
 | Chantier | Mesure du jour | Pourquoi il n'est pas fait |
 |---|---|---|
-| `:hover` non gardés | **230 règles** pour 18 retours au toucher | Un `:hover` ne se convertit pas mécaniquement en `:active` ; il faut décider de l'affordance |
 | Verre | **10 `backdrop-filter`** (plafond 10, saturé) | C'est un changement de surface, avec un coût GPU à mesurer sur le parc |
 | Teintes intermédiaires | **530 hexadécimaux**, **243 rayons**, **100 tailles**, **83 graisses** | Chaque valeur est un choix entre deux paliers, sur une mise en page qu'il faut regarder |
 | Budget de démarrage | **275,0 ko gzip pour 276 ko** | Un kilo de marge : c'est LUI qui a refusé la police auto-hébergée, et toute fonctionnalité qui ajoute du JavaScript au démarrage demande désormais une décision explicite |

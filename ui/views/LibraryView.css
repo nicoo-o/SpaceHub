@@ -131,8 +131,10 @@
     transition: color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-lib-tab-btn:hover {
+@media (hover: hover) {
+    .sh-lib-tab-btn:hover {
     color: var(--sh-ink-solid, #ffffff);
+    }
 }
 
 .sh-lib-tab-btn.active {
@@ -155,8 +157,10 @@
     transition: stroke var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-lib-tab-btn:hover .sh-lib-tab-icon {
+@media (hover: hover) {
+    .sh-lib-tab-btn:hover .sh-lib-tab-icon {
     transform: scale(1.08);
+    }
 }
 
 .sh-lib-tab-btn.active .sh-lib-tab-icon svg {
@@ -276,10 +280,12 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-lib-control-btn:hover {
+@media (hover: hover) {
+    .sh-lib-control-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.12);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28);
     color: var(--sh-ink-solid, #ffffff);
+    }
 }
 
 .sh-lib-chevron {
@@ -343,9 +349,11 @@
     justify-content: space-between;
 }
 
-.sh-lib-dropdown-item:hover {
+@media (hover: hover) {
+    .sh-lib-dropdown-item:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
     color: var(--sh-ink-solid, #ffffff);
+    }
 }
 
 .sh-lib-dropdown-item.selected {
@@ -378,8 +386,10 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-lib-viewmode-btn:hover {
+@media (hover: hover) {
+    .sh-lib-viewmode-btn:hover {
     color: var(--sh-ink-solid, #ffffff);
+    }
 }
 
 .sh-lib-viewmode-btn.active {
@@ -416,10 +426,12 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-lib-genre-chip:hover {
+@media (hover: hover) {
+    .sh-lib-genre-chip:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.12);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.25);
     color: var(--sh-ink-solid, #ffffff);
+    }
 }
 
 .sh-lib-genre-chip.active {
@@ -456,9 +468,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-lib-alpha-btn:hover {
+@media (hover: hover) {
+    .sh-lib-alpha-btn:hover {
     color: var(--sh-ink-solid, #ffffff);
     transform: scale(1.15);
+    }
 }
 
 .sh-lib-alpha-btn.active {
@@ -496,11 +510,13 @@
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
 
-.sh-lib-backdrop-card:hover {
+@media (hover: hover) {
+    .sh-lib-backdrop-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.07);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.25);
     transform: translateY(-4px);
     box-shadow: 0 16px 36px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.7);
+    }
 }
 
 .sh-lib-backdrop-thumb-wrap {
@@ -517,8 +533,10 @@
     transition: transform var(--sh-dur-4) var(--sh-ease-out);
 }
 
-.sh-lib-backdrop-card:hover .sh-lib-backdrop-thumb-wrap img {
+@media (hover: hover) {
+    .sh-lib-backdrop-card:hover .sh-lib-backdrop-thumb-wrap img {
     transform: scale(1.05);
+    }
 }
 
 .sh-lib-backdrop-play-overlay {
@@ -532,8 +550,10 @@
     transition: opacity var(--sh-dur-3) var(--sh-ease-out);
 }
 
-.sh-lib-backdrop-card:hover .sh-lib-backdrop-play-overlay {
+@media (hover: hover) {
+    .sh-lib-backdrop-card:hover .sh-lib-backdrop-play-overlay {
     opacity: 1;
+    }
 }
 
 .sh-lib-quick-play-btn {
@@ -554,9 +574,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-lib-quick-play-btn:hover {
+@media (hover: hover) {
+    .sh-lib-quick-play-btn:hover {
     transform: scale(1);
     background: var(--sh-ink-solid, #ffffff);
+    }
 }
 
 .sh-lib-card-fav-btn {
@@ -576,9 +598,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-lib-card-fav-btn:hover {
+@media (hover: hover) {
+    .sh-lib-card-fav-btn:hover {
     transform: scale(1.1);
     background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.85);
+    }
 }
 
 .sh-lib-card-progress-bar {
@@ -667,8 +691,10 @@
     border-bottom: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.04);
 }
 
-.sh-lib-table-row:hover {
+@media (hover: hover) {
+    .sh-lib-table-row:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
+    }
 }
 
 .sh-lib-table td {
@@ -736,9 +762,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-lib-table-play:hover, .sh-lib-table-fav:hover {
+@media (hover: hover) {
+    .sh-lib-table-play:hover, .sh-lib-table-fav:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.22);
     transform: scale(1.08);
+    }
 }
 
 /* ── État Vide ── */
@@ -782,9 +810,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-lib-reset-btn:hover {
+@media (hover: hover) {
+    .sh-lib-reset-btn:hover {
     transform: scale(1.05);
     box-shadow: 0 6px 20px rgba(var(--sh-ink, 255, 255, 255),  0.50);
+    }
 }
 
 /* ── Skeleton Loading ── */
@@ -848,11 +878,13 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-lib-manage-btn:hover {
+@media (hover: hover) {
+    .sh-lib-manage-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.14);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28);
     color: var(--sh-ink-solid, #ffffff);
     transform: scale(1.03);
+    }
 }
 
 /* ── Modal de Gestion des Sections (Frosted Glass VisionOS) ── */
@@ -941,9 +973,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-lib-modal-close:hover {
+@media (hover: hover) {
+    .sh-lib-modal-close:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.18);
     transform: scale(1.08);
+    }
 }
 
 .sh-lib-modal-list {
@@ -967,9 +1001,11 @@
     cursor: default;
 }
 
-.sh-lib-manage-row:hover {
+@media (hover: hover) {
+    .sh-lib-manage-row:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.12);
+    }
 }
 
 .sh-drag-handle {
@@ -986,9 +1022,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-drag-handle:hover {
+@media (hover: hover) {
+    .sh-drag-handle:hover {
     color: var(--sh-ink-solid, #ffffff);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    }
 }
 
 .sh-lib-manage-row:active .sh-drag-handle {
@@ -1036,10 +1074,12 @@
     line-height: 1;
 }
 
-.sh-lib-order-btn:hover:not(:disabled) {
+@media (hover: hover) {
+    .sh-lib-order-btn:hover:not(:disabled) {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.22);
     color: var(--sh-ink-solid, #ffffff);
     transform: scale(1.1);
+    }
 }
 
 .sh-lib-order-btn:disabled {
@@ -1153,9 +1193,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-lib-modal-btn-sec:hover {
+@media (hover: hover) {
+    .sh-lib-modal-btn-sec:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.14);
     color: var(--sh-ink-solid, #ffffff);
+    }
 }
 
 .sh-lib-modal-btn-pri {
@@ -1171,9 +1213,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-lib-modal-btn-pri:hover {
+@media (hover: hover) {
+    .sh-lib-modal-btn-pri:hover {
     transform: scale(1.03);
     box-shadow: 0 6px 20px rgba(var(--sh-ink, 255, 255, 255),  0.50);
+    }
 }
 
 /* Sentinelle infinie */

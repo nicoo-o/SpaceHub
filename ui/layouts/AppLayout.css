@@ -156,12 +156,14 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 }
 
 /* Liseré Spéculaire Fin au survol (100% Monochrome & Épuré) */
-.sh-dynamic-island:hover {
+@media (hover: hover) {
+    .sh-dynamic-island:hover {
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.22);
     box-shadow: 
         0 26px 70px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95),
         inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.35),
         0 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    }
 }
 
 /* ── Vue Micro Encoche (Phase 0) ────────────────────────────── */
@@ -435,9 +437,11 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     transition: transform var(--sh-dur-4) var(--sh-ease-out);
 }
 
-.sh-dynamic-island:hover .sh-luminous-dot {
+@media (hover: hover) {
+    .sh-dynamic-island:hover .sh-luminous-dot {
     transform: scale(1.18);
     box-shadow: 0 0 8px var(--sh-focus-ring), 0 0 16px rgba(var(--sh-focus-ring-rgb), 0.95);
+    }
 }
 
 .sh-dot-core {
@@ -500,9 +504,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     transition: transform var(--sh-dur-2) var(--sh-ease-spring), opacity var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-nav-brand:hover,
-.sh-island-compact-view:hover {
+@media (hover: hover) {
+    .sh-nav-brand:hover, .sh-island-compact-view:hover {
     transform: scale(1.04);
+    }
 }
 
 .sh-nav-brand:active,
@@ -622,8 +627,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     transition: color var(--sh-dur-3) var(--sh-ease-out);
 }
 
-.sh-nav-tab-btn:hover {
+@media (hover: hover) {
+    .sh-nav-tab-btn:hover {
     color: var(--sh-ink-solid, #ffffff);
+    }
 }
 
 .sh-nav-tab-btn.active {
@@ -654,11 +661,13 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     transition: transform var(--sh-dur-3) var(--sh-ease-spring), opacity var(--sh-dur-3) var(--sh-ease-spring), background-color var(--sh-dur-3) var(--sh-ease-spring), background var(--sh-dur-3) var(--sh-ease-spring), border-color var(--sh-dur-3) var(--sh-ease-spring), color var(--sh-dur-3) var(--sh-ease-spring);
 }
 
-.sh-nav-action-btn:hover {
+@media (hover: hover) {
+    .sh-nav-action-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.22);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28);
     transform: scale(1.08);
     box-shadow: 0 4px 14px rgba(var(--sh-ink, 255, 255, 255),  0.18);
+    }
 }
 
 .sh-user-menu-wrapper {
@@ -688,9 +697,11 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     transition: transform var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-avatar-pill:hover {
+@media (hover: hover) {
+    .sh-avatar-pill:hover {
     transform: scale(1.05);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.28);
+    }
 }
 
 .sh-user-dropdown {
@@ -772,16 +783,20 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     margin-bottom: 2px;
 }
 
-.sh-user-dropdown__item:hover {
+@media (hover: hover) {
+    .sh-user-dropdown__item:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
     color: var(--sh-ink-solid, #ffffff);
+    }
 }
 
 .sh-user-dropdown__item.sh-danger {
     color: var(--sh-color-danger);
 }
-.sh-user-dropdown__item.sh-danger:hover {
+@media (hover: hover) {
+    .sh-user-dropdown__item.sh-danger:hover {
     background: rgba(var(--sh-color-danger-rgb), 0.31);
+    }
 }
 
 .sh-app-main {

@@ -63,8 +63,14 @@
     backface-visibility: hidden;
 }
 
-.sh-card:hover, .sh-card.sh-tv-focused {
+.sh-card.sh-tv-focused {
     transform: translateY(-6px) scale(1.025);
+    }
+
+@media (hover: hover) {
+    .sh-card:hover {
+    transform: translateY(-6px) scale(1.025);
+    }
 }
 
 .sh-card:focus-visible {
@@ -79,8 +85,14 @@
     background: var(--sh-bg-base, #000000);
     box-shadow: 0 10px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.80), inset 0 1px 0 rgba(var(--sh-on-media, 255, 255, 255),  0.12), 0 0 0 1px rgba(var(--sh-on-media, 255, 255, 255),  0.05);
     }
-.sh-card:hover .sh-card__image-wrap, .sh-card.sh-tv-focused .sh-card__image-wrap {
+.sh-card.sh-tv-focused .sh-card__image-wrap {
     box-shadow: 0 28px 65px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95), inset 0 1px 0 rgba(var(--sh-on-media, 255, 255, 255),  0.35), 0 0 0 1px rgba(var(--sh-on-media, 255, 255, 255),  0.22);
+    }
+
+@media (hover: hover) {
+    .sh-card:hover .sh-card__image-wrap {
+    box-shadow: 0 28px 65px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95), inset 0 1px 0 rgba(var(--sh-on-media, 255, 255, 255),  0.35), 0 0 0 1px rgba(var(--sh-on-media, 255, 255, 255),  0.22);
+    }
 }
 
 .sh-card--poster   .sh-card__image-wrap { aspect-ratio: 2/3; }
@@ -94,7 +106,11 @@
     display: block;
     transition: transform var(--sh-dur-5) var(--sh-ease-out);
 }
-.sh-card:hover .sh-card__image, .sh-card.sh-tv-focused .sh-card__image { transform: scale(1.04); }
+.sh-card.sh-tv-focused .sh-card__image { transform: scale(1.04); }
+
+@media (hover: hover) {
+    .sh-card:hover .sh-card__image { transform: scale(1.04); }
+}
 
 /* ── Glint & Edge Shimmer ────────────────────────────────── */
 .sh-card__glint {
@@ -106,9 +122,16 @@
     z-index: 6;
     transition: opacity var(--sh-dur-4) var(--sh-ease-out);
 }
-.sh-card:hover .sh-card__glint, .sh-card.sh-tv-focused .sh-card__glint {
+.sh-card.sh-tv-focused .sh-card__glint {
     opacity: 1;
     animation: sh-glintSweep var(--sh-dur-5) var(--sh-ease-out) forwards;
+    }
+
+@media (hover: hover) {
+    .sh-card:hover .sh-card__glint {
+    opacity: 1;
+    animation: sh-glintSweep var(--sh-dur-5) var(--sh-ease-out) forwards;
+    }
 }
 @keyframes sh-glintSweep {
     0% { transform: translateX(-100%); }
@@ -135,9 +158,11 @@
     box-shadow: 0 4px 10px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.40);
     transition: transform var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-card__dual-score:hover {
+@media (hover: hover) {
+    .sh-card__dual-score:hover {
     background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.55) !important;
     border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.28) !important;
+    }
 }
 
 .sh-score-btn {
@@ -156,9 +181,11 @@
     transition: transform var(--sh-dur-2) var(--sh-ease-spring), background var(--sh-dur-2) var(--sh-ease-out) !important;
     user-select: none !important;
 }
-.sh-score-btn:hover {
+@media (hover: hover) {
+    .sh-score-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.12) !important;
     transform: scale(1.08) !important;
+    }
 }
 
 .sh-score-val {
@@ -198,9 +225,11 @@
     filter: drop-shadow(0 1px 2px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.5));
     transition: transform var(--sh-dur-3) var(--sh-ease-spring);
 }
-.sh-score-btn.sh-score-rt:hover .sh-rt-svg {
+@media (hover: hover) {
+    .sh-score-btn.sh-score-rt:hover .sh-rt-svg {
     transform: scale(1.22) rotate(-14deg);
     filter: drop-shadow(0 0 6px rgba(250, 50, 10, 0.8));
+    }
 }
 
 .sh-imdb-star-svg {
@@ -211,9 +240,11 @@
     filter: drop-shadow(0 1px 3px rgba(245, 197, 24, 0.5));
     transition: transform var(--sh-dur-3) var(--sh-ease-spring);
 }
-.sh-score-btn.sh-score-imdb:hover .sh-imdb-star-svg {
+@media (hover: hover) {
+    .sh-score-btn.sh-score-imdb:hover .sh-imdb-star-svg {
     transform: scale(1.22) rotate(16deg);
     filter: drop-shadow(0 0 6px rgba(245, 197, 24, 0.8));
+    }
 }
 
 /* ── Global Popover Base (Apple VisionOS Glass) ─────────────── */
@@ -343,7 +374,7 @@
 .sh-imdb-score {
     font-size: var(--sh-text-sm);
     font-weight: var(--sh-font-extrabold);
-    color: #ffd600;
+    color: var(--sh-color-star);
 }
 .sh-imdb-score small {
     font-size: var(--sh-text-xs);
@@ -351,7 +382,7 @@
     font-weight: var(--sh-font-medium);
 }
 .sh-imdb-stars-row {
-    color: #ffd600;
+    color: var(--sh-color-star);
     font-size: var(--sh-text-xs);
     letter-spacing: 1px;
 }
@@ -378,7 +409,7 @@
 }
 .sh-imdb-bar-fill { height: 100%; border-radius: var(--sh-radius-full); }
 .sh-imdb-bar-fill.green { background: #30d158; }
-.sh-imdb-bar-fill.yellow { background: #ffd600; }
+.sh-imdb-bar-fill.yellow { background: var(--sh-color-star); }
 .sh-imdb-bar-fill.red { background: var(--sh-color-danger); }
 .sh-imdb-bar-row strong { font-size: var(--sh-text-xs); width: 28px; text-align: right; color: var(--sh-ink-solid, #ffffff); }
 .sh-imdb-footer {
@@ -412,14 +443,18 @@
     box-shadow: 0 4px 12px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.50);
     transition: transform var(--sh-dur-3) var(--sh-ease-spring), opacity var(--sh-dur-3) var(--sh-ease-spring), background-color var(--sh-dur-3) var(--sh-ease-spring), background var(--sh-dur-3) var(--sh-ease-spring), border-color var(--sh-dur-3) var(--sh-ease-spring), color var(--sh-dur-3) var(--sh-ease-spring);
 }
-.sh-card:hover .sh-card__bookmark-btn {
+@media (hover: hover) {
+    .sh-card:hover .sh-card__bookmark-btn {
     opacity: 1;
     transform: scale(1);
+    }
 }
-.sh-card__bookmark-btn:hover {
+@media (hover: hover) {
+    .sh-card__bookmark-btn:hover {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.22);
     color: var(--sh-on-media-solid, #ffffff);
     border-color: rgba(var(--sh-on-media, 255, 255, 255),  0.35);
+    }
 }
 .sh-card__bookmark-btn.active {
     background: var(--sh-on-media-solid, #ffffff);
@@ -470,9 +505,16 @@
     box-shadow: 0 4px 12px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.50);
     transition: opacity var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-card:hover .sh-card__codec-tag, .sh-card.sh-tv-focused .sh-card__codec-tag {
+.sh-card.sh-tv-focused .sh-card__codec-tag {
     opacity: 0;
     transform: translateY(10px);
+    }
+
+@media (hover: hover) {
+    .sh-card:hover .sh-card__codec-tag {
+    opacity: 0;
+    transform: translateY(10px);
+    }
 }
 
 /* ── Liquid Action Pill (Bas de Carte au Survol) ─────────── */
@@ -498,17 +540,26 @@
     cursor: pointer !important;
     white-space: nowrap;
 }
-.sh-card__action-pill:hover {
+@media (hover: hover) {
+    .sh-card__action-pill:hover {
     transform: translateX(-50%) translateY(0) scale(1.06) !important;
     background: var(--sh-on-media-solid, #ffffff) !important;
     box-shadow: 0 10px 30px rgba(var(--sh-on-media, 255, 255, 255),  0.45) !important;
+    }
 }
 .sh-card__action-pill:active {
     transform: translateX(-50%) translateY(0) scale(0.95) !important;
 }
-.sh-card:hover .sh-card__action-pill, .sh-card.sh-tv-focused .sh-card__action-pill {
+.sh-card.sh-tv-focused .sh-card__action-pill {
     transform: translateX(-50%) translateY(0);
     opacity: 1;
+    }
+
+@media (hover: hover) {
+    .sh-card:hover .sh-card__action-pill {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    }
 }
 .sh-pill-duration {
     font-weight: var(--sh-font-medium);
@@ -628,8 +679,10 @@
         transform: translateY(0);
     }
 }
-.sh-ctx-item:hover {
+@media (hover: hover) {
+    .sh-ctx-item:hover {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.14);
+    }
 }
 
 /* ── Lightbox Bande-Annonce Vidéo ────────────────────────── */
@@ -735,11 +788,18 @@
                 border-color var(--sh-dur-1) var(--sh-ease-out);
 }
 
-.sh-cast-picker__item:hover,
 .sh-cast-picker__item:focus-visible {
     background: rgba(var(--sh-ink, 255, 255, 255), 0.10);
     border-color: rgba(var(--sh-ink, 255, 255, 255), 0.22);
     outline: none;
+    }
+
+@media (hover: hover) {
+    .sh-cast-picker__item:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255), 0.10);
+    border-color: rgba(var(--sh-ink, 255, 255, 255), 0.22);
+    outline: none;
+    }
 }
 
 .sh-cast-picker__name {
