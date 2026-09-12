@@ -5,6 +5,26 @@ All notable changes to SpaceHub are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `scripts/electron-shell-check.mjs` (`npm run test:electron`) : le contrôle qui
+  **évalue réellement** le shell Electron, `electron` et `electron-updater`
+  remplacés par des doublures minimales — le motif de stub déjà employé pour le
+  CSS. Un identifiant libre non importé, ou un import disparu en refactorant,
+  fait tomber la chaîne rapide au lieu d’attendre qu’un utilisateur
+  double-clique sur l’exécutable.
+
+### Fixed
+- **L’exécutable Windows ne démarrait pas.** `apps/electron/main.js` calculait
+  sa racine avec `dirname(...)` sans l’avoir importé de `node:path` : un
+  identifiant libre, donc un `ReferenceError` levé au chargement du module — dans
+  le processus principal, avant la moindre fenêtre. Le défaut datait du premier
+  paquet Windows (PR #14) et a voyagé dans trois releases (v1.3.0, v1.4.0,
+  v1.5.0) sans qu’aucun contrôle ne le voie : le lint n’exécute qu’un
+  `node --check`, qui valide la **forme** du code, pas ses identifiants. Le
+  correctif est d’un mot, mais c’est le test ci-dessus qui manquait.
+
 ## [1.5.0] - 2026-09-12
 
 ### Added
