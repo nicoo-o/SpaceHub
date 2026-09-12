@@ -265,6 +265,11 @@ export const EXEMPTIONS = Object.freeze({
         "chemin d'APK : `SpaceHub` s'en saisit au démarrage (`pontAndroid.brancherMoteur`), " +
         "mais il n'est appelé que sur un backbutton système — hors Cordova le pont est " +
         "inerte par construction. Le chemin est couvert par tests/PontAndroid.test.js.",
+    handleAction:
+        "chemin manette/télécommande : le moteur l'enregistre comme rappel `onAction` de " +
+        "`GamepadInput` (`onAction: (action) => this.handleAction(action)`). La course n'a pas de " +
+        "manette — le bouton A/B/Start n'existe pas dans un navigateur. La traversée du rappel " +
+        "est prouvée par tests/SpatialNavigation.test.js (§ Parité clavier / manette).",
 });
 
 /**

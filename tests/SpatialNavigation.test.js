@@ -181,6 +181,18 @@ describe('Parité clavier / manette — le point §6 de l\'audit', () => {
         expect(demarre).toHaveBeenCalledWith(NavAction.RIGHT);
     });
 
+    it('un bouton non directionnel de manette entre dans handleAction, par le rappel onAction', () => {
+        // L'exemption de `handleAction` au contrat (core/ContratSpatialNavigation.js)
+        // dit que ce chemin EXISTE mais qu'une course web ne peut pas le jouer : un
+        // navigateur n'a pas de manette. Ce test est la preuve de la première moitié
+        // — il part du rappel réellement enregistré par le moteur sur GamepadInput,
+        // jamais d'un appel direct à `handleAction`, sans quoi il ne prouverait que
+        // lui-même.
+        const recu = vi.spyOn(nav, 'handleAction').mockImplementation(() => {});
+        nav._gamepad._onAction(NavAction.SELECT);
+        expect(recu).toHaveBeenCalledWith(NavAction.SELECT);
+    });
+
     it('le clavier entre dans le même moteur, une seule fois par pression', () => {
         const demarre = vi.spyOn(nav, '_startInputRepeat').mockImplementation(() => {});
         vi.spyOn(nav, '_detectCurrentScope').mockReturnValue('dashboard');

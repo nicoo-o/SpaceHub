@@ -157,6 +157,17 @@ quelque chose est branché. C'est la forme DOM du motif des 47 transitions
 mortes, et `gabarits-identifiants-check.mjs` tient maintenant les DEUX sens —
 un attribut sans lecteur, un sélecteur `[data-x]` sans écrivain (les points
 d'extension publics sont nommés, pas tolérés).
+- `handleAction` manquait au contrat de façade de `SpatialNavigation` — ni
+  déclaré, ni compté comme mort (le moteur se l'appelle : `onAction: (action) =>
+  this.handleAction(action)`), ni atteint par la course (un navigateur n'a pas
+  de manette). Il tombait donc entre les deux classements, invisible, alors que
+  le pipeline manette y entre : `GamepadInput` déclenche ce rappel sur un bouton
+  non directionnel (A/B/Start). C'est un point d'entrée de périphérique, donc de
+  la surface publique : il entre au contrat, avec la même exemption que
+  `demandeRetour`. La justification de l'exemption a d'ailleurs été vérifiée
+  avant d'être écrite — aucun test ne traversait ce rappel, il en existe un
+  maintenant (`tests/SpatialNavigation.test.js`, § Parité clavier / manette),
+  vu mordre en débranchant le rappel dans le moteur.
 - Le premier balayage de la sonde de surface ne lisait que la forme
   `nav.membre`. Trois membres VIVANTS (`pushLayer`, `onLayerClosed`,
   `pushFocus`) sont atteints par la forme chaînée `svc.nav().membre` — celle du
