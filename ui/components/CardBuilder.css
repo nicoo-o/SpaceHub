@@ -860,3 +860,32 @@
     pointer-events: none;
     visibility: hidden;
 }
+
+/* ── Repli pour les navigateurs sans `aspect-ratio` ────────────────────────
+   MESURÉ, PAS SUPPOSÉ. Sur un navigateur sans la propriété, une carte affiche
+   passe de 18 px à 304 px à l'arrivée de son image : la page entière saute.
+
+   `aspect-ratio` existe depuis Chrome 88 ; le plancher de ce projet est
+   Chrome 69 et la cible de recette un téléviseur de 2020. Le défaut est donc
+   INVISIBLE sur la machine de développement et présent sur exactement les
+   appareils qui comptent — le profil type de ce qu'un œil ne trouvera jamais.
+
+   La technique : un padding vertical en POURCENTAGE se calcule sur la LARGEUR
+   du bloc conteneur, ce qui donne une hauteur proportionnelle sans rien savoir
+   de l'image. Elle fonctionne depuis toujours.
+
+   `inset` n'est pas employé ici : il date de Chrome 87, soit au-dessus du
+   plancher — l'utiliser dans un repli destiné aux vieux navigateurs serait une
+   contradiction dans les termes. */
+@supports not (aspect-ratio: 2 / 3) {
+    .sh-card--poster   .sh-card__image-wrap { height: 0; padding-top: 150%; }
+    .sh-card--backdrop .sh-card__image-wrap { height: 0; padding-top: 56.25%; }
+    .sh-card--thumb    .sh-card__image-wrap { height: 0; padding-top: 75%; }
+    .sh-trailer-box { height: 0; padding-top: 56.25%; }
+
+    /* Une boîte à hauteur nulle ne donne rien à un enfant en `height: 100%` :
+       il faut le sortir du flux pour qu'il remplisse la zone de padding. */
+    .sh-card__image-wrap > .sh-card__image {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    }
+}

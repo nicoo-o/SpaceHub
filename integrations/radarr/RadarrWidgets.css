@@ -134,3 +134,24 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
     }
 }
+
+/* ── Repli pour les navigateurs sans `aspect-ratio` ────────────────────────
+   MESURÉ, PAS SUPPOSÉ. Sur un navigateur sans la propriété, une carte affiche
+   passe de 18 px à 304 px à l'arrivée de son image : la page entière saute.
+
+   `aspect-ratio` existe depuis Chrome 88 ; le plancher de ce projet est
+   Chrome 69 et la cible de recette un téléviseur de 2020. Le défaut est donc
+   INVISIBLE sur la machine de développement et présent sur exactement les
+   appareils qui comptent — le profil type de ce qu'un œil ne trouvera jamais.
+
+   La technique : un padding vertical en POURCENTAGE se calcule sur la LARGEUR
+   du bloc conteneur, ce qui donne une hauteur proportionnelle sans rien savoir
+   de l'image. Elle fonctionne depuis toujours.
+
+   `inset` n'est pas employé ici : il date de Chrome 87, soit au-dessus du
+   plancher — l'utiliser dans un repli destiné aux vieux navigateurs serait une
+   contradiction dans les termes. */
+@supports not (aspect-ratio: 2 / 3) {
+    .sh-radarr-bento-card__poster-wrap { height: 0 !important; padding-top: 150% !important; }
+    .sh-radarr-bento-card__poster-wrap img { position: absolute; top: 0; left: 0; }
+}

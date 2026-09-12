@@ -298,6 +298,46 @@ function analyserBoucles(css, problems, cwd) {
  * fixtures, ce qui permet à Vitest d'exercer chaque règle sans modifier le
  * code applicatif.
  */
+
+/**
+ * `aspect-ratio` sans repli : la boîte n'a aucune hauteur avant l'image.
+ *
+ * MESURÉ, PAS SUPPOSÉ. Un scénario e2e chiffre le défaut : sur un navigateur
+ * sans la propriété, une carte affiche passe de 18 px à 304 px à l'arrivée de
+ * son image. La page entière saute.
+ *
+ * `aspect-ratio` existe depuis Chrome 88 ; le plancher de ce projet est
+ * Chrome 69 et la cible de recette un téléviseur de 2020. Le défaut est donc
+ * INVISIBLE sur la machine de développement et présent sur exactement les
+ * appareils qui comptent — le profil type de ce qu'un œil ne trouvera jamais,
+ * et qu'il faut donc confier à un contrôle.
+ *
+ * Neuf feuilles sur dix l'utilisaient sans repli au moment d'écrire ceci.
+ *
+ * La vérification est par FICHIER, pas par sélecteur : apparier un repli à la
+ * règle qu'il couvre demanderait d'analyser les sélecteurs, et le mode de panne
+ * réel n'est pas « le repli vise le mauvais sélecteur » mais « on a ajouté
+ * `aspect-ratio` sans y penser du tout ».
+ */
+function analyserProportions(css, problems, cwd) {
+    let couvertes = 0;
+    for (const file of css) {
+        const source = fs.readFileSync(file, 'utf8')
+            .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+        if (!/(^|[;{\s])aspect-ratio\s*:/.test(source)) continue;
+        if (/@supports\s+not\s*\(\s*aspect-ratio/.test(source)
+            || /@supports\s*\(\s*aspect-ratio/.test(source)) {
+            couvertes += 1;
+            continue;
+        }
+        problems.push(`${relative(cwd, file)} — « aspect-ratio » sans repli. `
+            + 'Ajoutez un bloc `@supports not (aspect-ratio: …)` avec la technique du '
+            + 'padding-top en pourcentage : sans lui, la boîte n\'a aucune hauteur avant '
+            + 'le chargement de l\'image sur tout navigateur antérieur à Chrome 88.');
+    }
+    return couvertes;
+}
+
 export function analyserCss({ roots = ROOTS, cwd = process.cwd() } = {}) {
     const files = roots.flatMap(root => walk(path.resolve(cwd, root)));
     const js = files.filter(file => file.endsWith('.js'));
@@ -314,6 +354,7 @@ export function analyserCss({ roots = ROOTS, cwd = process.cwd() } = {}) {
     const backdrop = analyserGpu(css, problems, cwd, transitionAll);
     const keyframes = analyserKeyframes(files, problems, cwd);
     const loopCount = analyserBoucles(css, problems, cwd);
+    const proportions = analyserProportions(css, problems, cwd);
 
     return {
         problems,
@@ -325,6 +366,7 @@ export function analyserCss({ roots = ROOTS, cwd = process.cwd() } = {}) {
             transitionAll: transitionAll.length,
             keyframes: keyframes.declarations,
             loops: loopCount,
+            proportions,
         },
     };
 }
@@ -340,6 +382,7 @@ export function afficherRapport(result) {
     console.log('Aucun CSS embarqué dans du JS, aucune feuille orpheline, aucune ombre figée.');
     console.log(`Coût GPU : ${result.stats.backdrop} backdrop-filter (plafond ${MAX_BACKDROP}), ${result.stats.transitionAll} « transition: all ».`);
     console.log('!important : toutes les priorités CSS sont terminales.');
+    console.log(`Proportions : ${result.stats.proportions} feuille(s) « aspect-ratio », toutes avec leur repli padding-top.`);
     return true;
 }
 

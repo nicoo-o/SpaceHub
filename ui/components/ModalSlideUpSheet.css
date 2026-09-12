@@ -1692,3 +1692,32 @@
     font-weight: var(--sh-font-semibold);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.60);
 }
+
+/* ── Repli pour les navigateurs sans `aspect-ratio` ────────────────────────
+   MESURÉ, PAS SUPPOSÉ. Sur un navigateur sans la propriété, une carte affiche
+   passe de 18 px à 304 px à l'arrivée de son image : la page entière saute.
+
+   `aspect-ratio` existe depuis Chrome 88 ; le plancher de ce projet est
+   Chrome 69 et la cible de recette un téléviseur de 2020. Le défaut est donc
+   INVISIBLE sur la machine de développement et présent sur exactement les
+   appareils qui comptent — le profil type de ce qu'un œil ne trouvera jamais.
+
+   La technique : un padding vertical en POURCENTAGE se calcule sur la LARGEUR
+   du bloc conteneur, ce qui donne une hauteur proportionnelle sans rien savoir
+   de l'image. Elle fonctionne depuis toujours.
+
+   `inset` n'est pas employé ici : il date de Chrome 87, soit au-dessus du
+   plancher — l'utiliser dans un repli destiné aux vieux navigateurs serait une
+   contradiction dans les termes. */
+@supports not (aspect-ratio: 16 / 9) {
+    /* Largeurs fixes : la hauteur du repli est donc un nombre de pixels, pas
+       un pourcentage. 120 px en 2:3 font 180 ; 135 px en 16:9 font 76. */
+    .sh-cinema-hero-poster { height: 0; padding-top: 180px; }
+    .sh-cinema-hero-poster--music { height: 0 !important; padding-top: 140px !important; }
+    .sh-episode-thumb-wrap { height: 0; padding-top: 76px; }
+    .sh-saga-thumb-container { height: 0; padding-top: 96px; }
+
+    .sh-cinema-hero-poster img,
+    .sh-episode-thumb-wrap img,
+    .sh-saga-thumb-container img { position: absolute; top: 0; left: 0; }
+}
