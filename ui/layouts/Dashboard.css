@@ -159,7 +159,7 @@
     cursor: pointer !important;
     outline: none !important;
     padding: 0 !important;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out) !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out) !important;
     box-shadow: 0 2px 8px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.3) !important;
 }
 
@@ -547,7 +547,7 @@
     gap: 5px;
     cursor: pointer;
     box-shadow: 0 4px 14px rgba(var(--sh-ink, 255, 255, 255),  0.35);
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out);
     flex-shrink: 0;
 }
 

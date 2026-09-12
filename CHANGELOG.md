@@ -54,6 +54,19 @@ sens. La couverture a désormais des planchers déclarés (21 / 17 / 20 / 21) et
   Ce filet a rattrapé trois erreurs de sa première version : le `filter` du
   popover global, des menus déroulants et de l'île sont bel et bien animés, et
   ils auraient été supprimés sans lui.
+- Les ombres et les flous animés tombent à zéro : **224 → 0**. C'est la seconde
+  nature du même défaut, et elle s'est traitée séparément. **Une ombre est un
+  ÉTAT, pas un mouvement** : les 47 halos de survol qui se fondaient changent
+  maintenant avec l'état, sans fondu — le `transform` porte le mouvement, l'ombre
+  dit seulement « cette surface est levée ». Animer une ombre repaint toute sa
+  zone à chaque image, pour un effet que l'œil attribue au déplacement — et le
+  parc descend jusqu'au WebView d'un téléviseur. Les **23 flous** restants étaient
+  tous le même motif : un élément déjà invisible (opacité 0) qui se défloute en
+  apparaissant. Le fondu et l'échelle disaient déjà l'apparition : le flou a été
+  RETIRÉ, pas remplacé. Les flous **statiques** (halo d'ambiance, affiche
+  verrouillée, console) ne sont pas touchés — ils ne coûtent rien par image
+  puisqu'ils ne bougent pas. Les deux règles sont écrites dans
+  `docs/IDENTITE_VISUELLE.md` (§ Règles de l'identité, 6).
 - Les courbes d'animation déclarées remplacent le `ease` nu du navigateur :
   **753 → 0**. 747 transitions consomment `var(--sh-ease-out)` — plus franche
   au départ que `cubic-bezier(0.25, 0.1, 0.25, 1)`, celle qui étire exactement

@@ -166,6 +166,12 @@ pour une vraie séquence, jamais pour du décor.
 4. **Un écran montre au plus trois surfaces ; on n'encadre pas du contenu qui est déjà
    du contenu.**
 5. **Le mouvement répond à un geste ; seul le direct respire.**
+6. **Une ombre est un ÉTAT, pas un mouvement ; un flou d'apparition n'est pas un
+   mouvement du tout.** L'ombre change AVEC l'état, sans fondu — le déplacement dit
+   « ça se lève », l'ombre dit « cette surface est levée », et le repaint de la zone
+   floutée à chaque image ne se paie pas pour redire ce que le déplacement raconte.
+   Le flou d'un élément déjà invisible (opacité 0) qui se défloute en apparaissant est
+   retiré : le fondu et l'échelle portaient déjà l'apparition.
 
 ## Le chantier, et son ordre
 
@@ -189,12 +195,19 @@ plus :
    arbitrage par écran.
 4. **Les courbes — FAITES.** 753 → 0 : le `ease` du navigateur a disparu des feuilles,
    747 transitions consomment `var(--sh-ease-out)` et 6 boucles passent à `linear`.
+5. **Les ombres et les flous animés — FAITS.** 224 → 0, et la coupe s'est faite en
+   deux temps parce qu'elle a deux natures. **167 déclarations** nommaient `box-shadow`
+   ou `filter` sans qu'AUCUN état ne change la valeur : elles n'avaient jamais rien
+   animé, et c'est un prune mécanique, prouvé par la comparaison des valeurs effectives
+   entre l'état et ses états. Les **47 qui animaient vraiment** une ombre (un halo qui
+   s'allume au survol) ne l'animent plus : l'ombre suit l'état. Les **23 flous** qui
+   restaient étaient tous le même motif — un élément invisible qui se défloute en
+   apparaissant — et ils ont été retirés, pas remplacés.
 
 ### Ce qui reste, mesuré
 
 | Chantier | Mesure du jour | Pourquoi il n'est pas fait |
 |---|---|---|
-| Ombres et filtres animés | **224 transitions** (`box-shadow` ×145, `filter` ×79) | Chaque cas est un arbitrage : quelle ombre peut devenir une bordure, quel flou peut devenir une opacité. Un codemod ici produirait des régressions invisibles |
 | `:hover` non gardés | **230 règles** pour 18 retours au toucher | Un `:hover` ne se convertit pas mécaniquement en `:active` ; il faut décider de l'affordance |
 | Verre | **10 `backdrop-filter`** (plafond 10, saturé) | C'est un changement de surface, avec un coût GPU à mesurer sur le parc |
 | Teintes intermédiaires | **530 hexadécimaux**, **243 rayons**, **100 tailles**, **83 graisses** | Chaque valeur est un choix entre deux paliers, sur une mise en page qu'il faut regarder |

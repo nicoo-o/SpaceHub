@@ -110,8 +110,7 @@
     transform: translateZ(0);
     transition: transform var(--sh-dur-3) var(--sh-ease-spring),
                 background var(--sh-dur-3) var(--sh-ease-out),
-                border-color var(--sh-dur-3) var(--sh-ease-out),
-                box-shadow var(--sh-dur-3) var(--sh-ease-out) !important;
+                border-color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
 .sh-hero-badge--rt:hover {
@@ -186,8 +185,7 @@
                 transform var(--sh-dur-3) var(--sh-ease-spring),
                 background var(--sh-dur-3) var(--sh-ease-out),
                 border-color var(--sh-dur-3) var(--sh-ease-out),
-                color var(--sh-dur-3) var(--sh-ease-out),
-                box-shadow var(--sh-dur-3) var(--sh-ease-out);
+                color var(--sh-dur-3) var(--sh-ease-out);
 }
 .sh-hero-edge-btn--prev { left: 24px; }
 .sh-hero-edge-btn--next { right: 24px; }
@@ -262,7 +260,6 @@
     will-change: transform;
     transition: width var(--sh-dur-3) var(--sh-ease-out),
                 background var(--sh-dur-3) var(--sh-ease-out),
-                box-shadow var(--sh-dur-3) var(--sh-ease-out),
                 transform var(--sh-dur-3) var(--sh-ease-out);
 }
 

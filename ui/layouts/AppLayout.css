@@ -230,10 +230,9 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     white-space: nowrap;
     opacity: 0;
     transform: scale(0.65) translateY(-2px);
-    filter: blur(4px);
     pointer-events: none;
     visibility: hidden;
-    transition: opacity var(--sh-dur-3) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-3) var(--sh-ease-out), visibility var(--sh-dur-3);
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-spring), visibility var(--sh-dur-3);
 }
 
 /* ── Vue Déployée Complète (Phase 2 : 535px) ────────────────── */
@@ -276,43 +275,37 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     opacity: 1;
     cursor: pointer;
     box-shadow: 0 16px 40px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.85), inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.26);
-    transition: 
-        width var(--sh-dur-5) var(--sh-ease-out),
+    transition: width var(--sh-dur-5) var(--sh-ease-out),
         height var(--sh-dur-4) var(--sh-ease-out),
         border-radius var(--sh-dur-4) var(--sh-ease-out),
         background var(--sh-dur-4) var(--sh-ease-out),
-        border-color var(--sh-dur-4) var(--sh-ease-out),
-        box-shadow var(--sh-dur-5) var(--sh-ease-out);
+        border-color var(--sh-dur-4) var(--sh-ease-out);
 }
 .sh-dynamic-island.sh-island--compact .sh-island-compact-view {
     opacity: 1;
     transform: scale(1) translateY(0);
-    filter: blur(0px);
     pointer-events: auto;
     visibility: visible;
-    transition: opacity var(--sh-dur-3) var(--sh-ease-out) 180ms, transform var(--sh-dur-4) var(--sh-ease-out) 160ms, filter var(--sh-dur-3) var(--sh-ease-out) 180ms, visibility var(--sh-dur-3);
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out) 180ms, transform var(--sh-dur-4) var(--sh-ease-out) 160ms, visibility var(--sh-dur-3);
 }
 
 /* Liquid Pinch en mode compact : les éléments convergent au centre et sont masqués */
 .sh-dynamic-island.sh-island--compact .sh-nav-brand {
     opacity: 0;
     transform: translateX(65px) scale(0.60);
-    filter: blur(3px);
-    transition: opacity var(--sh-dur-1) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
+    transition: opacity var(--sh-dur-1) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-dynamic-island.sh-island--compact .sh-nav-tabs {
     opacity: 0;
     transform: scale(0.55, 0.75);
-    filter: blur(3px);
-    transition: opacity var(--sh-dur-1) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
+    transition: opacity var(--sh-dur-1) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-dynamic-island.sh-island--compact .sh-nav-actions {
     opacity: 0;
     transform: translateX(-65px) scale(0.60);
-    filter: blur(3px);
-    transition: opacity var(--sh-dur-1) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
+    transition: opacity var(--sh-dur-1) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out);
 }
 
 /* ── ÉTAT 2 : Full Expanded (535px — Apple Spring Morphing) ─── */
@@ -327,22 +320,19 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
         inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.32);
     opacity: 1;
     overflow: visible !important;
-    transition: 
-        width var(--sh-dur-5) var(--sh-ease-spring),
+    transition: width var(--sh-dur-5) var(--sh-ease-spring),
         height var(--sh-dur-4) var(--sh-ease-spring),
         border-radius var(--sh-dur-4) var(--sh-ease-out),
         background var(--sh-dur-4) var(--sh-ease-out),
-        border-color var(--sh-dur-4) var(--sh-ease-out),
-        box-shadow var(--sh-dur-5) var(--sh-ease-spring);
+        border-color var(--sh-dur-4) var(--sh-ease-out);
 }
 .sh-dynamic-island.sh-island--expanded .sh-island-compact-view,
 .sh-dynamic-island.sh-dropdown-active .sh-island-compact-view {
     opacity: 0;
     transform: scale(0.65) translateY(-4px);
-    filter: blur(4px);
     pointer-events: none;
     visibility: hidden;
-    transition: opacity var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out), visibility var(--sh-dur-2);
+    transition: opacity var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-out), visibility var(--sh-dur-2);
 }
 .sh-dynamic-island.sh-island--expanded .sh-island-full-view,
 .sh-dynamic-island.sh-dropdown-active .sh-island-full-view {
@@ -356,22 +346,19 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 .sh-dynamic-island.sh-island--expanded .sh-nav-brand {
     opacity: 1;
     transform: translateX(0) scale(1);
-    filter: blur(0px);
-    transition: opacity var(--sh-dur-4) var(--sh-ease-out) 120ms, transform var(--sh-dur-5) var(--sh-ease-spring) 100ms, filter var(--sh-dur-4) var(--sh-ease-out) 120ms;
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out) 120ms, transform var(--sh-dur-5) var(--sh-ease-spring) 100ms;
 }
 
 .sh-dynamic-island.sh-island--expanded .sh-nav-tabs {
     opacity: 1;
     transform: scale(1);
-    filter: blur(0px);
-    transition: opacity var(--sh-dur-4) var(--sh-ease-out) 150ms, transform var(--sh-dur-4) var(--sh-ease-spring) 130ms, filter var(--sh-dur-4) var(--sh-ease-out) 150ms;
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out) 150ms, transform var(--sh-dur-4) var(--sh-ease-spring) 130ms;
 }
 
 .sh-dynamic-island.sh-island--expanded .sh-nav-actions {
     opacity: 1;
     transform: translateX(0) scale(1);
-    filter: blur(0px);
-    transition: opacity var(--sh-dur-4) var(--sh-ease-out) 180ms, transform var(--sh-dur-5) var(--sh-ease-spring) 160ms, filter var(--sh-dur-4) var(--sh-ease-out) 180ms;
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out) 180ms, transform var(--sh-dur-5) var(--sh-ease-spring) 160ms;
 }
 
 /* ── ÉTAT 3 : Search Spotlight (Concept 3 : Framer FLIP Dynamic Morph) ─── */
@@ -406,10 +393,9 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 .sh-dynamic-island.sh-island--search .sh-island-full-view {
     opacity: 0 !important;
     transform: scale(0.90) translateY(-6px) !important;
-    filter: blur(6px) !important;
     pointer-events: none !important;
     visibility: hidden !important;
-    transition: opacity var(--sh-dur-1) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-1) var(--sh-ease-out), visibility var(--sh-dur-1) !important;
+    transition: opacity var(--sh-dur-1) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out), visibility var(--sh-dur-1) !important;
 }
 
 .sh-island-search-view {
@@ -421,17 +407,15 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     flex-direction: column;
     opacity: 0;
     transform: scale(0.97) translateY(-6px);
-    filter: blur(4px);
     pointer-events: none;
     visibility: hidden;
     overflow: hidden;
-    transition: opacity var(--sh-dur-3) var(--sh-ease-out) 80ms, transform var(--sh-dur-4) var(--sh-ease-out) 80ms, filter var(--sh-dur-3) var(--sh-ease-out) 80ms, visibility var(--sh-dur-3) 80ms;
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out) 80ms, transform var(--sh-dur-4) var(--sh-ease-out) 80ms, visibility var(--sh-dur-3) 80ms;
 }
 
 .sh-dynamic-island.sh-island--search .sh-island-search-view {
     opacity: 1 !important;
     transform: scale(1) translateY(0) !important;
-    filter: blur(0px) !important;
     pointer-events: auto !important;
     visibility: visible !important;
 }
@@ -448,7 +432,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform var(--sh-dur-4) var(--sh-ease-out), box-shadow var(--sh-dur-4) var(--sh-ease-out);
+    transition: transform var(--sh-dur-4) var(--sh-ease-out);
 }
 
 .sh-dynamic-island:hover .sh-luminous-dot {
@@ -667,7 +651,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     color: var(--sh-ink-solid, #ffffff);
     cursor: pointer;
-    transition: transform var(--sh-dur-3) var(--sh-ease-spring), opacity var(--sh-dur-3) var(--sh-ease-spring), background-color var(--sh-dur-3) var(--sh-ease-spring), background var(--sh-dur-3) var(--sh-ease-spring), border-color var(--sh-dur-3) var(--sh-ease-spring), box-shadow var(--sh-dur-3) var(--sh-ease-spring), color var(--sh-dur-3) var(--sh-ease-spring);
+    transition: transform var(--sh-dur-3) var(--sh-ease-spring), opacity var(--sh-dur-3) var(--sh-ease-spring), background-color var(--sh-dur-3) var(--sh-ease-spring), background var(--sh-dur-3) var(--sh-ease-spring), border-color var(--sh-dur-3) var(--sh-ease-spring), color var(--sh-dur-3) var(--sh-ease-spring);
 }
 
 .sh-nav-action-btn:hover {
@@ -724,23 +708,20 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     pointer-events: none;
     opacity: 0;
     transform: scale(0.88) translateY(-10px);
-    filter: blur(10px);
-    transition: opacity var(--sh-dur-3) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-3) var(--sh-ease-out);
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-spring);
 }
 
 .sh-user-dropdown.sh-dropdown--open {
     opacity: 1;
     transform: scale(1) translateY(0);
-    filter: blur(0px);
     pointer-events: auto;
 }
 
 .sh-user-dropdown.sh-dropdown--closing {
     opacity: 0;
     transform: scale(0.92) translateY(-8px);
-    filter: blur(6px);
     pointer-events: none;
-    transition: opacity var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
+    transition: opacity var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-user-dropdown.sh-dropdown--open .sh-user-dropdown__item {

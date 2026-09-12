@@ -12,10 +12,8 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.07);
     border-radius: 14px;
     padding: 14px 18px;
-    transition: 
-        transform var(--sh-dur-3) var(--sh-ease-out),
-        border-color var(--sh-dur-2) var(--sh-ease-out),
-        box-shadow var(--sh-dur-3) var(--sh-ease-out);
+    transition: transform var(--sh-dur-3) var(--sh-ease-out),
+        border-color var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-qbit-speed-card:hover {
     transform: translateY(-2px);

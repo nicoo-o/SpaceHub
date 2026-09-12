@@ -220,7 +220,7 @@
     justify-content: center;
     margin-top: 8px;
     box-shadow: 0 4px 24px rgba(var(--sh-ink, 255, 255, 255),  0.20);
-    transition: transform var(--sh-dur-3) var(--sh-ease-spring), box-shadow var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out);
+    transition: transform var(--sh-dur-3) var(--sh-ease-spring), background var(--sh-dur-3) var(--sh-ease-out);
     animation: sh-fadeInUp var(--sh-dur-4) var(--sh-ease-out) 300ms both;
     overflow: hidden;
 }

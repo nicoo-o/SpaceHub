@@ -429,7 +429,7 @@ body::-webkit-scrollbar, #app::-webkit-scrollbar { display: none; width: 0; heig
     width: 100%;
     box-sizing: border-box;
     outline: none;
-    transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    transition: background 180ms ease, border-color 180ms ease;
     -webkit-appearance: none;
     appearance: none;
 }
