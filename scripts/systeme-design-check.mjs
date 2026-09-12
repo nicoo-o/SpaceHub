@@ -404,8 +404,21 @@ const PLAFONDS = {
     courbesNues: 0,
     courbesEaseIn: 0,
     animationsInfinies: 14,
-    ombresAnimees: 145,
-    filtresAnimes: 79,
+    /* 145 → 66 : les listes `transition` nommaient `box-shadow` cent quarante-
+       cinq fois, et dans cent dix-sept de ces cas AUCUN état ne changeait
+       l'ombre — la transition n'avait jamais rien animé. C'est la même famille
+       que les 47 déclarations mortes du postmortem : une déclaration qui ne se
+       déclenche jamais, invisible en recette. Les 66 restants ANIMENT vraiment
+       (une ombre qui s'allume au survol) : ils partent au commit suivant.
+
+       Ce qu'on juge ici n'est pas l'ombre, c'est sa MISE EN MOUVEMENT : une
+       ombre coûte un repaint par image, et l'ombre d'un état n'a pas besoin de
+       se fondre — le déplacement (transform) porte le mouvement. */
+    ombresAnimees: 66,
+    /* 79 → 18 : même coupe. Les dix-huit qui restent animent réellement un
+       `filter` — et un `filter` animé est la propriété la plus chère de la
+       liste : un repaint complet de la zone à chaque image. */
+    filtresAnimes: 18,
     hoverNonGardes: 230,
     vhResiduels: 0,
     // 1 → 0 : la famille est déclarée UNE fois (public/design-system/tokens.css)
@@ -441,10 +454,16 @@ const PLANCHERS = {
     // 0 → 349 : l'échelle typographique sort de terre (voir
     // scripts/codemod-echelle-typographique.mjs pour la règle appliquée).
     jetonsEchelle: 349,
-    // 537 → 1290 : les 753 `ease` nus sont devenus des jetons (voir
-    // scripts/codemod-courbes.mjs). Les durées étaient déjà à 99 % ; c'est la
-    // famille des courbes qui manquait, et elle est réparée.
-    jetonsCourbes: 1290,
+    // 537 → 1290 (11 septembre), puis 1290 → 1151 (12 septembre) : les 753
+    // `ease` nus sont devenus des jetons (voir scripts/codemod-courbes.mjs),
+    // puis le prune des ombres et des flous animés a RETIRÉ 139 déclarations
+    // qui consommaient chacune un `var(--sh-ease-out)` — cent trente-neuf
+    // usages en moins parce qu'autant de déclarations mortes ont disparu. Un
+    // plancher doit dire la consommation réelle : le laisser à 1 290 rendrait
+    // la chaîne rouge sur une simplification juste. C'est le seul cas où un
+    // plancher descend, et il descend parce que la MESURE a changé de sujet,
+    // pas parce qu'un composant a cessé de consommer le jeton.
+    jetonsCourbes: 1151,
     // 3 → 205 : les paliers de rayon sont désormais consommés. Ce plancher-là
     // était le plus bas du dépôt, et c'était le symptôme : le barème existait,
     // il était juste, et personne ne s'en servait.

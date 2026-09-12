@@ -92,7 +92,7 @@
     justify-content: center;
     cursor: pointer;
     font-size: var(--sh-text-base);
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-analytics-close-btn:hover {

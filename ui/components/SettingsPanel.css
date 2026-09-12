@@ -30,7 +30,7 @@
     font-weight: 550;
     font-family: inherit;
     cursor: pointer;
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
     width: 100%;
 }
 
@@ -123,7 +123,7 @@
     font-size: var(--sh-text-sm);
     outline: none;
     color-scheme: dark;
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-input:focus {
@@ -181,7 +181,7 @@ select.sh-input option {
     border-radius: var(--sh-radius-md);
     padding: 16px;
     cursor: pointer;
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-theme-choice:hover {
@@ -264,7 +264,7 @@ select.sh-input option {
     margin-right: 8px;
     padding: 4px;
     border-radius: var(--sh-radius-xs);
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-drag-handle:hover {
@@ -349,7 +349,7 @@ select.sh-input option {
     background: var(--sh-ink-solid, #ffffff);
     border-radius: 50%;
     box-shadow: 0 2px 6px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.4);
-    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
 
 .sh-apple-switch input:checked + .sh-apple-switch-slider {

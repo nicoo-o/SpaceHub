@@ -41,6 +41,19 @@ sens. La couverture a désormais des planchers déclarés (21 / 17 / 20 / 21) et
 échoue si elle descend. Chaque cliquet a été vu mordre avant d'être committé.
 
 ### Changed
+- Les listes `transition` ne nomment plus une propriété qui ne change jamais.
+  **167 déclarations** désignaient `box-shadow` ou `filter` sans qu'AUCUN état
+  ne change la valeur : elles n'ont jamais rien animé. C'est la même famille que
+  les 47 transitions mortes du postmortem, en plus discret — celles-là n'étaient
+  pas *invalides*, seulement *inutiles*, et rien ne les voyait : ni la recette,
+  ni le navigateur, ni un relecteur. Le compte passe de **145 → 66** (ombres) et
+  **79 → 18** (flous), et le cliquet refuse la remontée. La mesure ne lit pas la
+  liste : elle compare les valeurs EFFECTIVES de la propriété entre l'état de
+  base et ses états (`:hover`, `:active`, `:focus`, `.visible`, `--ouvert`…),
+  pseudo-éléments gardés à part — `X::before` est un AUTRE élément que `X`.
+  Ce filet a rattrapé trois erreurs de sa première version : le `filter` du
+  popover global, des menus déroulants et de l'île sont bel et bien animés, et
+  ils auraient été supprimés sans lui.
 - Les courbes d'animation déclarées remplacent le `ease` nu du navigateur :
   **753 → 0**. 747 transitions consomment `var(--sh-ease-out)` — plus franche
   au départ que `cubic-bezier(0.25, 0.1, 0.25, 1)`, celle qui étire exactement

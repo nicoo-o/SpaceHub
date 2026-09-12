@@ -590,7 +590,7 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    transition: transform var(--sh-dur-3) , opacity var(--sh-dur-3) , background-color var(--sh-dur-3) , background var(--sh-dur-3) , border-color var(--sh-dur-3) , box-shadow var(--sh-dur-3) , color var(--sh-dur-3) !important;
+    transition: transform var(--sh-dur-3), opacity var(--sh-dur-3), background-color var(--sh-dur-3), background var(--sh-dur-3), border-color var(--sh-dur-3), color var(--sh-dur-3) !important;
 }
 .sh-jellyseerr-modal-close:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.18) !important;

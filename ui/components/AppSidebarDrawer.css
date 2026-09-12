@@ -48,7 +48,7 @@
     box-sizing: border-box;
     padding: 24px 16px;
     transform: translateX(-100%);
-    transition: transform var(--sh-dur-4) var(--sh-ease-out), box-shadow var(--sh-dur-4) var(--sh-ease-out);
+    transition: transform var(--sh-dur-4) var(--sh-ease-out);
     box-shadow: 20px 0 60px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.85);
     overflow-x: hidden !important;
     scrollbar-width: none !important;
@@ -375,7 +375,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-sidebar-modal-close:hover {
@@ -437,7 +437,7 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.06);
     border-radius: var(--sh-radius-md);
     cursor: pointer;
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-ambilight-preset:hover {
@@ -487,7 +487,7 @@
     padding: 7px 20px;
     cursor: pointer;
     box-shadow: 0 4px 14px rgba(var(--sh-ink, 255, 255, 255),  0.25);
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-sidebar-modal-btn-pri:hover {
