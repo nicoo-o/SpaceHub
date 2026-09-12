@@ -33,21 +33,55 @@ URL.
 It is built in framework-free JavaScript, compiled by Vite to a
 **Chromium 69** compatibility floor (smart TVs from 2020 onward), shipped as
 a **PWA** with an offline shell and downloadable media, and kept honest by
-**561 unit tests, 26 end-to-end scenarios in a real browser and twelve
+**750 unit tests, 38 end-to-end scenarios in a real browser and nineteen
 automated contract checks** that run on every push.
+
+Those checks are the interesting part. Each one was written after a defect
+the test suite had proved unable to see: spatial navigation and focus,
+phantom methods, template byte-identity, the Chromium 69 floor, CSS
+hygiene, XSS, globals, colour contrast, startup weight, the Jellyfin 12.0
+API contract, and the Electron shell's security options.
+
+Those 750 tests execute **22 % of the application's statements**. Both
+numbers are stated because either one alone misleads: the test count says
+how many behaviours are pinned, the coverage says how much of the code the
+suite ever runs. Forty-two modules of more than sixty statements each —
+about half the codebase — are never executed once, most of them large UI
+views. `npm run test:couverture` prints the figure, enforces a floor that
+can only go up, and names those modules.
 
 ## ✨ Features
 
 |  |  |
 |---|---|
 | 🎬 **Watch** | HLS player negotiated with the server (`PlaybackInfo`, no forced transcoding), intro/resume/credits segments, remote and custom-styled subtitles, queue with episode chaining, quality badges, cast target, sleep timer |
-| 👥 **SyncPlay** | Watch together across devices — server-clock sync (NTP-style), drift correction by playback speed below 400 ms, clean seek above |
 | 🎵 **Listen** | Dedicated music mode, radio, synced lyrics from LRCLIB, on-demand ratings |
 | 📥 **Manage** | All six Servarr integrations — Sonarr, Radarr, Prowlarr, Bazarr, Jellyseerr, qBittorrent — plus an admin console and analytics, without opening six browser tabs |
 | 📺 **Ten-foot UI** | Full spatial navigation for TV remotes and gamepads (W3C-style focus algorithm, layer stack, focus recovery), phone-as-keyboard, screen lock, parental control |
 | 📡 **Offline** | PWA install, IndexedDB downloads that survive a cut network, honest empty states when the server is gone |
 | 🎨 **Yours** | Dark and light themes (contrast-checked), theme presets, onboarding wizard |
 | 🧩 **Extensible** | A plugin SDK with default-denied permissions, a signed catalogue (SHA-256 + pinned ECDSA P-256 keys), and no `eval` anywhere |
+
+### Not a feature yet: SyncPlay
+
+This table used to advertise **SyncPlay — "watch together across devices"**.
+That claim was false, and it is the kind of falsehood worth naming rather
+than quietly deleting.
+
+`jellyfin/temps-reel/SyncPlay.js` is real and tested: NTP-style server-clock
+synchronisation, drift correction by playback rate below 400 ms, a clean seek
+above. What is missing is any way to reach it. `creer()`, `rejoindre()`,
+`demanderLecture()`, `demanderPause()` and `demanderSaut()` have no caller
+anywhere outside the tests — no button, no menu entry, nothing. And since a
+client can only receive group commands after it has joined a group, the
+module never receives anything either. In a shipped build it does nothing at
+all.
+
+The project's own improvement plan ranks SyncPlay as not worth finishing
+(*"strong effort, niche value, moving target"* — the Jellyfin team is itself
+discussing a SyncPlay 2.0 that would change the protocol). So the module
+stays, the claim goes. If it is ever wired up, this section becomes a table
+row again.
 
 ## 📦 Install
 
