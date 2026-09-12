@@ -39,6 +39,19 @@ n'importe dans les tests, et `scripts/fraicheur-dist.mjs` refuse de mesurer un
 que celui qu'on venait d'écrire, et rendaient un verdict faux dans les deux
 sens. La couverture a désormais des planchers déclarés (21 / 17 / 20 / 21) et
 échoue si elle descend. Chaque cliquet a été vu mordre avant d'être committé.
+- `scripts/sonde-surface-nav.mjs` : la sonde qui mesure ce que le moteur de
+  navigation **atteint** pendant la course e2e, et non ce qu'il DÉCLARE. Un
+  membre déclaré que rien n'atteint est du poids mort ; un membre atteint qui
+  n'est pas déclaré est un trou qu'une extraction ouvrirait en silence. Elle
+  croise l'atteint avec le référencé — sans quoi un appel **différé du moteur**
+  (`popFocus`, programmé par `requestAnimationFrame`) passerait pour un
+  appelant, et on élargirait le contrat pour rien. Verdict du jour : 17/23
+  méthodes publiques atteintes, 17/17 au contrat, aucun trou, deux privés de
+  fait, quatre morts tolérés — ce sont les premières peaux.
+  `docs/DECOMPOSITION_SPATIALNAVIGATION.md` porte la mesure et l'ordre
+  d'extraction confirmé, et `tests/SurfaceNav.test.js` (15 tests) tient la
+  moitié statique dans la chaîne rapide. L'instrument a été vu **mordre** : une
+  méthode publique fantôme ajoutée au moteur fait échouer quatre tests.
 
 ### Changed
 - Les courbes d'animation déclarées remplacent le `ease` nu du navigateur :
@@ -144,6 +157,12 @@ quelque chose est branché. C'est la forme DOM du motif des 47 transitions
 mortes, et `gabarits-identifiants-check.mjs` tient maintenant les DEUX sens —
 un attribut sans lecteur, un sélecteur `[data-x]` sans écrivain (les points
 d'extension publics sont nommés, pas tolérés).
+- Le premier balayage de la sonde de surface ne lisait que la forme
+  `nav.membre`. Trois membres VIVANTS (`pushLayer`, `onLayerClosed`,
+  `pushFocus`) sont atteints par la forme chaînée `svc.nav().membre` — celle du
+  search et du tiroir. Les compter morts aurait fait privatiser une API
+  réellement appelée : le faux positif le plus dangereux d'un audit de surface.
+  Le balayage lit les deux formes, et un test le fige.
 
 ## [1.4.0] - 2026-09-11
 
