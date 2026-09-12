@@ -207,6 +207,18 @@
     --sh-color-success-rgb:      50, 215, 75;
     --sh-color-info-rgb:         100, 210, 255;
 
+    /* DEUX TEINTES DE LA MARQUE, écrites à la main jusqu'ici.
+
+       `#ffd600` est l'étoile de notation (huit hexadécimaux et trois triplets
+       alpha, dans deux feuilles) ; `#38bdf8` est l'indice d'action de la fiche
+       (treize et onze). Ce ne sont pas des teintes de passage : elles disent
+       quelque chose — la note, l'action à faire — et une couleur qui dit
+       quelque chose et s'écrit à la main finit par diverger. */
+    --sh-color-star:             #ffd600;   /* Étoile de notation, note IMDb */
+    --sh-color-star-rgb:         255, 214, 0;
+    --sh-color-hint:             #38bdf8;   /* Indice d'action (fiche, recherche) */
+    --sh-color-hint-rgb:         56, 189, 248;
+
     /* ─── Surfaces & fonds — OLED & Frosted Glass ───────────── */
     --sh-bg-base:                #000000;   /* Noir OLED absolu */
     /* Même couleur, en composantes : le hero en a besoin pour construire un
@@ -429,7 +441,7 @@ body::-webkit-scrollbar, #app::-webkit-scrollbar { display: none; width: 0; heig
     width: 100%;
     box-sizing: border-box;
     outline: none;
-    transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    transition: background 180ms ease, border-color 180ms ease;
     -webkit-appearance: none;
     appearance: none;
 }

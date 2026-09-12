@@ -92,12 +92,14 @@
     justify-content: center;
     cursor: pointer;
     font-size: var(--sh-text-base);
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-analytics-close-btn:hover {
+@media (hover: hover) {
+    .sh-analytics-close-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.22);
     transform: scale(1.08);
+    }
 }
 
 .sh-analytics-counters-grid {
@@ -279,12 +281,14 @@
     font-size: var(--sh-text-sm);
     font-weight: var(--sh-font-bold);
     cursor: pointer;
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-analytics-done-btn:hover {
+@media (hover: hover) {
+    .sh-analytics-done-btn:hover {
     transform: scale(1.04);
     box-shadow: 0 6px 20px rgba(var(--sh-ink, 255, 255, 255),  0.35);
+    }
 }
 
 /* ── Statistiques indisponibles ────────────────────────────────────────────

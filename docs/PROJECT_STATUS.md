@@ -122,7 +122,7 @@ instrument redevient une intention en trois semaines.
 
 | Contrôle | Ce qu'il empêche | Premier relevé |
 |---|---|---|
-| `test:design` — `scripts/systeme-design-check.mjs` | Qu'un jeton déclaré cesse d'être consommé | **18 plafonds, 6 planchers** : 530 hex, 100 tailles, 83 graisses, 243 rayons littéraux pour 349/1290/205/115 usages des jetons |
+| `test:design` — `scripts/systeme-design-check.mjs` | Qu'un jeton déclaré cesse d'être consommé | **18 plafonds, 6 planchers**. Premier relevé : 530 hex, 100 tailles, 83 graisses, 243 rayons littéraux pour 349/1290/205/115 usages des jetons. **L'état courant et le chemin restant de chaque chantier se lisent à la demande** : `npm run test:design -- --rapport` |
 | `test:plancher` — `scripts/plancher-navigateur-check.mjs` | Qu'une API au-delà du parc (Chromium M108) entre sans décision | 4 dépassements trouvés, 3 dérogations nommées |
 | `test:modules` — `scripts/modules-testes-check.mjs` | Qu'un module atterrisse sans test qui le nomme | 140 modules, 88 nommés, 52 exceptions figées |
 | `test:couverture` — `vitest run --coverage` | Que la couverture baisse en silence | Planchers par fichier + 52 exceptions |

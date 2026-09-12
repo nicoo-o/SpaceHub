@@ -166,6 +166,16 @@ pour une vraie séquence, jamais pour du décor.
 4. **Un écran montre au plus trois surfaces ; on n'encadre pas du contenu qui est déjà
    du contenu.**
 5. **Le mouvement répond à un geste ; seul le direct respire.**
+6. **Le survol est une affordance de pointeur fin, jamais une promesse.** Un
+   `:hover` vit dans `@media (hover: hover)` ; ce que le doigt ne peut pas
+   survoler reçoit un retour à la PRESSE (`:active`, 0,97, 120 ms). Un survol non
+   gardé ne fait pas que ne pas s'appliquer : il colle après un tap.
+7. **Une ombre est un ÉTAT, pas un mouvement ; un flou d'apparition n'est pas un
+   mouvement du tout.** L'ombre change AVEC l'état, sans fondu — le déplacement dit
+   « ça se lève », l'ombre dit « cette surface est levée », et le repaint de la zone
+   floutée à chaque image ne se paie pas pour redire ce que le déplacement raconte.
+   Le flou d'un élément déjà invisible (opacité 0) qui se défloute en apparaissant est
+   retiré : le fondu et l'échelle portaient déjà l'apparition.
 
 ## Le chantier, et son ordre
 
@@ -189,15 +199,30 @@ plus :
    arbitrage par écran.
 4. **Les courbes — FAITES.** 753 → 0 : le `ease` du navigateur a disparu des feuilles,
    747 transitions consomment `var(--sh-ease-out)` et 6 boucles passent à `linear`.
+5. **Les ombres et les flous animés — FAITS.** 224 → 0, et la coupe s'est faite en
+   deux temps parce qu'elle a deux natures. **167 déclarations** nommaient `box-shadow`
+   ou `filter` sans qu'AUCUN état ne change la valeur : elles n'avaient jamais rien
+   animé, et c'est un prune mécanique, prouvé par la comparaison des valeurs effectives
+   entre l'état et ses états. Les **47 qui animaient vraiment** une ombre (un halo qui
+   s'allume au survol) ne l'animent plus : l'ombre suit l'état. Les **23 flous** qui
+   restaient étaient tous le même motif — un élément invisible qui se défloute en
+   apparaissant — et ils ont été retirés, pas remplacés.
+
+6. **Le survol — FAIT.** 230 → 0 : chaque règle `:hover` est dans un
+   `@media (hover: hover)`, et les 18 règles qui n'avaient qu'un survol pour
+   afforance ont leur retour à la presse. La couverture du retour à la presse passe
+   de **17 à 102 surfaces** : la coquille GSM était couverte, tout le CONTENU qu'on
+   touche (cartes, rangées, boutons de média) ne l'était pas — et maintenant que le
+   survol est gardé, ces surfaces n'auraient plus rien dit du tout. La neutralisation
+   `@media (hover: none)` de `GsmNav.css`, qui corrigeait neuf sélecteurs APRÈS
+   COUP, est retirée : la garde est à la source.
 
 ### Ce qui reste, mesuré
 
 | Chantier | Mesure du jour | Pourquoi il n'est pas fait |
 |---|---|---|
-| Ombres et filtres animés | **224 transitions** (`box-shadow` ×145, `filter` ×79) | Chaque cas est un arbitrage : quelle ombre peut devenir une bordure, quel flou peut devenir une opacité. Un codemod ici produirait des régressions invisibles |
-| `:hover` non gardés | **230 règles** pour 18 retours au toucher | Un `:hover` ne se convertit pas mécaniquement en `:active` ; il faut décider de l'affordance |
 | Verre | **10 `backdrop-filter`** (plafond 10, saturé) | C'est un changement de surface, avec un coût GPU à mesurer sur le parc |
-| Teintes intermédiaires | **530 hexadécimaux**, **243 rayons**, **100 tailles**, **83 graisses** | Chaque valeur est un choix entre deux paliers, sur une mise en page qu'il faut regarder |
+| Teintes intermédiaires | **516 hexadécimaux**, **243 rayons**, **100 tailles**, **83 graisses** | Chaque valeur est un choix entre deux paliers, sur une mise en page qu'il faut regarder |
 | Budget de démarrage | **275,0 ko gzip pour 276 ko** | Un kilo de marge : c'est LUI qui a refusé la police auto-hébergée, et toute fonctionnalité qui ajoute du JavaScript au démarrage demande désormais une décision explicite |
 
 ### View Transitions : bloquées par le parc, et documentées comme telles
@@ -219,3 +244,25 @@ de lisibilité, familles de police déclarées (0), origines de police externes 
 sources de vérité des jetons (3 sites nommés), vocabulaire des états (22 noms, aucun
 hors liste). C'est la seule façon connue dans ce dépôt de faire tenir un vert qui
 décrit vraiment ce que l'écran affiche.
+
+**Et il dit maintenant d'où l'on vient.** Un cliquet ne dit que « c'est vert
+taujourd'hui » ; la question qu'on repose à chaque relecture est « 516 hexadécimaux qui
+restent, est-ce peu ou beaucoup ? ». `npm run test:design -- --rapport` répond par axe :
+le départ du chantier, la valeur du jour, et le chemin qui reste — **quatre chantiers
+atterris, deux en cours (942 écritures à convertir : 183 en typographie, 759 en teintes
+et en rayons), un de garde**, dont les compteurs tiennent un niveau au lieu de
+descendre à zéro (une boucle qui dit « ça travaille » n'est pas une dette).
+
+Le départ ne se mesure pas — un instrument ne lit que l'arbre qu'il a sous les yeux —,
+il se DÉCLARE, et le rapport dit d'où il vient : l'audit du 11 septembre, ou la valeur
+relevée par le cliquet à sa création, marquée d'un `°`. Trois départs portent leur
+exception écrite, parce que la taire ferait un chiffre faux : les 447 rayons de l'audit
+en comptaient 202 déjà convertis, les 10 `ease-in` n'existaient pas, et `presseAnimee` a
+changé de définition en route. Ce que le rapport déclare est vérifié avec les
+compteurs : un compteur sans axe, rangé dans deux axes, ou dont le départ contredit le
+sens du compteur échoue la chaîne — six mutations vues **mordre** avant ce commit.
+
+Le rapport nomme aussi ce qu'il ne tient PAS, et où c'est tenu : le verre
+(`test:css`), le budget de démarrage (`test:poids`), les View Transitions
+(`test:plancher`). Un rapport de progression qui laisse croire qu'il couvre tout le
+sujet est le défaut que ce dépôt appelle un vert qui ment.

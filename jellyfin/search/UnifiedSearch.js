@@ -378,7 +378,7 @@ class UnifiedSearch {
         if (loupeBtn) {
             loupeBtn.style.transition = 'transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms ease';
             loupeBtn.style.transform = 'scale(1.22)';
-            loupeBtn.style.boxShadow = '0 0 16px rgba(56, 189, 248, 0.6)';
+            loupeBtn.style.boxShadow = '0 0 16px rgba(var(--sh-color-hint-rgb), 0.6)';
             setTimeout(() => {
                 loupeBtn.style.transform = '';
                 loupeBtn.style.boxShadow = '';
@@ -454,7 +454,7 @@ class UnifiedSearch {
         for (let i = 0; i < 5; i++) {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
             ctx.fillRect(20, 95 + i * 58, W - 40, 48);
-            ctx.fillStyle = 'rgba(56, 189, 248, 0.25)';
+            ctx.fillStyle = 'rgba(var(--sh-color-hint-rgb), 0.25)';
             ctx.fillRect(32, 107 + i * 58, 30, 24);
             ctx.fillStyle = 'rgba(255, 255, 255, 0.60)';
             ctx.fillRect(72, 110 + i * 58, 140, 10);
@@ -515,7 +515,7 @@ class UnifiedSearch {
             if (direction === 'open' && progress < 0.55) {
                 const beamAlpha = (1 - progress / 0.55) * 0.85;
                 const beamGrad = ctx.createRadialGradient(loupeX, loupeY, 2, loupeX, loupeY, 36);
-                beamGrad.addColorStop(0, `rgba(56, 189, 248, ${beamAlpha})`);
+                beamGrad.addColorStop(0, `rgba(var(--sh-color-hint-rgb), ${beamAlpha})`);
                 beamGrad.addColorStop(0.4, `rgba(255, 255, 255, ${beamAlpha * 0.9})`);
                 beamGrad.addColorStop(1, 'transparent');
                 ctx.fillStyle = beamGrad;
@@ -724,7 +724,7 @@ class UnifiedSearch {
             if (loupeBtn) {
                 loupeBtn.style.transition = 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease';
                 loupeBtn.style.transform = 'scale(1.22)';
-                loupeBtn.style.boxShadow = '0 0 18px rgba(56, 189, 248, 0.65)';
+                loupeBtn.style.boxShadow = '0 0 18px rgba(var(--sh-color-hint-rgb), 0.65)';
                 setTimeout(() => {
                     loupeBtn.style.transform = '';
                     loupeBtn.style.boxShadow = '';

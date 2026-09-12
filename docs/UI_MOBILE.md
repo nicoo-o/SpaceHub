@@ -47,11 +47,22 @@ une décision, pas un oubli.
 
 1. **Le zoom n'est jamais bloqué** : pas de `user-scalable=no` ni
    `maximum-scale` dans le viewport ; `viewport-fit=cover` présent.
-2. **Chaque classe CSS de `GsmNav.css` est émise par le JS** — pas de
+2. **Chaque classe CSS de la coquille est émise par le JS** — pas de
    sélecteur fantôme (la famille de défauts que `nav-contract-check`
-   traque côté moteur TV).
-3. **La garde anti sticky-hover reste en place** : les règles `:hover` du
-   dock PC sont neutralisées sous `(hover: none)`.
+   traque côté moteur TV). L'inventaire couvre `GsmNav.css` ET
+   `AppLayout.css` : le dock et son île vivent dans la seconde, et scoper
+   l'inventaire au fichier qui portait la garde faisait dépendre la
+   couverture de l'endroit où la garde avait été écrite (52 classes).
+3. **Aucun survol à découvert dans la coquille** — et non plus « la
+   neutralisation existe ». Jusqu'au 12 septembre, `GsmNav.css` portait un
+   `@media (hover: none)` qui réécrivait les valeurs de repos de NEUF
+   sélecteurs pour annuler un survol déjà appliqué : une garde après coup,
+   qui laissait les deux cent vingt et un autres sans rien. La garde est
+   maintenant à la source — chaque règle `:hover` est dans un
+   `@media (hover: hover)` — et ce contrôle mesure **zéro survol nu**. La
+   contrepartie est positive : le retour à la presse couvre 102 surfaces au
+   lieu de 17, parce qu'une surface privée de survol sans presse ne dit plus
+   rien du tout.
 4. **`100dvh` sur le conteneur racine** : `100vh` inclut la zone que la
    barre gestuelle Android réserve.
 5. **Les cibles tactiles 48 px couvrent toute la coquille GSM** (barre,

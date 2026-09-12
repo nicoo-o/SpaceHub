@@ -113,9 +113,11 @@
     cursor: pointer;
     transition: background var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-spotlight-clear-btn:hover {
+@media (hover: hover) {
+    .sh-spotlight-clear-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.15);
     color: var(--sh-ink-solid, #ffffff);
+    }
 }
 
 /* ── Filtres Pastilles ───────────────────────────────────────────────── */
@@ -134,11 +136,13 @@
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-semibold);
     cursor: pointer;
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-spotlight-tab-btn:hover {
+@media (hover: hover) {
+    .sh-spotlight-tab-btn:hover {
     color: var(--sh-ink-solid, #ffffff);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
+    }
 }
 .sh-spotlight-tab-btn.active {
     color: var(--sh-ink-solid-inv, #000000);
@@ -210,8 +214,10 @@
     cursor: pointer;
     transition: color var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-spotlight-clear-history-btn:hover {
+@media (hover: hover) {
+    .sh-spotlight-clear-history-btn:hover {
     color: var(--sh-ink-solid, #ffffff);
+    }
 }
 
 .sh-spotlight-recent-tags-row {
@@ -234,12 +240,14 @@
     display: flex;
     align-items: center;
     gap: 5px;
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
-.sh-spotlight-recent-pill:hover {
+@media (hover: hover) {
+    .sh-spotlight-recent-pill:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.16);
     color: var(--sh-ink-solid, #ffffff);
+    }
 }
 .sh-spotlight-clock-icon {
     display: inline-flex;
@@ -271,7 +279,7 @@
     background: transparent;
     cursor: pointer;
     z-index: 2;
-    transition: transform var(--sh-dur-1) var(--sh-ease-out), opacity var(--sh-dur-1) var(--sh-ease-out), background-color var(--sh-dur-1) var(--sh-ease-out), background var(--sh-dur-1) var(--sh-ease-out), border-color var(--sh-dur-1) var(--sh-ease-out), box-shadow var(--sh-dur-1) var(--sh-ease-out), color var(--sh-dur-1) var(--sh-ease-out);
+    transition: transform var(--sh-dur-1) var(--sh-ease-out), opacity var(--sh-dur-1) var(--sh-ease-out), background-color var(--sh-dur-1) var(--sh-ease-out), background var(--sh-dur-1) var(--sh-ease-out), border-color var(--sh-dur-1) var(--sh-ease-out), color var(--sh-dur-1) var(--sh-ease-out);
     animation: sh-spotlight-stagger-in var(--sh-dur-3) var(--sh-ease-out) both;
     animation-delay: calc(var(--idx, 0) * 16ms);
 }
@@ -286,9 +294,14 @@
         transform: translateY(0);
     }
 }
-.sh-spotlight-item:hover,
 .sh-spotlight-item.active {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    }
+
+@media (hover: hover) {
+    .sh-spotlight-item:hover {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
+    }
 }
 
 .sh-spotlight-thumb-wrap {
@@ -333,7 +346,7 @@
     justify-content: center;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
     flex-shrink: 0;
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-spotlight-icon-wrap svg {
@@ -342,12 +355,20 @@
     stroke-width: 2;
 }
 
-.sh-spotlight-item:hover .sh-spotlight-icon-wrap,
 .sh-spotlight-item.active .sh-spotlight-icon-wrap {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.16);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.25);
     color: var(--sh-ink-solid, #ffffff);
     transform: scale(1.06);
+    }
+
+@media (hover: hover) {
+    .sh-spotlight-item:hover .sh-spotlight-icon-wrap {
+    background: rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    border-color: rgba(var(--sh-ink, 255, 255, 255),  0.25);
+    color: var(--sh-ink-solid, #ffffff);
+    transform: scale(1.06);
+    }
 }
 
 .sh-spotlight-item-text {
@@ -380,19 +401,26 @@
     font-weight: var(--sh-font-semibold);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
     opacity: 0;
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
     flex-shrink: 0;
 }
-.sh-spotlight-item:hover .sh-spotlight-action-hint,
 .sh-spotlight-item.active .sh-spotlight-action-hint {
     opacity: 1;
-    color: #38bdf8;
+    color: var(--sh-color-hint);
     transform: translateX(-2px);
+    }
+
+@media (hover: hover) {
+    .sh-spotlight-item:hover .sh-spotlight-action-hint {
+    opacity: 1;
+    color: var(--sh-color-hint);
+    transform: translateX(-2px);
+    }
 }
 
 .sh-spotlight-highlight {
-    background: rgba(56, 189, 248, 0.25);
-    color: #38bdf8;
+    background: rgba(var(--sh-color-hint-rgb), 0.25);
+    color: var(--sh-color-hint);
     font-weight: var(--sh-font-bold);
     padding: 0 2px;
     border-radius: 3px;

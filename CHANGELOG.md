@@ -63,8 +63,68 @@ sens. La couverture a désormais des planchers déclarés (21 / 17 / 20 / 21) et
   d'extraction confirmé, et `tests/SurfaceNav.test.js` (15 tests) tient la
   moitié statique dans la chaîne rapide. L'instrument a été vu **mordre** : une
   méthode publique fantôme ajoutée au moteur fait échouer quatre tests.
+- Le cliquet du système de design dit maintenant **où en est chaque chantier** :
+  `npm run test:design -- --rapport` rend une ligne par compteur — son DÉPART, sa
+  valeur du JOUR, ce qui reste — groupés par axe (typographie, capitales,
+  couleurs et rayons, courbes, ombres, survol, états et sources de vérité). Le
+  départ ne se mesure pas, un instrument ne lit que l'arbre qu'il a sous les
+  yeux : il se DÉCLARE avec son origine, l'audit du 11 septembre ou la valeur
+  relevée par le cliquet à sa création (marquée d'un `°`). Trois départs portent
+  leur exception ÉCRITE, parce que la taire ferait un chiffre faux : les 447
+  rayons de l'audit en comptaient 202 déjà convertis, les 10 `ease-in` de l'audit
+  n'existaient pas (le motif comptait `ease-in-out`, légitime), et `presseAnimee`
+  a changé de définition en route — des règles, puis des sélecteurs, donc 18 →
+  102 n'est pas un gain de 84 surfaces à lui seul. Ce que le rapport déclare est
+  vérifié avec les compteurs : un compteur sans axe, rangé dans deux axes, ou
+  dont le départ contredit le sens du compteur échoue la chaîne (six mutations
+  vues mordre avant ce commit). État du jour : **quatre chantiers atterris, deux
+  en cours — 942 écritures à convertir, 183 en typographie et 759 en teintes et
+  rayons** — et un chantier de garde, dont les compteurs tiennent un niveau au
+  lieu de descendre à zéro.
 
 ### Changed
+- Les listes `transition` ne nomment plus une propriété qui ne change jamais.
+  **167 déclarations** désignaient `box-shadow` ou `filter` sans qu'AUCUN état
+  ne change la valeur : elles n'ont jamais rien animé. C'est la même famille que
+  les 47 transitions mortes du postmortem, en plus discret — celles-là n'étaient
+  pas *invalides*, seulement *inutiles*, et rien ne les voyait : ni la recette,
+  ni le navigateur, ni un relecteur. Le compte passe de **145 → 66** (ombres) et
+  **79 → 18** (flous), et le cliquet refuse la remontée. La mesure ne lit pas la
+  liste : elle compare les valeurs EFFECTIVES de la propriété entre l'état de
+  base et ses états (`:hover`, `:active`, `:focus`, `.visible`, `--ouvert`…),
+  pseudo-éléments gardés à part — `X::before` est un AUTRE élément que `X`.
+  Ce filet a rattrapé trois erreurs de sa première version : le `filter` du
+  popover global, des menus déroulants et de l'île sont bel et bien animés, et
+  ils auraient été supprimés sans lui.
+- Les ombres et les flous animés tombent à zéro : **224 → 0**. C'est la seconde
+  nature du même défaut, et elle s'est traitée séparément. **Une ombre est un
+  ÉTAT, pas un mouvement** : les 47 halos de survol qui se fondaient changent
+  maintenant avec l'état, sans fondu — le `transform` porte le mouvement, l'ombre
+  dit seulement « cette surface est levée ». Animer une ombre repaint toute sa
+  zone à chaque image, pour un effet que l'œil attribue au déplacement — et le
+  parc descend jusqu'au WebView d'un téléviseur. Les **23 flous** restants étaient
+  tous le même motif : un élément déjà invisible (opacité 0) qui se défloute en
+  apparaissant. Le fondu et l'échelle disaient déjà l'apparition : le flou a été
+  RETIRÉ, pas remplacé. Les flous **statiques** (halo d'ambiance, affiche
+  verrouillée, console) ne sont pas touchés — ils ne coûtent rien par image
+  puisqu'ils ne bougent pas. Les deux règles sont écrites dans
+  `docs/IDENTITE_VISUELLE.md` (§ Règles de l'identité, 6).
+- Les 230 règles `:hover` du dépôt passent derrière `@media (hover: hover)`, et
+  ce que le doigt ne peut pas survoler reçoit un vrai retour à la **presse** :
+  **17 → 102 surfaces** (cartes, rangées, boutons de média — jusqu'ici muettes au
+  tap). Le survol n'était pas seulement inopérant sur un téléphone : il **collait**
+  après un tap, l'élément gardant son état jusqu'au tap suivant, et il promettait
+  une affordance qui n'existe pas. `GsmNav.css` portait un `@media (hover: none)`
+  qui réécrivait les valeurs de repos de NEUF sélecteurs pour annuler après coup
+  un survol déjà appliqué ; il est retiré, la garde est à la source. Le contrôle
+  GSM suit : il mesure désormais « **zéro survol à découvert** » au lieu de « la
+  neutralisation existe », et son inventaire de classes s'étend de `GsmNav.css` à
+  toute la coquille — **20 → 50 classes** vérifiées, zéro fantôme.
+- `#ffd600` (l'étoile de notation) et `#38bdf8` (l'indice d'action) deviennent
+  `--sh-color-star` et `--sh-color-hint`, triplets alpha compris : **35 littéraux
+  en moins**. Ce ne sont pas des teintes de passage — elles disent quelque chose,
+  la note et l'action à faire — et une couleur qui dit quelque chose et s'écrit à
+  la main finit par diverger.
 - Les courbes d'animation déclarées remplacent le `ease` nu du navigateur :
   **753 → 0**. 747 transitions consomment `var(--sh-ease-out)` — plus franche
   au départ que `cubic-bezier(0.25, 0.1, 0.25, 1)`, celle qui étire exactement

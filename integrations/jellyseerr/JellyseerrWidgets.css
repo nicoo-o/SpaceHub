@@ -105,16 +105,18 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.07) !important;
     border-radius: var(--sh-radius-lg) !important;
     padding: 12px 16px !important;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out) !important;
     width: 100% !important;
     box-sizing: border-box !important;
 }
 
-.sh-episode-rich-card:hover {
+@media (hover: hover) {
+    .sh-episode-rich-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.07) !important;
     border-color: rgba(99, 102, 241, 0.4) !important;
     transform: translateY(-2px) !important;
     box-shadow: 0 10px 28px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.5) !important;
+    }
 }
 
 .sh-ep-thumb-wrap {
@@ -298,14 +300,16 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.06) !important;
     border-radius: 14px !important;
     padding: 10px 14px !important;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
-.sh-episode-rich-card:hover {
+@media (hover: hover) {
+    .sh-episode-rich-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.07) !important;
     border-color: rgba(99, 102, 241, 0.35) !important;
     transform: translateY(-2px) !important;
     box-shadow: 0 8px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.5) !important;
+    }
 }
 
 .sh-ep-thumb-wrap {
@@ -359,9 +363,10 @@
     border-radius: var(--sh-radius-xs) !important;
 }
 
-.sh-jellyseerr-modal-card--wide::-webkit-scrollbar-thumb:hover,
-.sh-jellyseerr-episodes-list::-webkit-scrollbar-thumb:hover {
+@media (hover: hover) {
+    .sh-jellyseerr-modal-card--wide::-webkit-scrollbar-thumb:hover, .sh-jellyseerr-episodes-list::-webkit-scrollbar-thumb:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.35) !important;
+    }
 }
 
 .sh-trailer-player-overlay {
@@ -467,8 +472,10 @@
     cursor: pointer !important;
     padding: 0 !important;
 }
-.sh-season-quick-btn:hover {
+@media (hover: hover) {
+    .sh-season-quick-btn:hover {
     text-decoration: underline !important;
+    }
 }
 .sh-quick-sep {
     color: rgba(var(--sh-ink, 255, 255, 255), 0.3) !important;
@@ -590,11 +597,13 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    transition: transform var(--sh-dur-3) , opacity var(--sh-dur-3) , background-color var(--sh-dur-3) , background var(--sh-dur-3) , border-color var(--sh-dur-3) , box-shadow var(--sh-dur-3) , color var(--sh-dur-3) !important;
+    transition: transform var(--sh-dur-3), opacity var(--sh-dur-3), background-color var(--sh-dur-3), background var(--sh-dur-3), border-color var(--sh-dur-3), color var(--sh-dur-3) !important;
 }
-.sh-jellyseerr-modal-close:hover {
+@media (hover: hover) {
+    .sh-jellyseerr-modal-close:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.18) !important;
     transform: scale(1.08) !important;
+    }
 }
 .sh-jellyseerr-modal-header {
     display: flex !important;
@@ -737,11 +746,13 @@
     gap: 8px !important;
     cursor: pointer !important;
     box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4) !important;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
-.sh-jellyseerr-btn-submit:hover:not(:disabled) {
+@media (hover: hover) {
+    .sh-jellyseerr-btn-submit:hover:not(:disabled) {
     transform: translateY(-2px) !important;
     box-shadow: 0 12px 30px rgba(99, 102, 241, 0.6) !important;
+    }
 }
 .sh-jellyseerr-btn-submit.success {
     background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
@@ -790,7 +801,7 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
     border-radius: 18px !important;
     padding: 8px !important;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out) !important;
     position: relative !important;
     cursor: default !important;
 }
@@ -804,11 +815,13 @@
     }
 }
 
-.sh-jellyseerr-bento-card:hover {
+@media (hover: hover) {
+    .sh-jellyseerr-bento-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.07) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.20) !important;
     transform: translateY(-4px) !important;
     box-shadow: 0 14px 35px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.65) !important;
+    }
 }
 
 .sh-jellyseerr-bento-card__poster-wrap {
@@ -828,8 +841,10 @@
     transition: transform var(--sh-dur-4) var(--sh-ease-out) !important;
 }
 
-.sh-jellyseerr-bento-card:hover .sh-jellyseerr-bento-card__img {
+@media (hover: hover) {
+    .sh-jellyseerr-bento-card:hover .sh-jellyseerr-bento-card__img {
     transform: scale(1.06) !important;
+    }
 }
 
 .sh-jellyseerr-bento-card__placeholder {
@@ -909,14 +924,16 @@
     font-size: var(--sh-text-xs) !important;
     font-weight: var(--sh-font-bold) !important;
     cursor: pointer !important;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
-.sh-jellyseerr-req-action-btn:hover:not(:disabled) {
+@media (hover: hover) {
+    .sh-jellyseerr-req-action-btn:hover:not(:disabled) {
     background: var(--sh-color-info) !important;
     color: var(--sh-ink-solid-inv, #000000) !important;
     box-shadow: 0 4px 14px rgba(var(--sh-color-info-rgb), 0.4) !important;
     transform: translateY(-1px) !important;
+    }
 }
 
 .sh-jellyseerr-req-action-btn.requested {
@@ -939,16 +956,18 @@
     cursor: pointer !important;
     outline: none !important;
     padding: 0 !important;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out) !important;
     box-shadow: 0 2px 8px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.3) !important;
 }
 
-.sh-widget__refresh-btn:hover {
+@media (hover: hover) {
+    .sh-widget__refresh-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.14) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     transform: rotate(45deg) scale(1.08) !important;
     box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5) !important;
+    }
 }
 
 .sh-widget__refresh-btn:active {

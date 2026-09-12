@@ -21,8 +21,10 @@
     transition: opacity var(--sh-dur-3) var(--sh-ease-out);
 }
 
-.sh-sidebar-trigger-zone:hover .sh-sidebar-trigger-glow {
+@media (hover: hover) {
+    .sh-sidebar-trigger-zone:hover .sh-sidebar-trigger-glow {
     opacity: 1;
+    }
 }
 
 /* ── Panneau Latéral Glissant Noir Translucide Glass (Apple VisionOS / TV) ── */
@@ -48,7 +50,7 @@
     box-sizing: border-box;
     padding: 24px 16px;
     transform: translateX(-100%);
-    transition: transform var(--sh-dur-4) var(--sh-ease-out), box-shadow var(--sh-dur-4) var(--sh-ease-out);
+    transition: transform var(--sh-dur-4) var(--sh-ease-out);
     box-shadow: 20px 0 60px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.85);
     overflow-x: hidden !important;
     scrollbar-width: none !important;
@@ -80,9 +82,11 @@
     user-select: none;
 }
 
-.sh-sidebar-brand:hover .sh-sidebar-rocket-icon {
+@media (hover: hover) {
+    .sh-sidebar-brand:hover .sh-sidebar-rocket-icon {
     transform: translateY(-2px) rotate(-8deg) scale(1.15);
     stroke: var(--sh-ink-solid, #ffffff);
+    }
 }
 
 .sh-sidebar-rocket-icon {
@@ -212,14 +216,18 @@
     padding: 8px 14px;
 }
 
-.sh-sidebar-item:hover:not(.active) {
+@media (hover: hover) {
+    .sh-sidebar-item:hover:not(.active) {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
     color: var(--sh-ink-solid, #ffffff);
+    }
 }
 
-.sh-sidebar-item:hover:not(.active) .sh-sidebar-icon {
+@media (hover: hover) {
+    .sh-sidebar-item:hover:not(.active) .sh-sidebar-icon {
     stroke: var(--sh-ink-solid, #ffffff);
     transform: scale(1.12);
+    }
 }
 
 /* 🌟 Élément Sélectionné traversé par la Capsule Blanche 🌟 */
@@ -257,7 +265,7 @@
     font-size: 12.5px;
     font-weight: var(--sh-font-semibold);
     cursor: pointer;
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-sidebar-footer-btn svg {
@@ -265,20 +273,24 @@
     transition: stroke var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-sidebar-footer-btn:hover {
+@media (hover: hover) {
+    .sh-sidebar-footer-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.12);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.22);
     color: var(--sh-ink-solid, #ffffff);
     transform: translateY(-1.5px);
     box-shadow: 0 4px 14px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.4);
+    }
 }
 
 .sh-sidebar-footer-btn:active {
     transform: scale(0.97);
 }
 
-.sh-sidebar-footer-btn:hover svg {
+@media (hover: hover) {
+    .sh-sidebar-footer-btn:hover svg {
     stroke: var(--sh-ink-solid, #ffffff);
+    }
 }
 
 .sh-sidebar-footer-btn kbd {
@@ -375,11 +387,13 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-sidebar-modal-close:hover {
+@media (hover: hover) {
+    .sh-sidebar-modal-close:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.16);
+    }
 }
 
 .sh-sidebar-modal-body {
@@ -437,12 +451,14 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.06);
     border-radius: var(--sh-radius-md);
     cursor: pointer;
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-ambilight-preset:hover {
+@media (hover: hover) {
+    .sh-ambilight-preset:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.07);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.14);
+    }
 }
 
 .sh-ambilight-preset.active {
@@ -487,11 +503,13 @@
     padding: 7px 20px;
     cursor: pointer;
     box-shadow: 0 4px 14px rgba(var(--sh-ink, 255, 255, 255),  0.25);
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
-.sh-sidebar-modal-btn-pri:hover {
+@media (hover: hover) {
+    .sh-sidebar-modal-btn-pri:hover {
     transform: scale(1.02);
+    }
 }
 
 /* ── Centre de Téléchargements & Médias (Hub) ── */
@@ -524,14 +542,16 @@
     font-size: var(--sh-text-sm);
     font-weight: var(--sh-font-semibold);
     cursor: pointer;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
     white-space: nowrap;
 }
 
-.sh-hub-tab-btn:hover {
+@media (hover: hover) {
+    .sh-hub-tab-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.12);
     color: var(--sh-ink-solid, #ffffff);
     transform: translateY(-1px);
+    }
 }
 
 .sh-hub-tab-btn.active {

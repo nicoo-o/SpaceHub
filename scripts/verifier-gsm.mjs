@@ -81,8 +81,19 @@ if (!/overscroll-behavior:\s*contain/.test(gsmCss) && !/overscroll-behavior-y:\s
     FAULTS.push('GsmNav.css / tokens.css — aucun overscroll-behavior: contain : les feuilles modales rebondissent et le pull-to-refresh natif concurrence celui de TouchEngine.');
 }
 
-/** Classes que le CSS GSM déclare — chacune doit être émise par le JS. */
-const classesCssGsm = [...gsmCss.matchAll(/\.([a-z][a-z0-9-]*)/gi)].map(m => m[1])
+/**
+ * Classes que la COQUILLE déclare — chacune doit être émise par le JS.
+ *
+ * L'inventaire couvrait GsmNav.css seul (vingt classes). Il couvre maintenant
+ * les deux feuilles de la coquille : le dock et son île vivent dans
+ * AppLayout.css, et c'est là que se trouvaient les sélecteurs que GsmNav.css
+ * neutralisait. Scoper l'inventaire au fichier qui portait la garde faisait
+ * dépendre la couverture de l'endroit où la garde avait été écrite — une
+ * neutralisation retirée faisait alors baisser le nombre de classes vérifiées
+ * sans qu'aucune ne disparaisse. 52 classes ici, zéro fantôme.
+ */
+const appLayoutCss = readFileSync(join(RACINE, 'ui', 'layouts', 'AppLayout.css'), 'utf8');
+const classesCssGsm = [...(gsmCss + '\n' + appLayoutCss).matchAll(/\.([a-z][a-z0-9-]*)/gi)].map(m => m[1])
     .filter(c => c.startsWith('sh-'));
 const sourcesJs = walk(join(RACINE, 'ui')).concat(walk(join(RACINE, 'core')))
     .map(f => readFileSync(f, 'utf8')).join('\n');
@@ -96,17 +107,53 @@ for (const classe of uniques) {
 }
 attendus.classesEmises = uniques.length;
 
-// ─── 3. Les règles :hover de la coquille bureau sont gardées ────────────────
-const appLayoutCss = readFileSync(join(RACINE, 'ui', 'layouts', 'AppLayout.css'), 'utf8');
+// ─── 3. AUCUN survol à découvert dans la coquille ──────────────────────────
+//
+// CE QUE CE CONTRÔLE MESURAIT, ET POURQUOI IL A CHANGÉ
+// ---------------------------------------------------
+// Il comptait les règles `:hover` d'AppLayout.css et exigeait la PRÉSENCE d'un
+// bloc `@media (hover: none)` dans GsmNav.css. C'était une garde APRÈS COUP :
+// le survol s'appliquait d'abord, la neutralisation le corrigeait ensuite — et
+// elle ne couvrait que neuf sélecteurs sur les deux cent trente du dépôt.
+//
+// Depuis le 12 septembre 2026, la garde est à la SOURCE : chaque règle
+// `:hover` est dans un `@media (hover: hover)`, et la neutralisation de
+// GsmNav.css est devenue inutile (elle a été retirée). L'invariant se mesure
+// donc directement : **zéro survol à découvert** dans les feuilles de la
+// coquille. Une règle dans `(hover: none)` ne compte pas — elle neutralise
+// exprès, c'est le seul endroit où un `:hover` a le droit d'être nu.
 {
-    // Chaque bloc :hover nu (pas dans @media (hover: hover)) qui cible le
-    // dock est un sticky hover potentiel. La garde existe dans GsmNav.css ;
-    // on vérifie qu'elle couvre les sélecteurs hover d'AppLayout.css.
-    const hoversAppLayout = [...appLayoutCss.matchAll(/^([^@\n][^{\n]*:hover[^{\n]*)\{/gm)].map(m => m[1]);
-    attendus.hoverGarde = hoversAppLayout.length;
-    const garde = gsmCss.includes('@media (hover: none)');
-    if (hoversAppLayout.length && !garde) {
-        FAULTS.push('GsmNav.css — la garde anti sticky-hover (@media (hover: none)) a disparu : les règles :hover du dock colleront après un tap.');
+    const COQUILLE = ['AppLayout.css', 'GsmNav.css', 'TouchEngine.css'];
+    const dossiers = [join(RACINE, 'ui', 'layouts'), join(RACINE, 'core')];
+    /** Retire les blocs @media dont le préambule matche, accolades équilibrées. */
+    const retirer = (texte, motif) => {
+        let sortie = '', i = 0;
+        while (i < texte.length) {
+            if (texte.startsWith('@media', i) && motif.test(texte.slice(i, i + 80))) {
+                const debut = texte.indexOf('{', i);
+                if (debut === -1) break;
+                let profondeur = 0, j = debut;
+                for (; j < texte.length; j++) {
+                    if (texte[j] === '{') profondeur++;
+                    else if (texte[j] === '}') { profondeur--; if (profondeur === 0) break; }
+                }
+                sortie += texte.slice(i, j + 1).replace(/[^\n]/g, ' ');
+                i = j + 1;
+            } else { sortie += texte[i]; i += 1; }
+        }
+        return sortie;
+    };
+    let nus = 0;
+    for (const feuille of COQUILLE) {
+        const chemin = dossiers.map(d => join(d, feuille)).find(p => statSync(p, { throwIfNoEntry: false }));
+        if (!chemin) { FAULTS.push(`coquille GSM — feuille introuvable : ${feuille}`); continue; }
+        const css = readFileSync(chemin, 'utf8');
+        const nu = retirer(retirer(css, /hover:\s*hover/), /hover:\s*none/);
+        nus += (nu.match(/:hover\b/g) || []).length;
+    }
+    attendus.hoverGarde = nus;
+    if (nus > 0) {
+        FAULTS.push(`${nus} règle(s) :hover À DÉCOUVERT dans la coquille : sur un téléphone elles ne s'appliquent jamais, ou collent après un tap. La garde est « @media (hover: hover) » autour de la règle.`);
     }
 }
 

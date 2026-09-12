@@ -1,7 +1,9 @@
-.sh-cal-card:hover {
+@media (hover: hover) {
+    .sh-cal-card:hover {
     transform: translateY(-4px) scale(1.02);
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.25) !important;
     box-shadow: 0 14px 35px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.6) !important;
+    }
 }
 
 .sh-cal-poster-wrap img {
@@ -11,8 +13,10 @@
     transition: transform var(--sh-dur-4) var(--sh-ease-out);
 }
 
-.sh-cal-card:hover .sh-cal-poster-wrap img {
+@media (hover: hover) {
+    .sh-cal-card:hover .sh-cal-poster-wrap img {
     transform: scale(1.06);
+    }
 }
 
 .sh-cal-day-badge {

@@ -31,8 +31,7 @@
     transition: opacity var(--sh-dur-3) var(--sh-ease-out),
                 transform var(--sh-dur-3) var(--sh-ease-spring),
                 background var(--sh-dur-2) var(--sh-ease-out),
-                border-color var(--sh-dur-2) var(--sh-ease-out),
-                box-shadow var(--sh-dur-2) var(--sh-ease-out);
+                border-color var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-shelf-nav-btn--prev {
@@ -44,13 +43,12 @@
 }
 
 /* Révélation douce au survol de la rangée ou des boutons */
-.sh-widget:hover .sh-shelf-nav-btn:not(.sh-shelf-nav-btn--hidden),
-.sh-widget__content:hover .sh-shelf-nav-btn:not(.sh-shelf-nav-btn--hidden),
-.sh-dashboard__item:hover .sh-shelf-nav-btn:not(.sh-shelf-nav-btn--hidden),
-.sh-shelf-nav-btn:hover {
+@media (hover: hover) {
+    .sh-widget:hover .sh-shelf-nav-btn:not(.sh-shelf-nav-btn--hidden), .sh-widget__content:hover .sh-shelf-nav-btn:not(.sh-shelf-nav-btn--hidden), .sh-dashboard__item:hover .sh-shelf-nav-btn:not(.sh-shelf-nav-btn--hidden), .sh-shelf-nav-btn:hover {
     opacity: 0.95;
     pointer-events: auto;
     transform: translateY(-50%) scale(1);
+    }
 }
 
 /* Flèche active quand la souris est dans la zone de fondu (détection JS) */
@@ -60,12 +58,14 @@
     transform: translateY(-50%) scale(1.05) !important;
 }
 
-.sh-shelf-nav-btn:hover {
+@media (hover: hover) {
+    .sh-shelf-nav-btn:hover {
     opacity: 1 !important;
     background: rgba(var(--sh-ink-inv, 32, 32, 48),  0.98) !important;
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.55) !important;
     transform: translateY(-50%) scale(1.10) !important;
     box-shadow: 0 14px 36px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95), 0 0 18px rgba(var(--sh-ink, 255, 255, 255),  0.30) !important;
+    }
 }
 
 .sh-shelf-nav-btn:active {

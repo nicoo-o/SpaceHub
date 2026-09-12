@@ -289,24 +289,17 @@ html.sh-gsm .sh-island-nav-wrapper {
     display: none;
 }
 
-/* ── Garde anti sticky-hover ─────────────────────────────────────────────── */
-/* Les règles :hover de la coquille collent après un tap sur écran tactile
-   (l'état hover reste posé jusqu'au tap suivant). La garde (hover: hover)
-   réserve ces effets aux pointeurs fins. */
-@media (hover: none) {
-    .sh-dynamic-island:hover,
-    .sh-dynamic-island:hover .sh-luminous-dot,
-    .sh-nav-brand:hover,
-    .sh-island-compact-view:hover,
-    .sh-nav-tab-btn:hover,
-    .sh-nav-action-btn:hover,
-    .sh-avatar-pill:hover,
-    .sh-user-dropdown__item:hover,
-    .sh-user-dropdown__item.sh-danger:hover {
-        /* Valeurs neutres = l'état de repos. Le tap ne « colle » plus rien. */
-        border-color: rgba(var(--sh-ink, 255, 255, 255), 0.14);
-        box-shadow: none;
-        background: rgba(var(--sh-ink, 255, 255, 255), 0.05);
-        transform: none;
-    }
-}
+/* ── Garde anti sticky-hover : elle n'est plus ICI ─────────────────────────
+
+   Ce fichier portait un bloc `@media (hover: none)` qui réécrivait les valeurs
+   de repos de NEUF sélecteurs du dock, pour annuler un survol qui ne devait
+   pas s'appliquer. C'était une garde APRÈS COUP : le survol s'appliquait,
+   puis on le corrigeait — et elle ne couvrait que neuf sélecteurs sur les
+   deux cent trente du dépôt, sans que rien ne signale les autres.
+
+   Depuis le 12 septembre 2026, la garde est à la SOURCE : chaque règle
+   `:hover` est écrite dans un `@media (hover: hover)`. Sur un appareil sans
+   souris, la règle ne s'applique donc jamais — et un bloc de neutralisation
+   n'a plus rien à neutraliser. Ce contrôle-là vit désormais dans
+   `scripts/verifier-gsm.mjs` (invariant : zéro survol à découvert dans la
+   coquille) et non dans une liste de sélecteurs à maintenir en double. */
