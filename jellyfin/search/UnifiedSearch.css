@@ -2,7 +2,6 @@
 .sh-jellyseerr-search-badge {
     font-size: var(--sh-text-xs) !important;
     font-weight: 750 !important;
-    text-transform: uppercase !important;
     padding: 2px 6px !important;
     border-radius: 6px !important;
     background: rgba(99, 102, 241, 0.2) !important;
@@ -153,7 +152,7 @@
     color: rgba(var(--sh-ink, 255, 255, 255),  0.35);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: var(--sh-radius-xs);
 }
 
 /* ── Corps Mono-Colonne (Single-Pane) ────────────────────────────────── */
@@ -183,7 +182,7 @@
     height: 48px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     pointer-events: none;
     transition: transform var(--sh-dur-2) var(--sh-ease-out), height var(--sh-dur-2) var(--sh-ease-out);
     box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.35), inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.15);
@@ -230,7 +229,7 @@
     font-size: var(--sh-text-xs);
     font-weight: 550;
     padding: 4px 10px;
-    border-radius: 8px;
+    border-radius: var(--sh-radius-sm);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -268,7 +267,7 @@
     align-items: center;
     gap: 12px;
     padding: 7px 10px;
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     background: transparent;
     cursor: pointer;
     z-index: 2;

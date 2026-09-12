@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SpaceHub — planche d'identité</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62.5..125,100..900&display=swap" rel="stylesheet" />
+<style>
+/* ─────────────────────────────────────────────────────────────
+   Cette planche est autonome : elle ne charge pas les feuilles de
+   l'application, elle recopie les valeurs RÉELLES de
+   public/design-system/tokens.css pour les confronter à la
+   proposition. Les deux colonnes « Déclaré » et « Livré » sont
+   mesurées, pas illustrées.
+   Production : Archivo auto-hébergée. Ici, CDN pour la revue.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  /* jetons réels de l'application, recopiés */
+  --sh-bg-base: #000;
+  --sh-bg-surface: #111;
+  --sh-bg-surface-2: #1a1a1a;
+  --sh-text-primary: #fff;
+  --sh-text-secondary: rgba(255,255,255,.65);
+  --sh-text-muted: rgba(255,255,255,.38);
+  --sh-accent: rgb(90,180,220);
+  --sh-focus-ring: rgb(255,159,10);
+  --sh-border: rgba(255,255,255,.08);
+
+  /* proposition */
+  --froid: var(--sh-accent);
+  --chaud: var(--sh-focus-ring);
+  --craie: #e9eaee;
+  --cendre: #8a93a3;
+  --filet: rgba(255,255,255,.10);
+  --ardoise: #101319;
+  --duree: 180ms;
+  --courbe: cubic-bezier(.16,1,.3,1);
+}
+
+* { box-sizing: border-box; }
+html { color-scheme: dark; }
+body {
+  margin: 0;
+  background: var(--sh-bg-base);
+  color: var(--craie);
+  font-family: 'Archivo', -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+.enveloppe { max-width: 64rem; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
+
+/* ── titres : Archivo condensé, la largeur comprimée rend la place à l'affiche */
+h1, h2, h3 { font-weight: 600; letter-spacing: -.01em; margin: 0; line-height: 1.15; }
+h1 { font-size: 38px; font-stretch: 87%; }
+h2 { font-size: 21px; font-stretch: 87%; }
+h3 { font-size: 17px; font-weight: 500; font-stretch: 87%; color: var(--craie); }
+p { margin: 0 0 1rem; max-width: 68ch; color: var(--sh-text-secondary); }
+strong { color: var(--craie); font-weight: 600; }
+.chaud { color: var(--chaud); }
+.froid { color: var(--froid); }
+
+/* ── pas de carte : les blocs se posent sur le noir, séparés par un filet */
+.bloc { padding: 2.5rem 0; border-top: 1px solid var(--filet); }
+.bloc > p:first-of-type, .bloc > h2 + p { margin-top: .75rem; }
+.mesure { font-size: 13px; color: var(--cendre); }
+
+.entete { padding-bottom: 2.5rem; }
+.entete p { font-size: 17px; }
+.sceau { display: flex; gap: .75rem; align-items: baseline; font-size: 13px; color: var(--cendre); margin-top: 1.25rem; }
+.sceau b { font-weight: 600; color: var(--craie); }
+
+/* ── confrontation : deux colonnes, chiffres alignés */
+.confront { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2.5rem; margin-top: 1.5rem; }
+@media (max-width: 720px) { .confront { grid-template-columns: 1fr; } }
+.confront h3 { padding-bottom: .5rem; border-bottom: 1px solid var(--filet); }
+.mesures { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.mesures li { display: flex; justify-content: space-between; gap: 1rem; padding: .4rem 0; border-bottom: 1px solid rgba(255,255,255,.045); }
+.mesures span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; }
+.mesures .mort { color: var(--sh-text-muted); }
+.mesures .vit { color: var(--chaud); }
+
+/* ── palette : cinq pastilles, pas plus */
+.pastilles { display: flex; flex-wrap: wrap; gap: 1.5rem 2.5rem; margin-top: 1.5rem; }
+.pastille { display: flex; align-items: center; gap: .75rem; }
+.puce { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--filet); flex: none; }
+.pastille div { font-size: 13px; line-height: 1.35; }
+.pastille b { display: block; font-weight: 600; font-size: 14px; }
+.pastille i { font-style: normal; color: var(--cendre); }
+
+/* ── typographie : trois distances pour la même chaîne */
+/* Empilé et non en colonnes : dans une colonne étroite, c'est le conteneur qui
+   coupe la ligne, pas la mesure — la démonstration ne démontrerait rien. */
+.distances { display: grid; grid-template-columns: 1fr; gap: 1.75rem 0; margin-top: 1.5rem; }
+.distance { border-left: 1px solid var(--filet); padding-left: 1.25rem; }
+.distance p { font-size: 12px; color: var(--cendre); margin-bottom: .5rem; }
+/* La même phrase, à la mesure de chaque appareil : ce n'est pas la taille qui
+   distingue le GSM du bureau, c'est la longueur de ligne ; la TV change les deux. */
+.gsm    { font-size: 15px; max-width: 34ch; }
+.bureau { font-size: 15px; max-width: 62ch; }
+.tv     { font-size: 17px; max-width: 44ch; }
+.titre-gsm    { font-size: 21px; font-stretch: 87%; font-weight: 600; }
+.titre-bureau { font-size: 21px; font-stretch: 87%; font-weight: 600; }
+.titre-tv     { font-size: 24px; font-stretch: 87%; font-weight: 600; }
+.duree { font-size: 13px; color: var(--cendre); }
+.duree-tv { font-size: 15px; color: var(--cendre); }
+
+/* ── le rail d'affiches : pas de carte, les affiches sur le noir */
+.rail { display: flex; gap: 1rem; margin-top: 1.5rem; overflow: hidden; }
+.affiche { flex: none; width: 132px; }
+.affiche .visuel {
+  aspect-ratio: 2/3; border-radius: 12px; position: relative; overflow: hidden;
+  background: #1b2330;
+}
+.affiche .visuel::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); border-radius: inherit; }
+.affiche .nom { margin-top: .5rem; font-size: 13px; color: var(--sh-text-secondary); line-height: 1.3; }
+.affiche .meta { font-size: 12px; color: var(--cendre); }
+.affiche.en-cours .visuel { box-shadow: 0 0 0 2px var(--chaud); }
+.affiche.en-cours .nom { color: var(--craie); }
+.lecture { display: inline-flex; align-items: center; gap: .4rem; font-size: 12px; color: var(--chaud); }
+
+/* ── élévation : le contre-exemple puis la règle */
+.elevations { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-top: 1.5rem; }
+@media (max-width: 720px) { .elevations { grid-template-columns: 1fr; } }
+.elev { padding: 1.25rem; border-radius: 12px; font-size: 13px; }
+.elev code { display: block; margin-top: .75rem; font-size: 12px; color: var(--sh-text-muted); font-family: inherit; }
+.ombre-portee { background: var(--sh-bg-surface); box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+.halo-blanc { background: var(--sh-bg-surface); box-shadow: 0 6px 20px rgba(255,255,255,.35); color: #000; }
+.surface-filetee { background: var(--ardoise); box-shadow: inset 0 0 0 1px rgba(255,255,255,.10); }
+.elev-titre { display: block; font-weight: 600; color: var(--craie); margin-bottom: .25rem; }
+.halo-blanc .elev-titre { color: #000; }
+
+/* ── focus : la seule chose de sa couleur */
+.boutons { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem; align-items: center; }
+.btn {
+  font: inherit; font-size: 15px; font-weight: 500;
+  padding: .6rem 1.1rem; border-radius: 9999px; cursor: pointer;
+  background: #fff; color: #000; border: 1px solid transparent;
+}
+.btn.ghost { background: transparent; color: var(--craie); border-color: rgba(255,255,255,.18); }
+.btn:focus-visible { outline: 3px solid var(--chaud); outline-offset: 2px; }
+
+/* ── mouvement : une seule boucle, et c'est le direct */
+.direct { display: inline-block; width: 8px; height: 8px; border-radius: 9999px; background: var(--chaud); }
+@media (prefers-reduced-motion: no-preference) {
+  .direct { animation: respirer 2.6s var(--courbe) infinite; }
+}
+@keyframes respirer { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+@media (prefers-reduced-motion: reduce) { .direct { animation: none } }
+
+/* ── avis de la planche */
+.avis { font-size: 12px; color: var(--cendre); border-left: 2px solid var(--chaud); padding-left: .75rem; margin-top: 1rem; }
+.pied { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--filet); font-size: 12px; color: var(--cendre); }
+</style>
+</head>
+<body>
+<div class="enveloppe">
+
+  <header class="entete">
+    <h1>Le système existe.<br />Il n'atteint pas l'écran.</h1>
+    <p>SpaceHub a une identité délibérée — noir absolu, un froid qui informe, un
+      <span class="chaud">orange</span> réservé à la position. Ce n'est pas elle qui est en
+      cause : c'est que ses jetons sont consommés entre <strong>0 et 2 %</strong> du temps.
+      Cette planche confronte les deux.</p>
+    <div class="sceau">
+      <span>Monochrome Apple TV</span> · <span>3 profils — TV, GSM, bureau</span> ·
+      <span>Chromium M108 sur le parc TV</span>
+    </div>
+  </header>
+
+  <section class="bloc">
+    <h2>Déclaré, livré</h2>
+    <p>Chaque ligne est comptée sur les feuilles de <code>public/</code>, <code>ui/</code>,
+      <code>core/</code> et <code>jellyfin/</code>. La colonne de droite n'est pas un
+      jugement, c'est un relevé.</p>
+    <div class="confront">
+      <div>
+        <h3>Déclaré</h3>
+        <ul class="mesures">
+          <li><span>Gamme d'accent, froide</span><span class="mort">3 usages</span></li>
+          <li><span>Échelle typographique, 9 paliers</span><span class="mort">0 usage</span></li>
+          <li><span>Couleur sémantique « info »</span><span class="mort">0 usage</span></li>
+          <li><span>Jetons de flou de chrome</span><span class="mort">0 usage</span></li>
+          <li><span>Paliers de rayon, 6</span><span class="mort">3 usages</span></li>
+          <li><span>Couleur sémantique « danger »</span><span class="mort">3 usages</span></li>
+          <li><span>Anneau de focus</span><span>20 usages</span></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Livré à la place</h3>
+        <ul class="mesures">
+          <li><span>Couleurs écrites en clair</span><span class="vit">566</span></li>
+          <li><span>Tailles de police écrites</span><span class="vit">407</span></li>
+          <li><span>Rayons écrits</span><span class="vit">390</span></li>
+          <li><span>Graisses écrites, 10 valeurs</span><span class="vit">288</span></li>
+          <li><span>La teinte de l'anneau, recopiée</span><span class="vit">#ff9f0a ×36</span></li>
+          <li><span>Flous écrits au lieu du jeton</span><span class="vit">15</span></li>
+          <li><span>Animations sans fin</span><span class="vit">19</span></li>
+        </ul>
+      </div>
+    </div>
+    <p class="avis">« Un indicateur de position doit être la seule chose de cette couleur à
+      l'écran. » La règle est écrite dans le fichier des jetons. Tant que la teinte est
+      recopiée 36 fois, elle est fausse par construction.</p>
+  </section>
+
+  <section class="bloc">
+    <h2>Deux températures, une règle</h2>
+    <p>Il n'y a pas de nouvelle palette à choisir : celle-ci est dessinée, argumentée, et
+      ses deux pôles ne servent qu'à une chose chacun.</p>
+    <div class="pastilles">
+      <div class="pastille">
+        <div class="puce" style="background:#000"></div>
+        <div><b>la pièce</b><i>#000000 — le fond, éteint sur OLED</i></div>
+      </div>
+      <div class="pastille">
+        <div class="puce" style="background:#111"></div>
+        <div><b>l'ardoise</b><i>#111111 — la surface levée</i></div>
+      </div>
+      <div class="pastille">
+        <div class="puce" style="background:#fff"></div>
+        <div><b>l'encre</b><i>#ffffff — à ne pas confondre avec l'accent</i></div>
+      </div>
+      <div class="pastille">
+        <div class="puce" style="background:var(--froid)"></div>
+        <div><b>le froid</b><i>90, 180, 220 — il informe</i></div>
+      </div>
+      <div class="pastille">
+        <div class="puce" style="background:var(--chaud)"></div>
+        <div><b>le chaud</b><i>255, 159, 10 — il situe</i></div>
+      </div>
+    </div>
+    <div class="boutons">
+      <button class="btn">Reprendre</button>
+      <button class="btn ghost">Depuis le début</button>
+      <span class="mesure">— tabulez : un seul anneau <span class="chaud">orange</span>, rien d'autre de cette couleur</span>
+    </div>
+  </section>
+
+  <section class="bloc">
+    <h2>Une famille, trois distances</h2>
+    <p>La même chaîne, sur les trois appareils. Aujourd'hui la face déclarée
+      (<span class="mesure">SF Pro</span>) n'est jamais chargée : macOS la trouve installée,
+      Android et la TV non — la typographie de l'app change donc avec le système.
+      Proposition : <strong>Archivo variable, auto-hébergée</strong>, titres en largeur
+      condensée, nombres en chiffres tabulaires.</p>
+    <div class="distances">
+      <div class="distance">
+        <p>GSM — 30 cm · mesure courte</p>
+        <div class="titre-gsm">Le Faucon maltais</div>
+        <div class="duree">S3 · E7 · 52 min · 4K HDR</div>
+        <div class="gsm" style="margin-top:.75rem">Il reprend l'enquête là où elle s'était arrêtée, sans rien laisser derrière lui.</div>
+      </div>
+      <div class="distance">
+        <p>Bureau — 60 cm · mesure longue</p>
+        <div class="titre-bureau">Le Faucon maltais</div>
+        <div class="duree">S3 · E7 · 52 min · 4K HDR</div>
+        <div class="bureau" style="margin-top:.75rem">Il reprend l'enquête là où elle s'était arrêtée, sans rien laisser derrière lui.</div>
+      </div>
+      <div class="distance">
+        <p>TV — 3 m · mesure courte, corps plus grand</p>
+        <div class="titre-tv">Le Faucon maltais</div>
+        <div class="duree-tv">S3 · E7 · 52 min · 4K HDR</div>
+        <div class="tv" style="margin-top:.75rem">Il reprend l'enquête là où elle s'était arrêtée, sans rien laisser derrière lui.</div>
+      </div>
+    </div>
+    <p class="avis">Le plancher actuel — 9 px, 9,5 px, 10 px, 11,5 px sur 197 sites — est
+      illisible à trois mètres. Aucun palier de l'échelle ne descend sous 14 px sur la TV.</p>
+  </section>
+
+  <section class="bloc">
+    <h2>Trois surfaces, pas de carte</h2>
+    <p>Les affiches se posent directement sur la pièce : on n'encadre pas du contenu qui
+      est déjà du contenu. Le chaud ne décore rien — ici il dit simplement
+      <span class="lecture"><span class="direct"></span>en cours</span>, et c'est la seule
+      boucle de la page.</p>
+    <div class="rail">
+      <div class="affiche en-cours">
+        <div class="visuel"></div>
+        <div class="nom">Le Faucon maltais</div>
+        <div class="meta">S3 · E7</div>
+      </div>
+      <div class="affiche">
+        <div class="visuel" style="background:#232a25"></div>
+        <div class="nom">Nuit blanche</div>
+        <div class="meta">2024 · 1 h 58</div>
+      </div>
+      <div class="affiche">
+        <div class="visuel" style="background:#2a2328"></div>
+        <div class="nom">Les Rives</div>
+        <div class="meta">S1 · E1–E8</div>
+      </div>
+      <div class="affiche">
+        <div class="visuel" style="background:#1f2733"></div>
+        <div class="nom">Signal bas</div>
+        <div class="meta">2023 · 1 h 41</div>
+      </div>
+      <div class="affiche">
+        <div class="visuel" style="background:#26241e"></div>
+        <div class="nom">La Chambre claire</div>
+        <div class="meta">S2 · E3</div>
+      </div>
+    </div>
+    <p class="mesure" style="margin-top:1rem">Affiches de substitution — le rail ne contient
+      aucun dégradé décoratif, aucun conteneur, aucune ombre.</p>
+  </section>
+
+  <section class="bloc">
+    <h2>L'élévation sur noir</h2>
+    <p>Sur un fond noir, une ombre portée noire ne se voit pas : c'est pourquoi le dépôt
+      contient déjà deux recettes d'ombre à encre <em>blanche</em>. Le remède n'est pas
+      une troisième recette, c'est une règle.</p>
+    <div class="elevations">
+      <div class="elev ombre-portee">
+        <span class="elev-titre">Une ombre sur du noir</span>
+        Invisible ici, donc inutile — et le diagnostic est dans le fichier : six recettes
+        cohabitent.
+        <code>0 2px 6px rgba(0,0,0,.4)</code>
+      </div>
+      <div class="elev halo-blanc">
+        <span class="elev-titre">Le halo qui vole le focus</span>
+        Le halo blanc sert deux fois : à lever une surface et à montrer où l'on est.
+        Il ne signifie donc plus rien.
+        <code>0 6px 20px rgba(255,255,255,.35)</code>
+      </div>
+    </div>
+    <div class="elevations" style="margin-top:1.5rem">
+      <div class="elev surface-filetee">
+        <span class="elev-titre">La règle</span>
+        L'élévation est une surface plus claire, bordée d'un filet d'un dixième.
+        <code>background: #101319 + inset 0 0 0 1px rgba(255,255,255,.10)</code>
+      </div>
+      <div class="elev" style="background:transparent; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06)">
+        <span class="elev-titre">Et le halo, à qui ?</span>
+        À l'anneau de focus, et à lui seul. Une seule chose de sa couleur, une seule
+        chose qui luit.
+      </div>
+    </div>
+  </section>
+
+  <section class="bloc">
+    <h2>Le mouvement répond à un geste</h2>
+    <p>Les jetons distinguent déjà une transition d'une boucle. Les 19 animations
+      <code>infinite</code> les contredisent. La boucle est ramenée à une : le direct.</p>
+    <div class="boutons">
+      <span class="lecture"><span class="direct"></span>en cours — la seule boucle</span>
+      <span class="mesure">— tout le reste est une transition de 120 à 550 ms,
+        qui répond à une action et se termine.</span>
+    </div>
+  </section>
+
+  <section class="bloc">
+    <h2>Ce que cette planche ne fait pas</h2>
+    <p>Elle ne touche à aucun comportement, à aucun gabarit, à aucune classe de
+      l'application. C'est une direction applicable par jetons, et l'ordre du chantier
+      est dans <code>docs/IDENTITE_VISUELLE.md</code> : la typographie d'abord, la palette
+      en dernier — parce que l'interrupteur de la couleur n'est pas le fichier des jetons,
+      ce sont les 63 teintes écrites en clair.</p>
+  </section>
+
+  <p class="pied">Planche de revue — 11 septembre 2026. Valeurs recopiées de
+    <code>public/design-system/tokens.css</code> ; Archivo chargée depuis le CDN pour la
+    revue, auto-hébergée en production.</p>
+</div>
+</body>
+</html>

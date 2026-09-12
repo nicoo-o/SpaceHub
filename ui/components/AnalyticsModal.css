@@ -237,8 +237,8 @@
 }
 
 .sh-quality-dot.uhd {
-    background: #64d2ff;
-    box-shadow: 0 0 8px #64d2ff;
+    background: var(--sh-color-info);
+    box-shadow: 0 0 8px var(--sh-color-info);
 }
 
 .sh-quality-dot.fhd {

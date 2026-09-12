@@ -28,7 +28,7 @@
     gap: 6px !important;
     height: 28px !important;
     padding: 0 12px !important;
-    border-radius: 8px !important;
+    border-radius: var(--sh-radius-sm) !important;
     background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     font-size: var(--sh-text-xs) !important;
@@ -155,7 +155,7 @@
 .sh-slideup-back-btn {
     height: 32px;
     padding: 5px 14px 5px 10px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     background: rgba(var(--sh-ink-inv, 14, 14, 22),  0.70);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.90);
@@ -271,7 +271,7 @@
 .sh-cinema-hero-poster {
     width: 120px;
     aspect-ratio: 2/3;
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     overflow: hidden;
     flex-shrink: 0;
     box-shadow: 0 14px 32px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.90), 0 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.20);
@@ -302,7 +302,7 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14);
     padding: 3px 10px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
 }
 .sh-cinema-title {
     font-size: 32px;
@@ -326,7 +326,7 @@
     align-items: center !important;
     gap: 6px !important;
     padding: 3px 9px !important;
-    border-radius: 9999px !important;
+    border-radius: var(--sh-radius-full) !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
     font-size: var(--sh-text-xs) !important;
@@ -362,7 +362,7 @@
     color: var(--sh-ink-solid-inv, #000000);
     border: none;
     padding: 10px 24px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     font-size: 13.5px;
     font-weight: 750;
     cursor: pointer;
@@ -399,7 +399,7 @@
 .sh-cinema-btn-icon {
     width: 38px;
     height: 38px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
     color: var(--sh-ink-solid, #ffffff);
@@ -523,7 +523,7 @@
     z-index: 9999;
     background: rgba(var(--sh-ink-inv, 20, 20, 30),  0.98);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.22);
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     padding: 8px 16px;
     display: flex;
     align-items: center;
@@ -578,7 +578,7 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
     padding: 3px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     margin: 4px 0 10px;
     width: fit-content;
     flex-shrink: 0;
@@ -589,7 +589,7 @@
     bottom: 3px;
     left: 0;
     width: 90px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.14);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.20);
     box-shadow: 0 2px 10px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.35);
@@ -605,7 +605,7 @@
     border: none;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.55);
     padding: 5px 16px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     font-size: 12.5px;
     font-weight: var(--sh-font-semibold);
     cursor: pointer;
@@ -784,7 +784,7 @@
 
 .sh-critics-quote-box {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
-    border-left: 2.5px solid #ff9f0a;
+    border-left: 2.5px solid var(--sh-focus-ring);
     padding: 7px 10px;
     border-radius: 6px;
     font-size: var(--sh-text-xs);
@@ -817,13 +817,13 @@
     width: 100%;
     height: 5px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     overflow: hidden;
 }
 .sh-critics-bar-fill {
     height: 100%;
     background: linear-gradient(90deg, #f5c518 0%, #30d158 100%);
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
 }
 .sh-critics-legend-row {
     display: flex;
@@ -865,7 +865,6 @@
 .sh-cell-label {
     font-size: var(--sh-text-xs);
     font-weight: 750;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
 }
@@ -891,7 +890,7 @@
     gap: 14px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
-    border-radius: 16px;
+    border-radius: var(--sh-radius-lg);
     padding: 12px 16px;
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
@@ -963,7 +962,7 @@
 .sh-bonus-item {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
-    border-radius: 16px;
+    border-radius: var(--sh-radius-lg);
     overflow: hidden;
     cursor: pointer;
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
@@ -1166,7 +1165,7 @@
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-bold);
     padding: 1px 5px;
-    border-radius: 4px;
+    border-radius: var(--sh-radius-xs);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
 }
@@ -1174,7 +1173,7 @@
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-bold);
     padding: 1px 5px;
-    border-radius: 4px;
+    border-radius: var(--sh-radius-xs);
     background: rgba(56, 189, 248, 0.28);
     border: 1px solid rgba(56, 189, 248, 0.25);
     color: #38bdf8;
@@ -1194,7 +1193,7 @@
 .sh-cinema-hero-poster--music {
     width: 140px !important;
     aspect-ratio: 1/1 !important;
-    border-radius: 16px !important;
+    border-radius: var(--sh-radius-lg) !important;
     position: relative !important;
     overflow: visible !important;
 }
@@ -1261,7 +1260,7 @@
     background: rgba(74, 222, 128, 0.28);
     border: 1px solid rgba(74, 222, 128, 0.25);
     padding: 3px 10px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
 }
 .sh-episodes-cards-grid {
     display: grid;
@@ -1274,7 +1273,7 @@
     gap: 12px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
-    border-radius: 16px;
+    border-radius: var(--sh-radius-lg);
     padding: 10px;
     cursor: pointer;
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
@@ -1322,7 +1321,7 @@
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-extrabold);
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: var(--sh-radius-xs);
 }
 .sh-episode-dur {
     position: absolute;
@@ -1333,7 +1332,7 @@
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-bold);
     padding: 2px 5px;
-    border-radius: 4px;
+    border-radius: var(--sh-radius-xs);
 }
 .sh-episode-progress-bar {
     position: absolute;
@@ -1428,7 +1427,7 @@
     gap: 16px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
-    border-radius: 16px;
+    border-radius: var(--sh-radius-lg);
     padding: 12px;
     cursor: pointer;
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
@@ -1441,7 +1440,7 @@
 .sh-saga-thumb-container {
     width: 170px;
     aspect-ratio: 16/9;
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     overflow: hidden;
     position: relative;
     flex-shrink: 0;
@@ -1505,7 +1504,7 @@
     font-size: var(--sh-text-xs);
     font-weight: 750;
     padding: 6px 14px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     cursor: pointer;
     transition: transform var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out);
 }
@@ -1540,7 +1539,7 @@
     align-items: center;
     gap: 14px;
     padding: 8px 14px;
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
     border: 1px solid transparent;
     cursor: pointer;

@@ -32,9 +32,9 @@
 }
 
 .sh-cal-day-badge.tomorrow {
-    background: rgba(255, 159, 10, 0.25);
-    border: 1px solid rgba(255, 159, 10, 0.4);
-    color: #ff9f0a;
+    background: rgba(var(--sh-focus-ring-rgb), 0.25);
+    border: 1px solid rgba(var(--sh-focus-ring-rgb), 0.4);
+    color: var(--sh-focus-ring);
 }
 
 .sh-cal-type-pill {
@@ -50,8 +50,8 @@
 }
 
 .sh-cal-type-pill.movie {
-    background: rgba(100, 210, 255, 0.18);
-    color: #64d2ff;
+    background: rgba(var(--sh-color-info-rgb), 0.18);
+    color: var(--sh-color-info);
 }
 
 .sh-cal-poster-placeholder {

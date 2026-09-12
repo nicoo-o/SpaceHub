@@ -33,8 +33,8 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.1);
 }
-.sh-qbit-speed-card--dl .sh-qbit-speed-icon { color: #64d2ff; }
-.sh-qbit-speed-card--up .sh-qbit-speed-icon { color: #32d74b; }
+.sh-qbit-speed-card--dl .sh-qbit-speed-icon { color: var(--sh-color-info); }
+.sh-qbit-speed-card--up .sh-qbit-speed-icon { color: var(--sh-color-success); }
 
 .sh-qbit-speed-details {
     display: flex;
@@ -48,14 +48,13 @@
     color: var(--sh-ink-solid, #ffffff);
 }
 
-.sh-qbit-speed-card--dl .sh-qbit-speed-val { color: #64d2ff; }
-.sh-qbit-speed-card--up .sh-qbit-speed-val { color: #32d74b; }
+.sh-qbit-speed-card--dl .sh-qbit-speed-val { color: var(--sh-color-info); }
+.sh-qbit-speed-card--up .sh-qbit-speed-val { color: var(--sh-color-success); }
 
 .sh-qbit-speed-lbl {
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-semibold);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
-    text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-top: 2px;
 }
@@ -63,7 +62,7 @@
 .sh-qbit-row {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.06);
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     padding: 12px 14px;
     display: flex;
     flex-direction: column;
@@ -93,7 +92,7 @@
     transform: scale(1.06);
 }
 .sh-qbit-action-btn--del:hover {
-    background: rgba(255, 69, 58, 0.34);
-    border-color: rgba(255, 69, 58, 0.3);
-    color: #ff453a;
+    background: rgba(var(--sh-color-danger-rgb), 0.34);
+    border-color: rgba(var(--sh-color-danger-rgb), 0.3);
+    color: var(--sh-color-danger);
 }

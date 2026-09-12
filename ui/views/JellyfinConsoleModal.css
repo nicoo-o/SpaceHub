@@ -208,9 +208,9 @@
 }
 
 .sh-console-danger-btn {
-    background: rgba(255, 69, 58, 0.34);
-    border: 1px solid rgba(255, 69, 58, 0.35);
-    color: #ff453a;
+    background: rgba(var(--sh-color-danger-rgb), 0.34);
+    border: 1px solid rgba(var(--sh-color-danger-rgb), 0.35);
+    color: var(--sh-color-danger);
     padding: 7px 16px;
     border-radius: var(--sh-radius-md);
     font-size: var(--sh-text-xs);
@@ -220,13 +220,13 @@
 }
 
 .sh-console-danger-btn:hover {
-    background: rgba(255, 69, 58, 0.46);
+    background: rgba(var(--sh-color-danger-rgb), 0.46);
 }
 
 .sh-console-danger-btn.outline {
     background: transparent;
-    border-color: rgba(255, 69, 58, 0.25);
-    color: rgba(255, 69, 58, 0.8);
+    border-color: rgba(var(--sh-color-danger-rgb), 0.25);
+    color: rgba(var(--sh-color-danger-rgb), 0.8);
 }
 
 /* Form inputs & Selects - Fix styling bug */
@@ -246,7 +246,7 @@ select.sh-console-select {
     background-color: var(--sh-bg-surface, #16161e) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
-    border-radius: 12px !important;
+    border-radius: var(--sh-radius-md) !important;
     padding: 10px 14px !important;
     font-size: var(--sh-text-sm) !important;
     outline: none !important;
@@ -269,7 +269,7 @@ input.sh-console-input {
     background-color: var(--sh-bg-surface, #16161e) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
-    border-radius: 12px !important;
+    border-radius: var(--sh-radius-md) !important;
     padding: 10px 14px !important;
     font-size: var(--sh-text-sm) !important;
     outline: none !important;
@@ -294,7 +294,7 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 .sh-console-switch-row {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
-    border-radius: 16px;
+    border-radius: var(--sh-radius-lg);
     padding: 14px 18px;
     display: flex;
     justify-content: space-between;
@@ -324,7 +324,7 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 .sh-console-stat-box {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
-    border-radius: 16px;
+    border-radius: var(--sh-radius-lg);
     padding: 16px;
     display: flex;
     flex-direction: column;
@@ -359,7 +359,7 @@ input.sh-console-input:focus, select.sh-console-select:focus {
     gap: 12px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.06);
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     padding: 10px 14px;
 }
 
@@ -403,7 +403,7 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 .sh-console-search-input {
     background: var(--sh-bg-surface, #16161e);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16);
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     color: var(--sh-ink-solid, #ffffff);
     padding: 8px 14px;
     font-size: var(--sh-text-xs);
@@ -430,7 +430,7 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 .sh-console-terminal {
     background: rgba(var(--sh-ink-inv, 5, 5, 8),  0.94);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.10);
-    border-radius: 16px;
+    border-radius: var(--sh-radius-lg);
     padding: 16px;
     font-family: var(--sh-font-family-mono);
     font-size: var(--sh-text-xs);
@@ -517,7 +517,7 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 .sh-console-task-row {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
-    border-radius: 16px;
+    border-radius: var(--sh-radius-lg);
     padding: 14px 18px;
     display: flex;
     justify-content: space-between;
@@ -535,7 +535,7 @@ input.sh-console-input:focus, select.sh-console-select:focus {
     font-size: var(--sh-text-xs);
     padding: 2px 6px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
-    border-radius: 4px;
+    border-radius: var(--sh-radius-xs);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.6);
 }
 
@@ -586,9 +586,9 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 }
 
 .sh-console-task-btn.stop {
-    background: rgba(255, 69, 58, 0.36);
-    color: #ff453a;
-    border: 1px solid rgba(255, 69, 58, 0.4);
+    background: rgba(var(--sh-color-danger-rgb), 0.36);
+    color: var(--sh-color-danger);
+    border: 1px solid rgba(var(--sh-color-danger-rgb), 0.4);
 }
 
 .sh-console-plugins-grid {
@@ -600,7 +600,7 @@ input.sh-console-input:focus, select.sh-console-select:focus {
 .sh-console-plugin-card {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
-    border-radius: 16px;
+    border-radius: var(--sh-radius-lg);
     padding: 16px;
     display: flex;
     flex-direction: column;

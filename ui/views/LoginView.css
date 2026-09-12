@@ -146,7 +146,6 @@
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-bold);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.50);
-    text-transform: uppercase;
     letter-spacing: 0.06em;
 }
 
@@ -172,9 +171,9 @@
 
 /* ── Erreur ───────────────────────────────────────────────────── */
 .sh-login-error {
-    background: rgba(255, 69, 58, 0.26);
-    border: 1px solid rgba(255, 69, 58, 0.30);
-    border-radius: 12px;
+    background: rgba(var(--sh-color-danger-rgb), 0.26);
+    border: 1px solid rgba(var(--sh-color-danger-rgb), 0.30);
+    border-radius: var(--sh-radius-md);
     padding: 11px 14px;
     color: var(--sh-color-danger);
     font-size: var(--sh-text-sm);
@@ -192,7 +191,7 @@
        n'existe pas et ferait tomber la règle entière en silence. */
     background: rgba(var(--sh-focus-ring-rgb, 255, 159, 10), 0.16);
     border: 1px solid rgba(var(--sh-focus-ring-rgb, 255, 159, 10), 0.34);
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     padding: 11px 14px;
     margin-bottom: 16px;
     color: var(--sh-text-primary, #ffffff);
@@ -236,9 +235,9 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.85);
 }
 .sh-login-btn--success {
-    background: #32d74b !important;
+    background: var(--sh-color-success) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
-    box-shadow: 0 4px 24px rgba(50, 215, 75, 0.40) !important;
+    box-shadow: 0 4px 24px rgba(var(--sh-color-success-rgb), 0.40) !important;
 }
 
 .sh-login-btn__content,
@@ -273,7 +272,7 @@
     padding: 8px 4px;
     background: none;
     border: 1px solid transparent;
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     cursor: pointer;
     transition: background var(--sh-dur-1) var(--sh-ease-out),
                 border-color var(--sh-dur-1) var(--sh-ease-out),

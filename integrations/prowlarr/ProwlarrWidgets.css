@@ -43,7 +43,7 @@
     justify-content: center !important;
     gap: 6px !important;
     padding: 5px 12px !important;
-    border-radius: 9999px !important;
+    border-radius: var(--sh-radius-full) !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14) !important;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85) !important;
@@ -103,7 +103,6 @@
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-semibold);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
-    text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-top: 3px;
 }
@@ -141,19 +140,18 @@
     padding: 2px 7px;
     border-radius: 5px;
     letter-spacing: 0.03em;
-    text-transform: uppercase;
 }
 
 .sh-prowlarr-badge--torrent {
-    color: #64d2ff;
-    background: rgba(100, 210, 255, 0.28);
-    border: 1px solid rgba(100, 210, 255, 0.2);
+    color: var(--sh-color-info);
+    background: rgba(var(--sh-color-info-rgb), 0.28);
+    border: 1px solid rgba(var(--sh-color-info-rgb), 0.2);
 }
 
 .sh-prowlarr-badge--usenet {
-    color: #32d74b;
-    background: rgba(50, 215, 75, 0.28);
-    border: 1px solid rgba(50, 215, 75, 0.2);
+    color: var(--sh-color-success);
+    background: rgba(var(--sh-color-success-rgb), 0.28);
+    border: 1px solid rgba(var(--sh-color-success-rgb), 0.2);
 }
 
 .sh-prowlarr-status-dot {
@@ -164,13 +162,13 @@
 }
 
 .sh-prowlarr-status-dot.online {
-    background: #32d74b;
-    box-shadow: 0 0 8px rgba(50, 215, 75, 0.8);
+    background: var(--sh-color-success);
+    box-shadow: 0 0 8px rgba(var(--sh-color-success-rgb), 0.8);
 }
 
 .sh-prowlarr-status-dot.degraded {
-    background: #ff453a;
-    box-shadow: 0 0 8px rgba(255, 69, 58, 0.8);
+    background: var(--sh-color-danger);
+    box-shadow: 0 0 8px rgba(var(--sh-color-danger-rgb), 0.8);
 }
 
 /* ── État indéterminé (audit « source de données ») ────────────────────────

@@ -52,7 +52,7 @@
 .sh-sonarr-bento-card__poster-wrap {
     position: relative !important;
     aspect-ratio: 2/3 !important;
-    border-radius: 12px !important;
+    border-radius: var(--sh-radius-md) !important;
     overflow: hidden !important;
     background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.5) !important;
     box-shadow: 0 8px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.6) !important;
@@ -79,8 +79,8 @@
 
 .sh-sonarr-pill-badge--ep {
     background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.80) !important;
-    color: #64d2ff !important;
-    border: 1px solid rgba(100, 210, 255, 0.35) !important;
+    color: var(--sh-color-info) !important;
+    border: 1px solid rgba(var(--sh-color-info-rgb), 0.35) !important;
 }
 
 .sh-sonarr-pill-badge--date {
@@ -134,7 +134,7 @@
 .sh-sonarr-queue-row {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.06);
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     padding: 12px 14px;
     display: flex;
     flex-direction: column;

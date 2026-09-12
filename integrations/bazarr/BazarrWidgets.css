@@ -43,7 +43,7 @@
     justify-content: center !important;
     gap: 6px !important;
     padding: 5px 12px !important;
-    border-radius: 9999px !important;
+    border-radius: var(--sh-radius-full) !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14) !important;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85) !important;
@@ -97,7 +97,7 @@
     justify-content: space-between;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.06);
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     padding: 10px 14px;
     gap: 10px;
     transition: background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out);
@@ -122,19 +122,18 @@
     border-radius: 5px;
     flex-shrink: 0;
     letter-spacing: 0.03em;
-    text-transform: uppercase;
 }
 
 .sh-bazarr-type-badge--movie {
-    color: #64d2ff;
-    background: rgba(100, 210, 255, 0.28);
-    border: 1px solid rgba(100, 210, 255, 0.2);
+    color: var(--sh-color-info);
+    background: rgba(var(--sh-color-info-rgb), 0.28);
+    border: 1px solid rgba(var(--sh-color-info-rgb), 0.2);
 }
 
 .sh-bazarr-type-badge--series {
-    color: #32d74b;
-    background: rgba(50, 215, 75, 0.28);
-    border: 1px solid rgba(50, 215, 75, 0.2);
+    color: var(--sh-color-success);
+    background: rgba(var(--sh-color-success-rgb), 0.28);
+    border: 1px solid rgba(var(--sh-color-success-rgb), 0.2);
 }
 
 .sh-bazarr-item__title {

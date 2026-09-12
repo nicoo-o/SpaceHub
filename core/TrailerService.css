@@ -22,7 +22,7 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.12);
     border-radius: 22px;
     overflow: hidden;
-    box-shadow: 0 30px 90px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.7), 0 0 0 1px rgba(255,159,10,0.08);
+    box-shadow: 0 30px 90px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.7), 0 0 0 1px rgba(var(--sh-focus-ring-rgb), 0.08);
     transform: translateY(24px) scale(0.98);
     transition: transform var(--sh-dur-3) var(--sh-ease-out);
 }
@@ -39,11 +39,10 @@
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-extrabold);
     letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: #ff9f0a;
-    background: rgba(255,159,10,0.3);
-    border: 1px solid rgba(255,159,10,0.35);
-    border-radius: 999px;
+    color: var(--sh-focus-ring);
+    background: rgba(var(--sh-focus-ring-rgb), 0.3);
+    border: 1px solid rgba(var(--sh-focus-ring-rgb), 0.35);
+    border-radius: var(--sh-radius-full);
     padding: 4px 10px;
     white-space: nowrap;
 }
@@ -68,8 +67,8 @@
     transition: background var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-trailer-window__close:hover, .sh-trailer-window__close:focus-visible {
-    background: rgba(255, 69, 58, 0.51);
-    outline: 2px solid rgba(255,159,10,0.55);
+    background: rgba(var(--sh-color-danger-rgb), 0.51);
+    outline: 2px solid rgba(var(--sh-focus-ring-rgb), 0.55);
     outline-offset: -2px;
     transform: scale(1.06);
 }
@@ -78,8 +77,8 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: rgba(255, 159, 10, 0.16);
-    border: 1px solid rgba(255, 159, 10, 0.42);
+    background: rgba(var(--sh-focus-ring-rgb), 0.16);
+    border: 1px solid rgba(var(--sh-focus-ring-rgb), 0.42);
     color: var(--sh-ink-solid, #ffffff);
     height: 34px;
     padding: 0 14px;
@@ -92,7 +91,7 @@
 }
 .sh-trailer-window__next:hover,
 .sh-trailer-window__next:focus-visible {
-    background: rgba(255, 159, 10, 0.34);
+    background: rgba(var(--sh-focus-ring-rgb), 0.34);
     transform: scale(1.04);
 }
 .sh-trailer-window__rang {

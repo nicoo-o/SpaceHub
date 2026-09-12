@@ -194,6 +194,19 @@
     --sh-color-success:          #32d74b;   /* Vert Apple système */
     --sh-color-info:             #64d2ff;   /* Bleu ciel Apple système */
 
+    /* LES TRIPLETS -rgb : le chemin de l'alpha.
+
+       Ces quatre teintes ne changent pas d'un thème à l'autre — un
+       avertissement reste orange. Une ombre portée ou un halo a besoin de la
+       MÊME couleur avec un alpha, et `rgba(#ff453a, 0.2)` n'existe pas en
+       CSS : sans triplet déclaré, le composant réécrit les trois nombres à la
+       main (quarante-neuf fois pour le seul orange). Il n'y a pas de raison
+       que l'un des quatre en ait un et pas les autres. */
+    --sh-color-danger-rgb:       255, 69, 58;
+    --sh-color-warning-rgb:      255, 159, 10;
+    --sh-color-success-rgb:      50, 215, 75;
+    --sh-color-info-rgb:         100, 210, 255;
+
     /* ─── Surfaces & fonds — OLED & Frosted Glass ───────────── */
     --sh-bg-base:                #000000;   /* Noir OLED absolu */
     /* Même couleur, en composantes : le hero en a besoin pour construire un
@@ -511,7 +524,6 @@ html {
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-bold);
     letter-spacing: 0.02em;
-    text-transform: uppercase;
 }
 .sh-badge--success { background: rgba(50, 215, 75, 0.15);  color: #32d74b; border: 1px solid rgba(50, 215, 75, 0.25); }
 .sh-badge--warning { background: rgba(255, 159, 10, 0.15); color: #ff9f0a; border: 1px solid rgba(255, 159, 10, 0.25); }

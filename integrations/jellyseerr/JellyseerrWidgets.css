@@ -103,7 +103,7 @@
     gap: 16px !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.07) !important;
-    border-radius: 16px !important;
+    border-radius: var(--sh-radius-lg) !important;
     padding: 12px 16px !important;
     transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
     width: 100% !important;
@@ -120,7 +120,7 @@
 .sh-ep-thumb-wrap {
     width: 140px !important;
     height: 78px !important;
-    border-radius: 12px !important;
+    border-radius: var(--sh-radius-md) !important;
     overflow: hidden !important;
     background: #111 !important;
     flex-shrink: 0 !important;
@@ -218,7 +218,7 @@
 .sh-jellyseerr-panorama-poster-wrap {
     width: 110px !important;
     height: 165px !important;
-    border-radius: 16px !important;
+    border-radius: var(--sh-radius-lg) !important;
     overflow: hidden !important;
     background: #111 !important;
     box-shadow: 0 12px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.7) !important;
@@ -236,7 +236,7 @@
     position: absolute !important;
     inset: 0 !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.15) !important;
-    border-radius: 16px !important;
+    border-radius: var(--sh-radius-lg) !important;
     pointer-events: none !important;
 }
 
@@ -350,13 +350,13 @@
 .sh-jellyseerr-modal-card--wide::-webkit-scrollbar-track,
 .sh-jellyseerr-episodes-list::-webkit-scrollbar-track {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.02) !important;
-    border-radius: 4px !important;
+    border-radius: var(--sh-radius-xs) !important;
 }
 
 .sh-jellyseerr-modal-card--wide::-webkit-scrollbar-thumb,
 .sh-jellyseerr-episodes-list::-webkit-scrollbar-thumb {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.2) !important;
-    border-radius: 4px !important;
+    border-radius: var(--sh-radius-xs) !important;
 }
 
 .sh-jellyseerr-modal-card--wide::-webkit-scrollbar-thumb:hover,
@@ -443,7 +443,7 @@
 .sh-jellyseerr-seasons-master-section {
     background: rgba(var(--sh-ink, 255, 255, 255), 0.03) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.08) !important;
-    border-radius: 16px !important;
+    border-radius: var(--sh-radius-lg) !important;
     padding: 14px !important;
     margin-bottom: 18px !important;
 }
@@ -484,7 +484,7 @@
 .sh-season-card {
     background: rgba(var(--sh-ink, 255, 255, 255), 0.04) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.07) !important;
-    border-radius: 12px !important;
+    border-radius: var(--sh-radius-md) !important;
     padding: 10px 12px !important;
 }
 .sh-season-card-header {
@@ -522,7 +522,7 @@
     gap: 4px !important;
     background: rgba(var(--sh-ink, 255, 255, 255), 0.06) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255), 0.1) !important;
-    border-radius: 8px !important;
+    border-radius: var(--sh-radius-sm) !important;
     padding: 3px 8px !important;
     font-size: var(--sh-text-xs) !important;
     color: #d4d4d8 !important;
@@ -680,7 +680,7 @@
 .sh-jellyseerr-form-select {
     width: 100% !important;
     padding: 10px 14px !important;
-    border-radius: 12px !important;
+    border-radius: var(--sh-radius-md) !important;
     background: var(--sh-bg-surface-2, #181824) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
@@ -814,7 +814,7 @@
 .sh-jellyseerr-bento-card__poster-wrap {
     position: relative !important;
     aspect-ratio: 2/3 !important;
-    border-radius: 12px !important;
+    border-radius: var(--sh-radius-md) !important;
     overflow: hidden !important;
     background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.5) !important;
     box-shadow: 0 8px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.6) !important;
@@ -862,8 +862,8 @@
 
 .sh-jellyseerr-pill-badge--type {
     background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.75) !important;
-    color: #64d2ff !important;
-    border: 1px solid rgba(100, 210, 255, 0.3) !important;
+    color: var(--sh-color-info) !important;
+    border: 1px solid rgba(var(--sh-color-info-rgb), 0.3) !important;
 }
 
 .sh-jellyseerr-pill-badge--rating {
@@ -903,26 +903,26 @@
     gap: 6px !important;
     padding: 7px 10px !important;
     border-radius: 10px !important;
-    background: rgba(100, 210, 255, 0.28) !important;
-    border: 1px solid rgba(100, 210, 255, 0.28) !important;
-    color: #64d2ff !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
+    background: rgba(var(--sh-color-info-rgb), 0.28) !important;
+    border: 1px solid rgba(var(--sh-color-info-rgb), 0.28) !important;
+    color: var(--sh-color-info) !important;
+    font-size: var(--sh-text-xs) !important;
+    font-weight: var(--sh-font-bold) !important;
     cursor: pointer !important;
     transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
 .sh-jellyseerr-req-action-btn:hover:not(:disabled) {
-    background: #64d2ff !important;
+    background: var(--sh-color-info) !important;
     color: var(--sh-ink-solid-inv, #000000) !important;
-    box-shadow: 0 4px 14px rgba(100, 210, 255, 0.4) !important;
+    box-shadow: 0 4px 14px rgba(var(--sh-color-info-rgb), 0.4) !important;
     transform: translateY(-1px) !important;
 }
 
 .sh-jellyseerr-req-action-btn.requested {
-    background: rgba(50, 215, 75, 0.31) !important;
-    border-color: rgba(50, 215, 75, 0.35) !important;
-    color: #32d74b !important;
+    background: rgba(var(--sh-color-success-rgb), 0.31) !important;
+    border-color: rgba(var(--sh-color-success-rgb), 0.35) !important;
+    color: var(--sh-color-success) !important;
     cursor: default !important;
 }
 

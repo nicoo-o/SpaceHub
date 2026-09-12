@@ -61,7 +61,7 @@
     width: 100%;
     aspect-ratio: 1 / 1;
     object-fit: cover;
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     box-shadow: 0 24px 64px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.55);
     background: var(--sh-bg-surface-2, #1a1a1e);
 }

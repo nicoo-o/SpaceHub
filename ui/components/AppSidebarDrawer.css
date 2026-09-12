@@ -144,7 +144,7 @@
     right: 0;
     height: 40px;
     background: var(--sh-ink-solid, #ffffff);
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     box-shadow: 0 4px 22px rgba(var(--sh-ink, 255, 255, 255),  0.38), 0 1px 3px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.2);
     pointer-events: none;
     z-index: 1;
@@ -182,7 +182,7 @@
     align-items: center;
     gap: 12px;
     padding: 10px 14px;
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.65);
     text-decoration: none;
     font-size: 13.5px;
@@ -345,7 +345,6 @@
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-extrabold);
     letter-spacing: 0.10em;
-    text-transform: uppercase;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.6);
     margin-bottom: 3px;
 }
@@ -417,7 +416,6 @@
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-extrabold);
     letter-spacing: 0.10em;
-    text-transform: uppercase;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
     margin-top: 4px;
 }
@@ -437,7 +435,7 @@
     padding: 10px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.025);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.06);
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     cursor: pointer;
     transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
@@ -482,7 +480,7 @@
 .sh-sidebar-modal-btn-pri {
     background: var(--sh-ink-solid, #ffffff);
     border: none;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     color: var(--sh-ink-solid-inv, #000000);
     font-size: 12.5px;
     font-weight: var(--sh-font-bold);
@@ -519,7 +517,7 @@
 
 .sh-hub-tab-btn {
     padding: 8px 18px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.05);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.72);
@@ -554,5 +552,5 @@
 }
 .sh-downloads-hub-body::-webkit-scrollbar-thumb {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.15);
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
 }

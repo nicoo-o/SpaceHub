@@ -8,7 +8,7 @@
     margin-inline: auto;
     box-sizing: border-box;
     animation: shDownloadsFadeIn var(--sh-dur-4) var(--sh-ease-out);
-    background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(100, 210, 255, 0.23) 0%, transparent 70%);
+    background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(var(--sh-color-info-rgb), 0.23) 0%, transparent 70%);
 }
 
 @keyframes shDownloadsFadeIn {
@@ -36,7 +36,7 @@
     align-items: center;
     gap: 8px;
     padding: 5px 14px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     font-size: var(--sh-text-xs);
@@ -50,8 +50,8 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #32d74b;
-    box-shadow: 0 0 8px #32d74b;
+    background: var(--sh-color-success);
+    box-shadow: 0 0 8px var(--sh-color-success);
     animation: shPulse var(--sh-loop-pulse) infinite;
 }
 
@@ -105,7 +105,7 @@
 .sh-metric-card__icon {
     width: 40px;
     height: 40px;
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -146,7 +146,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.09);
     overflow-x: auto;
@@ -161,7 +161,7 @@
     align-items: center;
     gap: 8px;
     padding: 10px 22px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     border: 1px solid transparent;
     background: transparent;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.65);
@@ -194,7 +194,7 @@
     align-items: center;
     gap: 8px;
     padding: 10px 20px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     color: var(--sh-ink-solid, #ffffff);
@@ -265,7 +265,7 @@
     border-radius: 10px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.1);
-    color: #64d2ff;
+    color: var(--sh-color-info);
 }
 
 .sh-downloads-view .sh-widget__refresh-btn,
@@ -274,7 +274,7 @@
     align-items: center;
     gap: 6px;
     padding: 7px 14px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12) !important;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85) !important;
@@ -341,19 +341,19 @@
 }
 
 .sh-qbit-speed-card--dl {
-    background: linear-gradient(135deg, rgba(100, 210, 255, 0.24) 0%, rgba(var(--sh-ink, 255, 255, 255),  0.02) 100%) !important;
-    border-color: rgba(100, 210, 255, 0.18) !important;
+    background: linear-gradient(135deg, rgba(var(--sh-color-info-rgb), 0.24) 0%, rgba(var(--sh-ink, 255, 255, 255),  0.02) 100%) !important;
+    border-color: rgba(var(--sh-color-info-rgb), 0.18) !important;
 }
 
 .sh-qbit-speed-card--up {
-    background: linear-gradient(135deg, rgba(50, 215, 75, 0.24) 0%, rgba(var(--sh-ink, 255, 255, 255),  0.02) 100%) !important;
-    border-color: rgba(50, 215, 75, 0.18) !important;
+    background: linear-gradient(135deg, rgba(var(--sh-color-success-rgb), 0.24) 0%, rgba(var(--sh-ink, 255, 255, 255),  0.02) 100%) !important;
+    border-color: rgba(var(--sh-color-success-rgb), 0.18) !important;
 }
 
 .sh-qbit-row {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.07) !important;
-    border-radius: 16px !important;
+    border-radius: var(--sh-radius-lg) !important;
     padding: 16px 20px !important;
     margin-bottom: 12px;
     gap: 12px !important;
@@ -370,13 +370,13 @@
 .sh-qbit-row > div:nth-child(2) {
     height: 6px !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
-    border-radius: 9999px !important;
+    border-radius: var(--sh-radius-full) !important;
 }
 
 .sh-qbit-row > div:nth-child(2) > div {
-    background: linear-gradient(90deg, #38bdf8, #64d2ff, #a78bfa) !important;
-    box-shadow: 0 0 10px rgba(100, 210, 255, 0.5) !important;
-    border-radius: 9999px !important;
+    background: linear-gradient(90deg, #38bdf8, var(--sh-color-info), #a78bfa) !important;
+    box-shadow: 0 0 10px rgba(var(--sh-color-info-rgb), 0.5) !important;
+    border-radius: var(--sh-radius-full) !important;
 }
 
 /* ── Radarr Styles ── */
@@ -390,7 +390,7 @@
 .sh-radarr-movie-card {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
-    border-radius: 16px !important;
+    border-radius: var(--sh-radius-lg) !important;
     overflow: hidden !important;
     transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
     padding: 8px !important;
@@ -405,7 +405,7 @@
 
 .sh-radarr-movie-card__image-wrap {
     position: relative !important;
-    border-radius: 12px !important;
+    border-radius: var(--sh-radius-md) !important;
     overflow: hidden !important;
     aspect-ratio: 2/3 !important;
 }
@@ -427,7 +427,7 @@
     left: 8px !important;
     right: 8px !important;
     padding: 4px 8px !important;
-    border-radius: 8px !important;
+    border-radius: var(--sh-radius-sm) !important;
     background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.75) !important;
     font-size: var(--sh-text-xs) !important;
     font-weight: var(--sh-font-bold) !important;
@@ -449,7 +449,7 @@
     gap: 14px !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
-    border-radius: 16px !important;
+    border-radius: var(--sh-radius-lg) !important;
     padding: 12px !important;
     transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
@@ -476,9 +476,9 @@
 }
 
 .sh-sonarr-ep-badge {
-    background: rgba(100, 210, 255, 0.31) !important;
-    color: #64d2ff !important;
-    border: 1px solid rgba(100, 210, 255, 0.3) !important;
+    background: rgba(var(--sh-color-info-rgb), 0.31) !important;
+    color: var(--sh-color-info) !important;
+    border: 1px solid rgba(var(--sh-color-info-rgb), 0.3) !important;
     border-radius: 6px !important;
     padding: 2px 6px !important;
     font-size: var(--sh-text-xs) !important;
@@ -489,7 +489,7 @@
 .sh-radarr-queue-row {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.07) !important;
-    border-radius: 16px !important;
+    border-radius: var(--sh-radius-lg) !important;
     padding: 16px 20px !important;
     margin-bottom: 12px !important;
     transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
@@ -508,10 +508,10 @@
     align-items: center !important;
     gap: 12px !important;
     padding: 16px 20px !important;
-    border-radius: 16px !important;
-    background: linear-gradient(135deg, rgba(255, 159, 10, 0.26) 0%, rgba(var(--sh-ink, 255, 255, 255),  0.02) 100%) !important;
-    border: 1px solid rgba(255, 159, 10, 0.25) !important;
-    color: #ff9f0a !important;
+    border-radius: var(--sh-radius-lg) !important;
+    background: linear-gradient(135deg, rgba(var(--sh-focus-ring-rgb), 0.26) 0%, rgba(var(--sh-ink, 255, 255, 255),  0.02) 100%) !important;
+    border: 1px solid rgba(var(--sh-focus-ring-rgb), 0.25) !important;
+    color: var(--sh-focus-ring) !important;
     font-size: 14px !important;
     margin-bottom: 20px !important;
 }
@@ -542,9 +542,9 @@
 }
 
 .sh-bazarr-type-badge--movie {
-    background: rgba(100, 210, 255, 0.31) !important;
-    color: #64d2ff !important;
-    border: 1px solid rgba(100, 210, 255, 0.3) !important;
+    background: rgba(var(--sh-color-info-rgb), 0.31) !important;
+    color: var(--sh-color-info) !important;
+    border: 1px solid rgba(var(--sh-color-info-rgb), 0.3) !important;
 }
 
 .sh-bazarr-type-badge--series {
@@ -555,7 +555,7 @@
 
 .sh-bazarr-search-btn {
     padding: 6px 14px !important;
-    border-radius: 9999px !important;
+    border-radius: var(--sh-radius-full) !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14) !important;
     color: var(--sh-ink-solid, #ffffff) !important;
@@ -566,10 +566,10 @@
 }
 
 .sh-bazarr-search-btn:hover {
-    background: #64d2ff !important;
-    border-color: #64d2ff !important;
+    background: var(--sh-color-info) !important;
+    border-color: var(--sh-color-info) !important;
     color: var(--sh-ink-solid-inv, #000000) !important;
-    box-shadow: 0 4px 12px rgba(100, 210, 255, 0.4) !important;
+    box-shadow: 0 4px 12px rgba(var(--sh-color-info-rgb), 0.4) !important;
 }
 
 /* ── Jellyseerr Search & Requests ── */
@@ -649,7 +649,7 @@
     display: flex;
     gap: 14px;
     padding: 12px;
-    border-radius: 16px;
+    border-radius: var(--sh-radius-lg);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.04);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
@@ -693,7 +693,7 @@
 
 .sh-jellyseerr-type-badge {
     background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.7);
-    color: #64d2ff;
+    color: var(--sh-color-info);
 }
 
 .sh-jellyseerr-year-badge {
@@ -742,20 +742,20 @@
 .sh-jellyseerr-req-btn {
     width: 100%;
     padding: 6px 12px;
-    border-radius: 8px;
-    background: rgba(100, 210, 255, 0.31);
-    border: 1px solid rgba(100, 210, 255, 0.35);
-    color: #64d2ff;
-    font-size: 12px;
-    font-weight: 700;
+    border-radius: var(--sh-radius-sm);
+    background: rgba(var(--sh-color-info-rgb), 0.31);
+    border: 1px solid rgba(var(--sh-color-info-rgb), 0.35);
+    color: var(--sh-color-info);
+    font-size: var(--sh-text-xs);
+    font-weight: var(--sh-font-bold);
     cursor: pointer;
     transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
 
 .sh-jellyseerr-req-btn:hover {
-    background: #64d2ff;
+    background: var(--sh-color-info);
     color: var(--sh-ink-solid-inv, #000000);
-    box-shadow: 0 4px 14px rgba(100, 210, 255, 0.4);
+    box-shadow: 0 4px 14px rgba(var(--sh-color-info-rgb), 0.4);
 }
 
 .sh-jellyseerr-status-pill {
@@ -767,9 +767,9 @@
 }
 
 .sh-jellyseerr-status-pill.status-available {
-    background: rgba(50, 215, 75, 0.31);
-    color: #32d74b;
-    border: 1px solid rgba(50, 215, 75, 0.3);
+    background: rgba(var(--sh-color-success-rgb), 0.31);
+    color: var(--sh-color-success);
+    border: 1px solid rgba(var(--sh-color-success-rgb), 0.3);
 }
 
 .sh-jellyseerr-status-pill.status-pending {
@@ -817,7 +817,7 @@
 }
 
 .sh-jellyseerr-trend-card {
-    border-radius: 16px !important;
+    border-radius: var(--sh-radius-lg) !important;
     overflow: hidden !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
@@ -1160,8 +1160,8 @@
 }
 
 .sh-cal-event-chip.movie {
-    background: rgba(100, 210, 255, 0.38) !important;
-    border: 1px solid rgba(100, 210, 255, 0.4) !important;
+    background: rgba(var(--sh-color-info-rgb), 0.38) !important;
+    border: 1px solid rgba(var(--sh-color-info-rgb), 0.4) !important;
     color: #92e0ff !important;
 }
 
@@ -1232,7 +1232,7 @@
     gap: 12px !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08) !important;
-    border-radius: 16px !important;
+    border-radius: var(--sh-radius-lg) !important;
     padding: 10px !important;
     cursor: pointer !important;
     transition: transform var(--sh-dur-2) var(--sh-ease-out) , opacity var(--sh-dur-2) var(--sh-ease-out) , background-color var(--sh-dur-2) var(--sh-ease-out) , background var(--sh-dur-2) var(--sh-ease-out) , border-color var(--sh-dur-2) var(--sh-ease-out) , box-shadow var(--sh-dur-2) var(--sh-ease-out) , color var(--sh-dur-2) var(--sh-ease-out) !important;
@@ -1283,7 +1283,7 @@
     font-size: var(--sh-text-xs) !important;
     font-weight: 750 !important;
     padding: 2px 6px !important;
-    border-radius: 4px !important;
+    border-radius: var(--sh-radius-xs) !important;
 }
 
 .sh-cal-badge-type.ep {
@@ -1292,8 +1292,8 @@
 }
 
 .sh-cal-badge-type.movie {
-    color: #64d2ff !important;
-    background: rgba(100, 210, 255, 0.31) !important;
+    color: var(--sh-color-info) !important;
+    background: rgba(var(--sh-color-info-rgb), 0.31) !important;
 }
 
 .sh-cal-badge-dispo {
@@ -1351,7 +1351,7 @@
 
 .sh-dl-skel__row {
     height: 58px;
-    border-radius: 12px;
+    border-radius: var(--sh-radius-md);
 }
 
 .sh-dl-skel__label {

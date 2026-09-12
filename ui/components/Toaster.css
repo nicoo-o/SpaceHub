@@ -39,10 +39,10 @@
 .sh-toast--leaving  { opacity: 0; transform: translateX(calc(100% + 24px)); transition: opacity 220ms var(--sh-ease-out), transform 220ms var(--sh-ease-out); }
 
 /* Accents gauche par type */
-.sh-toast--success { border-left-color: #32d74b; }
-.sh-toast--error   { border-left-color: #ff453a; }
-.sh-toast--warning { border-left-color: #ff9f0a; }
-.sh-toast--info    { border-left-color: #64d2ff; }
+.sh-toast--success { border-left-color: var(--sh-color-success); }
+.sh-toast--error   { border-left-color: var(--sh-color-danger); }
+.sh-toast--warning { border-left-color: var(--sh-color-warning); }
+.sh-toast--info    { border-left-color: var(--sh-color-info); }
 .sh-toast--default { border-left-color: rgba(var(--sh-ink, 255, 255, 255), 0.30); }
 
 /* Icône */
@@ -98,10 +98,10 @@
     animation: sh-toast-progress linear forwards;
     animation-play-state: running;
 }
-.sh-toast--success .sh-toast__progress { background: rgba(50,  215, 75,  0.66); }
-.sh-toast--error   .sh-toast__progress { background: rgba(255, 69,  58,  0.66); }
-.sh-toast--warning .sh-toast__progress { background: rgba(255, 159, 10,  0.66); }
-.sh-toast--info    .sh-toast__progress { background: rgba(100, 210, 255, 0.66); }
+.sh-toast--success .sh-toast__progress { background: rgba(var(--sh-color-success-rgb), 0.66); }
+.sh-toast--error   .sh-toast__progress { background: rgba(var(--sh-color-danger-rgb), 0.66); }
+.sh-toast--warning .sh-toast__progress { background: rgba(var(--sh-focus-ring-rgb), 0.66); }
+.sh-toast--info    .sh-toast__progress { background: rgba(var(--sh-color-info-rgb), 0.66); }
 
 @keyframes sh-toast-progress {
     from { transform: scaleX(1); }

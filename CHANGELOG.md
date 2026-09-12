@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `docs/IDENTITE_VISUELLE.md` : la direction visuelle — héritée du système déjà
+  déclaré, et mesurée. Ses jetons sont consommés entre 0 et 2 % du temps (0 usage
+  de l'échelle typographique, 3 de la gamme d'accent, 6 des couleurs sémantiques)
+  pendant que 566 couleurs, 407 tailles, 288 graisses et 390 rayons sont écrits à
+  la main. La contribution porte sur la typographie, seul endroit sans identité.
+- `docs/identite-visuelle/planche.html` : la planche de revue autonome — déclaré
+  contre livré, les deux températures, trois distances de lecture, l'élévation sur
+  noir. Hors de toute chaîne de contrôle, comme le reste de `docs/`.
 - `core/HistoriqueVues.js` : la mémoire du bouton retour système. Le pont
   Android ne connaissait que deux issues — fermer une couche, ou proposer de
   **quitter** l'application. Retour depuis l'onglet Flux demandait donc
@@ -23,6 +31,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   le moment que l'œil regarde — et 6 animations sans fin passent à `linear`
   (une courbe d'accélération sur une boucle produit un à-coup à chaque tour).
   Aucun `ease-in` nu n'existait, et il n'y en a toujours pas.
+- Les quatre teintes système Apple (`#ff453a`, `#32d74b`, `#64d2ff`,
+  `#ff9f0a`) deviennent des jetons : 80 écritures en clair en moins, pixels
+  identiques puisque ces couleurs ne changent pas d'un thème à l'autre. Le
+  halo de sélection suit en revanche `--sh-focus-ring` — le seul des quatre
+  redéfini en thème clair, où l'orange vif ne tient pas le contraste : les
+  copies en dur gardaient l'orange de nuit sur fond blanc. Quatre triplets
+  `-rgb` sont déclarés au passage, ce qui donne enfin un chemin à l'alpha
+  (49 `rgba(255, 159, 10, …)` étaient écrits à la main).
+- 202 déclarations `border-radius` rejoignent les paliers déclarés : 447 → 243
+  littéraux, et 3 → 205 usages des jetons. Mesure corrigée au passage : le
+  compteur d'origine était faux de 202 — son regard négatif `(?!var\()` placé
+  après un `\s*` ne filtrait rien, puisqu'une `\s*` peut se réduire à zéro
+  caractère et laisser voir l'espace qui suit. Les rayons qui consommaient
+  déjà le jeton étaient comptés comme écrits à la main.
 - L'échelle typographique déclarée est enfin consommée : les `font-size` et
   `font-weight` littéraux passent de 448 et 316 à **100 et 83**, et le cliquet
   refuse les 348 autres. Deux règles mécaniques, aucune mise en page revue :
@@ -67,8 +89,24 @@ l'application (`theme-color`, `color-scheme`), et les modales se mesurent en
   `--sh-font-family-mono`. Deux compteurs les gardent : familles déclarées
   hors du fichier de jetons (0) et références à une origine de police externe
   (0).
+- Vingt-cinq déclarations `text-transform: uppercase` quittent quatorze
+feuilles. La casse n'est pas de la décoration : sur une étiquette de
+métadonnée — un codec, un genre, un statut — les capitales donnent à lire des
+mots qui ne sont plus des mots, avec un interlettrage d'autant plus coûteux que
+le texte est petit (une étiquette de codec à 9 px, graisse 800, capitales et
+interlettrage, posée sur une affiche). Elle sert une structure (un en-tête de
+colonne) ou un contrôle ; les deux exceptions sont nommées dans le contrôle,
+avec leur raison.
 
 ### Fixed
+- `var(--sh-color-danger, #ff5c7a)` portait un repli qui **contredisait** le jeton
+  (`#ff453a`) : trois déclarations qui décrivaient une couleur qui n'existait nulle
+  part. Un repli qui n'est pas la valeur du jeton n'est pas une sécurité, c'est une
+  deuxième vérité — qui ne se déclenche jamais, jusqu'au jour où elle se déclenche.
+- Le compte des rayons de `scripts/systeme-design-check.mjs` était faux de 202 : le
+  regard négatif `(?!var\()` placé après `\s*` ne filtrait rien, puisqu'une `\s*` peut
+  se réduire à zéro caractère et laisser voir l'espace qui suit. Les déclarations qui
+  consommaient déjà le jeton étaient comptées comme écrites à la main.
 - Le repli `prefers-reduced-motion` réduisait toute transition à `0.01ms`, ce qui
   éteignait aussi les fondus qui **expliquent** un changement d'état : sous
   mouvement réduit, une modale ou un toast apparaissait sans aucun signal. Il

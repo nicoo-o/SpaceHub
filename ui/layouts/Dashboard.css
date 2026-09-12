@@ -191,7 +191,7 @@
     justify-content: center !important;
     gap: 6px !important;
     padding: 5px 12px !important;
-    border-radius: 9999px !important;
+    border-radius: var(--sh-radius-full) !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14) !important;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85) !important;
@@ -246,10 +246,10 @@
 
 .sh-widget-error {
     background: rgba(255, 92, 122, 0.26);
-    border: 1px solid var(--sh-color-danger, #ff5c7a);
+    border: 1px solid var(--sh-color-danger);
     border-radius: var(--sh-radius-md, 12px);
     padding: var(--sh-space-4, 16px);
-    color: var(--sh-color-danger, #ff5c7a);
+    color: var(--sh-color-danger);
 }
 
 .sh-dashboard-config__list {
@@ -307,7 +307,7 @@
     gap: 2px;
     background: transparent;
     border: none;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     padding: 4px;
 }
 
@@ -319,7 +319,7 @@
     height: calc(100% - 8px);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14);
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     box-shadow:
         0 2px 12px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.35),
         inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.18),
@@ -422,7 +422,7 @@
        ne change que 5 valeurs sur 255 au-dessus d'un fond à contraste maximal,
        pour le prix d'une passe de compositing par frame. Invisible, coûteux. */
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     padding: 6px 14px 6px 8px;
     display: none;
     align-items: center;
@@ -522,7 +522,7 @@
     width: 100%;
     height: 3px;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     overflow: hidden;
     margin-top: 3px;
 }
@@ -530,14 +530,14 @@
 .sh-resume-dock__progress-fill {
     height: 100%;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.75);
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     box-shadow: 0 0 6px rgba(var(--sh-ink, 255, 255, 255),  0.30);
 }
 
 .sh-resume-dock__btn-play {
     background: var(--sh-ink-solid, #ffffff);
     border: none;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     padding: 6px 14px 6px 12px;
     color: var(--sh-ink-solid-inv, #000000);
     font-size: var(--sh-text-xs);

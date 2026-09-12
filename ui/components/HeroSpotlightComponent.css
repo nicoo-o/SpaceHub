@@ -100,7 +100,7 @@
     align-items: center !important;
     gap: 6px !important;
     padding: 4px 8px !important;
-    border-radius: 4px !important;
+    border-radius: var(--sh-radius-xs) !important;
     background: rgba(var(--sh-ink, 255, 255, 255),  0.15) !important;
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14) !important;
     font-weight: var(--sh-font-bold) !important;
@@ -198,9 +198,9 @@
     opacity: 1 !important;
     pointer-events: auto !important;
     transform: translateY(-50%) scale(1.15) !important;
-    border-color: #ff9f0a !important;
+    border-color: var(--sh-focus-ring) !important;
     background: rgba(var(--sh-ink-inv, 30, 30, 45),  0.95) !important;
-    box-shadow: 0 0 0 2.5px #ff9f0a, 0 0 24px rgba(255, 159, 10, 0.8) !important;
+    box-shadow: 0 0 0 2.5px var(--sh-focus-ring), 0 0 24px rgba(var(--sh-focus-ring-rgb), 0.8) !important;
     z-index: 999 !important;
 }
 
@@ -235,7 +235,7 @@
     gap: 8px;
     background: rgba(var(--sh-ink-inv, 6, 6, 10),  0.50);
     padding: 8px 14px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     box-shadow: 0 10px 28px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.75);
     transition: background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out);
@@ -250,7 +250,7 @@
     position: relative;
     width: 24px;
     height: 4px;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     background: rgba(var(--sh-ink, 255, 255, 255),  0.22);
     border: none;
     cursor: pointer;
@@ -307,7 +307,7 @@
     width: 100%;
     transform: scaleX(0);
     transform-origin: left center;
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     background: linear-gradient(90deg, rgba(var(--sh-ink, 255, 255, 255),  0.20) 0%, rgba(var(--sh-ink, 255, 255, 255),  0.75) 65%, var(--sh-ink-solid, #ffffff) 100%);
     box-shadow: 0 0 8px rgba(var(--sh-ink, 255, 255, 255),  0.9), 0 0 16px rgba(var(--sh-ink, 255, 255, 255),  0.5);
 }
@@ -330,7 +330,7 @@
     width: 82vw; max-width: 1040px;
     aspect-ratio: 16/9;
     background: var(--sh-bg-base, #000000);
-    border-radius: 16px;
+    border-radius: var(--sh-radius-lg);
     overflow: hidden;
     box-shadow: 0 32px 80px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95), 0 0 0 1px rgba(var(--sh-on-media, 255, 255, 255),  0.12);
     position: relative;
@@ -367,7 +367,7 @@
     gap: 6px;
     background: rgba(var(--sh-ink-inv, 14, 14, 20),  0.60);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.14);
-    border-radius: 9999px;
+    border-radius: var(--sh-radius-full);
     padding: 6px 14px;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
     font-size: var(--sh-text-xs);
