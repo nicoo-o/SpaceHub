@@ -70,6 +70,16 @@ jobs:
       - name: Chaîne de vérification
         run: npm run test
 
+      # La couverture est HORS de `npm test` parce qu'elle coûte ~45 s contre
+      # quelques secondes pour la suite seule. Elle n'était nulle part
+      # ailleurs non plus : les planchers de `vitest.config.js` n'étaient
+      # évalués que par qui lançait la commande à la main, donc ils ne
+      # pouvaient rien casser. D'où cette étape à part, qui imprime le
+      # pourcentage à côté du nombre de tests et nomme les modules que la
+      # suite n'exécute jamais.
+      - name: Plancher de couverture
+        run: npm run test:couverture
+
       - name: Construction
         run: npm run build
 

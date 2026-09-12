@@ -33,3 +33,7 @@ msg-sdk.txt
 msg-confort.txt 
 msg-notes.txt 
 msg-syncplay.txt 
+
+# Rapports de couverture : produits par `npm run test:couverture`,
+# jamais versionnés — ils changent à chaque exécution.
+coverage/

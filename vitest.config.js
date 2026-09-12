@@ -32,17 +32,26 @@ export default defineConfig({
             all: true,
             include: ['core/**/*.js', 'ui/**/*.js', 'jellyfin/**/*.js', 'integrations/**/*.js', 'plugins/**/*.js'],
             exclude: ['**/*.template.js', '**/*.css'],
-            // PLANCHERS, pas objectifs. Ils sont calés sur la mesure du
-            // 11 septembre 2026 — 21,32 / 17,60 / 20,74 / 21,72 sur cette
-            // configuration exacte — et arrondis vers le bas : un plancher au
-            // dixième casserait la chaîne sur un commit sans rapport, et un
-            // contrôle qu'on contourne ne contrôle rien.
-            // Ils ne peuvent que monter.
+            // PLANCHERS, pas objectifs. Arrondis vers le bas depuis la
+            // mesure du jour : un plancher au dixième casserait la chaîne sur
+            // un commit sans rapport, et un contrôle qu'on contourne ne
+            // contrôle rien. Ils ne peuvent que monter.
+            //
+            //   11 septembre 2026 : 21,32 / 17,60 / 20,74 / 21,72
+            //   12 septembre 2026 : 22,04 / 18,32 / 21,29 / 22,47
+            //
+            // Les mêmes valeurs sont répétées dans
+            // `scripts/couverture-check.mjs`, qui est ce qui les FAIT
+            // ÉCHOUER : `test:couverture` ne figurait ni dans `npm test` ni
+            // dans la CI, si bien que ces seuils n'étaient évalués que par
+            // quelqu'un qui lançait la commande à la main. Un plancher que
+            // rien ne franchit automatiquement est une intention, pas un
+            // contrat.
             thresholds: {
-                statements: 21,
-                branches: 17,
-                functions: 20,
-                lines: 21,
+                statements: 22,
+                branches: 18,
+                functions: 21,
+                lines: 22,
             },
         },
     },
