@@ -37,8 +37,41 @@ import path from 'node:path';
 import { SURFACE_FACADE } from '../jellyfin/player/ContratFacade.js';
 import { SURFACE_NAV } from '../core/ContratSpatialNavigation.js';
 
-const RACINES = ['core', 'ui', 'jellyfin', 'integrations', 'plugins', 'api'];
+/* `scripts` est inclus : le harnais e2e PILOTE le moteur par ses internes, et
+   ces atteintes sont déclarées au contrat. Les déclarer sans les vérifier
+   laissait le contrat décrire des usages que personne ne contrôlait. */
+const RACINES = ['core', 'ui', 'jellyfin', 'integrations', 'plugins', 'api', 'scripts'];
+
+/*
+ * DEUX LISTES, PAS UNE.
+ *
+ * Elles étaient réunies en un seul `Set`, ce qui voulait dire qu'ajouter un
+ * interne au contrat du LECTEUR autorisait mécaniquement le même nom sur le
+ * MOTEUR — deux façades sans rapport, une seule porte. Chaque famille
+ * d'appelants garde donc sa propre surface, et c'est le nom du récepteur qui
+ * décide laquelle s'applique.
+ */
+const SURFACES_PAR_FAMILLE = {
+    lecteur: new Set(SURFACE_FACADE),
+    moteur: new Set(SURFACE_NAV),
+};
 const SURFACE = new Set([...SURFACE_FACADE, ...SURFACE_NAV]);
+
+/**
+ * Membres que le MOTEUR porte réellement, lus dans sa propre source.
+ *
+ * C'est ce qui permet de contrôler les atteintes PUBLIQUES sans inventer de
+ * faux positifs : un `nav.getBoundingClientRect` quelconque n'est pas un membre
+ * du moteur, donc il ne dit rien ; un `nav.pushLayer` en est un, et s'il n'est
+ * pas au contrat, c'est une atteinte.
+ */
+const MEMBRES_MOTEUR = (() => {
+    const src = fs.readFileSync('core/SpatialNavigation.js', 'utf8');
+    const noms = new Set();
+    for (const m of src.matchAll(/^\s{4}(?!\/)([A-Za-z_$][\w$]*)\s*\(/gm)) noms.add(m[1]);
+    for (const m of src.matchAll(/this\.([A-Za-z_$][\w$]*)\s*=/g)) noms.add(m[1]);
+    return noms;
+})();
 
 const problemes = [];
 
@@ -86,7 +119,27 @@ for (const f of fichiers) {
 // l'instance. Ce qui précède le `._x` n'est pas borné à gauche : il faut
 // que la FIN du récepteur soit un de ces noms, d'où le groupement collé
 // au `._`.
-const ATTEINTE = /(?:\b(?:lecteur|player|videoPlayer|vp|nav|spatialNavigation)|(?:\b|[\s$&(])_lecteur\(\)\s*\??)\s*\??\.\s*_([A-Za-z][A-Za-z0-9]*)/g;
+const RECEPTEURS = {
+    lecteur: /(?:\b(?:lecteur|player|videoPlayer|vp)|(?:\b|[\s$&(])_lecteur\(\)\s*\??)/,
+    moteur: /\b(?:nav|spatialNavigation|moteur)\b/,
+};
+
+const ATTEINTE = /(?:\b(?:lecteur|player|videoPlayer|vp|nav|spatialNavigation|moteur)|(?:\b|[\s$&(])_lecteur\(\)\s*\??)\s*\??\.\s*_([A-Za-z][A-Za-z0-9]*)/g;
+
+/** À quelle façade appartient l'appelant, d'après le nom de son récepteur. */
+function familleDuRecepteur(texte) {
+    return RECEPTEURS.lecteur.test(texte) ? 'lecteur' : 'moteur';
+}
+
+/**
+ * Atteinte d'une méthode PUBLIQUE — celle que ce contrôle ne voyait pas.
+ *
+ * Le récepteur est dans la partie non capturante, comme pour les atteintes
+ * privées plus haut : c'est la forme qui évite les faux positifs. Elle couvre
+ * les quatre écritures réellement employées dans le dépôt : `nav.x`,
+ * `spatialNav.x`, `this._nav.x` et l'accesseur `svc.nav().x`.
+ */
+const ATTEINTE_PUBLIQUE = /(?:\b(?:nav|spatialNav|spatialNavigation|moteur)\b|\bnav\s*\(\s*\)|this\._nav)\s*\??\.\s*([A-Za-z_$][\w$]*)/g;
 
 for (const f of fichiers) {
     const src = fs.readFileSync(f, 'utf8');
@@ -100,13 +153,35 @@ for (const f of fichiers) {
     for (const m of code.matchAll(ATTEINTE)) {
         // La capture exclut l'underscore initial : le contrat, lui, le porte.
         const membre = '_' + m[1];
-        if (SURFACE.has(membre)) continue;
+        const famille = familleDuRecepteur(m[0]);
+        if (SURFACES_PAR_FAMILLE[famille]?.has(membre)) continue;
+        // Un interne du lecteur atteint par un appelant du moteur n'est pas
+        // forcément un membre du moteur : on ne parle que de ce qui existe.
+        if (famille === 'moteur' && !MEMBRES_MOTEUR.has(membre)) continue;
         const ligne = code.slice(0, m.index).split('\n').length;
         problemes.push(
-            `${rel}:${ligne} — atteinte « ${m[0].trim()} » hors du contrat de façade. ` +
-            `Surface autorisée : jellyfin/player/ContratFacade.js. ` +
+            `${rel}:${ligne} — atteinte « ${m[0].trim()} » hors du contrat de façade ` +
+            `(${famille}). Surface autorisée : ` +
+            `${famille === 'moteur' ? 'core/ContratSpatialNavigation.js' : 'jellyfin/player/ContratFacade.js'}. ` +
             `Ajouter un membre au contrat est une décision explicite et committée ; ` +
-            `sinon, préférez une API publique du lecteur.`
+            `sinon, préférez une API publique.`
+        );
+    }
+
+    /* ── Les membres PUBLICS du moteur ────────────────────────────────────
+       Le contrôle ne voyait que les `._x`. Conséquence : supprimer une méthode
+       publique du moteur ne cassait RIEN dans la chaîne — l'appelant perdait sa
+       cible en silence, et seule la recette s'en apercevait. C'était la moitié
+       manquante du contrat. */
+    for (const m of code.matchAll(ATTEINTE_PUBLIQUE)) {
+        const membre = m[1];
+        if (!MEMBRES_MOTEUR.has(membre)) continue;
+        if (SURFACES_PAR_FAMILLE.moteur.has(membre)) continue;
+        const ligne = code.slice(0, m.index).split('\n').length;
+        problemes.push(
+            `${rel}:${ligne} — « ${m[0].trim()} » atteint un membre du moteur ` +
+            `absent de core/ContratSpatialNavigation.js. Une méthode publique non ` +
+            `déclarée peut être retirée par une extraction sans que rien n'échoue.`
         );
     }
 }

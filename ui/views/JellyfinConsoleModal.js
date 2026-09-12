@@ -677,7 +677,7 @@ export class JellyfinConsoleModal {
                 const category = task.Category || 'Système';
 
                 return `
-                    <div class="sh-console-task-row" data-task-id="${this._escape(task.Id)}">
+                    <div class="sh-console-task-row">
                         <div class="sh-console-task-info">
                             <div class="sh-console-task-title-row">
                                 <strong>${this._escape(task.Name || 'Tâche sans nom')}</strong>

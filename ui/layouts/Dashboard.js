@@ -775,7 +775,6 @@ class Dashboard {
         widgetWrapper.className = `sh-dashboard__item sh-dashboard__item--col-${colSpan}`;
         widgetWrapper.style.animation = `shSectionFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) ${Math.min(index * 50, 400)}ms backwards`;
         widgetWrapper.dataset.widgetType = itemConfig.widgetType;
-        widgetWrapper.dataset.instanceId = instanceId;
 
         gridEl.appendChild(widgetWrapper);
 

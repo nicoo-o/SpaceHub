@@ -267,7 +267,12 @@ async function init() {
     const spatialNav = new SpatialNavigation();
 
     SpaceHub.spatialNav = spatialNav;
-    SpaceHub.gamepad = spatialNav.getGamepad ? spatialNav.getGamepad() : spatialNav._gamepad;
+    // Appel public uniquement. La ligne portait `: spatialNav._gamepad` en repli :
+    // une méthode publique DOUBLÉE d'une atteinte d'état privé, donc deux façons
+    // de lire la même chose dont une que rien ne protège. `getGamepad()` est au
+    // contrat de façade (core/ContratSpatialNavigation.js) et testé — c'est elle
+    // qui répond, ou rien.
+    SpaceHub.gamepad = spatialNav.getGamepad ? spatialNav.getGamepad() : null;
     SpaceHub.core.spatialNavigation = spatialNav;
     services.register('nav.spatial', spatialNav);
     // Le pont a besoin du moteur pour son pipeline Retour — branché ici,
@@ -842,9 +847,13 @@ async function init() {
                 // n'a plus de couche à fermer. Branchée APRÈS son render — le
                 // pont, lui, existe depuis le début.
                 pontAndroid.brancherVues?.(appLayout);
-                window.SpaceHub.gamepad = appLayout?._spatialNav?._gamepad;
+                // `getGamepad()` publique, sur le singleton : la ligne lisait
+                // `appLayout?._spatialNav?._gamepad`, soit DEUX champs privés
+                // traversés (ceux de la coquille puis ceux du moteur) pour une
+                // valeur que le contrat expose et que les tests couvrent.
+                window.SpaceHub.gamepad = spatialNav.getGamepad ? spatialNav.getGamepad() : null;
                 if (!window.SpaceHub.core) window.SpaceHub.core = {};
-                window.SpaceHub.core.gamepad = appLayout?._spatialNav?._gamepad;
+                window.SpaceHub.core.gamepad = window.SpaceHub.gamepad;
                 ensureRatingsPlugin();
                 setTimeout(() => OnboardingWizard.startForCurrentUser(SpaceHub.ui.onboarding), 350);
             } else {

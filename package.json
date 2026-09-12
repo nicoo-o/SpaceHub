@@ -17,11 +17,12 @@
         "test:xss": "node scripts/xss-hygiene-check.mjs",
         "test:globals": "node scripts/globals-check.mjs",
         "test:e2e": "node scripts/e2e.mjs",
-        "test": "npm run lint && npm run test:unit && npm run test:smoke && npm run test:nav && npm run test:input && npm run test:focus && npm run test:fantomes && npm run test:facade-appelants && npm run test:gabarits && npm run test:css && npm run test:xss && npm run test:globals && npm run test:contraste && npm run test:taille && npm run test:changelog && npm run test:gsm",
-        "verify": "npm run test && npm run build && npm run test:poids && npm run test:e2e",
+        "test": "npm run lint && npm run test:unit && npm run test:smoke && npm run test:nav && npm run test:input && npm run test:focus && npm run test:fantomes && npm run test:facade-appelants && npm run test:gabarits && npm run test:design && npm run test:plancher && npm run test:css && npm run test:xss && npm run test:globals && npm run test:contraste && npm run test:taille && npm run test:modules && npm run test:changelog && npm run test:gsm",
+        "verify": "npm run test && npm run test:couverture && npm run build && npm run test:poids && npm run test:e2e",
         "test:poids": "node scripts/poids-check.mjs",
         "test:contraste": "node scripts/contraste-check.mjs",
         "test:taille": "node scripts/taille-monolithes-check.mjs",
+        "test:modules": "node scripts/modules-testes-check.mjs",
         "test:changelog": "node scripts/notes-release.mjs --check",
         "lint": "node scripts/syntax-check.mjs",
         "test:unit": "vitest run",
@@ -29,7 +30,10 @@
         "test:focus": "node scripts/focus-containers-check.mjs",
         "test:fantomes": "node scripts/methodes-fantomes-check.mjs",
         "test:gabarits": "node scripts/gabarits-identifiants-check.mjs",
-        "test:facade-appelants": "node scripts/facade-appelants-check.mjs"
+        "test:facade-appelants": "node scripts/facade-appelants-check.mjs",
+        "test:design": "node scripts/systeme-design-check.mjs",
+        "test:plancher": "node scripts/plancher-navigateur-check.mjs",
+        "test:couverture": "vitest run --coverage"
     },
     "keywords": [
         "jellyfin",
@@ -49,6 +53,7 @@
     "author": "SpaceHub Team",
     "license": "GPL-3.0",
     "devDependencies": {
+        "@vitest/coverage-v8": "^5.0.0",
         "jsdom": "^30.0.1",
         "playwright-core": "^1.63.0",
         "vite": "^8.2.2",

@@ -23,16 +23,56 @@
  * ----------------------
  * Les tests unitaires de la classe elle-même (SpatialNavigation.test.js et
  * ses voisins) : ils TESTENT le moteur, ils n'y sont pas des appelants.
+ * Et une atteinte par variable renommée (`const m = nav; m._x`) échappe comme
+ * toujours au balayage mécanique — la revue reste le dernier gardien.
  */
 
-/** Méthodes publiques réellement appelées de l'extérieur. */
+/**
+ * Méthodes publiques réellement appelées de l'extérieur.
+ *
+ * CE QUE CETTE LISTE ÉTAIT DEVENUE, ET POURQUOI ELLE A DOUBLÉ
+ * ----------------------------------------------------------
+ * Elle déclarait SIX membres. `scripts/facade-appelants-check.mjs` n'observait
+ * que les atteintes privées (`nav._x`) : une méthode publique absente d'ici
+ * pouvait donc être retirée par une extraction sans qu'aucun contrôle ne
+ * bronche — l'appelant perdait sa cible en silence.
+ *
+ * Le contrôle sait maintenant observer les membres publics, et il a trouvé dix
+ * absents de cette liste, tous réellement appelés : l'enregistrement des
+ * focusables, le cycle de vie des couches, la mémoire de focus, le diagnostic
+ * et le pont Android. La liste est donc devenue ce qu'elle prétendait être —
+ * la surface que le monde extérieur touche vraiment.
+ *
+ * Chaque entrée dit QUI l'appelle : c'est ce qui permet, dans six mois, de
+ * savoir si elle sert encore. Ajouter un membre ici est une décision explicite
+ * et committée, jamais un effet de bord d'un appelant pressé.
+ */
 export const MEMBRES_APPELABLES = Object.freeze([
-    'setFocus',         // NavTestHarness, e2e
-    'getFocusables',    // NavTestHarness, e2e
-    'focusFirst',       // NavTestHarness, e2e
-    'onModalOpened',    // AppLayout (couches ouvertes sans harnais)
-    'onModalClosed',    // AppLayout, VideoPlayer
-    'dernierDiagnostic', // e2e (HUD)
+    // ── Position ──────────────────────────────────────────────────────────
+    'setFocus',             // NavTestHarness, e2e, CarouselController, AppLayout, feuille
+    'focusFirst',           // NavTestHarness, e2e, AppLayout
+    'restorePreviousFocus', // AppSidebarDrawer (fermeture d'un tiroir)
+    'pushFocus',            // UnifiedSearch (un seul point de retour)
+
+    // ── Enregistrement des focusables ─────────────────────────────────────
+    'extendFocusables',     // Modal, SettingsPanel, LibraryView, DownloadsView, UnifiedSearch
+    'registerFocusables',   // AppSidebarDrawer, VideoPlayer
+    'getFocusables',        // NavTestHarness, e2e
+
+    // ── Cycle de vie des couches ──────────────────────────────────────────
+    'onModalOpened',        // Modal, feuille, tiroir, assistance, panneaux
+    'onModalClosed',        // Modal, tiroir, SettingsPanel, LibraryView, VideoPlayer, TouchEngine
+    'onLayerClosed',        // Modal, UnifiedSearch
+    'pushLayer',            // UnifiedSearch (couche nommée sans focus)
+
+    // ── Diagnostic (HUD de développement) ─────────────────────────────────
+    'activerDiagnostic',    // DebugHud
+    'dernierDiagnostic',    // DebugHud, e2e
+    'getFocusedElement',    // DebugHud, HeroSpotlightComponent
+
+    // ── Périphériques et retour ───────────────────────────────────────────
+    'getGamepad',           // SpaceHub (démarrage)
+    'demandeRetour',        // PontAndroid (pipeline Retour TV + bouton système)
 ]);
 
 /**

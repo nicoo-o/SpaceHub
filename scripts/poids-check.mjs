@@ -37,6 +37,8 @@ import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { join } from 'node:path';
 
+import { exigerDistAJour } from './fraicheur-dist.mjs';
+
 const DIST = 'dist';
 const ASSETS = join(DIST, 'assets');
 
@@ -115,6 +117,10 @@ const INTERDITS_AU_DEMARRAGE = ['vendor-hls'];
 
 const erreurs = [];
 const lignes = [];
+
+// Ce contrôle mesure dist/ : un build périmé lui ferait peser un autre code
+// que celui qu'on vient d'écrire.
+exigerDistAJour('Poids des paquets');
 
 if (!existsSync(DIST) || !existsSync(join(DIST, 'index.html'))) {
     console.error('Aucune construction dans dist/. Lancez `npm run build` d\'abord.');

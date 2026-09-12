@@ -219,7 +219,7 @@ export class OnboardingWizard {
         const progress = Math.round(((this._index + 1) / this._steps.length) * 100);
         const roleLabel = this._role === 'admin' ? 'PARCOURS ADMINISTRATEUR' : 'PREMIÈRE DÉCOUVERTE';
         return `
-            <div class="sh-onboarding" data-onboarding-role="${this._role}">
+            <div class="sh-onboarding">
                 <div class="sh-onboarding__badge">${roleLabel}</div>
                 <div class="sh-onboarding__hero" aria-live="polite">
                     <div class="sh-onboarding__icon" aria-hidden="true">${step.icon}</div>

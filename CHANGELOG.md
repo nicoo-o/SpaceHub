@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `CONTEXT.md` : le vocabulaire du domaine, avec les termes de la navigation
+  (scope, couche, mémoire de focus, redirection déclarative, intention) et ceux de
+  la méthode d'approfondissement (peau, ledger, budget, façade). Le fichier fixe le
+  mot juste pour que les revues d'architecture ne réinventent pas trois synonymes
+  par concept.
 - `docs/IDENTITE_VISUELLE.md` : la direction visuelle — héritée du système déjà
   déclaré, et mesurée. Ses jetons sont consommés entre 0 et 2 % du temps (0 usage
   de l'échelle typographique, 3 de la gamme d'accent, 6 des couleurs sémantiques)
@@ -23,6 +28,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bibliothèque. Le module est une piste + une position (modèle du navigateur,
   pas une pile naïve : sans lui, Retour oscillerait entre deux onglets sans
   jamais proposer de sortir), pur, borné à 20 entrées, et testé par sept cas.
+- Les instruments qui mesurent l'acquis, sans lesquels cette passe ne serait
+qu'une déclaration : `scripts/systeme-design-check.mjs` confronte ce qui est
+DÉCLARÉ à ce qui est CONSOMMÉ — 18 plafonds, 6 planchers, calés sur la mesure
+du jour —, `scripts/plancher-navigateur-check.mjs` refuse une fonction livrée
+au-delà du WebView du parc (Chromium 108, celui des téléviseurs),
+`scripts/modules-testes-check.mjs` refuse un module de `core/` que rien
+n'importe dans les tests, et `scripts/fraicheur-dist.mjs` refuse de mesurer un
+`dist/` plus vieux que ses sources : l'e2e et la pesée jouaient un autre code
+que celui qu'on venait d'écrire, et rendaient un verdict faux dans les deux
+sens. La couverture a désormais des planchers déclarés (21 / 17 / 20 / 21) et
+échoue si elle descend. Chaque cliquet a été vu mordre avant d'être committé.
 
 ### Changed
 - Les courbes d'animation déclarées remplacent le `ease` nu du navigateur :
@@ -107,6 +123,9 @@ avec leur raison.
   regard négatif `(?!var\()` placé après `\s*` ne filtrait rien, puisqu'une `\s*` peut
   se réduire à zéro caractère et laisser voir l'espace qui suit. Les déclarations qui
   consommaient déjà le jeton étaient comptées comme écrites à la main.
+- `core/SpaceHub.js` lisait `appLayout?._spatialNav?._gamepad` — DEUX champs
+  privés traversés (ceux de la coquille puis ceux du moteur) pour une valeur
+  que le contrat expose (`getGamepad()`) et que les tests couvrent déjà.
 - Le repli `prefers-reduced-motion` réduisait toute transition à `0.01ms`, ce qui
   éteignait aussi les fondus qui **expliquent** un changement d'état : sous
   mouvement réduit, une modale ou un toast apparaissait sans aucun signal. Il
@@ -116,6 +135,15 @@ avec leur raison.
 - Le curseur de la barre de lecture naissait à `scale(0)` — un point sans
   dimension. Rien n'apparaît à partir de rien : il part de `scale(0.6)` et se
   fond en même temps.
+- Huit attributs `data-*` étaient écrits dans le DOM et lus par personne —
+`data-library-id`, `data-onboarding-role`, `data-request-id`, `data-task-id`,
+`data-nav-role`, `data-instance-id`, `data-locked-reason`, `data-modal-close` :
+l'audit manuel en avait vu quatre, le nouveau contrôle quatre de plus. Rien ne
+les surveillait, et ils ne se voient pas en recette : ils font croire que
+quelque chose est branché. C'est la forme DOM du motif des 47 transitions
+mortes, et `gabarits-identifiants-check.mjs` tient maintenant les DEUX sens —
+un attribut sans lecteur, un sélecteur `[data-x]` sans écrivain (les points
+d'extension publics sont nommés, pas tolérés).
 
 ## [1.4.0] - 2026-09-11
 

@@ -186,9 +186,10 @@
    une information (« votre session a expiré »). Le rouge dirait à tort
    à l'utilisateur qu'il s'est trompé. */
 .sh-login-notice {
-    /* rgba(var(--token-rgb), a) et non color-mix() : le plancher de
-       compatibilité est Chrome 69 (téléviseurs 2020), où color-mix()
-       n'existe pas et ferait tomber la règle entière en silence. */
+    /* rgba(var(--token-rgb), a) et non color-mix() : ce composant tourne sous
+       le profil GSM *et* sur le téléviseur, dont le WebView est en Chromium 108
+       — color-mix() demande 111, donc la règle entière tomberait en silence.
+       Le plancher est mesuré par `npm run test:plancher`. */
     background: rgba(var(--sh-focus-ring-rgb, 255, 159, 10), 0.16);
     border: 1px solid rgba(var(--sh-focus-ring-rgb, 255, 159, 10), 0.34);
     border-radius: var(--sh-radius-md);

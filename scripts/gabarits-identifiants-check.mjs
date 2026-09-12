@@ -139,4 +139,109 @@ if (uniques.length) {
 }
 
 console.log(`Identifiants des gabarits : ${total} interpolation(s) vérifiée(s) dans ${fichiers.length} module(s).`);
-console.log('Aucun gabarit ne lit une variable qu\'on ne lui donne pas.');
+console.log('Aucun gabarit ne lit une variable qu\'on lui donne pas.');
+
+/* ══════════════════════════════════════════════════════════════════════
+   DEUXIÈME CONTRAT — un attribut posé dans le DOM doit avoir un lecteur
+   ══════════════════════════════════════════════════════════════════════
+
+   POURQUOI. Le contrat ci-dessus garde le sens « ce que le gabarit peut LIRE ».
+   Celui-ci garde le sens inverse, et c'est celui qui pourrit en silence : un
+   `data-*` écrit dans le HTML que PERSONNE ne lit. Il ne casse rien, il ne
+   lève rien, il ne se voit pas en recette — il fait juste croire que quelque
+   chose est branché. Quatre l'avaient été : `data-library-id`,
+   `data-onboarding-role`, `data-request-id`, `data-task-id`.
+
+   C'est la forme DOM du motif que ce dépôt a déjà nommé deux fois : les 47
+   transitions mortes (du CSS valide, jamais lu) et les méthodes fantômes.
+   Le symétrique compte aussi : un sélecteur `[data-x]` qui vise un attribut
+   qu'AUCUN gabarit n'écrit est une règle morte au même titre — sauf s'il
+   s'agit d'un point d'extension public volontaire, listé ci-dessous.
+*/
+
+/** Points d'extension documentés : personne dans l'application ne les écrit, et c'est le contrat. */
+const EXTENSIONS_DOM = new Set([
+    // core/SpatialNavigation.js documente ce sélecteur comme la façon dont un
+    // carrousel déclare sa mémoire de focus. L'application n'en écrit aucun.
+    'data-nav-remember',
+]);
+
+const RACINES_APP = ['ui', 'core', 'jellyfin', 'integrations', 'plugins'];
+const OPTIONS_GLOB = { cwd: RACINE, exclude: n => n === 'node_modules' || n === 'dist' };
+
+const jsApp = RACINES_APP.flatMap(r => globSync(`${r}/**/*.js`, OPTIONS_GLOB));
+const jsHarnais = ['scripts', 'tests'].flatMap(r => globSync(`${r}/**/*.js`, OPTIONS_GLOB));
+const cssApp = RACINES_APP.flatMap(r => globSync(`${r}/**/*.css`, OPTIONS_GLOB));
+
+/**
+ * Les commentaires parlent des sélecteurs ; ils n'en sont pas.
+ * Sans ce nettoyage, un commentaire qui EXPLIQUE la suppression de
+ * `[data-modal-close]` passait pour un sélecteur vivant — le contrôle
+ * mesurait le texte qui décrit la chose au lieu de la chose.
+ * Les numéros de ligne sont préservés (les blocs sont remplacés par des blancs).
+ */
+const sansCommentaires = src => src
+    .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    .replace(/(^|[^:'"\\])\/\/[^\n]*/g, (m, avant) => avant + ' ');
+
+const lire = liste => liste.map(f => sansCommentaires(readFileSync(path.join(RACINE, f), 'utf8')));
+
+/* Le texte où l'on cherche un LECTEUR : les modules, mais aussi les harnais
+   (l'e2e de ce dépôt lit le DOM : il compte comme consommateur légitime). */
+const texteLecteurs = [...lire(jsApp), ...lire(jsHarnais), ...lire(cssApp)].join('\n');
+
+const camel = nom => nom.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+
+/** Déclarations : `data-x=` dans un gabarit, ou `dataset.x =` sur un élément. */
+const declarations = new Map();
+for (const rel of jsApp) {
+    const src = sansCommentaires(readFileSync(path.join(RACINE, rel), 'utf8'));
+    const noter = nom => {
+        if (!declarations.has(nom)) declarations.set(nom, new Set());
+        declarations.get(nom).add(rel);
+    };
+    for (const m of src.matchAll(/\bdata-([a-z][a-z0-9-]*)\s*=/g)) noter('data-' + m[1]);
+    for (const m of src.matchAll(/dataset\.([A-Za-z][\w]*)\s*=(?!=)/g)) {
+        noter('data-' + m[1].replace(/[A-Z]/g, c => '-' + c.toLowerCase()));
+    }
+}
+
+/** Un LECTEUR est une lecture, pas l'écriture : `dataset.x = …` ne compte pas. */
+function aUnLecteur(nom) {
+    const d = nom.slice(5);
+    const c = camel(nom);
+    const motifs = [
+        new RegExp(`dataset\\.${c}\\b(?!\\s*=(?!=))`),
+        new RegExp(`dataset\\s*\\[\\s*['\"]${c}['\"]\\s*\\]`),
+        new RegExp(`(?:get|has|remove)Attribute\\(\\s*['\"]${d}['\"]`),
+        new RegExp(`\\[data-${d}[\\]\\s=~^|$*]`),
+    ];
+    return motifs.some(re => re.test(texteLecteurs));
+}
+
+const sansLecteur = [...declarations].filter(([nom]) => !aUnLecteur(nom) && !EXTENSIONS_DOM.has(nom));
+
+/* Le sens inverse : un sélecteur qui vise un attribut que nul n'écrit. */
+const vises = new Set();
+for (const m of texteLecteurs.matchAll(/\[data-([a-z][a-z0-9-]*)/g)) vises.add('data-' + m[1]);
+const sansEcrivain = [...vises].filter(nom => !declarations.has(nom) && !EXTENSIONS_DOM.has(nom));
+
+const problemesDom = [
+    ...sansLecteur.map(([nom, fichiers]) =>
+        `${nom} — écrit dans ${[...fichiers].join(', ')} mais lu par personne.`),
+    ...sansEcrivain.map(nom =>
+        `${nom} — visé par un sélecteur, écrit par aucun gabarit `+
+        `(si c'est un point d'extension, ajoutez-le à EXTENSIONS_DOM avec sa raison).`),
+];
+
+if (problemesDom.length) {
+    console.error(`\n✖ ${problemesDom.length} attribut(s) du DOM désaccordé(s).\n`);
+    for (const p of problemesDom) console.error('   · ' + p);
+    console.error('');
+    process.exit(1);
+}
+
+console.log(
+    `Attributs du DOM : ${declarations.size} attribut(s) data-* écrit(s), ` +
+    `${declarations.size - sansLecteur.length} avec un lecteur, ${sansEcrivain.length} sans écrivain.`
+);

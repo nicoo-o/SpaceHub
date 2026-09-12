@@ -138,7 +138,6 @@ class CardBuilder {
         const parental = svc.parental();
         if (parental?.isEnabled?.() && !parental.isAllowed(rawItem)) {
             card.classList.add('sh-card--locked');
-            card.dataset.lockedReason = parental.reason(rawItem) || '';
             card.setAttribute('aria-label', `${title} — verrouillé`);
         }
 

@@ -1587,8 +1587,8 @@ export class SpatialNavigation {
             return;
         }
 
-        // Repli : bouton de fermeture déclaré par le composant lui-même.
-        const closeBtn = el.querySelector('.sh-modal__close, [data-modal-close], #sh-admin-modal-close, .sh-console-close-btn');
+        // Fermeture de la couche ([data-modal-close] : règle morte, retirée).
+        const closeBtn = el.querySelector('.sh-modal__close, #sh-admin-modal-close, .sh-console-close-btn');
         if (closeBtn) {
             closeBtn.click();
             this.onModalClosed();

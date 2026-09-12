@@ -47,7 +47,7 @@ class DynamicLibraryWidget {
         }
 
         container.innerHTML = `
-            <div class="sh-widget sh-widget--dynamic-library" data-library-id="${this.libraryId}">
+            <div class="sh-widget sh-widget--dynamic-library">
                 <div class="sh-widget__header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
                     <h2 class="sh-widget__title" style="display:flex; align-items:center; gap:8px; margin:0; font-size:1.15rem; font-weight:600; color:var(--sh-ink-solid, #ffffff);">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sh-shelf-title-icon" style="color:var(--sh-accent, #6366f1);">

@@ -23,6 +23,8 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { exigerDistAJour } from './fraicheur-dist.mjs';
+
 const RACINE = path.resolve('dist');
 const PORT = Number(process.env.SPACEHUB_E2E_PORT || 4399);
 const MIME = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css',
@@ -33,6 +35,10 @@ if (!fs.existsSync(path.join(RACINE, 'index.html'))) {
     console.error('✖ dist/ est absent ou incomplet. Lancez « npm run build » d\'abord.');
     process.exit(1);
 }
+
+// Ce harnais sert dist/ : un build périmé lui ferait jouer un autre code que
+// celui qu'on vient d'écrire — et le verdict serait faux dans les deux sens.
+exigerDistAJour('Scénarios e2e');
 
 // ─── Serveur de test ─────────────────────────────────────────────────────────
 // Sert dist/, et simule un média Jellyfin pour le scénario hors-ligne.

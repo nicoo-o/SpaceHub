@@ -14,7 +14,15 @@ Chromium sans tête.
 
 Client web autonome pour Jellyfin, conçu pour la télécommande autant que pour
 la souris, en JavaScript sans framework, compilé par Vite pour un plancher de
-compatibilité **Chrome 69** (téléviseurs de 2020).
+compatibilité **Chromium 108** (téléviseurs de 2024).
+
+> Ce plancher est **mesuré**, pas déclaré : `npm run test:plancher` recense les
+> fonctionnalités du navigateur réellement employées et refuse toute nouveauté
+> au-delà de 108 sans dérogation écrite. Il annonçait « Chrome 69 » jusqu'au
+> 11 septembre 2026 — un chiffre que plus personne ne mesurait, et que trois
+> composants livrés contredisaient déjà (`:focus-visible` 86, `aspect-ratio` 88,
+> `color-mix()` 111). Un plancher faux d'une vingtaine de versions ne protège
+> personne : il décide simplement à la place de quelqu'un.
 
 ---
 
@@ -103,6 +111,27 @@ précisément pour la recette téléviseur, où il n'y a pas de console.
 | Mesure INP réelle (LoAF) | Idem : les chiffres d'un PC ne disent rien d'un téléviseur de 2020. |
 | Compatibilité Jellyfin 12.0 | À tester contre un serveur avec `EnableLegacyAuthorization=false`. L'en-tête moderne est déjà émis, le risque est faible mais non vérifié. |
 | Découpage des gros fichiers | Volontairement reporté. Voir ci-dessous. |
+
+---
+
+## Les instruments (12 septembre 2026)
+
+Sept contrôles sont entrés dans `npm run test`, et ils ont été ajoutés AVANT les
+corrections qu'ils mesurent — c'est ce qui les rend utiles. Un chantier sans
+instrument redevient une intention en trois semaines.
+
+| Contrôle | Ce qu'il empêche | Premier relevé |
+|---|---|---|
+| `test:design` — `scripts/systeme-design-check.mjs` | Qu'un jeton déclaré cesse d'être consommé | **18 plafonds, 6 planchers** : 530 hex, 100 tailles, 83 graisses, 243 rayons littéraux pour 349/1290/205/115 usages des jetons |
+| `test:plancher` — `scripts/plancher-navigateur-check.mjs` | Qu'une API au-delà du parc (Chromium M108) entre sans décision | 4 dépassements trouvés, 3 dérogations nommées |
+| `test:modules` — `scripts/modules-testes-check.mjs` | Qu'un module atterrisse sans test qui le nomme | 140 modules, 88 nommés, 52 exceptions figées |
+| `test:couverture` — `vitest run --coverage` | Que la couverture baisse en silence | Planchers par fichier + 52 exceptions |
+| `scripts/fraicheur-dist.mjs` | Que `test:e2e` et `test:poids` mesurent un `dist/` périmé | Pris en défaut lors de sa mise en service, sur un vrai faux rouge |
+| `test:facade-appelants` étendu | Qu'une méthode PUBLIQUE disparaisse sans que personne ne le voie | 9 membres absents du contrat, `_gamepad` atteint en privé |
+| `test:gabarits` étendu | Qu'un attribut `data-*` soit posé dans le DOM et jamais lu | 4 attributs morts trouvés par le nouveau contrat |
+
+Ce que ces compteurs mesurent est détaillé dans `docs/IDENTITE_VISUELLE.md` (ce qui
+reste et pourquoi) et `docs/UI_MOBILE.md` (la coquille GSM).
 
 ---
 
