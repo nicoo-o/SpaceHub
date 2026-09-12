@@ -159,6 +159,15 @@ registre des étapes et l'ordre confirmé des suivantes vivent dans
 côté classe par `tests/FacadeLecteur.test.js`, côté appelants par
 `test:facade-appelants` (surface unique dans `jellyfin/player/ContratFacade.js`).
 
+**La décomposition de `SpatialNavigation.js` a commencé par son filet**
+(peau 0, branche `decomp/spatialnavigation-peau0`) : le contrat de façade et son
+contrôle existaient déjà, ce qui manquait était la preuve de ce qui est
+réellement **atteint**. `scripts/sonde-surface-nav.mjs` la fournit — 17/23
+méthodes publiques atteintes, aucun trou de contrat, deux privés de fait et
+quatre morts tolérés qui désignent les premières peaux. Rien n'a encore été
+extrait : la mesure est dans `docs/DECOMPOSITION_SPATIALNAVIGATION.md`, avec
+l'ordre d'extraction confirmé.
+
 **Mémoire de focus par identifiant généré.** Les conteneurs mémorisent
 `data-focus="sh-nav-37"`. Après un rerender complet, l'ancien identifiant ne
 correspond plus à rien ; le code le détecte et retombe sur la géométrie — donc

@@ -21,6 +21,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/identite-visuelle/planche.html` : la planche de revue autonome — déclaré
   contre livré, les deux températures, trois distances de lecture, l'élévation sur
   noir. Hors de toute chaîne de contrôle, comme le reste de `docs/`.
+- `docs/DECOMPOSITION_SPATIALNAVIGATION.md` : le registre de l'approfondissement
+  du moteur de navigation. Il porte la mesure de la surface réellement atteinte
+  (17/23 méthodes publiques, contrat prouvé 17/17, aucun trou, deux privés de
+  fait, quatre morts tolérés), ce que cette décomposition a de DIFFÉRENT du
+  lecteur vidéo — son filet de tests existait déjà, c'est la preuve de sa PORTÉE
+  qui manquait —, et l'ordre d'extraction confirmé par la mesure, du plus pur au
+  plus enchevêtré : moteur spatial 2D (~390 lignes), répétition des touches,
+  registre des focusables (où vivent deux des quatre morts tolérés), contrôleur
+  de focus, retour et couches, et l'entrée en dernier — le harnais e2e pilote
+  cinq de ses membres à la main, donc tant que la sonde ne prouve pas qu'ils
+  peuvent être privatisés, ils restent en talon.
 - `core/HistoriqueVues.js` : la mémoire du bouton retour système. Le pont
   Android ne connaissait que deux issues — fermer une couche, ou proposer de
   **quitter** l'application. Retour depuis l'onglet Flux demandait donc
@@ -39,6 +50,19 @@ n'importe dans les tests, et `scripts/fraicheur-dist.mjs` refuse de mesurer un
 que celui qu'on venait d'écrire, et rendaient un verdict faux dans les deux
 sens. La couverture a désormais des planchers déclarés (21 / 17 / 20 / 21) et
 échoue si elle descend. Chaque cliquet a été vu mordre avant d'être committé.
+- `scripts/sonde-surface-nav.mjs` : la sonde qui mesure ce que le moteur de
+  navigation **atteint** pendant la course e2e, et non ce qu'il DÉCLARE. Un
+  membre déclaré que rien n'atteint est du poids mort ; un membre atteint qui
+  n'est pas déclaré est un trou qu'une extraction ouvrirait en silence. Elle
+  croise l'atteint avec le référencé — sans quoi un appel **différé du moteur**
+  (`popFocus`, programmé par `requestAnimationFrame`) passerait pour un
+  appelant, et on élargirait le contrat pour rien. Verdict du jour : 17/23
+  méthodes publiques atteintes, 17/17 au contrat, aucun trou, deux privés de
+  fait, quatre morts tolérés — ce sont les premières peaux.
+  `docs/DECOMPOSITION_SPATIALNAVIGATION.md` porte la mesure et l'ordre
+  d'extraction confirmé, et `tests/SurfaceNav.test.js` (15 tests) tient la
+  moitié statique dans la chaîne rapide. L'instrument a été vu **mordre** : une
+  méthode publique fantôme ajoutée au moteur fait échouer quatre tests.
 - Le cliquet du système de design dit maintenant **où en est chaque chantier** :
   `npm run test:design -- --rapport` rend une ligne par compteur — son DÉPART, sa
   valeur du JOUR, ce qui reste — groupés par axe (typographie, capitales,
@@ -204,6 +228,23 @@ quelque chose est branché. C'est la forme DOM du motif des 47 transitions
 mortes, et `gabarits-identifiants-check.mjs` tient maintenant les DEUX sens —
 un attribut sans lecteur, un sélecteur `[data-x]` sans écrivain (les points
 d'extension publics sont nommés, pas tolérés).
+- `handleAction` manquait au contrat de façade de `SpatialNavigation` — ni
+  déclaré, ni compté comme mort (le moteur se l'appelle : `onAction: (action) =>
+  this.handleAction(action)`), ni atteint par la course (un navigateur n'a pas
+  de manette). Il tombait donc entre les deux classements, invisible, alors que
+  le pipeline manette y entre : `GamepadInput` déclenche ce rappel sur un bouton
+  non directionnel (A/B/Start). C'est un point d'entrée de périphérique, donc de
+  la surface publique : il entre au contrat, avec la même exemption que
+  `demandeRetour`. La justification de l'exemption a d'ailleurs été vérifiée
+  avant d'être écrite — aucun test ne traversait ce rappel, il en existe un
+  maintenant (`tests/SpatialNavigation.test.js`, § Parité clavier / manette),
+  vu mordre en débranchant le rappel dans le moteur.
+- Le premier balayage de la sonde de surface ne lisait que la forme
+  `nav.membre`. Trois membres VIVANTS (`pushLayer`, `onLayerClosed`,
+  `pushFocus`) sont atteints par la forme chaînée `svc.nav().membre` — celle du
+  search et du tiroir. Les compter morts aurait fait privatiser une API
+  réellement appelée : le faux positif le plus dangereux d'un audit de surface.
+  Le balayage lit les deux formes, et un test le fige.
 
 ## [1.4.0] - 2026-09-11
 
