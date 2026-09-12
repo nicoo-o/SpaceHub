@@ -5,6 +5,125 @@ All notable changes to SpaceHub are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2] - 2026-09-12
+
+Un audit complet du dépôt, puis la correction de ce qu'il a trouvé. Le fil
+conducteur des deux : **une suite verte ne prouve pas que l'application est
+bonne, elle prouve que les contrats existants sont satisfaits.** Chaque
+correction ci-dessous ferme un écart qui vivait exactement dans cet angle
+mort, et repart avec un contrôle qui le rendra visible la prochaine fois.
+
+### Added
+- `scripts/api-jellyfin-check.mjs` (`npm run test:api`) : le **contrat d'API
+  Jellyfin 12.0**. Il refuse les autorisations dépréciées (`X-Emby-Token`,
+  `X-MediaBrowser-Token`, `UserId=` en Emby), tient un inventaire des 66
+  segments de chemin réellement appelés — un segment hors inventaire fait
+  tomber la chaîne — et n'accepte `api_key=` que dans les deux fichiers où le
+  navigateur ne laisse pas le choix (`<video src>` et l'URL d'un WebSocket),
+  chacun avec sa contrainte écrite.
+- `scripts/couverture-check.mjs` (`npm run test:couverture`) : la couverture
+  réelle, **imprimée à côté du nombre de tests**, parce que l'un sans l'autre
+  trompe. 750 tests exécutent 22 % des instructions ; 42 modules de plus de
+  soixante instructions — la moitié du code applicatif — ne sont jamais
+  exécutés une seule fois, et le contrôle les nomme. Les planchers de
+  `vitest.config.js` existaient déjà mais n'étaient dans aucune chaîne : ils
+  n'étaient évalués que par qui lançait la commande à la main.
+- Contrôle des **proportions CSS** dans `scripts/css-hygiene-check.mjs` :
+  toute feuille qui utilise `aspect-ratio` doit porter son repli
+  `@supports not` en `padding-top`. La propriété n'existe qu'à partir de
+  Chrome 88, le plancher du projet est Chrome 69, et sans repli une affiche
+  s'effondre à zéro pixel de haut sur un téléviseur de 2020.
+- **Minuteur de sommeil** dans le panneau des réglages du lecteur.
+  `core/MinuteurSommeil.js` était complet et testé depuis la vague
+  précédente — et aucune interface ne l'appelait : zéro occurrence de
+  « sommeil » dans `ui/`. Un module fini qu'aucun bouton ne joint n'est pas
+  une fonctionnalité.
+
+### Changed
+- **Découpage des paquets refait avec `advancedChunks`** : le démarrage passe
+  de 276,1 à **254,8 ko gzip** (−21,3 ko pour chaque utilisateur, à chaque
+  démarrage à froid). Le `manualChunks` précédent avait soudé la console
+  d'administration à `core/Logger.js`, `core/services.js` et
+  `core/utils/domUtils.js` — trois des modules les plus partagés du dépôt —
+  si bien que `index`, `app` et `integrations` importaient tous
+  STATIQUEMENT le paquet « admin-console » et que son `modulepreload`
+  était parfaitement honnête. Retirer le préchargement aurait baissé le
+  chiffre mesuré en rendant le démarrage plus lent. Le graphe des paquets
+  est devenu une étoile : chaque paquet différé importe l'entrée et rien
+  d'autre.
+- `scripts/poids-check.mjs` **déduit** désormais ce qui doit rester hors du
+  démarrage au lieu d'en tenir la liste. Il croise les cibles d'`import()`
+  du code source avec le paquet où le build a réellement mis chaque module.
+  L'ancienne liste écrite à la main (`['vendor-hls']`) avait fait son travail
+  pour `hls.js` et laissé passer les deux autres paquets censés être
+  différés. Plafond du démarrage : 276 → 257 ko.
+- `scripts/electron-shell-check.mjs` **inspecte** maintenant ce que le shell
+  demande. La doublure de `BrowserWindow` ignorait son argument : le contrôle
+  restait vert avec `nodeIntegration: true`, c'est-à-dire devant une fenêtre
+  donnant à la page un accès complet à Node. Et comme
+  `apps/electron/www/index.html` n'existe pas dans les sources,
+  `creerFenetre()` sortait par sa garde d'absence — les deux gardes de
+  navigation n'avaient jamais été exécutées une seule fois. Elles sont
+  désormais fabriquées, posées, puis **déclenchées**.
+- Le README ne prétend plus offrir **SyncPlay**. Le module existe et il est
+  testé ; `creer()`, `rejoindre()`, `demanderLecture()`, `demanderPause()` et
+  `demanderSaut()` n'ont aucun appelant hors des tests. Sans moyen de
+  rejoindre un groupe, le client n'en reçoit pas non plus les commandes : dans
+  une construction livrée, le module ne fait rien. La section qui remplace la
+  ligne du tableau dit pourquoi, plutôt que de la supprimer en silence.
+
+### Fixed
+- **Une note presse fabriquée était montrée à l'utilisateur.**
+  `CardBuilder.getRtIconSvg()` ne testait que `Number.isFinite(Number(score))`,
+  et `Number(null)` vaut zéro — or zéro est fini. `null`, c'est-à-dire le cas
+  NORMAL d'un titre sans note critique, tombait donc dans la branche finale et
+  rendait le tomate pourri. Sur la fiche média, l'icône s'affichait à côté du
+  texte « Aucune note presse disponible pour ce titre », que le gabarit
+  conditionne correctement, lui : badge, score, phrase et source éteints, seule
+  l'icône restait allumée.
+- **`DeviceProfile` n'envoyait AUCUNE autorisation supportée par un serveur
+  12.0.** Un serveur à jour répondait 401, le `catch` avalait l'échec, et la
+  lecture repliait en silence sur un profil HLS générique — donc sur du
+  transcodage au lieu d'une lecture directe, sans une ligne dans la console.
+  Même défaut dans `JellyfinAPI.getLogFile()`, qui envoyait `X-Emby-Token`.
+- **Replis `aspect-ratio` sur neuf feuilles de style** : affiches, arrière-
+  plans, vignettes, fenêtre de bande-annonce, squelettes de chargement,
+  widgets Sonarr/Radarr/Jellyseerr. Le `padding-top` en pourcentage se calcule
+  sur la LARGEUR du conteneur, et l'enfant est positionné en absolu par
+  `top/left/width/height` — jamais `inset`, qui demande Chrome 87.
+- **`PontAndroid.detruire()` ne détruisait rien.** Il retirait
+  `this._surRetourArme`, un champ jamais affecté nulle part dans le dépôt :
+  `removeEventListener` recevait donc une fonction neuve à chaque appel, qui
+  ne correspond à aucun abonnement. Aucun test ne pouvait s'en apercevoir —
+  ils appelaient tous à la main la fonction capturée, ce qui donne le même
+  résultat que l'écouteur soit encore abonné ou non. Les nouveaux cas
+  répartissent un vrai événement sur `document`.
+- **`DownloadManager.telecharger()` : l'identifiant est réservé avant toute
+  attente.** Le dédoublonnage en mémoire était placé après
+  `await this._store.existe(id)`, un vrai aller-retour IndexedDB. Aucun
+  doublon n'en sortait, et pour une raison écrite nulle part :
+  `_transferer()` renseigne `_encours` avant son premier `await`. Une seule
+  ligne d'attente ajoutée en tête de cette méthode — lire les sources du
+  média, demander un profil — et deux appuis rapprochés lançaient deux
+  transferts, tous deux réussis, sans erreur ni avertissement.
+- **L'auto-update Windows ne se branche plus que si le paquet est signé.**
+  `brancherAutoUpdate()` était appelé inconditionnellement, alors que
+  `docs/SIGNATURE_WINDOWS_ET_AUTO_UPDATE.md` écrit noir sur blanc que « sans
+  signature, l'auto-update est une attaque » et impose l'ordre signature
+  d'abord. L'étape de signature n'est pas faite : les paquets publiés
+  téléchargeaient et installaient ce que le canal leur présentait. La garde lit
+  `publisherName` dans `app-update.yml` — exactement la valeur
+  qu'electron-updater compare au certificat du binaire téléchargé — et refuse
+  sur le moindre doute.
+- `svc.nav() || svc.nav()` dans 31 endroits sur 12 fichiers : un « ou » dont
+  les deux membres sont le même appel, qui laisse croire à deux sources de
+  vérité. `AppLayout` affectait en plus `this._spatialNav` deux fois de suite,
+  à l'identique.
+- Trois commentaires qui renvoyaient à du code inexistant :
+  `_choisirProfil` (`LoginView`), `profilAppareil.appliquerForcage()`
+  (`SpaceHub`), et l'annonce du découpage dans `vite.config.js` qui décrivait
+  l'inverse de ce que le build produisait.
+
 ## [1.5.1] - 2026-09-12
 
 ### Added
