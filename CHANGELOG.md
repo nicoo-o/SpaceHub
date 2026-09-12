@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   jamais proposer de sortir), pur, borné à 20 entrées, et testé par sept cas.
 
 ### Changed
+- Les courbes d'animation déclarées remplacent le `ease` nu du navigateur :
+  **753 → 0**. 747 transitions consomment `var(--sh-ease-out)` — plus franche
+  au départ que `cubic-bezier(0.25, 0.1, 0.25, 1)`, celle qui étire exactement
+  le moment que l'œil regarde — et 6 animations sans fin passent à `linear`
+  (une courbe d'accélération sur une boucle produit un à-coup à chaque tour).
+  Aucun `ease-in` nu n'existait, et il n'y en a toujours pas.
 - L'échelle typographique déclarée est enfin consommée : les `font-size` et
   `font-weight` littéraux passent de 448 et 316 à **100 et 83**, et le cliquet
   refuse les 348 autres. Deux règles mécaniques, aucune mise en page revue :
@@ -61,6 +67,17 @@ l'application (`theme-color`, `color-scheme`), et les modales se mesurent en
   `--sh-font-family-mono`. Deux compteurs les gardent : familles déclarées
   hors du fichier de jetons (0) et références à une origine de police externe
   (0).
+
+### Fixed
+- Le repli `prefers-reduced-motion` réduisait toute transition à `0.01ms`, ce qui
+  éteignait aussi les fondus qui **expliquent** un changement d'état : sous
+  mouvement réduit, une modale ou un toast apparaissait sans aucun signal. Il
+  remplace désormais la **liste des propriétés** au lieu d'annuler leur durée —
+  le déplacement cesse d'être animé, l'opacité et les couleurs continuent de se
+  fondre doucement. Moindre et plus doux, pas nul.
+- Le curseur de la barre de lecture naissait à `scale(0)` — un point sans
+  dimension. Rien n'apparaît à partir de rien : il part de `scale(0.6)` et se
+  fond en même temps.
 
 ## [1.4.0] - 2026-09-11
 

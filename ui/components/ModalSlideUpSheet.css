@@ -81,7 +81,7 @@
     opacity: 0 !important;
     pointer-events: none !important;
     z-index: 99999 !important;
-    transition: opacity var(--sh-dur-5) ease, transform var(--sh-dur-5) var(--sh-ease-out) !important;
+    transition: opacity var(--sh-dur-5) var(--sh-ease-out), transform var(--sh-dur-5) var(--sh-ease-out) !important;
 }
 .sh-modal-ambient-glow.sh-modal-ambient-glow--open {
     opacity: 0.35 !important;
@@ -167,7 +167,7 @@
     font-weight: var(--sh-font-semibold);
     letter-spacing: -0.1px;
     box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.40);
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
     white-space: nowrap;
     max-width: 320px;
     overflow: hidden;
@@ -175,7 +175,7 @@
 .sh-slideup-back-btn svg {
     flex-shrink: 0;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.90);
-    transition: transform var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-slideup-back-label {
     overflow: hidden;
@@ -212,7 +212,7 @@
     padding: 0 !important;
     line-height: 0 !important;
     box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.40);
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-slideup-close-btn svg {
     display: block;
@@ -332,7 +332,7 @@
     font-size: var(--sh-text-xs) !important;
     font-weight: var(--sh-font-extrabold) !important;
     cursor: pointer !important;
-    transition: transform var(--sh-dur-2) ease , opacity var(--sh-dur-2) ease , background-color var(--sh-dur-2) ease , background var(--sh-dur-2) ease , border-color var(--sh-dur-2) ease , box-shadow var(--sh-dur-2) ease , color var(--sh-dur-2) ease , filter var(--sh-dur-2) ease !important;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out) , opacity var(--sh-dur-2) var(--sh-ease-out) , background-color var(--sh-dur-2) var(--sh-ease-out) , background var(--sh-dur-2) var(--sh-ease-out) , border-color var(--sh-dur-2) var(--sh-ease-out) , box-shadow var(--sh-dur-2) var(--sh-ease-out) , color var(--sh-dur-2) var(--sh-ease-out) , filter var(--sh-dur-2) var(--sh-ease-out) !important;
 }
 .sh-modal-header-badge:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.16) !important;
@@ -487,7 +487,7 @@
     font-size: var(--sh-text-xs);
     font-weight: 550;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.75);
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
     border: 1px solid transparent;
 }
 .sh-popover-item:hover {
@@ -532,7 +532,7 @@
     opacity: 0;
     transform: translateY(-6px) scale(0.96);
     pointer-events: none;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
     white-space: nowrap;
 }
 .sh-rating-stars-flyout.open {
@@ -547,7 +547,7 @@
     color: rgba(var(--sh-ink, 255, 255, 255),  0.25);
     cursor: pointer;
     padding: 0 2px;
-    transition: transform var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-star-btn:hover,
 .sh-star-btn.active {
@@ -609,7 +609,7 @@
     font-size: 12.5px;
     font-weight: var(--sh-font-semibold);
     cursor: pointer;
-    transition: color var(--sh-dur-2) ease;
+    transition: color var(--sh-dur-2) var(--sh-ease-out);
     white-space: nowrap;
 }
 .sh-tab-btn:hover {
@@ -710,7 +710,7 @@
     flex-direction: column !important;
     gap: 8px !important;
     box-shadow: 0 10px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.60), inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.15) !important;
-    transition: border-color var(--sh-dur-3) ease, transform var(--sh-dur-3) ease, box-shadow var(--sh-dur-3) ease;
+    transition: border-color var(--sh-dur-3) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out);
 }
 .sh-critics-bento-card:hover {
     border-color: rgba(var(--sh-ink, 255, 255, 255),  0.28) !important;
@@ -856,7 +856,7 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
     border-radius: 10px;
     padding: 7px 12px;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-meta-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
@@ -893,7 +893,7 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.08);
     border-radius: 16px;
     padding: 12px 16px;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-cast-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
@@ -966,7 +966,7 @@
     border-radius: 16px;
     overflow: hidden;
     cursor: pointer;
-    transition: transform var(--sh-dur-3) ease, opacity var(--sh-dur-3) ease, background-color var(--sh-dur-3) ease, background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease, box-shadow var(--sh-dur-3) ease, color var(--sh-dur-3) ease, filter var(--sh-dur-3) ease;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
 }
 .sh-bonus-item:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
@@ -993,7 +993,7 @@
     font-size: var(--sh-text-base);
     padding-left: 2px;
     box-shadow: 0 6px 18px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.6);
-    transition: transform var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-bonus-item:hover .sh-bonus-play-disc {
     transform: scale(1.15);
@@ -1062,7 +1062,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform var(--sh-dur-4) ease;
+    transition: transform var(--sh-dur-4) var(--sh-ease-out);
 }
 .sh-bento-card:hover .sh-bento-poster-wrap img,
 .sh-bento-card:hover .sh-bento-thumb-container img {
@@ -1138,7 +1138,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
     flex-shrink: 0;
 }
 .sh-bento-add-btn:hover,
@@ -1241,7 +1241,7 @@
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-semibold);
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-season-pill-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.12);
@@ -1277,7 +1277,7 @@
     border-radius: 16px;
     padding: 10px;
     cursor: pointer;
-    transition: transform var(--sh-dur-3) ease, opacity var(--sh-dur-3) ease, background-color var(--sh-dur-3) ease, background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease, box-shadow var(--sh-dur-3) ease, color var(--sh-dur-3) ease, filter var(--sh-dur-3) ease;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
 }
 .sh-episode-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.09);
@@ -1308,7 +1308,7 @@
     font-size: 14px;
     color: var(--sh-ink-solid, #ffffff);
     opacity: 0;
-    transition: opacity var(--sh-dur-2) ease;
+    transition: opacity var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-episode-card:hover .sh-episode-overlay-play {
     opacity: 1;
@@ -1368,7 +1368,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    transition: color var(--sh-dur-2) ease;
+    transition: color var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-episode-date {
     font-size: var(--sh-text-xs);
@@ -1395,7 +1395,7 @@
     color: #38bdf8;
     margin-top: 2px;
     opacity: 0.85;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-episode-info:hover .sh-episode-details-hint,
 .sh-saga-card-content:hover .sh-saga-details-hint {
@@ -1431,7 +1431,7 @@
     border-radius: 16px;
     padding: 12px;
     cursor: pointer;
-    transition: transform var(--sh-dur-3) ease, opacity var(--sh-dur-3) ease, background-color var(--sh-dur-3) ease, background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease, box-shadow var(--sh-dur-3) ease, color var(--sh-dur-3) ease, filter var(--sh-dur-3) ease;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
 }
 .sh-saga-movie-card:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);
@@ -1462,7 +1462,7 @@
     font-size: var(--sh-text-base);
     color: var(--sh-ink-solid, #ffffff);
     opacity: 0;
-    transition: opacity var(--sh-dur-2) ease;
+    transition: opacity var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-saga-movie-card:hover .sh-saga-quick-play {
     opacity: 1;
@@ -1496,7 +1496,7 @@
     font-size: 14.5px;
     font-weight: 750;
     color: var(--sh-ink-solid, #ffffff);
-    transition: color var(--sh-dur-2) ease;
+    transition: color var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-saga-play-btn {
     background: var(--sh-ink-solid, #ffffff);
@@ -1507,7 +1507,7 @@
     padding: 6px 14px;
     border-radius: 9999px;
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, background var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-saga-play-btn:hover {
     transform: scale(1.06);
@@ -1544,7 +1544,7 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
     border: 1px solid transparent;
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-track-row:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.08);

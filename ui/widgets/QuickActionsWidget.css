@@ -16,11 +16,11 @@
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
     cursor: pointer;
     transition: 
-        background var(--sh-dur-2) ease,
-        border-color var(--sh-dur-2) ease,
+        background var(--sh-dur-2) var(--sh-ease-out),
+        border-color var(--sh-dur-2) var(--sh-ease-out),
         transform var(--sh-dur-3) var(--sh-ease-spring),
-        color var(--sh-dur-2) ease,
-        box-shadow var(--sh-dur-3) ease;
+        color var(--sh-dur-2) var(--sh-ease-out),
+        box-shadow var(--sh-dur-3) var(--sh-ease-out);
 }
 
 .sh-quick-btn-icon:hover {

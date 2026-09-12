@@ -552,8 +552,25 @@ html {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
+
+        /* MOINDRE ET PLUS DOUX, PAS NUL.
+
+           Le repli écrivait `transition-duration: 0.01ms` sur TOUT, ce qui
+           éteignait aussi les fondus qui EXPLIQUENT un changement d'état :
+           sous mouvement réduit, une modale ou un toast apparaissait
+           instantanément, sans aucun signal. Le changement d'état devenait
+           invisible au lieu d'être calme.
+
+           Ici, on remplace la liste des propriétés au lieu d'annuler leur
+           durée : le déplacement — translation, échelle, parallaxe, rebond —
+           cesse d'être animé (il n'est plus dans la liste), et ce qui reste
+           (opacité, couleurs, ombre) continue de se fondre, doucement. Une
+           transition sur `transform` déclarée par un composant perd son
+           animation : `transition-property` en `!important` la remplace. */
+        transition-property: opacity, color, background-color, border-color, box-shadow, filter, fill, stroke, outline-color !important;
+        transition-duration: var(--sh-dur-2) !important;
+        transition-timing-function: var(--sh-ease-out) !important;
     }
 }
 

@@ -109,7 +109,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     transform-origin: center;
     will-change: transform, opacity;
     pointer-events: none;
-    transition: opacity var(--sh-dur-5) ease,
+    transition: opacity var(--sh-dur-5) var(--sh-ease-out),
                 transform var(--sh-dur-5) var(--sh-ease-spring);
 }
 .sh-island-underglow.sh-underglow--compact {
@@ -142,8 +142,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
         width var(--sh-dur-5) var(--sh-ease-out),
         height var(--sh-dur-5) var(--sh-ease-out),
         border-radius var(--sh-dur-4) var(--sh-ease-out),
-        background var(--sh-dur-4) ease,
-        border-color var(--sh-dur-4) ease;
+        background var(--sh-dur-4) var(--sh-ease-out),
+        border-color var(--sh-dur-4) var(--sh-ease-out);
     /* `box-shadow` retiré de la liste : c'est la propriété la plus chère à
        repeindre (la boîte PLUS son débord), et elle était transitionnée en même
        temps que la largeur et la hauteur. L'ombre change instantanément — à
@@ -175,7 +175,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     transform: scale(0.6);
     pointer-events: none;
     visibility: hidden;
-    transition: opacity var(--sh-dur-4) ease, transform var(--sh-dur-4) var(--sh-ease-out), visibility var(--sh-dur-4);
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out), transform var(--sh-dur-4) var(--sh-ease-out), visibility var(--sh-dur-4);
 }
 
 /* ── Animations Élastiques & Ressort Souple (Soft Damped Spring) ── */
@@ -233,7 +233,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     filter: blur(4px);
     pointer-events: none;
     visibility: hidden;
-    transition: opacity var(--sh-dur-3) ease, transform var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-3) ease, visibility var(--sh-dur-3);
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-3) var(--sh-ease-out), visibility var(--sh-dur-3);
 }
 
 /* ── Vue Déployée Complète (Phase 2 : 535px) ────────────────── */
@@ -280,8 +280,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
         width var(--sh-dur-5) var(--sh-ease-out),
         height var(--sh-dur-4) var(--sh-ease-out),
         border-radius var(--sh-dur-4) var(--sh-ease-out),
-        background var(--sh-dur-4) ease,
-        border-color var(--sh-dur-4) ease,
+        background var(--sh-dur-4) var(--sh-ease-out),
+        border-color var(--sh-dur-4) var(--sh-ease-out),
         box-shadow var(--sh-dur-5) var(--sh-ease-out);
 }
 .sh-dynamic-island.sh-island--compact .sh-island-compact-view {
@@ -290,7 +290,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     filter: blur(0px);
     pointer-events: auto;
     visibility: visible;
-    transition: opacity var(--sh-dur-3) var(--sh-ease-out) 180ms, transform var(--sh-dur-4) var(--sh-ease-out) 160ms, filter var(--sh-dur-3) ease 180ms, visibility var(--sh-dur-3);
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out) 180ms, transform var(--sh-dur-4) var(--sh-ease-out) 160ms, filter var(--sh-dur-3) var(--sh-ease-out) 180ms, visibility var(--sh-dur-3);
 }
 
 /* Liquid Pinch en mode compact : les éléments convergent au centre et sont masqués */
@@ -298,21 +298,21 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     opacity: 0;
     transform: translateX(65px) scale(0.60);
     filter: blur(3px);
-    transition: opacity var(--sh-dur-1) ease, transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) ease;
+    transition: opacity var(--sh-dur-1) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-dynamic-island.sh-island--compact .sh-nav-tabs {
     opacity: 0;
     transform: scale(0.55, 0.75);
     filter: blur(3px);
-    transition: opacity var(--sh-dur-1) ease, transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) ease;
+    transition: opacity var(--sh-dur-1) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-dynamic-island.sh-island--compact .sh-nav-actions {
     opacity: 0;
     transform: translateX(-65px) scale(0.60);
     filter: blur(3px);
-    transition: opacity var(--sh-dur-1) ease, transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) ease;
+    transition: opacity var(--sh-dur-1) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 /* ── ÉTAT 2 : Full Expanded (535px — Apple Spring Morphing) ─── */
@@ -331,8 +331,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
         width var(--sh-dur-5) var(--sh-ease-spring),
         height var(--sh-dur-4) var(--sh-ease-spring),
         border-radius var(--sh-dur-4) var(--sh-ease-out),
-        background var(--sh-dur-4) ease,
-        border-color var(--sh-dur-4) ease,
+        background var(--sh-dur-4) var(--sh-ease-out),
+        border-color var(--sh-dur-4) var(--sh-ease-out),
         box-shadow var(--sh-dur-5) var(--sh-ease-spring);
 }
 .sh-dynamic-island.sh-island--expanded .sh-island-compact-view,
@@ -342,7 +342,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     filter: blur(4px);
     pointer-events: none;
     visibility: hidden;
-    transition: opacity var(--sh-dur-2) ease, transform var(--sh-dur-3) ease, filter var(--sh-dur-2) ease, visibility var(--sh-dur-2);
+    transition: opacity var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out), visibility var(--sh-dur-2);
 }
 .sh-dynamic-island.sh-island--expanded .sh-island-full-view,
 .sh-dynamic-island.sh-dropdown-active .sh-island-full-view {
@@ -357,21 +357,21 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     opacity: 1;
     transform: translateX(0) scale(1);
     filter: blur(0px);
-    transition: opacity var(--sh-dur-4) var(--sh-ease-out) 120ms, transform var(--sh-dur-5) var(--sh-ease-spring) 100ms, filter var(--sh-dur-4) ease 120ms;
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out) 120ms, transform var(--sh-dur-5) var(--sh-ease-spring) 100ms, filter var(--sh-dur-4) var(--sh-ease-out) 120ms;
 }
 
 .sh-dynamic-island.sh-island--expanded .sh-nav-tabs {
     opacity: 1;
     transform: scale(1);
     filter: blur(0px);
-    transition: opacity var(--sh-dur-4) var(--sh-ease-out) 150ms, transform var(--sh-dur-4) var(--sh-ease-spring) 130ms, filter var(--sh-dur-4) ease 150ms;
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out) 150ms, transform var(--sh-dur-4) var(--sh-ease-spring) 130ms, filter var(--sh-dur-4) var(--sh-ease-out) 150ms;
 }
 
 .sh-dynamic-island.sh-island--expanded .sh-nav-actions {
     opacity: 1;
     transform: translateX(0) scale(1);
     filter: blur(0px);
-    transition: opacity var(--sh-dur-4) var(--sh-ease-out) 180ms, transform var(--sh-dur-5) var(--sh-ease-spring) 160ms, filter var(--sh-dur-4) ease 180ms;
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out) 180ms, transform var(--sh-dur-5) var(--sh-ease-spring) 160ms, filter var(--sh-dur-4) var(--sh-ease-out) 180ms;
 }
 
 /* ── ÉTAT 3 : Search Spotlight (Concept 3 : Framer FLIP Dynamic Morph) ─── */
@@ -409,7 +409,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     filter: blur(6px) !important;
     pointer-events: none !important;
     visibility: hidden !important;
-    transition: opacity var(--sh-dur-1) ease, transform var(--sh-dur-2) ease, filter var(--sh-dur-1) ease, visibility var(--sh-dur-1) !important;
+    transition: opacity var(--sh-dur-1) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-1) var(--sh-ease-out), visibility var(--sh-dur-1) !important;
 }
 
 .sh-island-search-view {
@@ -425,7 +425,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     pointer-events: none;
     visibility: hidden;
     overflow: hidden;
-    transition: opacity var(--sh-dur-3) ease 80ms, transform var(--sh-dur-4) var(--sh-ease-out) 80ms, filter var(--sh-dur-3) ease 80ms, visibility var(--sh-dur-3) 80ms;
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out) 80ms, transform var(--sh-dur-4) var(--sh-ease-out) 80ms, filter var(--sh-dur-3) var(--sh-ease-out) 80ms, visibility var(--sh-dur-3) 80ms;
 }
 
 .sh-dynamic-island.sh-island--search .sh-island-search-view {
@@ -448,7 +448,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform var(--sh-dur-4) var(--sh-ease-out), box-shadow var(--sh-dur-4) ease;
+    transition: transform var(--sh-dur-4) var(--sh-ease-out), box-shadow var(--sh-dur-4) var(--sh-ease-out);
 }
 
 .sh-dynamic-island:hover .sh-luminous-dot {
@@ -513,7 +513,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     -webkit-user-select: none !important;
     -moz-user-select: none !important;
     -ms-user-select: none !important;
-    transition: transform var(--sh-dur-2) var(--sh-ease-spring), opacity var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-spring), opacity var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-nav-brand:hover,
@@ -620,7 +620,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     pointer-events: none;
     z-index: 1;
     transform-origin: center center;
-    transition: transform var(--sh-dur-4) var(--sh-ease-out), width var(--sh-dur-4) var(--sh-ease-out), box-shadow var(--sh-dur-3) ease;
+    transition: transform var(--sh-dur-4) var(--sh-ease-out), width var(--sh-dur-4) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out);
     will-change: transform, width;
 }
 
@@ -635,7 +635,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     font-size: var(--sh-text-sm);
     font-weight: var(--sh-font-semibold);
     cursor: pointer;
-    transition: color var(--sh-dur-3) ease;
+    transition: color var(--sh-dur-3) var(--sh-ease-out);
 }
 
 .sh-nav-tab-btn:hover {
@@ -701,7 +701,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-avatar-pill:hover {
@@ -740,7 +740,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     transform: scale(0.92) translateY(-8px);
     filter: blur(6px);
     pointer-events: none;
-    transition: opacity var(--sh-dur-2) ease, transform var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: opacity var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-user-dropdown.sh-dropdown--open .sh-user-dropdown__item {
@@ -787,7 +787,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
     font-weight: var(--sh-font-medium);
     font-family: inherit;
     cursor: pointer;
-    transition: background var(--sh-dur-1) ease;
+    transition: background var(--sh-dur-1) var(--sh-ease-out);
     margin-bottom: 2px;
 }
 

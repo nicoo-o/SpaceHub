@@ -112,7 +112,7 @@
     justify-content: center;
     font-size: var(--sh-text-xs);
     cursor: pointer;
-    transition: background var(--sh-dur-2) ease;
+    transition: background var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-spotlight-clear-btn:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.15);
@@ -135,7 +135,7 @@
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-semibold);
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-spotlight-tab-btn:hover {
     color: var(--sh-ink-solid, #ffffff);
@@ -185,7 +185,7 @@
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.12);
     border-radius: 12px;
     pointer-events: none;
-    transition: transform var(--sh-dur-2) var(--sh-ease-out), height var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), height var(--sh-dur-2) var(--sh-ease-out);
     box-shadow: 0 4px 16px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.35), inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.15);
     display: none;
     z-index: 1;
@@ -209,7 +209,7 @@
     color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
     font-size: var(--sh-text-xs);
     cursor: pointer;
-    transition: color var(--sh-dur-2) ease;
+    transition: color var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-spotlight-clear-history-btn:hover {
     color: var(--sh-ink-solid, #ffffff);
@@ -235,7 +235,7 @@
     display: flex;
     align-items: center;
     gap: 5px;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-spotlight-recent-pill:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.10);
@@ -272,7 +272,7 @@
     background: transparent;
     cursor: pointer;
     z-index: 2;
-    transition: transform var(--sh-dur-1) ease, opacity var(--sh-dur-1) ease, background-color var(--sh-dur-1) ease, background var(--sh-dur-1) ease, border-color var(--sh-dur-1) ease, box-shadow var(--sh-dur-1) ease, color var(--sh-dur-1) ease;
+    transition: transform var(--sh-dur-1) var(--sh-ease-out), opacity var(--sh-dur-1) var(--sh-ease-out), background-color var(--sh-dur-1) var(--sh-ease-out), background var(--sh-dur-1) var(--sh-ease-out), border-color var(--sh-dur-1) var(--sh-ease-out), box-shadow var(--sh-dur-1) var(--sh-ease-out), color var(--sh-dur-1) var(--sh-ease-out);
     animation: sh-spotlight-stagger-in var(--sh-dur-3) var(--sh-ease-out) both;
     animation-delay: calc(var(--idx, 0) * 16ms);
 }
@@ -334,7 +334,7 @@
     justify-content: center;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
     flex-shrink: 0;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-spotlight-icon-wrap svg {
@@ -381,7 +381,7 @@
     font-weight: var(--sh-font-semibold);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.40);
     opacity: 0;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out);
     flex-shrink: 0;
 }
 .sh-spotlight-item:hover .sh-spotlight-action-hint,

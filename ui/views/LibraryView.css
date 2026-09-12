@@ -129,7 +129,7 @@
     font-weight: var(--sh-font-semibold);
     cursor: pointer;
     white-space: nowrap;
-    transition: color var(--sh-dur-2) ease;
+    transition: color var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-tab-btn:hover {
@@ -146,14 +146,14 @@
     justify-content: center;
     flex-shrink: 0;
     color: inherit;
-    transition: transform var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-tab-icon svg {
     display: block;
     stroke: currentColor;
     stroke-width: 2.1;
-    transition: stroke var(--sh-dur-2) ease;
+    transition: stroke var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-tab-btn:hover .sh-lib-tab-icon {
@@ -222,7 +222,7 @@
     font-size: var(--sh-text-sm);
     font-weight: var(--sh-font-medium);
     outline: none;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-search-input:focus {
@@ -274,7 +274,7 @@
     font-size: var(--sh-text-sm);
     font-weight: var(--sh-font-semibold);
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-control-btn:hover {
@@ -307,7 +307,7 @@
     transform: scale(0.88) translateY(-8px);
     filter: blur(8px);
     pointer-events: none;
-    transition: opacity var(--sh-dur-3) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-3) ease;
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-3) var(--sh-ease-out);
 }
 
 .sh-lib-dropdown-menu.open {
@@ -324,7 +324,7 @@
     transform: scale(0.92) translateY(-6px);
     filter: blur(6px);
     pointer-events: none;
-    transition: opacity var(--sh-dur-2) ease, transform var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: opacity var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-dropdown-menu.open .sh-lib-dropdown-item {
@@ -341,7 +341,7 @@
     font-size: var(--sh-text-sm);
     font-weight: 550;
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -379,7 +379,7 @@
     border: none;
     color: rgba(var(--sh-ink, 255, 255, 255),  0.55);
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-viewmode-btn:hover {
@@ -417,7 +417,7 @@
     font-weight: var(--sh-font-semibold);
     cursor: pointer;
     white-space: nowrap;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-genre-chip:hover {
@@ -457,7 +457,7 @@
     padding: 3px 6px;
     border-radius: 4px;
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-alpha-btn:hover {
@@ -518,7 +518,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform var(--sh-dur-4) ease;
+    transition: transform var(--sh-dur-4) var(--sh-ease-out);
 }
 
 .sh-lib-backdrop-card:hover .sh-lib-backdrop-thumb-wrap img {
@@ -533,7 +533,7 @@
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity var(--sh-dur-3) ease;
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out);
 }
 
 .sh-lib-backdrop-card:hover .sh-lib-backdrop-play-overlay {
@@ -555,7 +555,7 @@
     cursor: pointer;
     box-shadow: 0 8px 24px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.6);
     transform: scale(0.85);
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-quick-play-btn:hover {
@@ -577,7 +577,7 @@
     justify-content: center;
     cursor: pointer;
     z-index: 2;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-card-fav-btn:hover {
@@ -667,7 +667,7 @@
 
 .sh-lib-table-row {
     cursor: pointer;
-    transition: background var(--sh-dur-2) ease;
+    transition: background var(--sh-dur-2) var(--sh-ease-out);
     border-bottom: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.04);
 }
 
@@ -737,7 +737,7 @@
     font-size: var(--sh-text-xs);
     cursor: pointer;
     margin-left: 4px;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-table-play:hover, .sh-lib-table-fav:hover {
@@ -783,7 +783,7 @@
     padding: 8px 22px;
     cursor: pointer;
     box-shadow: 0 4px 16px rgba(var(--sh-ink, 255, 255, 255),  0.35);
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-reset-btn:hover {
@@ -849,7 +849,7 @@
     font-size: var(--sh-text-xs);
     font-weight: 650;
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-manage-btn:hover {
@@ -872,7 +872,7 @@
     box-sizing: border-box;
     opacity: 0;
     pointer-events: none;
-    transition: opacity var(--sh-dur-3) ease;
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out);
 }
 
 .sh-lib-modal-overlay.open {
@@ -943,7 +943,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-modal-close:hover {
@@ -968,7 +968,7 @@
     background: rgba(var(--sh-ink, 255, 255, 255),  0.03);
     border: 1px solid rgba(var(--sh-ink, 255, 255, 255),  0.06);
     border-radius: 14px;
-    transition: background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease;
+    transition: background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out);
     cursor: default;
 }
 
@@ -1036,7 +1036,7 @@
     color: rgba(var(--sh-ink, 255, 255, 255),  0.85);
     font-size: var(--sh-text-xs);
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
     padding: 0;
     line-height: 1;
 }
@@ -1155,7 +1155,7 @@
     font-weight: var(--sh-font-semibold);
     padding: 8px 18px;
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-modal-btn-sec:hover {
@@ -1173,7 +1173,7 @@
     padding: 8px 22px;
     cursor: pointer;
     box-shadow: 0 4px 16px rgba(var(--sh-ink, 255, 255, 255),  0.35);
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-lib-modal-btn-pri:hover {

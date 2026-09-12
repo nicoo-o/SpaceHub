@@ -13,7 +13,7 @@
     width: 100%;
     -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 64px), transparent 100%);
     mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 64px), transparent 100%);
-    transition: mask-image var(--sh-dur-4) ease, -webkit-mask-image var(--sh-dur-4) ease;
+    transition: mask-image var(--sh-dur-4) var(--sh-ease-out), -webkit-mask-image var(--sh-dur-4) var(--sh-ease-out);
 }
 
 .sh-card-grid.sh-grid-scrolled-middle {
@@ -53,7 +53,7 @@
     overflow: visible;
     cursor: pointer;
     position: relative;
-    transition: transform var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) ease;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out);
     /* `will-change` retiré : cette règle s'applique à CHAQUE carte de chaque
        grille et de chaque étagère — plusieurs centaines en bibliothèque, toutes
        promues en couches de compositing en permanence. Une transition sur
@@ -78,7 +78,7 @@
     border-radius: 16px;
     background: var(--sh-bg-base, #000000);
     box-shadow: 0 10px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.80), inset 0 1px 0 rgba(var(--sh-on-media, 255, 255, 255),  0.12), 0 0 0 1px rgba(var(--sh-on-media, 255, 255, 255),  0.05);
-    transition: box-shadow var(--sh-dur-4) ease;
+    transition: box-shadow var(--sh-dur-4) var(--sh-ease-out);
 }
 .sh-card:hover .sh-card__image-wrap, .sh-card.sh-tv-focused .sh-card__image-wrap {
     box-shadow: 0 28px 65px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.95), inset 0 1px 0 rgba(var(--sh-on-media, 255, 255, 255),  0.35), 0 0 0 1px rgba(var(--sh-on-media, 255, 255, 255),  0.22);
@@ -105,11 +105,11 @@
     opacity: 0;
     pointer-events: none;
     z-index: 6;
-    transition: opacity var(--sh-dur-4) ease;
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out);
 }
 .sh-card:hover .sh-card__glint, .sh-card.sh-tv-focused .sh-card__glint {
     opacity: 1;
-    animation: sh-glintSweep var(--sh-dur-5) ease forwards;
+    animation: sh-glintSweep var(--sh-dur-5) var(--sh-ease-out) forwards;
 }
 @keyframes sh-glintSweep {
     0% { transform: translateX(-100%); }
@@ -134,7 +134,7 @@
     font-weight: 750;
     color: var(--sh-on-media-solid, #ffffff);
     box-shadow: 0 4px 10px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.40);
-    transition: transform var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-card__dual-score:hover {
     background: rgba(var(--sh-ink-inv, 0, 0, 0.16),  0.55) !important;
@@ -154,7 +154,7 @@
     display: inline-flex !important;
     align-items: center !important;
     gap: 3px !important;
-    transition: transform var(--sh-dur-2) var(--sh-ease-spring), background var(--sh-dur-2) ease !important;
+    transition: transform var(--sh-dur-2) var(--sh-ease-spring), background var(--sh-dur-2) var(--sh-ease-out) !important;
     user-select: none !important;
 }
 .sh-score-btn:hover {
@@ -238,7 +238,7 @@
     transform: translateY(-8px) scale(0.92) !important;
     filter: blur(8px) !important;
     pointer-events: none !important;
-    transition: opacity var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-2) ease, visibility var(--sh-dur-2) !important;
+    transition: opacity var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-3) var(--sh-ease-spring), filter var(--sh-dur-2) var(--sh-ease-out), visibility var(--sh-dur-2) !important;
     text-align: left !important;
     font-family: var(--sh-font-family) !important;
 }
@@ -472,7 +472,7 @@
     color: rgba(var(--sh-on-media, 255, 255, 255),  0.90);
     text-transform: uppercase;
     box-shadow: 0 4px 12px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.50);
-    transition: opacity var(--sh-dur-2) ease, transform var(--sh-dur-2) ease;
+    transition: opacity var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-card:hover .sh-card__codec-tag, .sh-card.sh-tv-focused .sh-card__codec-tag {
     opacity: 0;
@@ -580,7 +580,7 @@
     transform: scale(0.88) translateY(-8px);
     filter: blur(8px);
     pointer-events: none;
-    transition: transform var(--sh-dur-3) var(--sh-ease-spring), opacity var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) ease;
+    transition: transform var(--sh-dur-3) var(--sh-ease-spring), opacity var(--sh-dur-3) var(--sh-ease-out), filter var(--sh-dur-3) var(--sh-ease-out);
 }
 .sh-context-menu.sh-context-menu--open {
     opacity: 1;
@@ -593,7 +593,7 @@
     transform: scale(0.92) translateY(-6px);
     filter: blur(6px);
     pointer-events: none;
-    transition: opacity var(--sh-dur-2) ease, transform var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: opacity var(--sh-dur-2) var(--sh-ease-out), transform var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-context-menu__header {
     padding: 6px 10px;
@@ -624,7 +624,7 @@
     gap: 8px;
     opacity: 0;
     transform: translateY(6px);
-    transition: background var(--sh-dur-1) ease;
+    transition: background var(--sh-dur-1) var(--sh-ease-out);
 }
 .sh-context-menu--open .sh-ctx-item {
     animation: sh-ctx-item-unfold var(--sh-dur-3) var(--sh-ease-out) forwards;
@@ -647,7 +647,7 @@
     display: flex; align-items: center; justify-content: center;
     opacity: 0;
     pointer-events: none;
-    transition: opacity var(--sh-dur-3) ease;
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out);
 }
 .sh-trailer-lightbox.sh-lightbox--open {
     opacity: 1;

@@ -23,7 +23,6 @@
     border-radius: 50%;
     filter: blur(80px);
     opacity: 0;
-    animation: sh-login-orb-pulse var(--sh-loop-ambiant) ease-in-out infinite;
 }
 .sh-login-nebula__orb--1 {
     width: 500px; height: 500px;
@@ -44,10 +43,6 @@
     animation-delay: 1.5s;
 }
 
-@keyframes sh-login-orb-pulse {
-    0%, 100% { opacity: 0.6; transform: scale(1); }
-    50%       { opacity: 1;   transform: scale(1.12); }
-}
 
 /* ── Carte Glass ──────────────────────────────────────────────── */
 .sh-login-card {
@@ -103,11 +98,6 @@
     width: 4px; height: 4px;
     border-radius: 50%;
     background: var(--sh-ink-solid, #ffffff);
-    animation: sh-login-dot var(--sh-loop-pulse) ease-in-out infinite;
-}
-@keyframes sh-login-dot {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50%       { transform: scale(1.5); opacity: 0.45; }
 }
 
 .sh-login-rocket {
@@ -132,7 +122,7 @@
     font-size: var(--sh-text-sm);
     color: rgba(var(--sh-ink, 255, 255, 255),  0.45);
     margin: 0;
-    animation: sh-fadeIn var(--sh-dur-4) ease 200ms both;
+    animation: sh-fadeIn var(--sh-dur-4) var(--sh-ease-out) 200ms both;
 }
 
 /* ── Formulaire ───────────────────────────────────────────────── */
@@ -170,7 +160,7 @@
     transform: translateY(-50%);
     stroke: rgba(var(--sh-ink, 255, 255, 255),  0.35);
     pointer-events: none;
-    transition: stroke var(--sh-dur-2) ease;
+    transition: stroke var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-login-input-wrap:focus-within .sh-login-input-icon {
     stroke: rgba(var(--sh-ink, 255, 255, 255),  0.70);
@@ -209,7 +199,7 @@
     font-size: var(--sh-text-sm);
     font-weight: var(--sh-font-medium);
     line-height: 1.45;
-    animation: sh-fadeInUp var(--sh-dur-3) ease both;
+    animation: sh-fadeInUp var(--sh-dur-3) var(--sh-ease-out) both;
 }
 
 /* ── Bouton Se Connecter ──────────────────────────────────────── */
@@ -230,7 +220,7 @@
     justify-content: center;
     margin-top: 8px;
     box-shadow: 0 4px 24px rgba(var(--sh-ink, 255, 255, 255),  0.20);
-    transition: transform var(--sh-dur-3) var(--sh-ease-spring), box-shadow var(--sh-dur-3) ease, background var(--sh-dur-3) ease;
+    transition: transform var(--sh-dur-3) var(--sh-ease-spring), box-shadow var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out);
     animation: sh-fadeInUp var(--sh-dur-4) var(--sh-ease-out) 300ms both;
     overflow: hidden;
 }

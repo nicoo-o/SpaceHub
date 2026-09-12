@@ -229,7 +229,7 @@
     padding: 24px 28px !important;
     box-shadow: 0 20px 50px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.6), inset 0 1px 0 rgba(var(--sh-ink, 255, 255, 255),  0.12) !important;
     margin-bottom: 24px !important;
-    transition: border-color var(--sh-dur-3) ease, box-shadow var(--sh-dur-3) ease;
+    transition: border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out);
 }
 
 .sh-downloads-view .sh-widget:hover {
@@ -414,7 +414,7 @@
     width: 100% !important;
     height: 100% !important;
     object-fit: cover !important;
-    transition: transform var(--sh-dur-4) ease !important;
+    transition: transform var(--sh-dur-4) var(--sh-ease-out) !important;
 }
 
 .sh-radarr-movie-card:hover .sh-radarr-movie-card__image-wrap img {
@@ -492,7 +492,7 @@
     border-radius: 16px !important;
     padding: 16px 20px !important;
     margin-bottom: 12px !important;
-    transition: transform var(--sh-dur-3) ease , opacity var(--sh-dur-3) ease , background-color var(--sh-dur-3) ease , background var(--sh-dur-3) ease , border-color var(--sh-dur-3) ease , box-shadow var(--sh-dur-3) ease , color var(--sh-dur-3) ease !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
 .sh-sonarr-queue-row:hover,
@@ -525,7 +525,7 @@
     border-radius: 14px !important;
     padding: 12px 18px !important;
     margin-bottom: 10px !important;
-    transition: transform var(--sh-dur-3) ease , opacity var(--sh-dur-3) ease , background-color var(--sh-dur-3) ease , background var(--sh-dur-3) ease , border-color var(--sh-dur-3) ease , box-shadow var(--sh-dur-3) ease , color var(--sh-dur-3) ease !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
 .sh-bazarr-item:hover {
@@ -562,7 +562,7 @@
     font-size: var(--sh-text-xs) !important;
     font-weight: var(--sh-font-semibold) !important;
     cursor: pointer !important;
-    transition: transform var(--sh-dur-3) ease , opacity var(--sh-dur-3) ease , background-color var(--sh-dur-3) ease , background var(--sh-dur-3) ease , border-color var(--sh-dur-3) ease , box-shadow var(--sh-dur-3) ease , color var(--sh-dur-3) ease !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
 .sh-bazarr-search-btn:hover {
@@ -629,7 +629,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform var(--sh-dur-3) ease, opacity var(--sh-dur-3) ease, background-color var(--sh-dur-3) ease, background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease, box-shadow var(--sh-dur-3) ease, color var(--sh-dur-3) ease;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
 
 .sh-jellyseerr-clear-btn:hover {
@@ -642,7 +642,7 @@
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 16px;
     margin-top: 18px;
-    animation: shTabContentIn var(--sh-dur-4) ease;
+    animation: shTabContentIn var(--sh-dur-4) var(--sh-ease-out);
 }
 
 .sh-jellyseerr-card {
@@ -749,7 +749,7 @@
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
-    transition: transform var(--sh-dur-3) ease, opacity var(--sh-dur-3) ease, background-color var(--sh-dur-3) ease, background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease, box-shadow var(--sh-dur-3) ease, color var(--sh-dur-3) ease;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out), opacity var(--sh-dur-3) var(--sh-ease-out), background-color var(--sh-dur-3) var(--sh-ease-out), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out), box-shadow var(--sh-dur-3) var(--sh-ease-out), color var(--sh-dur-3) var(--sh-ease-out);
 }
 
 .sh-jellyseerr-req-btn:hover {
@@ -787,7 +787,7 @@
     border-radius: 18px !important;
     padding: 14px 18px !important;
     margin-bottom: 12px !important;
-    transition: transform var(--sh-dur-3) ease , opacity var(--sh-dur-3) ease , background-color var(--sh-dur-3) ease , background var(--sh-dur-3) ease , border-color var(--sh-dur-3) ease , box-shadow var(--sh-dur-3) ease , color var(--sh-dur-3) ease !important;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out) , opacity var(--sh-dur-3) var(--sh-ease-out) , background-color var(--sh-dur-3) var(--sh-ease-out) , background var(--sh-dur-3) var(--sh-ease-out) , border-color var(--sh-dur-3) var(--sh-ease-out) , box-shadow var(--sh-dur-3) var(--sh-ease-out) , color var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 
 .sh-jellyseerr-request-card:hover {
@@ -942,7 +942,7 @@
     font-size: var(--sh-text-xs) !important;
     font-weight: var(--sh-font-semibold) !important;
     cursor: pointer !important;
-    transition: transform var(--sh-dur-2) ease , opacity var(--sh-dur-2) ease , background-color var(--sh-dur-2) ease , background var(--sh-dur-2) ease , border-color var(--sh-dur-2) ease , box-shadow var(--sh-dur-2) ease , color var(--sh-dur-2) ease !important;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out) , opacity var(--sh-dur-2) var(--sh-ease-out) , background-color var(--sh-dur-2) var(--sh-ease-out) , background var(--sh-dur-2) var(--sh-ease-out) , border-color var(--sh-dur-2) var(--sh-ease-out) , box-shadow var(--sh-dur-2) var(--sh-ease-out) , color var(--sh-dur-2) var(--sh-ease-out) !important;
     display: flex !important;
     align-items: center !important;
     gap: 6px !important;
@@ -996,7 +996,7 @@
     font-size: var(--sh-text-xs) !important;
     font-weight: var(--sh-font-semibold) !important;
     cursor: pointer !important;
-    transition: transform var(--sh-dur-2) ease , opacity var(--sh-dur-2) ease , background-color var(--sh-dur-2) ease , background var(--sh-dur-2) ease , border-color var(--sh-dur-2) ease , box-shadow var(--sh-dur-2) ease , color var(--sh-dur-2) ease !important;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out) , opacity var(--sh-dur-2) var(--sh-ease-out) , background-color var(--sh-dur-2) var(--sh-ease-out) , background var(--sh-dur-2) var(--sh-ease-out) , border-color var(--sh-dur-2) var(--sh-ease-out) , box-shadow var(--sh-dur-2) var(--sh-ease-out) , color var(--sh-dur-2) var(--sh-ease-out) !important;
 }
 
 .sh-cal-jump-today-btn:hover {
@@ -1057,7 +1057,7 @@
     gap: 6px !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
-    transition: transform var(--sh-dur-2) ease , opacity var(--sh-dur-2) ease , background-color var(--sh-dur-2) ease , background var(--sh-dur-2) ease , border-color var(--sh-dur-2) ease , box-shadow var(--sh-dur-2) ease , color var(--sh-dur-2) ease !important;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out) , opacity var(--sh-dur-2) var(--sh-ease-out) , background-color var(--sh-dur-2) var(--sh-ease-out) , background var(--sh-dur-2) var(--sh-ease-out) , border-color var(--sh-dur-2) var(--sh-ease-out) , box-shadow var(--sh-dur-2) var(--sh-ease-out) , color var(--sh-dur-2) var(--sh-ease-out) !important;
 }
 
 .sh-cal-grid-cell.empty {
@@ -1145,7 +1145,7 @@
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
-    transition: transform var(--sh-dur-1) ease, opacity var(--sh-dur-1) ease !important;
+    transition: transform var(--sh-dur-1) var(--sh-ease-out), opacity var(--sh-dur-1) var(--sh-ease-out) !important;
 }
 
 .sh-cal-event-chip:hover {
@@ -1235,7 +1235,7 @@
     border-radius: 16px !important;
     padding: 10px !important;
     cursor: pointer !important;
-    transition: transform var(--sh-dur-2) ease , opacity var(--sh-dur-2) ease , background-color var(--sh-dur-2) ease , background var(--sh-dur-2) ease , border-color var(--sh-dur-2) ease , box-shadow var(--sh-dur-2) ease , color var(--sh-dur-2) ease !important;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out) , opacity var(--sh-dur-2) var(--sh-ease-out) , background-color var(--sh-dur-2) var(--sh-ease-out) , background var(--sh-dur-2) var(--sh-ease-out) , border-color var(--sh-dur-2) var(--sh-ease-out) , box-shadow var(--sh-dur-2) var(--sh-ease-out) , color var(--sh-dur-2) var(--sh-ease-out) !important;
 }
 
 .sh-cal-timeline-card:hover {

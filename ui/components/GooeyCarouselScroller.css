@@ -30,9 +30,9 @@
     box-shadow: 0 10px 30px rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.92), 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.45);
     transition: opacity var(--sh-dur-3) var(--sh-ease-out),
                 transform var(--sh-dur-3) var(--sh-ease-spring),
-                background var(--sh-dur-2) ease,
-                border-color var(--sh-dur-2) ease,
-                box-shadow var(--sh-dur-2) ease;
+                background var(--sh-dur-2) var(--sh-ease-out),
+                border-color var(--sh-dur-2) var(--sh-ease-out),
+                box-shadow var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-shelf-nav-btn--prev {

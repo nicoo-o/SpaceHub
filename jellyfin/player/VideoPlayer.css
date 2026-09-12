@@ -115,7 +115,7 @@ body.sh-cinema-active .dialogBackdrop {
     z-index: 40;
     opacity: 0;
     pointer-events: none;
-    transition: opacity var(--sh-dur-4) ease;
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out);
 }
 .sh-cinema-buffering.visible { opacity: 1; }
 .sh-buffering-glass {
@@ -189,7 +189,7 @@ body.sh-cinema-active .dialogBackdrop {
     opacity: 0;
     transform: scale(0.6);
     pointer-events: none;
-    transition: opacity var(--sh-dur-4) ease, transform var(--sh-dur-4) var(--sh-ease-spring);
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out), transform var(--sh-dur-4) var(--sh-ease-spring);
 }
 .sh-ripple-badge.active {
     opacity: 1;
@@ -640,10 +640,14 @@ body.sh-cinema-active .dialogBackdrop {
     height: 12px;
     border-radius: 50%;
     background: var(--sh-on-media-solid, #ffffff);
-    box-shadow: 0 0 10px rgba(255, 159, 10, 1), 0 2px 6px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.6);
-    transform: translate(-50%, -50%) scale(0);
+    box-shadow: 0 0 10px rgba(var(--sh-focus-ring-rgb), 1), 0 2px 6px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.6);
+    /* Rien n'apparaît à partir de rien : le curseur naissait à `scale(0)`,
+       donc d'un point sans dimension — une apparition qu'aucun objet réel ne
+       produit. Il part d'une taille déjà lisible et se fond en même temps. */
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0;
     pointer-events: none;
-    transition: transform var(--sh-dur-2) var(--sh-ease-spring);
+    transition: transform var(--sh-dur-2) var(--sh-ease-spring), opacity var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-ribbon-timeline:hover .sh-ribbon-timeline-thumb { transform: translate(-50%, -50%) scale(1.1); }
 
@@ -662,7 +666,7 @@ body.sh-cinema-active .dialogBackdrop {
     font-variant-numeric: tabular-nums;
     pointer-events: none;
     opacity: 0;
-    transition: opacity var(--sh-dur-2) ease;
+    transition: opacity var(--sh-dur-2) var(--sh-ease-out);
     box-shadow: 0 6px 18px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.7);
 }
 .sh-ribbon-timeline:hover .sh-timeline-tooltip { opacity: 1; }
@@ -709,7 +713,7 @@ body.sh-cinema-active .dialogBackdrop {
     box-shadow: 0 0 6px #ff9f0a, 0 1px 3px rgba(var(--sh-shadow-rgb, 0, 0, 0),0.5);
     cursor: pointer;
     border: none;
-    transition: transform var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-volume-range:hover::-webkit-slider-thumb {
     transform: scale(1.25);
@@ -752,7 +756,7 @@ body.sh-cinema-active .dialogBackdrop {
     font-size: var(--sh-text-xs);
     opacity: 0.65;
     margin-left: 1px;
-    transition: transform var(--sh-dur-3) ease;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out);
 }
 .sh-dock-pill-btn.active .sh-popover-chevron {
     transform: rotate(180deg);
@@ -925,7 +929,7 @@ body.sh-cinema-active .dialogBackdrop {
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-bold);
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-sync-btn:hover {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.20);
@@ -955,7 +959,7 @@ body.sh-cinema-active .dialogBackdrop {
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-semibold);
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-chip-btn:hover {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.16);
@@ -988,7 +992,7 @@ body.sh-cinema-active .dialogBackdrop {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.06);
     border: 1px solid rgba(var(--sh-on-media, 255, 255, 255),  0.10);
     cursor: pointer;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease, background-color var(--sh-dur-2) ease, background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease, color var(--sh-dur-2) ease, filter var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out), background-color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out), color var(--sh-dur-2) var(--sh-ease-out), filter var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-popover-episode-row:hover {
     background: rgba(var(--sh-on-media, 255, 255, 255),  0.14);
@@ -1105,7 +1109,7 @@ body.sh-cinema-active .dialogBackdrop {
     padding: 40px 32px;
     text-align: center;
     background: rgba(8, 8, 12, 0.88);
-    animation: sh-fadeIn var(--sh-dur-3, 220ms) ease both;
+    animation: sh-fadeIn var(--sh-dur-3, 220ms) var(--sh-ease-out) both;
 }
 
 .sh-player-failure__title {

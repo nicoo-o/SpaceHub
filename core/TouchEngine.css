@@ -161,7 +161,7 @@
     font-size: var(--sh-text-xs);
     font-weight: var(--sh-font-bold);
     pointer-events: none;
-    transition: transform var(--sh-dur-2) ease, opacity var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), opacity var(--sh-dur-2) var(--sh-ease-out);
     opacity: 0;
 }
 

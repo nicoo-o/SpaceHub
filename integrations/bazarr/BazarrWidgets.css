@@ -100,7 +100,7 @@
     border-radius: 12px;
     padding: 10px 14px;
     gap: 10px;
-    transition: background var(--sh-dur-2) ease, border-color var(--sh-dur-2) ease;
+    transition: background var(--sh-dur-2) var(--sh-ease-out), border-color var(--sh-dur-2) var(--sh-ease-out);
 }
 .sh-bazarr-item:hover {
     background: rgba(var(--sh-ink, 255, 255, 255),  0.06);

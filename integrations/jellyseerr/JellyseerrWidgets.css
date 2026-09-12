@@ -203,7 +203,7 @@
 
 .sh-jellyseerr-modal-card--panorama {
     transform: scale(0.93) translateY(24px) !important;
-    transition: transform var(--sh-dur-4) var(--sh-ease-out), opacity var(--sh-dur-4) ease !important;
+    transition: transform var(--sh-dur-4) var(--sh-ease-out), opacity var(--sh-dur-4) var(--sh-ease-out) !important;
 }
 
 .sh-jellyseerr-panorama-header {
@@ -373,7 +373,7 @@
     align-items: center !important;
     justify-content: center !important;
     opacity: 0 !important;
-    transition: opacity var(--sh-dur-3) ease !important;
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out) !important;
 }
 .sh-trailer-player-overlay.open {
     opacity: 1 !important;
@@ -762,7 +762,7 @@
     width: 100% !important;
     -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 64px), transparent 100%);
     mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 64px), transparent 100%);
-    transition: mask-image var(--sh-dur-4) ease, -webkit-mask-image var(--sh-dur-4) ease;
+    transition: mask-image var(--sh-dur-4) var(--sh-ease-out), -webkit-mask-image var(--sh-dur-4) var(--sh-ease-out);
 }
 
 .sh-jellyseerr-carousel::-webkit-scrollbar {

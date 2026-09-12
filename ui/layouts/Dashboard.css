@@ -232,7 +232,7 @@
     flex-shrink: 0;
     stroke: rgba(var(--sh-ink, 255, 255, 255),  0.85);
     stroke-width: 2.1;
-    transition: transform var(--sh-dur-2) ease, stroke var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), stroke var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-widget:hover .sh-shelf-title-icon {
@@ -279,7 +279,7 @@
     filter: blur(160px);
     pointer-events: none;
     z-index: 0;
-    transition: background var(--sh-dur-5) ease, opacity var(--sh-dur-5) ease;
+    transition: background var(--sh-dur-5) var(--sh-ease-out), opacity var(--sh-dur-5) var(--sh-ease-out);
 }
 
 /* ── Segmented Control "Elastic Liquid Spring Pill" ────────── */
@@ -342,7 +342,7 @@
     font-weight: var(--sh-font-medium);
     cursor: pointer;
     white-space: nowrap;
-    transition: color var(--sh-dur-3) ease;
+    transition: color var(--sh-dur-3) var(--sh-ease-out);
     display: flex;
     align-items: center;
     gap: 5px;
@@ -358,7 +358,7 @@
 /* Emoji Pulse au clic */
 .sh-chip-emoji {
     display: inline-block;
-    transition: transform var(--sh-dur-3) ease;
+    transition: transform var(--sh-dur-3) var(--sh-ease-out);
 }
 .sh-chip-emoji--pulse {
     animation: sh-emoji-pulse var(--sh-dur-4) var(--sh-ease-spring) forwards;
@@ -373,7 +373,7 @@
 .sh-card {
     opacity: 1;
     transform: translateY(0);
-    transition: opacity var(--sh-dur-3) ease, transform var(--sh-dur-4) var(--sh-ease-spring);
+    transition: opacity var(--sh-dur-3) var(--sh-ease-out), transform var(--sh-dur-4) var(--sh-ease-spring);
 }
 .sh-card--skeleton {
     opacity: 1 !important;
@@ -386,7 +386,7 @@
 .sh-ctx-item:active,
 .sh-card__bookmark-btn:active {
     transform: scale(0.97) !important;
-    transition: transform var(--sh-dur-1) ease !important;
+    transition: transform var(--sh-dur-1) var(--sh-ease-out) !important;
 }
 
 /* ── Ambient Chromatic Light Leak au survol ─────────────────── */
@@ -403,7 +403,7 @@
     pointer-events: none;
     z-index: 5;
     filter: blur(20px);
-    transition: opacity var(--sh-dur-5) ease;
+    transition: opacity var(--sh-dur-5) var(--sh-ease-out);
 }
 .sh-card:hover .sh-card__image-wrap::after {
     opacity: 1;
@@ -434,7 +434,7 @@
         0 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.05);
     pointer-events: none;
     cursor: pointer;
-    transition: opacity var(--sh-dur-4) ease, transform var(--sh-dur-4) var(--sh-ease-spring), background var(--sh-dur-3) ease, border-color var(--sh-dur-3) ease;
+    transition: opacity var(--sh-dur-4) var(--sh-ease-out), transform var(--sh-dur-4) var(--sh-ease-spring), background var(--sh-dur-3) var(--sh-ease-out), border-color var(--sh-dur-3) var(--sh-ease-out);
     user-select: none;
     max-width: 480px;
 }
@@ -483,7 +483,7 @@
     color: var(--sh-ink-solid, #ffffff);
     font-size: var(--sh-text-xs);
     opacity: 0;
-    transition: opacity var(--sh-dur-2) ease;
+    transition: opacity var(--sh-dur-2) var(--sh-ease-out);
 }
 
 .sh-resume-dock:hover .sh-resume-dock__play-icon {
@@ -547,7 +547,7 @@
     gap: 5px;
     cursor: pointer;
     box-shadow: 0 4px 14px rgba(var(--sh-ink, 255, 255, 255),  0.35);
-    transition: transform var(--sh-dur-2) ease, box-shadow var(--sh-dur-2) ease;
+    transition: transform var(--sh-dur-2) var(--sh-ease-out), box-shadow var(--sh-dur-2) var(--sh-ease-out);
     flex-shrink: 0;
 }
 
@@ -568,7 +568,7 @@
     padding: 4px 6px;
     border-radius: 50%;
     cursor: pointer;
-    transition: color var(--sh-dur-2) ease, background var(--sh-dur-2) ease;
+    transition: color var(--sh-dur-2) var(--sh-ease-out), background var(--sh-dur-2) var(--sh-ease-out);
     flex-shrink: 0;
 }
 
