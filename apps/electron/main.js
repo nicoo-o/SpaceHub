@@ -52,6 +52,57 @@ let majActives = true;   // défaut : activées (opt-out dans les réglages)
 
 const FICHIER_MAJ = () => join(app.getPath('userData'), 'auto-update.json');
 
+/**
+ * LE PAQUET EN COURS D'EXÉCUTION EST-IL SIGNÉ ?
+ *
+ * Cette question n'était pas posée, et `brancherAutoUpdate()` était appelé
+ * inconditionnellement. Or la décision écrite dans
+ * docs/SIGNATURE_WINDOWS_ET_AUTO_UPDATE.md est sans ambiguïté :
+ *
+ *   « Sans signature, l'auto-update est une attaque : n'importe qui capable
+ *     de remplacer latest.yml sur le canal (miroir, réseau local,
+ *     compromission du repo) pousse un binaire arbitraire exécuté par l'app.
+ *     C'est la raison de l'ordre : signature d'abord, auto-update ensuite. »
+ *
+ * L'étape 1 (profil Azure Artifact Signing) n'est pas faite : dans
+ * `scripts/preparer-bobines.mjs`, le bloc `sign` n'existe que si les trois
+ * variables du profil sont présentes, et sinon le build sort
+ * `signAndEditExecutable: false`. Les paquets publiés jusqu'ici sont donc
+ * NON SIGNÉS — et téléchargeaient puis installaient quand même ce que le
+ * canal leur présentait. Le code faisait exactement ce que sa propre
+ * documentation interdit.
+ *
+ * CE QU'ON MESURE, ET POURQUOI C'EST CELUI-LÀ.
+ * `app-update.yml` est écrit dans les ressources du paquet par
+ * electron-builder. Son champ `publisherName` n'y apparaît que si la cible
+ * Windows a été signée, et c'est LA MÊME valeur qu'electron-updater compare
+ * au certificat du binaire téléchargé (`verifyUpdateCodeSignature`). Absente,
+ * la vérification n'a rien à comparer et electron-updater la passe. Exiger
+ * `publisherName` n'est donc pas une approximation de « est-ce signé » :
+ * c'est exactement la condition sous laquelle la vérification a lieu.
+ *
+ * En cas de doute — fichier absent, illisible, champ vide — on REFUSE. Un
+ * canal de mise à jour est une porte d'exécution de code : elle se ferme sur
+ * l'incertitude, jamais l'inverse.
+ *
+ * @returns {boolean}
+ */
+function canalVerifiable() {
+    try {
+        const racineRessources = process.resourcesPath || RACINE;
+        const brut = readFileSync(join(racineRessources, 'app-update.yml'), 'utf8');
+        // Le champ accepte une valeur seule ou une liste (rotation de
+        // certificat : `publisherName` est un tableau dans electron-builder
+        // précisément pour ça). On accepte les deux formes, et on n'accepte
+        // pas une clé annoncée sans rien derrière.
+        const bloc = /^publisherName:[^\n]*(?:\n[ \t]+[^\n]*)*/m.exec(brut);
+        if (!bloc) return false;
+        return bloc[0].replace(/^publisherName:/, '').replace(/[-\s]/g, '').length > 0;
+    } catch {
+        return false;
+    }
+}
+
 function chargerPreferenceMaj() {
     try {
         const brut = readFileSync(FICHIER_MAJ(), 'utf8');
@@ -79,10 +130,27 @@ function planifierControle(delaiMs) {
 }
 
 function brancherAutoUpdate() {
+    if (!canalVerifiable()) {
+        // NE PAS se contenter de sauter : le dire. Un canal de mise à jour
+        // silencieusement inactif est aussi trompeur qu'un canal
+        // silencieusement non vérifié — dans les deux cas personne ne sait.
+        console.log(
+            '[SpaceHub:AutoUpdate] DÉSACTIVÉ : ce paquet n\'est pas signé '
+            + '(aucun publisherName dans app-update.yml), donc electron-updater '
+            + 'ne pourrait pas vérifier la signature du binaire téléchargé. '
+            + 'Voir docs/SIGNATURE_WINDOWS_ET_AUTO_UPDATE.md — étape 1 avant étape 2. '
+            + 'Les mises à jour restent manuelles jusque-là.');
+        return;
+    }
     import('electron-updater').then(({ autoUpdater: updater }) => {
         autoUpdater = updater;
         autoUpdater.autoDownload = true;          // télécharge en arrière-plan
         autoUpdater.autoInstallOnAppQuit = true;  // installe à la fermeture, jamais pendant
+        // Réaffirmé plutôt que laissé au défaut : c'est LA vérification qui
+        // rend ce canal sûr, et un défaut qui change de valeur au fil des
+        // versions d'electron-updater la retirerait sans rien casser
+        // visiblement.
+        autoUpdater.verifyUpdateCodeSignature = true;
         autoUpdater.on('update-downloaded', () => {
             console.log('[SpaceHub:AutoUpdate] mise à jour téléchargée — installation à la fermeture.');
         });
