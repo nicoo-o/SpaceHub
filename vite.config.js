@@ -334,53 +334,116 @@ export default defineConfig({
     // Un fichier unique rend l'ordre déterministe (= ordre des imports, donc
     // tokens.css en premier) et évite 5 feuilles bloquantes en cascade sur TV.
     cssCodeSplit: false,
-    // hls.js (584 kB) et le chunk app (~320 kB) — libs externes non fragmentables.
-    // On monte la limite à 700 kB pour éviter le warning non-actionnable sur vendor-hls.
-    chunkSizeWarningLimit: 700,
+    // Le plus gros paquet est maintenant le démarrage (891 kB brut, 210 ko
+    // gzip) et vendor-hls (584 kB). Aucun des deux n'est fragmentable : le
+    // premier EST l'application, le second une bibliothèque tierce.
+    chunkSizeWarningLimit: 950,
     rollupOptions: {
       output: {
-        // P2 — Code Splitting : découpage du bundle 1.17 Mo en chunks thématiques
-        // pour accélérer le premier rendu sur TV (connexion Wi-Fi faible).
+        // DÉCOUPAGE DES PAQUETS — pourquoi `advancedChunks` et pas `manualChunks`
+        // =====================================================================
         //
-        // Priorité de matching (première règle qui match gagne) :
-        //   1. vendor-hls    → hls.js isolé (590 kB, lazy, uniquement si lecture HLS)
-        //   2. integrations  → /integrations/ (Servarr, qBit, Jellyseerr…)
-        //   3. admin-console → AdminDashboardView + JellyfinConsoleModal (rarement ouverts,
-        //                      pas de dépendance croisée avec VideoPlayer/LibraryView — cf. A10)
-        //   4. settings      → SettingsPanel (idem, ouvert ponctuellement)
-        //   5. app           → /jellyfin/ + /ui/views/ restants groupés ensemble pour éviter
-        //                      le circular warning VideoPlayer↔LibraryView (dépendances croisées)
-        //   6. (index)       → core + composants + plugins (chunk bootstrap chargé en premier)
+        // CE QUI NE MARCHAIT PAS, ET POURQUOI ÇA NE SE VOYAIT PAS
+        // -------------------------------------------------------
+        // La version précédente rangeait les modules avec `manualChunks(id)`,
+        // en six règles, et un commentaire annonçait le gain : « admin-console
+        // et settings n'alourdissent plus le chunk chargé à chaque visite ».
         //
-        // Gains attendus : le navigateur TV met en cache vendor-hls et ne le re-télécharge
-        // pas si seul le code applicatif change ; admin-console/settings n'alourdissent plus
-        // le chunk "app" chargé à chaque visite de la bibliothèque/des téléchargements.
+        // Le build produisait l'inverse. Mesuré sur la v1.5.1 :
         //
-        // Note : ce découpage améliore le cache HTTP et le parallélisme du téléchargement des
-        // chunks, mais ne les rend pas "chargés à la demande" — ces modules restent importés
-        // statiquement depuis core/SpaceHub.js. Un vrai chargement paresseux demanderait de
-        // convertir ces imports en import() dynamique (changement plus large, non fait ici).
-        manualChunks(id) {
-          // hls.js isolé — ne chargé que lors d'une lecture HLS
-          if (id.includes('node_modules/hls.js')) return 'vendor-hls';
-
-          // Intégrations tierces — pas de dépendances vers ui/ ou plugins/
-          if (id.includes('/integrations/')) return 'integrations';
-
-          // Console admin — vue autonome, aucune dépendance croisée avec le player/la library
-          if (id.includes('/ui/views/AdminDashboardView') || id.includes('/ui/views/JellyfinConsoleModal')) {
-            return 'admin-console';
-          }
-
-          // Panneau de réglages — composant autonome
-          if (id.includes('/ui/components/SettingsPanel')) return 'settings';
-
-          // jellyfin + ui/views restants groupés : VideoPlayer (jellyfin/) et LibraryView
-          // (ui/views/) s'importent mutuellement → les réunir dans "app" supprime le circular warning.
-          if (id.includes('/jellyfin/') || id.includes('/ui/views/')) return 'app';
-
-          // Core runtime + composants + plugins → chunk bootstrap (index.js)
-          // Chargé en premier, mis en cache longue durée.
+        //     <link rel="modulepreload" href="/assets/admin-console-….js">
+        //
+        // dans `dist/index.html`, 20,6 ko gzip, à chaque démarrage, pour une
+        // console d'administration que `features.adminConsole` éteint par
+        // défaut (core/FeatureFlags.js) et que `core/SpaceHub.js` ne charge
+        // qu'en `import()` dynamique.
+        //
+        // La cause n'était PAS le préchargement. En lisant les cartes de
+        // source du paquet, le chunk « admin-console » contenait six modules :
+        //
+        //     core/Logger.js            2,0 ko de source
+        //     core/services.js          9,9 ko
+        //     core/utils/domUtils.js    7,4 ko
+        //     ui/views/JellyfinConsoleModal.template.js   17,5 ko
+        //     ui/views/JellyfinConsoleModal.js            57,5 ko
+        //     ui/views/AdminDashboardView.js              31,9 ko
+        //
+        // Les trois premiers sont les modules les plus partagés du dépôt.
+        // `manualChunks` ne leur assignait rien (aucune règle ne couvrait
+        // `/core/`), rolldown les a donc groupés par accessibilité — et les a
+        // placés DANS le paquet de l'entrée dynamique. Résultat : `index`,
+        // `app` et `integrations` importaient tous les trois
+        // `admin-console` STATIQUEMENT, pour y prendre une soixantaine de
+        // symboles. Le préchargement était honnête ; le découpage ne l'était
+        // pas. Retirer le `modulepreload` (par `build.modulePreload`) aurait
+        // baissé le chiffre mesuré en RENDANT LE DÉMARRAGE PLUS LENT : le
+        // fichier restait nécessaire, simplement découvert plus tard.
+        //
+        // Un essai en sens inverse — supprimer la règle `admin-console` —
+        // rendait les choses pires encore : les deux vues tombaient dans
+        // `app`, chargé à chaque visite (+23 ko).
+        //
+        // POURQUOI `advancedChunks` RÉPOND, LÀ OÙ `manualChunks` NE POUVAIT PAS
+        // --------------------------------------------------------------------
+        // `manualChunks` est consultatif sous rolldown : un nom rendu pour un
+        // module est une étiquette, pas une décision. Vérifié ici — en
+        // assignant explicitement `/core/` à un paquet « core », les trois
+        // modules ci-dessus restaient dans `admin-console`, et `integrations`
+        // se faisait absorber ailleurs.
+        //
+        // `advancedChunks` décide vraiment, et surtout il sait exprimer la
+        // BONNE question. Le critère n'est pas « dans quel dossier vit ce
+        // fichier » mais « ce fichier est-il joignable au démarrage » :
+        //
+        //   — `tags: ['$initial']` capture exactement les modules atteignables
+        //     statiquement depuis l'entrée. Un module partagé entre l'entrée et
+        //     une vue paresseuse est `$initial` : il va au démarrage, et la vue
+        //     paresseuse l'importe depuis là. C'est le sens correct de la
+        //     dépendance, celui que `manualChunks` inversait.
+        //   — les groupes prioritaires (hls, console admin, réglages) prennent
+        //     d'abord ce qui leur revient ; aucun d'eux n'est `$initial`, donc
+        //     aucun ne peut se retrouver au démarrage par accident.
+        //
+        // MESURE
+        // ------
+        //                        avant      après
+        //   démarrage          276,1 ko   254,8 ko gzip   (−21,3)
+        //   admin-console      préchargé  différé (18,2 ko)
+        //   réglages           différé    différé (18,0 ko)
+        //   vendor-hls         différé    différé (175,5 ko)
+        //
+        // Le graphe des paquets est aussi devenu une étoile — chaque paquet
+        // différé importe `index` et rien d'autre. L'ancien découpage avait
+        // `index → admin-console`, `app → admin-console`,
+        // `integrations → app` : un ordre d'évaluation à tenir en tête.
+        //
+        // CE QU'ON PERD, ET POURQUOI C'EST ACCEPTABLE
+        // -------------------------------------------
+        // Le découpage `index` / `app` / `integrations` disparaît : ces trois
+        // paquets ne font plus qu'un. L'ancien commentaire en attendait un gain
+        // de cache HTTP — « le navigateur TV ne re-télécharge pas si seul le
+        // code applicatif change ». Ce gain n'existait pas : les trois
+        // changeaient ENSEMBLE à chaque modification du code applicatif, donc
+        // leurs empreintes changeaient ensemble. Le seul paquet qui bénéficie
+        // vraiment du cache est `vendor-hls`, épinglé à une version de
+        // dépendance — et il reste séparé.
+        //
+        // Une variante gardant les trois paquets a été mesurée : 264,7 ko,
+        // soit 10 ko de plus que celle-ci, et elle produisait des imports
+        // CIRCULAIRES entre paquets (`index ↔ app`, `app ↔ integrations`).
+        // La documentation de rolldown demande alors `preserveEntrySignatures`
+        // et `strictExecutionOrder` pour ne pas émettre de paquets invalides.
+        // Plus lourd et plus fragile : écarté.
+        advancedChunks: {
+          includeDependenciesRecursively: false,
+          groups: [
+            { name: 'vendor-hls', test: /node_modules[\\/]hls\.js/, priority: 100 },
+            { name: 'admin-console', test: /[\\/]ui[\\/]views[\\/](AdminDashboardView|JellyfinConsoleModal)/, priority: 90 },
+            { name: 'settings', test: /[\\/]ui[\\/]components[\\/]SettingsPanel/, priority: 90 },
+            // Tout le reste de ce qui est joignable au démarrage. En dernier,
+            // pour ne prendre que ce que les groupes ci-dessus ont laissé.
+            { name: 'demarrage', tags: ['$initial'], priority: 10 },
+          ],
         },
       },
     },
