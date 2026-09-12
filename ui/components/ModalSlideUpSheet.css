@@ -97,7 +97,7 @@
     width: 1040px !important;
     max-width: 94vw !important;
     height: 740px !important;
-    max-height: 92vh !important;
+    max-height: 92dvh !important;
     z-index: 100000 !important;
     background: rgba(var(--sh-ink-inv, 12, 12, 16),  0.94) !important;
     /* Audit 3.7 — flou retiré : mesuré à 0,94 d'opacité, `backdrop-filter`

@@ -99,6 +99,59 @@ describe('PontAndroid — en APK (cordova présent)', () => {
         vi.useRealTimers();
     });
 
+    it('aucune couche mais une vue précédente : retour à l\'onglet, aucun avertissement', () => {
+        const retourVue = vi.fn(() => true);
+        const pont = new PontAndroid().init({
+            demandeRetour: () => demandeRetour(),
+            retourVue: () => retourVue(),
+        });
+        document.dispatchEvent(new Event('deviceready'));
+        const toast = vi.fn();
+        document.addEventListener('spacehub:quitter-suggere', toast);
+
+        const e = { preventDefault: vi.fn() };
+        ecouteurCourant(e);
+
+        expect(retourVue).toHaveBeenCalledTimes(1);
+        expect(toast).not.toHaveBeenCalled();
+        expect(exitApp).not.toHaveBeenCalled();
+        expect(e.preventDefault).not.toHaveBeenCalled();
+    });
+
+    it('sans vue précédente, le retour retombe sur la confirmation de sortie', () => {
+        const retourVue = vi.fn(() => false);
+        new PontAndroid().init({ demandeRetour: () => demandeRetour(), retourVue: () => retourVue() });
+        document.dispatchEvent(new Event('deviceready'));
+
+        ecouteurCourant({ preventDefault: vi.fn() });
+
+        expect(retourVue).toHaveBeenCalledTimes(1);
+        expect(exitApp).not.toHaveBeenCalled();   // premier appui : avertissement
+    });
+
+    it('brancherVues attache la coquille après coup (elle naît après le pont)', () => {
+        const vues = { retourVue: vi.fn(() => true) };
+        const pont = pontPret();
+        pont.brancherVues(vues);
+
+        ecouteurCourant({ preventDefault: vi.fn() });
+
+        expect(vues.retourVue).toHaveBeenCalledTimes(1);
+        expect(exitApp).not.toHaveBeenCalled();
+    });
+
+    it('une couche restée ouverte garde la priorité sur l\'onglet précédent', () => {
+        demandeRetour.mockReturnValueOnce(true);
+        const retourVue = vi.fn(() => true);
+        new PontAndroid().init({ demandeRetour: () => demandeRetour(), retourVue: () => retourVue() });
+        document.dispatchEvent(new Event('deviceready'));
+
+        ecouteurCourant({ preventDefault: vi.fn() });
+
+        expect(demandeRetour).toHaveBeenCalledTimes(1);
+        expect(retourVue).not.toHaveBeenCalled();
+    });
+
     it('sans navigator.app (plateforme exotique), la sortie ne lève pas', () => {
         delete window.navigator.app;
         pontPret();

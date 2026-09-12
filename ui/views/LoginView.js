@@ -66,7 +66,12 @@ class LoginView {
                                     <line x1="2" y1="12" x2="22" y2="12"></line>
                                     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                                 </svg>
-                                <input type="url" id="server-url" class="sh-input sh-login-input" placeholder="http://192.168.1.100:8096" value="http://localhost:8096" required />
+                                <!-- inputmode="url" : sur un téléphone, le clavier doit
+                                     proposer la barre oblique et le point sans basculer
+                                     en alphabet. spellcheck="false" et autocomplete="off" :
+                                     une URL n'est pas un mot à corriger, et la faire
+                                     compléter par le dictionnaire est une nuisance. -->
+                                <input type="url" id="server-url" class="sh-input sh-login-input" placeholder="http://192.168.1.100:8096" value="http://localhost:8096" inputmode="url" spellcheck="false" autocapitalize="none" autocomplete="off" required />
                             </div>
                         </div>
 
@@ -74,8 +79,13 @@ class LoginView {
                              Reste masqué si le serveur ne publie aucun compte, auquel
                              cas la saisie du nom ci-dessous reste le seul chemin. -->
                         <div class="sh-login-field sh-login-profiles" id="sh-login-profiles" style="display:none;">
-                            <label>Choisissez votre profil</label>
-                            <div class="sh-login-profile-grid" id="sh-login-profile-grid"></div>
+                            <!-- Un label sans for et sans contrôle enveloppé n'étiquette
+                                 rien : le groupe restait anonyme pour un lecteur
+                                 d'écran. role="group" + aria-labelledby fait du
+                                 libellé un vrai nom de groupe, sans introduire de
+                                 fieldset dont la mise en page serait à refaire. -->
+                            <label id="sh-login-profiles-label">Choisissez votre profil</label>
+                            <div class="sh-login-profile-grid" id="sh-login-profile-grid" role="group" aria-labelledby="sh-login-profiles-label"></div>
                         </div>
 
                         <div class="sh-login-field">
@@ -85,7 +95,13 @@ class LoginView {
                                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                                     <circle cx="12" cy="7" r="4"></circle>
                                 </svg>
-                                <input type="text" id="username" class="sh-input sh-login-input" placeholder="Votre identifiant" required autofocus autocomplete="username" />
+                                <!-- Pas d'autofocus : sur un téléphone, le charger ouvre
+                                     le clavier virtuel d'office et masque la moitié de
+                                     l'écran avant que l'utilisateur ait rien demandé.
+                                     Le focus est posé explicitement quand un profil est
+                                     choisi (voir _choisirProfil), là où il suit une
+                                     intention. -->
+                                <input type="text" id="username" class="sh-input sh-login-input" placeholder="Votre identifiant" required spellcheck="false" autocapitalize="none" autocomplete="username" />
                             </div>
                         </div>
 

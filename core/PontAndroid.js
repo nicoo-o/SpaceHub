@@ -19,12 +19,21 @@
  *     : pas d'écouteur, pas d'interface posée, pas de log. Il est chargé
  *     partout pour que l'APK soit la SEULE variante à avoir un pont.
  *
- * Le retour système suit la décision documentée : couche ouverte = la
- * fermer (MÊME pipeline que la touche Retour du téléviseur — reprise de
- * l'ordre BACK_ORDER éprouvé, pas une nouvelle logique) ; aucune couche =
- * quitter l'application. Un second appui dans les 2 s confirme la sortie
- * (une destruction immédiate après un glissement mal calibré est une action
- * destructrice sans confirmation — réglage par un toast d'avertissement).
+ * Le retour système suit la décision documentée, en trois temps :
+ *
+ *   1. **une couche ouverte** se ferme (MÊME pipeline que la touche Retour du
+ *      téléviseur — reprise de l'ordre BACK_ORDER éprouvé, pas une nouvelle
+ *      logique) ;
+ *   2. **sinon, une vue précédente** existe : on y revient. Sans cette étape,
+ *      Retour depuis l'onglet Flux proposait de QUITTER l'application alors
+ *      que l'utilisateur voulait revenir à sa bibliothèque — le geste le plus
+ *      utilisé d'Android était le seul sans mémoire (core/HistoriqueVues.js) ;
+ *   3. **sinon** on quitte. Un second appui dans les 2 s confirme la sortie
+ *      (une destruction immédiate après un glissement mal calibré est une
+ *      action destructrice sans confirmation — réglage par un toast).
+ *
+ * L'étape 2 est un HOOK injecté, comme le moteur : le pont ne connaît ni les
+ * vues ni la coquille, et la coquille naît après lui.
  */
 
 'use strict';
@@ -44,9 +53,10 @@ function cordovaDisponible() {
 }
 
 class PontAndroid {
-    constructor({ logger = new Logger('PontAndroid'), demandeRetour = null } = {}) {
+    constructor({ logger = new Logger('PontAndroid'), demandeRetour = null, retourVue = null } = {}) {
         this._log = logger;
         this._demandeRetour = demandeRetour;   // injecté : SpatialNavigation
+        this._retourVue = retourVue;           // injecté : la coquille (AppLayout)
         this._pret = false;
         this._minuteurSortie = null;
         this._offRetour = null;
@@ -58,10 +68,11 @@ class PontAndroid {
      * s'abonner AVANT la readiness est le cas documenté où le geste de
      * navigation système arrive pendant que la WebView démarre encore.
      *
-     * @param {{ demandeRetour?: () => boolean }} deps
+     * @param {{ demandeRetour?: () => boolean, retourVue?: () => boolean }} deps
      */
-    init({ demandeRetour } = {}) {
+    init({ demandeRetour, retourVue } = {}) {
         if (demandeRetour) this._demandeRetour = demandeRetour;
+        if (retourVue) this._retourVue = retourVue;
         if (!cordovaDisponible()) {
             // Pas une panne : c'est le web, Electron ou la TV. Le pont n'a
             // rien à y faire, et le dire à chaque démarrage serait du bruit.
@@ -85,12 +96,20 @@ class PontAndroid {
 
     /**
      * Retour système : couche ouverte → la fermer via le pipeline TV
-     * (demandeRetour renvoie true s'il a fermé quelque chose) ; aucune
-     * couche → confirmation de sortie en 2 s, puis fermeture de l'app.
+     * (demandeRetour renvoie true s'il a fermé quelque chose) ; sinon une vue
+     * précédente → y revenir ; sinon confirmation de sortie en 2 s, puis
+     * fermeture de l'app.
      */
     _surRetour(e) {
         const ferme = this._demandeRetour?.();
         if (ferme) {
+            this._annulerSortie();
+            return;
+        }
+
+        // Une couche vient d'être fermée ? Non — mais une vue peut encore
+        // l'être. L'ordre compte : la sortie n'est proposée qu'en dernier.
+        if (this._retourVue?.() === true) {
             this._annulerSortie();
             return;
         }
@@ -134,6 +153,16 @@ class PontAndroid {
      */
     brancherMoteur(moteur) {
         this._demandeRetour = moteur?.demandeRetour?.bind(moteur) || this._demandeRetour;
+    }
+
+    /**
+     * Attache la coquille dont `retourVue()` défait la dernière navigation.
+     * Séparé de init() pour la même raison que le moteur : la coquille naît
+     * après le pont, et le geste retour peut arriver entre les deux (le pont
+     * répond alors `false`, donc « rien à défaire »).
+     */
+    brancherVues(vues) {
+        this._retourVue = vues?.retourVue?.bind(vues) || this._retourVue;
     }
 
     /** Retire l'écouteur retour (utile aux tests ; l'app ne l'appelle pas). */

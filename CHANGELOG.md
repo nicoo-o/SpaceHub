@@ -5,6 +5,35 @@ All notable changes to SpaceHub are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `core/HistoriqueVues.js` : la mémoire du bouton retour système. Le pont
+  Android ne connaissait que deux issues — fermer une couche, ou proposer de
+  **quitter** l'application. Retour depuis l'onglet Flux demandait donc
+  confirmation de sortie alors que l'utilisateur voulait revenir à sa
+  bibliothèque. Le module est une piste + une position (modèle du navigateur,
+  pas une pile naïve : sans lui, Retour oscillerait entre deux onglets sans
+  jamais proposer de sortir), pur, borné à 20 entrées, et testé par sept cas.
+
+### Changed
+- Le retour système essaie désormais trois choses DANS CET ORDRE : fermer une
+  couche ouverte, revenir à l'onglet précédent, puis proposer la sortie
+  (deux appuis en 2 s pour confirmer). `AppLayout.retourVue()` est publique
+  pour la même raison que `demandeRetour()` — le pont ne peut pas atteindre un
+  champ privé, et l'audit des façades refuse ces atteintes.
+- L'expansion tactile ne couvrait que sept des dix-sept familles qui annonçaient
+`min-height: 38px` : `verifier-gsm` vérifiait la PRÉSENCE d'une règle à 48 px,
+pas sa PORTÉE — il passait pendant que dix familles restaient sous la cible.
+Elle couvre maintenant toute la liste, et sans `z-index`, qui faisait capter au
+bouton la cible de son voisin. Au même endroit, un tap ne produisait rien de
+visible : le dépôt a un `-webkit-tap-highlight-color: transparent` et n'avait
+rien mis à la place. Dix-sept familles répondent en 120 ms
+(`transform: scale(0.97)`, qui emporte le libellé et l'icône — c'est ce qui
+rend la presse physique), la barre d'état d'Android prend la couleur de
+l'application (`theme-color`, `color-scheme`), et les modales se mesurent en
+`dvh`, que la barre gestuelle du téléphone ne mange plus.
+
 ## [1.4.0] - 2026-09-11
 
 ### Added

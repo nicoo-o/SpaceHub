@@ -837,6 +837,11 @@ async function init() {
                 services.register('ui.appLayout', appLayout, { override: true });
                 appLayout.render(appTarget);
                 log.info('AppLayout monté dans #app (Session active).');
+                // La coquille connaît les vues : c'est elle qui sait défaire la
+                // dernière navigation d'onglet quand le bouton retour système
+                // n'a plus de couche à fermer. Branchée APRÈS son render — le
+                // pont, lui, existe depuis le début.
+                pontAndroid.brancherVues?.(appLayout);
                 window.SpaceHub.gamepad = appLayout?._spatialNav?._gamepad;
                 if (!window.SpaceHub.core) window.SpaceHub.core = {};
                 window.SpaceHub.core.gamepad = appLayout?._spatialNav?._gamepad;

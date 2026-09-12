@@ -36,13 +36,30 @@
         touch-action: manipulation;
     }
 
+    /* L'expansion doit couvrir TOUTE la liste ci-dessus.
+
+       Elle n'en couvrait que sept, alors que dix-sept y figuraient : dix
+       familles annonçaient `min-height: 38px` et n'atteignaient donc jamais la
+       cible de 48 px — sauf que le contrôle GSM vérifiait la PRÉSENCE d'une
+       règle à 48 px, pas sa portée, et passait. C'est le motif de toujours :
+       la règle existe, elle ne s'applique pas. */
     .sh-genre-chip::before,
     .sh-tab-btn::before,
     .sh-season-pill-btn::before,
     .sh-nav-tab-btn::before,
     .sh-nav-action-btn::before,
+    .sh-admin-mini-action-btn::before,
     .sh-lib-alpha-btn::before,
-    .sh-sync-btn::before {
+    .sh-sync-btn::before,
+    .sh-chip-btn::before,
+    .sh-sidebar-item::before,
+    .sh-sidebar-btn::before,
+    .sh-sidebar-footer-btn::before,
+    .sh-gsm-menu__item::before,
+    .sh-tabbar-btn::before,
+    .sh-gsm-header__btn::before,
+    .sh-settings-nav__item::before,
+    .sh-user-dropdown__item::before {
         content: '';
         position: absolute;
         top: 50%;
@@ -53,7 +70,64 @@
         width: 100%;
         height: 100%;
         pointer-events: auto;
-        z-index: 1;
+        /* Pas de `z-index` : la cible peut dépasser la boîte du bouton et
+           recouvrir son voisin, et avec un empilement forcé elle captait le tap
+           destiné à celui-ci. Au repos, la résolution par ordre du document
+           donne la priorité au dernier arrivé, ce qui est le comportement
+           attendu d'une rangée dense. */
+    }
+
+    /* ── RETOUR AU TOUCHER ──────────────────────────────────────────────
+
+       C'est ce qui manquait le plus. Sur un appareil sans souris, l'affordance
+       de survol n'existe pas : il ne reste que la presse. Or le dépôt a
+       `-webkit-tap-highlight-color: transparent` — le seul retour que la
+       plateforme offrait gratuitement a donc été retiré sans être remplacé, et
+       un tap ne produisait rien de visible.
+
+       `transform: scale()` emporte le libellé et l'icône avec lui, ce qui est
+       précisément ce qui rend la presse physique. 120 ms : au-delà, la réponse
+       arrive après le geste — la latence qu'on perçoit est celle du appui, pas
+       celle du relâchement. */
+    .sh-genre-chip,
+    .sh-tab-btn,
+    .sh-season-pill-btn,
+    .sh-nav-tab-btn,
+    .sh-nav-action-btn,
+    .sh-admin-mini-action-btn,
+    .sh-lib-alpha-btn,
+    .sh-sync-btn,
+    .sh-chip-btn,
+    .sh-sidebar-item,
+    .sh-sidebar-btn,
+    .sh-sidebar-footer-btn,
+    .sh-gsm-menu__item,
+    .sh-tabbar-btn,
+    .sh-gsm-header__btn,
+    .sh-settings-nav__item,
+    .sh-user-dropdown__item {
+        transform-origin: center;
+        transition: transform var(--sh-dur-1) var(--sh-ease-out);
+    }
+
+    .sh-genre-chip:active,
+    .sh-tab-btn:active,
+    .sh-season-pill-btn:active,
+    .sh-nav-tab-btn:active,
+    .sh-nav-action-btn:active,
+    .sh-admin-mini-action-btn:active,
+    .sh-lib-alpha-btn:active,
+    .sh-sync-btn:active,
+    .sh-chip-btn:active,
+    .sh-sidebar-item:active,
+    .sh-sidebar-btn:active,
+    .sh-sidebar-footer-btn:active,
+    .sh-gsm-menu__item:active,
+    .sh-tabbar-btn:active,
+    .sh-gsm-header__btn:active,
+    .sh-settings-nav__item:active,
+    .sh-user-dropdown__item:active {
+        transform: scale(0.97);
     }
 
     /* Scroll inertiel fluide sur iOS/Android */

@@ -37,7 +37,10 @@
         inset 0 -1px 0 rgba(var(--sh-shadow-rgb, 0, 0, 0), 0.5),
         0 0 0 1px rgba(var(--sh-ink, 255, 255, 255),  0.05);
     display: flex; flex-direction: column;
-    max-height: calc(100vh - 64px);
+    /* `dvh` et non `vh` : sur Android, `vh` ignore la barre gestuelle et la
+       barre d'adresse rétractée — le bas de la modale passait dessous. La
+       coquille est passée en `dvh` depuis la passe GSM ; les modales, non. */
+    max-height: calc(100dvh - 64px);
     overflow-y: auto;
     transform: scale(0.97) translateY(8px);
     opacity: 0;
@@ -81,7 +84,7 @@
         transform: none;
         width: 100%;
         max-width: none;
-        max-height: 88vh;
+        max-height: 88dvh;
         margin: 0;
         border-radius: 22px 22px 0 0;
         border-bottom: none;
@@ -89,7 +92,7 @@
         padding-bottom: env(safe-area-inset-bottom, 0px);
     }
     html.sh-gsm .sh-modal:not(#sh-modal-gsm-user-menu) .sh-modal__body {
-        max-height: calc(88vh - 64px);
+        max-height: calc(88dvh - 64px);
         overflow-y: auto;
         overscroll-behavior: contain;
     }

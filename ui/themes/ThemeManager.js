@@ -125,6 +125,7 @@ class ThemeManager {
         this._current = themeId;
 
         document.documentElement.setAttribute('data-sh-theme', themeId);
+        this._synchroniserBarreSysteme();
         this._settings?.set(SETTINGS_KEY, themeId);
 
         if (this._eventBus) {
@@ -184,6 +185,28 @@ class ThemeManager {
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Teinte la barre d'état d'Android (et la barre d'outils du navigateur) avec
+     * la couleur de fond RÉELLE du thème appliqué.
+     *
+     * `theme-color` était absent : sur le thème sombre, la barre du téléphone
+     * restait claire au-dessus d'une application noire. Une valeur fixe dans
+     * l'index ne suffirait pas non plus — le dépôt a plusieurs thèmes, et la
+     * couleur doit suivre. On la lit donc dans le jeton lui-même, ce qui évite
+     * de tenir ici une seconde table de correspondance à maintenir.
+     */
+    _synchroniserBarreSysteme() {
+        try {
+            const jeton = getComputedStyle(document.documentElement)
+                .getPropertyValue('--sh-bg-base')
+                .trim();
+            if (!jeton) return;
+            document.querySelector('meta[name="theme-color"]')?.setAttribute('content', jeton);
+        } catch (_) {
+            // Cosmétique : une barre de système non teintée ne casse rien.
+        }
+    }
 
     _applyVariables(variables = {}) {
         // Retire les surcharges précédentes

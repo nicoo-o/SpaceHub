@@ -18,7 +18,12 @@
  *      coquille GSM sans garde (hover: hover) reste posée après un tap ;
  *   4. le sélecteur fantôme : une classe GSM référencée par le CSS mais
  *      jamais émise par le JS (ou l'inverse) — la famille de défauts que
- *      nav-contract-check traque pour le moteur TV, ici pour la coquille.
+ *      nav-contract-check traque pour le moteur TV, ici pour la coquille ;
+ *   5. le Retour sans mémoire : le bouton système doit fermer une couche,
+ *      PUIS revenir à l'onglet précédent, et seulement ensuite proposer la
+ *      sortie. Si l'étape du milieu disparaît, Retour depuis Flux demande de
+ *      quitter l'application — le geste le plus utilisé d'Android redevient
+ *      destructeur.
  *
  * Chaque règle est checkable sans navigateur : ce script lit les sources.
  */
@@ -49,6 +54,7 @@ const attendus = {
     overscroll: 0,
     classesEmises: 0,
     cibles48: 0,
+    retourOnglets: 0,
 };
 
 // ─── 1. Viewport : jamais de zoom bloqué ─────────────────────────────────────
@@ -124,9 +130,30 @@ const appLayoutCss = readFileSync(join(RACINE, 'ui', 'layouts', 'AppLayout.css')
     }
 }
 
+// ─── 6. Le Retour défait une navigation AVANT de proposer la sortie ─────────
+{
+    const pont = readFileSync(join(RACINE, 'core', 'PontAndroid.js'), 'utf8');
+    const layout = readFileSync(join(RACINE, 'ui', 'layouts', 'AppLayout.js'), 'utf8');
+    const hub = readFileSync(join(RACINE, 'core', 'SpaceHub.js'), 'utf8');
+
+    const appel = pont.indexOf('this._retourVue?.()');
+    const sortie = pont.indexOf('quitter-suggere');
+    attendus.retourOnglets = appel > -1 ? 1 : 0;
+    if (appel === -1 || sortie === -1 || appel > sortie) {
+        FAULTS.push('PontAndroid.js — le retour système ne défait plus la navigation d\'onglet avant de proposer la sortie : sur un téléphone, Retour depuis Flux demande de quitter l\'application (core/HistoriqueVues.js).');
+    }
+    if (!/^\s{4}retourVue\(\)\s*\{/m.test(layout)) {
+        FAULTS.push('AppLayout.js — la coquille n\'expose plus retourVue() : le pont n\'a plus rien à appeler en APK.');
+    }
+    if (!/brancherVues/.test(hub)) {
+        FAULTS.push('SpaceHub.js — la coquille n\'est plus branchée sur le pont (brancherVues()) : retourVue() ne sera jamais atteint.');
+    }
+}
+
 // ─── Verdict ─────────────────────────────────────────────────────────────────
 console.log(`Coquille GSM : viewport vérifié, ${attendus.classesEmises} classes CSS croisées au JS, `
-    + `${attendus.hoverGarde} règles :hover gardées, dvh×${attendus.dvh}, cibles 48px ${attendus.cibles48}/3.`);
+    + `${attendus.hoverGarde} règles :hover gardées, dvh×${attendus.dvh}, cibles 48px ${attendus.cibles48}/3, `
+    + `retour-onglet ${attendus.retourOnglets ? 'branché' : 'ABSENT'}.`);
 if (FAULTS.length) {
     console.error(`\n✖ ${FAULTS.length} invariant(s) GSM violé(s) :`);
     for (const f of FAULTS) console.error(`   · ${f}`);

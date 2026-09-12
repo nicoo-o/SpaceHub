@@ -17,6 +17,7 @@ import SpatialNavigation  from '../../core/SpatialNavigation.js';
 
 import './AppLayout.css';
 import { creerBarreNavigation } from './BarreNavigation.js';
+import { creerHistoriqueVues } from '../../core/HistoriqueVues.js';
 import { creerEnTeteCompact } from './EnTeteCompact.js';
 import * as svc from '../../core/services.js';
 import { chargerConsoleAdmin } from '../views/chargerConsoleAdmin.js';
@@ -26,6 +27,10 @@ class AppLayout {
     constructor() {
         this._log = new Logger('AppLayout');
         this._currentView = 'dashboard';
+        // Mémoire du bouton retour Android. Vit ici parce que c'est ici que
+        // les vues changent : le pont système ne connaît que la question
+        // « y a-t-il quelque chose à défaire ? ».
+        this._historiqueVues = creerHistoriqueVues();
         this._navigationId = 0;
         this._documentHandlers = [];
         this._eventBusOff = null;
@@ -739,6 +744,7 @@ class AppLayout {
         }
         Object.values(this._views).forEach(view => view?.destroy?.());
         this._sidebar?.destroy?.();
+        this._historiqueVues?.vider?.();
         this._barreGsm?.nettoyer?.();
         this._barreGsm = null;
         this._enteteGsm?.nettoyer?.();
@@ -752,6 +758,24 @@ class AppLayout {
         const run = () => this._navigateInternal(viewName, params);
         this._navigationQueue = this._navigationQueue.catch(() => {}).then(run);
         return this._navigationQueue;
+    }
+
+    /**
+     * Défait la dernière navigation d'onglet — ce que le bouton retour
+     * système essaie AVANT de proposer la sortie de l'application
+     * (core/PontAndroid.js, étape 2).
+     *
+     * Publique par nécessité : le pont ne peut pas atteindre un champ privé,
+     * et l'audit des façades refuse ces atteintes — c'est la même raison qui a
+     * rendu `SpatialNavigation.demandeRetour()` public.
+     *
+     * @returns {boolean} vrai si une vue précédente a été retrouvée
+     */
+    retourVue() {
+        const precedente = this._historiqueVues.precedente();
+        if (!precedente) return false;
+        this.navigate(precedente);
+        return true;
     }
 
     async _navigateInternal(viewName, params = {}) {
@@ -776,6 +800,10 @@ class AppLayout {
         }
 
         this._currentView = normalizedView;
+        // La vue où l'on ARRIVE. Le module ignore la navigation de retour
+        // elle-même (sinon Retour oscillerait entre deux onglets sans jamais
+        // proposer de sortir) et tronque la branche abandonnée.
+        this._historiqueVues.enregistrer(normalizedView);
 
         // Synchroniser le bouton actif et la capsule blanche dans le dock
         const buttons = document.querySelectorAll('.sh-nav-tab-btn');

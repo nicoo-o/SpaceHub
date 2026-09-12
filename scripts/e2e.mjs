@@ -1600,6 +1600,45 @@ await scenario('GSM — la barre basse navigue réellement entre les vues', asyn
     return { ok, detail: ok ? 'tap Bibliothèques → vue rendue, onglet actif synchronisé' : `navigue=${r.navigue}, actif=${r.actif}` };
 });
 
+await scenario('GSM — le retour défait la dernière navigation d\'onglet', async () => {
+    // L'ordre est le sujet du scénario : on ferme d'abord ce qui est ouvert
+    // (une couche), PUIS on revient dans les onglets, et seulement ensuite on
+    // propose de sortir. Il manquait l'étape du milieu : Retour depuis Flux
+    // demandait confirmation de sortie alors que l'utilisateur voulait
+    // revenir à sa bibliothèque.
+    const r = await pageGsmCoquille.evaluate(async () => {
+        const layout = window.SpaceHub?.ui?.appLayout;
+        if (!layout) return { trou: true };
+        const pause = (ms) => new Promise(res => setTimeout(res, ms));
+
+        // Le scénario précédent a laissé la vue sur « library ».
+        document.querySelector('.sh-tabbar-btn[data-view="flux"]')?.click();
+        await pause(1200);
+        const surFlux = layout._currentView;
+
+        const premier = layout.retourVue();
+        await pause(1200);
+        const apresPremier = layout._currentView;
+        const second = layout.retourVue();
+        await pause(800);
+        const apresSecond = layout._currentView;
+        const epuise = layout.retourVue();
+        await pause(400);
+
+        return {
+            surFlux, premier, apresPremier, second, apresSecond, epuise,
+            // Rien à défaire : le pont enchaîne alors sur la confirmation de
+            // sortie ; on vérifie que la vue n'a pas bougé pour autant.
+            stable: layout._currentView === apresSecond,
+        };
+    });
+    const ok = !r.trou && r.surFlux === 'flux' && r.premier === true && r.apresPremier === 'library'
+        && r.second === true && r.apresSecond === 'dashboard' && r.epuise === false && r.stable;
+    return { ok, detail: ok
+        ? 'flux → retour → library → retour → dashboard → plus rien à défaire'
+        : JSON.stringify(r) };
+});
+
 await pageGsmCoquille.context().close();
 
 await scenario('GSM — retour système : le pont est inactif sur le web SANS casser la page', async () => {
