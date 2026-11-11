@@ -13,7 +13,7 @@ their look and be installed and checked from one place.
 | App | Role | State |
 |---|---|---|
 | [SpaceNotch](https://github.com/nicoo-o/SpaceNotch) | Dynamic Island, launcher, notifications | Released |
-| SpaceFiles | File explorer | In development, not published yet |
+| [SpaceFiles](https://github.com/nicoo-o/SpaceFiles) | File explorer | In development — source published, no release yet |
 | [JellySpace](https://github.com/nicoo-o/JellySpace) | Jellyfin media center | Released — joins later |
 | [Libraria](https://github.com/nicoo-o/libraria) | Books and audiobooks | Early — joins later |
 
@@ -36,7 +36,7 @@ their look and be installed and checked from one place.
 ## The contract (Eco protocol)
 
 Apps declare a manifest, talk through named pipes restricted to the current user (JSON lines), and read one shared settings
-file. No network port, no account, no telemetry. The specification lives in the SpaceFiles repository
+file. No network port, no account, no telemetry. The specification lives in the [SpaceFiles repository](https://github.com/nicoo-o/SpaceFiles)
 (`docs/ecosystem/`) until it is published here.
 
 ## Install

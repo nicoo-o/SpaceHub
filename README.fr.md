@@ -13,7 +13,7 @@ connaître, de partager leur style, et d'être installées et vérifiées au mê
 | Application | Rôle | État |
 |---|---|---|
 | [SpaceNotch](https://github.com/nicoo-o/SpaceNotch) | Dynamic Island, lanceur, notifications | Publiée |
-| SpaceFiles | Explorateur de fichiers | En développement, pas encore publié |
+| [SpaceFiles](https://github.com/nicoo-o/SpaceFiles) | Explorateur de fichiers | En développement — source publiée, pas encore de version |
 | [JellySpace](https://github.com/nicoo-o/JellySpace) | Centre multimédia Jellyfin | Publié — rejoindra plus tard |
 | [Libraria](https://github.com/nicoo-o/libraria) | Livres et livres audio | Début — rejoindra plus tard |
 
